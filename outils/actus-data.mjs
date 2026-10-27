@@ -8,7 +8,7 @@ import vm from 'node:vm';
 const PAGE = process.env.ACTUS_PAGE || 'actus.html';
 const OUT = process.env.ACTUS_OUT || 'donnees/actus';
 const NOW = Date.now(), H = 3600e3;
-const MAX_AGE = 72 * H, MAX_ITEMS = 45;
+const MAX_AGE = 72 * H, MAX_ITEMS = 45, PER_FEED = 25;
 
 /* ---------- Onglets et flux : lus dans actus.html ---------- */
 const page = fs.readFileSync(PAGE, 'utf8');
@@ -127,7 +127,7 @@ const BY = Object.fromEntries(got);
 let prev = null; try{ prev = JSON.parse(fs.readFileSync(`${OUT}/actus.json`, 'utf8')); }catch{}
 const tabs = {};
 for (const t of TABS){
-  let items = t.feeds.flatMap(f => (BY[f.url] || []).map(i => ({...i, source:f.name, color:f.color, date:i.date || NOW})));
+  let items = t.feeds.flatMap(f => (BY[f.url] || []).slice(0, PER_FEED).map(i => ({...i, source:f.name, color:f.color, date:i.date || NOW})));   // une source ne peut pas noyer les autres
   // flux en panne : on garde ses articles du passage précédent
   t.feeds.filter(f => !state[f.url].ok).forEach(f => {
     const old = ((prev && prev.tabs && prev.tabs[t.id] && prev.tabs[t.id].items) || []).filter(i => i.source === f.name);
