@@ -1,6 +1,6 @@
 // Trie le programme TV (XMLTV) et ne garde que le sport -> tv.json
 import fs from 'node:fs';
-const [,, src = 'guide.xml', out = 'tv.json'] = process.argv;
+const [,, src = 'guide.xml', out = 'tv.json', logFile = ''] = process.argv;
 const NAMES = {
   CPLUS: 'Canal+',
   CPLUS_B: 'Canal+',
@@ -81,10 +81,25 @@ for (const m of xml.matchAll(/<programme\s+([^>]*)>([\s\S]*?)<\/programme>/g)){
 // Source de secours (site beIN) : seulement pour les chaînes que la source principale n'a pas fournies
 const main = new Set(list.filter(p => !p.backup).map(p => p.c));
 for (let i = list.length - 1; i >= 0; i--){ if (list[i].backup && main.has(list[i].c)) list.splice(i, 1); else delete list[i].backup; }
+// Si une chaîne n'a rien renvoyé pour un jour (site saturé, erreur passagère), on garde ce que l'on avait déjà pour ce jour-là
+let prev = []; try{ prev = JSON.parse(fs.readFileSync(out, 'utf8')).programmes || []; }catch{}
+const have = new Set(list.map(p => `${p.c}|${p.s.slice(0, 10)}`));
+const kept = prev.filter(p => Date.parse(p.e || p.s) >= now - 6 * 3600e3 && !have.has(`${p.c}|${p.s.slice(0, 10)}`));
+list.push(...kept);
 list.sort((a, b) => a.s.localeCompare(b.s));
-fs.writeFileSync(out, JSON.stringify({updated: new Date().toISOString(), programmes: list}));
-const per = {}; list.forEach(p => { per[p.c] = (per[p.c] || 0) + 1; });
-console.log(`${list.length} programmes de sport écrits dans ${out}`);
-console.log(Object.entries(per).map(([c, n]) => `  ${c} : ${n}`).join('\n') || '  (aucune chaîne)');
+
+// État de la récupération (lu par Claude pour diagnostiquer, sans avoir besoin du journal GitHub)
+const per = {}; list.forEach(p => { const x = per[p.c] || (per[p.c] = {n:0, jusqu:''}); x.n++; if (p.s > x.jusqu) x.jusqu = p.s.slice(0, 10); });
 const vides = [...new Set(Object.values(NAMES))].filter(c => !per[c]);
+let erreurs = [], zero = {};
+if (logFile && fs.existsSync(logFile)){
+  const lines = fs.readFileSync(logFile, 'utf8').split('\n');
+  lines.forEach(l => { const m = l.match(/-\s*([A-Z0-9_]+)\s*-.*\((0) programs?\)/); if (m) zero[m[1]] = (zero[m[1]] || 0) + 1; });
+  erreurs = [...new Set(lines.filter(l => /error|err!|fail|status code|timeout|ECONN|429|403|401/i.test(l)).map(l => l.trim().slice(0, 220)))].slice(-40);
+}
+const etat = {chaines:per, vides, joursVides:zero, reprisDeLaVeille:kept.length, erreurs};
+fs.writeFileSync(out, JSON.stringify({updated: new Date().toISOString(), etat, programmes: list}));
+console.log(`${list.length} programmes de sport écrits dans ${out} (dont ${kept.length} repris du passage précédent)`);
+console.log(Object.entries(per).map(([c, x]) => `  ${c} : ${x.n} (jusqu'au ${x.jusqu})`).join('\n') || '  (aucune chaîne)');
 if (vides.length) console.log(`Chaînes sans programme : ${vides.join(', ')}`);
+if (erreurs.length) console.log(`Erreurs vues dans la récupération :\n  ${erreurs.slice(-10).join('\n  ')}`);

@@ -54,6 +54,10 @@
   <channel site="chaines-tv.orange.fr" site_id="4221" lang="fr" xmltv_id="L1P8">Ligue 1+ 8</channel>
   <channel site="chaines-tv.orange.fr" site_id="4222" lang="fr" xmltv_id="L1P9">Ligue 1+ 9</channel>
   <channel site="chaines-tv.orange.fr" site_id="1401" lang="fr" xmltv_id="EQUIPE">La chaîne L'Équipe</channel>
+  <!-- Ligue 1+ par Canal+ (secours si Orange ne répond pas) -->
+  <channel site="canalplus.com" site_id="#1174" lang="fr" xmltv_id="L1P3_W">Ligue 1+ 3</channel>
+  <channel site="canalplus.com" site_id="#1179" lang="fr" xmltv_id="L1P4_W">Ligue 1+ 4</channel>
+  <channel site="canalplus.com" site_id="#1180" lang="fr" xmltv_id="L1P5_W">Ligue 1+ 5</channel>
   <!-- beIN Sports en direct (secours si Orange ne répond pas) -->
   <channel site="beinsports.com" site_id="66265DD1-D2AA-4A89-9412-2455186E90ED" lang="fr" xmltv_id="BEIN1_W">beIN Sports 1</channel>
   <channel site="beinsports.com" site_id="1E886E98-3104-4D8E-A97F-734B23108E8A" lang="fr" xmltv_id="BEIN2_W">beIN Sports 2</channel>
