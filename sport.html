@@ -436,7 +436,7 @@ const LEAGUES = [
   {id:'nhl',                 region:'us',  flag:'🇺🇸', sport:'hockey',     group:'hockey', name:'NHL', tv:['beIN Sports','DAZN'], partial:true}
 ];
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
-const CACHE = 'sport:v2:';
+const CACHE = 'sport:v3:';
 
 /* ====================================================== */
 const $ = s => document.querySelector(s);
@@ -737,7 +737,7 @@ function compBadge(L){
 
 function teamHTML(m, t, other){
   const evs = (FULL[m.id] && FULL[m.id].evs) || m.details;
-  const reds = evs.filter(d => d.kind === 'red' && d.team && d.team === t.id).length;
+  const reds = evs.filter(d => (d.kind === 'red' || d.red) && d.team && d.team === t.id).length;
   const yellows = LBY[m.league].sport === 'rugby' ? evs.filter(d => d.kind === 'yellow' && d.team && d.team === t.id).length : 0;
   const draw = m.state === 'post' && !m.home.win && !m.away.win;
   const src = badgeFor(m, t) || t.logo;
@@ -774,7 +774,8 @@ function moreHTML(m){
   const L = LBY[m.league], rugby = L.sport === 'rugby';
   const name = id => id === m.home.id ? m.home.name : id === m.away.id ? m.away.name : '';
   const full = FULL[m.id];
-  const list = ((full && full.evs) || m.details).filter(d => KIND[d.kind] && (rugby || d.kind !== 'yellow'));
+  const kindOf = d => d.kind || (d.red ? 'red' : d.yellow ? 'yellow' : d.goal ? 'goal' : '');
+  const list = ((full && full.evs) || m.details).map(d => ({...d, kind:kindOf(d)})).filter(d => KIND[d.kind] && (rugby || d.kind !== 'yellow'));
   const evs = list.map(d => { const k = KIND[d.kind];
     return `<div class="ev"><span class="m">${esc(d.min)}</span><span class="ic ${k[0]}" title="${k[1]}">${KIND_ICON[d.kind] || ''}</span>
       <span class="who">${rugby ? `${k[1]}${d.who ? ' · ' : ''}` : ''}${esc(d.who || (rugby ? '' : k[1]))}${!rugby && d.pen && d.kind === 'goal' ? ' (pén.)' : ''}${d.og ? ' (csc)' : ''} <em>${esc(name(d.team))}</em></span></div>`; }).join('');
