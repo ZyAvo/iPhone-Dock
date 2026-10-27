@@ -1,0 +1,377 @@
+# Calendrier Ligue 1 2026-27
+# Source : openfootball (github.com/openfootball/football.json)
+# Une journée par bloc, une ligne par match (domicile - extérieur).
+
+Journée 1
+Olympique de Marseille - RC Strasbourg Alsace
+Racing Club de Lens - AJ Auxerre
+Le Mans FC - Stade Brestois 29
+ES Troyes AC - Paris FC
+OGC Nice - FC Lorient
+Toulouse FC - Olympique Lyonnais
+Angers SCO - Lille OSC
+Le Havre AC - AS Monaco FC
+Stade Rennais FC 1901 - Paris Saint-Germain FC
+
+Journée 2
+Lille OSC - Paris Saint-Germain FC
+RC Strasbourg Alsace - Racing Club de Lens
+FC Lorient - ES Troyes AC
+Olympique Lyonnais - Le Havre AC
+AJ Auxerre - Angers SCO
+Stade Brestois 29 - Toulouse FC
+Paris FC - OGC Nice
+Stade Rennais FC 1901 - Le Mans FC
+AS Monaco FC - Olympique de Marseille
+
+Journée 3
+Toulouse FC - Lille OSC
+Olympique Lyonnais - AJ Auxerre
+Paris Saint-Germain FC - AS Monaco FC
+Racing Club de Lens - FC Lorient
+Le Havre AC - Stade Brestois 29
+OGC Nice - Le Mans FC
+ES Troyes AC - RC Strasbourg Alsace
+Angers SCO - Stade Rennais FC 1901
+Olympique de Marseille - Paris FC
+
+Journée 4
+Stade Rennais FC 1901 - Olympique de Marseille
+RC Strasbourg Alsace - AS Monaco FC
+FC Lorient - Toulouse FC
+AJ Auxerre - OGC Nice
+Le Havre AC - Angers SCO
+Paris FC - Olympique Lyonnais
+Lille OSC - ES Troyes AC
+Le Mans FC - Racing Club de Lens
+Stade Brestois 29 - Paris Saint-Germain FC
+
+Journée 5
+AS Monaco FC - Racing Club de Lens
+Paris FC - RC Strasbourg Alsace
+Le Mans FC - FC Lorient
+Toulouse FC - Le Havre AC
+Angers SCO - ES Troyes AC
+Olympique Lyonnais - Stade Rennais FC 1901
+AJ Auxerre - Stade Brestois 29
+OGC Nice - Lille OSC
+Olympique de Marseille - Paris Saint-Germain FC
+
+Journée 6
+Racing Club de Lens - Olympique Lyonnais
+Lille OSC - Le Havre AC
+Stade Brestois 29 - Angers SCO
+FC Lorient - Paris FC
+Paris Saint-Germain FC - Le Mans FC
+AS Monaco FC - Toulouse FC
+OGC Nice - RC Strasbourg Alsace
+Stade Rennais FC 1901 - AJ Auxerre
+ES Troyes AC - Olympique de Marseille
+
+Journée 7
+Le Mans FC - Toulouse FC
+RC Strasbourg Alsace - Paris Saint-Germain FC
+ES Troyes AC - Racing Club de Lens
+Lille OSC - Stade Brestois 29
+Angers SCO - Olympique de Marseille
+FC Lorient - AS Monaco FC
+Paris FC - Stade Rennais FC 1901
+Le Havre AC - AJ Auxerre
+Olympique Lyonnais - OGC Nice
+
+Journée 8
+Stade Brestois 29 - OGC Nice
+Toulouse FC - ES Troyes AC
+Racing Club de Lens - Paris FC
+AS Monaco FC - Lille OSC
+Olympique de Marseille - Le Havre AC
+Stade Rennais FC 1901 - RC Strasbourg Alsace
+Angers SCO - FC Lorient
+AJ Auxerre - Le Mans FC
+Paris Saint-Germain FC - Olympique Lyonnais
+
+Journée 9
+Le Havre AC - Paris Saint-Germain FC
+Lille OSC - Racing Club de Lens
+OGC Nice - Stade Rennais FC 1901
+Olympique Lyonnais - Angers SCO
+FC Lorient - Stade Brestois 29
+ES Troyes AC - Le Mans FC
+RC Strasbourg Alsace - AJ Auxerre
+Paris FC - AS Monaco FC
+Olympique de Marseille - Toulouse FC
+
+Journée 10
+Toulouse FC - RC Strasbourg Alsace
+AJ Auxerre - Paris FC
+Paris Saint-Germain FC - ES Troyes AC
+Stade Rennais FC 1901 - Lille OSC
+Le Mans FC - AS Monaco FC
+Stade Brestois 29 - Olympique Lyonnais
+Le Havre AC - FC Lorient
+Angers SCO - OGC Nice
+Racing Club de Lens - Olympique de Marseille
+
+Journée 11
+ES Troyes AC - Le Havre AC
+OGC Nice - Paris Saint-Germain FC
+AS Monaco FC - AJ Auxerre
+Racing Club de Lens - Toulouse FC
+Lille OSC - Olympique Lyonnais
+RC Strasbourg Alsace - Stade Brestois 29
+Paris FC - Angers SCO
+FC Lorient - Stade Rennais FC 1901
+Olympique de Marseille - Le Mans FC
+
+Journée 12
+Stade Brestois 29 - Paris FC
+Angers SCO - Racing Club de Lens
+Le Mans FC - Lille OSC
+OGC Nice - ES Troyes AC
+Le Havre AC - RC Strasbourg Alsace
+Paris Saint-Germain FC - FC Lorient
+AJ Auxerre - Olympique de Marseille
+Toulouse FC - Stade Rennais FC 1901
+Olympique Lyonnais - AS Monaco FC
+
+Journée 13
+ES Troyes AC - Olympique Lyonnais
+AS Monaco FC - Angers SCO
+Racing Club de Lens - Le Havre AC
+Lille OSC - AJ Auxerre
+Olympique de Marseille - OGC Nice
+Stade Rennais FC 1901 - Stade Brestois 29
+Toulouse FC - Paris Saint-Germain FC
+RC Strasbourg Alsace - FC Lorient
+Paris FC - Le Mans FC
+
+Journée 14
+OGC Nice - Racing Club de Lens
+Paris Saint-Germain FC - Paris FC
+Angers SCO - RC Strasbourg Alsace
+Stade Brestois 29 - ES Troyes AC
+Le Havre AC - Le Mans FC
+Stade Rennais FC 1901 - AS Monaco FC
+FC Lorient - Lille OSC
+AJ Auxerre - Toulouse FC
+Olympique Lyonnais - Olympique de Marseille
+
+Journée 15
+Le Mans FC - Olympique Lyonnais
+Stade Brestois 29 - Olympique de Marseille
+ES Troyes AC - Stade Rennais FC 1901
+Toulouse FC - Angers SCO
+AS Monaco FC - OGC Nice
+Paris FC - Le Havre AC
+FC Lorient - AJ Auxerre
+Lille OSC - RC Strasbourg Alsace
+Racing Club de Lens - Paris Saint-Germain FC
+
+Journée 16
+Olympique de Marseille - Lille OSC
+Olympique Lyonnais - FC Lorient
+Paris FC - Toulouse FC
+Stade Rennais FC 1901 - Racing Club de Lens
+OGC Nice - Le Havre AC
+AJ Auxerre - ES Troyes AC
+RC Strasbourg Alsace - Le Mans FC
+AS Monaco FC - Stade Brestois 29
+Angers SCO - Paris Saint-Germain FC
+
+Journée 17
+Le Havre AC - Stade Rennais FC 1901
+RC Strasbourg Alsace - Olympique Lyonnais
+Lille OSC - Paris FC
+Racing Club de Lens - Stade Brestois 29
+Paris Saint-Germain FC - AJ Auxerre
+ES Troyes AC - AS Monaco FC
+FC Lorient - Olympique de Marseille
+Le Mans FC - Angers SCO
+Toulouse FC - OGC Nice
+
+Journée 18
+Paris FC - AJ Auxerre
+Olympique Lyonnais - Lille OSC
+Stade Rennais FC 1901 - FC Lorient
+Le Mans FC - OGC Nice
+Olympique de Marseille - ES Troyes AC
+Angers SCO - Le Havre AC
+Stade Brestois 29 - RC Strasbourg Alsace
+AS Monaco FC - Paris Saint-Germain FC
+Toulouse FC - Racing Club de Lens
+
+Journée 19
+ES Troyes AC - Lille OSC
+Racing Club de Lens - Angers SCO
+Le Havre AC - Toulouse FC
+FC Lorient - Le Mans FC
+OGC Nice - Stade Brestois 29
+Stade Rennais FC 1901 - Olympique Lyonnais
+RC Strasbourg Alsace - Paris FC
+AJ Auxerre - AS Monaco FC
+Paris Saint-Germain FC - Olympique de Marseille
+
+Journée 20
+Stade Brestois 29 - Stade Rennais FC 1901
+Paris FC - ES Troyes AC
+Le Mans FC - Paris Saint-Germain FC
+FC Lorient - Le Havre AC
+AJ Auxerre - RC Strasbourg Alsace
+Toulouse FC - AS Monaco FC
+Olympique de Marseille - Angers SCO
+Lille OSC - OGC Nice
+Olympique Lyonnais - Racing Club de Lens
+
+Journée 21
+Angers SCO - Paris FC
+Stade Rennais FC 1901 - Toulouse FC
+Paris Saint-Germain FC - Stade Brestois 29
+RC Strasbourg Alsace - Olympique de Marseille
+OGC Nice - AJ Auxerre
+Le Havre AC - Olympique Lyonnais
+AS Monaco FC - Le Mans FC
+Lille OSC - FC Lorient
+Racing Club de Lens - ES Troyes AC
+
+Journée 22
+RC Strasbourg Alsace - Le Havre AC
+AJ Auxerre - Lille OSC
+ES Troyes AC - OGC Nice
+Stade Brestois 29 - AS Monaco FC
+FC Lorient - Angers SCO
+Olympique de Marseille - Stade Rennais FC 1901
+Olympique Lyonnais - Toulouse FC
+Le Mans FC - Paris FC
+Paris Saint-Germain FC - Racing Club de Lens
+
+Journée 23
+Le Havre AC - OGC Nice
+Paris Saint-Germain FC - Stade Rennais FC 1901
+Racing Club de Lens - RC Strasbourg Alsace
+Toulouse FC - Le Mans FC
+ES Troyes AC - FC Lorient
+Angers SCO - AJ Auxerre
+AS Monaco FC - Olympique Lyonnais
+Paris FC - Stade Brestois 29
+Lille OSC - Olympique de Marseille
+
+Journée 24
+OGC Nice - Toulouse FC
+Paris FC - FC Lorient
+RC Strasbourg Alsace - Angers SCO
+Le Mans FC - Stade Rennais FC 1901
+Stade Brestois 29 - Lille OSC
+Le Havre AC - Racing Club de Lens
+Olympique de Marseille - AS Monaco FC
+AJ Auxerre - Paris Saint-Germain FC
+Olympique Lyonnais - ES Troyes AC
+
+Journée 25
+Angers SCO - Le Mans FC
+Toulouse FC - Stade Brestois 29
+ES Troyes AC - AJ Auxerre
+Stade Rennais FC 1901 - Paris FC
+AS Monaco FC - Le Havre AC
+Paris Saint-Germain FC - RC Strasbourg Alsace
+Racing Club de Lens - Lille OSC
+FC Lorient - OGC Nice
+Olympique de Marseille - Olympique Lyonnais
+
+Journée 26
+Le Havre AC - ES Troyes AC
+Angers SCO - AS Monaco FC
+Le Mans FC - Olympique de Marseille
+AJ Auxerre - Racing Club de Lens
+Lille OSC - Stade Rennais FC 1901
+Stade Brestois 29 - FC Lorient
+RC Strasbourg Alsace - Toulouse FC
+Paris FC - Paris Saint-Germain FC
+OGC Nice - Olympique Lyonnais
+
+Journée 27
+FC Lorient - Racing Club de Lens
+Olympique de Marseille - Stade Brestois 29
+AS Monaco FC - Stade Rennais FC 1901
+ES Troyes AC - Angers SCO
+Paris Saint-Germain FC - Le Havre AC
+Olympique Lyonnais - RC Strasbourg Alsace
+Le Mans FC - AJ Auxerre
+Lille OSC - Toulouse FC
+OGC Nice - Paris FC
+
+Journée 28
+AJ Auxerre - FC Lorient
+Stade Brestois 29 - Le Mans FC
+AS Monaco FC - RC Strasbourg Alsace
+Angers SCO - Olympique Lyonnais
+Racing Club de Lens - OGC Nice
+Stade Rennais FC 1901 - ES Troyes AC
+Le Havre AC - Olympique de Marseille
+Paris Saint-Germain FC - Lille OSC
+Toulouse FC - Paris FC
+
+Journée 29
+Paris FC - Racing Club de Lens
+Olympique de Marseille - AJ Auxerre
+Lille OSC - AS Monaco FC
+FC Lorient - Paris Saint-Germain FC
+ES Troyes AC - Toulouse FC
+OGC Nice - Angers SCO
+Olympique Lyonnais - Stade Brestois 29
+Le Mans FC - Le Havre AC
+RC Strasbourg Alsace - Stade Rennais FC 1901
+
+Journée 30
+RC Strasbourg Alsace - Lille OSC
+AS Monaco FC - FC Lorient
+ES Troyes AC - Stade Brestois 29
+Racing Club de Lens - Le Mans FC
+Paris Saint-Germain FC - Angers SCO
+Le Havre AC - Paris FC
+AJ Auxerre - Olympique Lyonnais
+Stade Rennais FC 1901 - OGC Nice
+Toulouse FC - Olympique de Marseille
+
+Journée 31
+Paris FC - Lille OSC
+FC Lorient - RC Strasbourg Alsace
+Stade Brestois 29 - AJ Auxerre
+Le Mans FC - ES Troyes AC
+Stade Rennais FC 1901 - Le Havre AC
+Racing Club de Lens - AS Monaco FC
+Angers SCO - Toulouse FC
+OGC Nice - Olympique de Marseille
+Olympique Lyonnais - Paris Saint-Germain FC
+
+Journée 32
+AS Monaco FC - Paris FC
+Olympique Lyonnais - Le Mans FC
+Paris Saint-Germain FC - OGC Nice
+Toulouse FC - FC Lorient
+Stade Brestois 29 - Le Havre AC
+Olympique de Marseille - Racing Club de Lens
+Lille OSC - Angers SCO
+AJ Auxerre - Stade Rennais FC 1901
+RC Strasbourg Alsace - ES Troyes AC
+
+Journée 33
+OGC Nice - AS Monaco FC
+Angers SCO - Stade Brestois 29
+FC Lorient - Olympique Lyonnais
+ES Troyes AC - Paris Saint-Germain FC
+Le Mans FC - RC Strasbourg Alsace
+Toulouse FC - AJ Auxerre
+Le Havre AC - Lille OSC
+Paris FC - Olympique de Marseille
+Racing Club de Lens - Stade Rennais FC 1901
+
+Journée 34
+AS Monaco FC - ES Troyes AC
+Paris Saint-Germain FC - Toulouse FC
+Lille OSC - Le Mans FC
+Stade Brestois 29 - Racing Club de Lens
+Olympique de Marseille - FC Lorient
+Stade Rennais FC 1901 - Angers SCO
+Olympique Lyonnais - Paris FC
+AJ Auxerre - Le Havre AC
+RC Strasbourg Alsace - OGC Nice
