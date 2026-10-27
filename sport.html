@@ -425,6 +425,7 @@ const LEAGUES = [
   {id:'fifa.cwc',            region:'intl', flag:'🌍', sport:'soccer', group:'foot', name:'Coupe du monde des clubs', seasonal:true},
   {id:'eng.1',               region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'Premier League',      tv:['Canal+'], rounds:true, of:'en.1'},
   {id:'eng.2',               region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'Championship', rounds:true, of:'en.2'},
+  {id:'eng.league_cup',      region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'Coupe de la Ligue anglaise', tv:['beIN Sports']},
   {id:'esp.1',               region:'big', flag:'🇪🇸', sport:'soccer', group:'foot', name:'Liga',                tv:['DAZN','Disney+'], rounds:true, of:'es.1'},
   {id:'ita.1',               region:'big', flag:'🇮🇹', sport:'soccer', group:'foot', name:'Serie A',             tv:['DAZN'], rounds:true, of:'it.1'},
   {id:'ger.1',               region:'big', flag:'🇩🇪', sport:'soccer', group:'foot', name:'Bundesliga',          tv:['beIN Sports'], rounds:true, of:'de.1'},
@@ -437,7 +438,7 @@ const LEAGUES = [
   {id:'nfl',                 region:'us',  flag:'🇺🇸', sport:'football',   group:'nfl',    name:'NFL', tv:['beIN Sports'], partial:true, rounds:true},
   {id:'nhl',                 region:'us',  flag:'🇺🇸', sport:'hockey',     group:'hockey', name:'NHL', tv:['beIN Sports','DAZN'], partial:true}
 ];
-const VERSION = '2026-10-27.5';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-27.6';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -567,8 +568,10 @@ async function fetchToday(L){                    // rafraîchissement léger des
 function mergeLive(base, fresh){
   const map = new Map(base.map(e => [e.id, e]));
   fresh.forEach(e => { const o = map.get(e.id); map.set(e.id, o ? {...e, round:o.round || e.round, roundSrc:o.roundSrc || e.roundSrc, full:o.full} : e); });
-  return [...map.values()];
+  return [...map.values()].filter(m => !ghost(m));
 }
+/* Fiche « fantôme » d'ESPN : match jamais commencé dont la date est dépassée de plus d'un jour (souvent l'affiche inversée) */
+const ghost = m => m.state === 'pre' && /SCHEDULED/.test(m.code || '') && m.t < Date.now() - 1.5 * 864e5;
 
 async function ensureDay(off){
   if (off <= 3 || sample) return;
@@ -754,7 +757,7 @@ function visible(m){
 }
 function eventsOfDay(off){
   const key = ymd(dayAt(off));
-  return Object.values(DATA).flatMap(d => d.events).filter(m => localKey(m.t) === key && visible(m));
+  return Object.values(DATA).flatMap(d => d.events).filter(m => localKey(m.t) === key && visible(m) && !ghost(m));
 }
 
 function renderDays(){
@@ -829,18 +832,19 @@ const KIND_ICON = {
 };
 function moreHTML(m){
   const L = LBY[m.league], rugby = L.sport === 'rugby';
-  const name = id => id === m.home.id ? m.home.name : id === m.away.id ? m.away.name : '';
+  const sideOf = d => d.side || (d.team === m.home.id ? 'home' : d.team === m.away.id ? 'away' : '');
+  const name = d => ({home:m.home.name, away:m.away.name})[sideOf(d)] || '';
   const full = FULL[m.id];
   const kindOf = d => d.kind || (d.red ? 'red' : d.yellow ? 'yellow' : d.goal ? 'goal' : '');
   const list = ((full && full.evs) || m.details).map(d => ({...d, kind:kindOf(d)})).filter(d => KIND[d.kind] && (rugby || d.kind !== 'yellow'));
   const evs = list.map(d => { const k = KIND[d.kind];
     return `<div class="ev"><span class="m">${esc(d.min)}</span><span class="ic ${k[0]}" title="${k[1]}">${KIND_ICON[d.kind] || ''}</span>
-      <span class="who">${rugby ? `${k[1]}${d.who ? ' · ' : ''}` : ''}${esc(d.who || (rugby ? '' : k[1]))}${!rugby && d.pen && d.kind === 'goal' ? ' (pén.)' : ''}${d.og ? ' (csc)' : ''} <em>${esc(name(d.team))}</em></span></div>`; }).join('');
+      <span class="who">${rugby ? `${k[1]}${d.who ? ' · ' : ''}` : ''}${esc(d.who || (rugby ? '' : k[1]))}${!rugby && d.pen && d.kind === 'goal' ? ' (pén.)' : ''}${d.og ? ' (csc)' : ''} <em>${esc(name(d))}</em></span></div>`; }).join('');
   let tally = '';
   if (rugby && list.length){
-    const cnt = (team, k) => list.filter(d => d.team === team && d.kind === k).length;
-    const part = (t, k, label) => `<span class="tk" title="${label}"><i class="ic svg">${KIND_ICON[k]}</i>${cnt(t.id, k)}</span>`;
-    tally = `<div class="tally">${[m.home, m.away].map(t => `<span class="tl"><b>${esc(t.name)}</b>${part(t, 'try', 'Essais')}${part(t, 'conv', 'Transformations')}${part(t, 'pen', 'Pénalités')}${cnt(t.id, 'drop') ? part(t, 'drop', 'Drops') : ''}</span>`).join('')}</div>`;
+    const cnt = (sd, k) => list.filter(d => sideOf(d) === sd && d.kind === k).length;
+    const part = (sd, k, label) => `<span class="tk" title="${label}"><i class="ic svg">${KIND_ICON[k]}</i>${cnt(sd, k)}</span>`;
+    tally = `<div class="tally">${[['home', m.home], ['away', m.away]].map(([sd, t]) => `<span class="tl"><b>${esc(t.name)}</b>${part(sd, 'try', 'Essais')}${part(sd, 'conv', 'Transformations')}${part(sd, 'pen', 'Pénalités')}${cnt(sd, 'drop') ? part(sd, 'drop', 'Drops') : ''}</span>`).join('')}</div>`;
   }
   const loading = rugby && m.state !== 'pre' && open.has(m.id) && !full;
   const none = m.state === 'pre' ? 'Le match n’a pas commencé.' : loading ? 'Chargement du détail…' : (L.sport === 'soccer' ? 'Aucun but ni carton rouge.' : rugby ? 'Pas de détail disponible pour ce match.' : 'Pas de détail disponible pour ce sport.');
@@ -856,12 +860,16 @@ function summaryEvents(j){
   const pools = [j.keyEvents, j.scoringPlays, hc.details, (j.commentary || []).map(c => c.play || c).filter(Boolean), j.plays];
   const raw = pools.filter(p => Array.isArray(p) && p.length).flat();
   const diag = Object.keys(j).map(k => Array.isArray(j[k]) ? `${k} (${j[k].length})` : k).concat(hc.details ? [`header.details (${hc.details.length})`] : []).join(', ');
+  // ESPN n'utilise pas toujours les mêmes numéros d'équipe dans la fiche et dans la liste des matchs : on retient le camp
+  const sideOf = {};
+  (hc.competitors || []).forEach(x => { [x.id, x.team && x.team.id].filter(Boolean).forEach(id => { sideOf[String(id)] = x.homeAway; }); });
   const seen = new Set(), evs = [];
   raw.forEach(p => {
     const txt = `${(p.type && (p.type.text || p.type.name)) || ''} ${p.text || ''}`;
     const kind = classify(txt, p.scoringPlay, p); if (!kind) return;
     const who = ((p.participants || [])[0] || {}).athlete?.displayName || ((p.athletesInvolved || [])[0] || {}).displayName || '';
     const d = {kind, min:(p.clock && p.clock.displayValue) || '', team:p.team && String(p.team.id), who};
+    if (d.team && sideOf[d.team]) d.side = sideOf[d.team];
     const key = `${d.kind}|${d.min}|${d.team}|${d.who}`; if (seen.has(key)) return; seen.add(key);
     evs.push(d);
   });
@@ -1250,7 +1258,7 @@ function tableHTML(L, data){
       <div class="tbl-wrap"><table class="bx-tbl st-tbl"><thead><tr><th class="pl">Équipe</th>${cols.map(([, l]) => `<th>${esc(l)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
   }).join('');
   const legend = notes.size ? `<ul class="legend">${[...notes].map(([t, c]) => `<li><i style="background:#${esc(c || '888')}"></i>${esc(t)}</li>`).join('')}</ul>` : '';
-  return `${data.season ? `<p class="hint">Saison ${esc(data.season)}</p>` : ''}${html}${legend}`;
+  return `${data.season ? `<p class="hint">Saison ${esc(data.season)}</p>` : ''}${data.note ? `<p class="hint">${esc(data.note)}</p>` : ''}${html}${legend}`;
 }
 
 /* Calendrier : récupération par période, sinon jour par jour (ESPN refuse parfois les périodes) */
@@ -1258,7 +1266,12 @@ const DAYCACHE = {}, CALDATES = {};
 const daysBetween = (s, e) => { const out = []; for (let d = new Date(s); d <= e; d = addDays(d, 1)) out.push(ymd(d)); return out; };
 function setCalendar(L, lg){
   const cal = (lg || {}).calendar;
-  if (Array.isArray(cal) && cal.length && typeof cal[0] === 'string') CALDATES[L.id] = new Set(cal.map(x => x.slice(0, 10).replace(/-/g, '')));
+  if (!(Array.isArray(cal) && cal.length && typeof cal[0] === 'string')) return;
+  // ESPN mélange parfois l'ancienne saison et quelques dates de la nouvelle : on ne garde que cette saison,
+  // et seulement si le calendrier annonce encore des matchs (sinon on lit tous les jours)
+  const [a, b] = seasonBounds(L), lo = ymd(a), hi = ymd(b);
+  const ds = cal.map(x => x.slice(0, 10).replace(/-/g, '')).filter(d => d >= lo && d <= hi).sort();
+  CALDATES[L.id] = ds.length && (ds[ds.length - 1] >= ymd(dayAt(-2)) || ymd(dayAt(0)) > hi) ? new Set(ds) : false;
 }
 async function fetchDays(L, days, onStep){
   if (!DAYCACHE[L.id]) DAYCACHE[L.id] = store.get('sport:days:' + L.id) || {};
@@ -1269,7 +1282,7 @@ async function fetchDays(L, days, onStep){
   await pool(todo.map(d => async () => {
     try{
       const j = await getJSON(`${API}/${L.sport}/${L.id}/scoreboard?dates=${d}&limit=300`);
-      C[d] = {at:Date.now(), events:(j.events || []).map(ev => norm(ev, L))};
+      C[d] = {at:Date.now(), events:(j.events || []).map(ev => norm(ev, L)).filter(m => !ghost(m))};
       if (!CALDATES[L.id] && j.leagues) setCalendar(L, j.leagues[0]);
     } finally { if (onStep) onStep(++done, todo.length); }
   }), 8);
@@ -1291,7 +1304,7 @@ async function rangeEvents(L, s, e){
       if (Array.isArray(j.events) && j.events.length){
         if (j.leagues) setCalendar(L, j.leagues[0]);
         const seen = new Map(); j.events.forEach(ev => seen.set(ev.id, norm(ev, L)));
-        return [...seen.values()];
+        return [...seen.values()].filter(m => !ghost(m));
       }
     }catch{}
   }
@@ -1315,7 +1328,7 @@ function calBounds(c){
 const SEASONS = {};
 function seasonBounds(L){
   const sz = (DATA[L.id] || {}).season;
-  if (sz) return [new Date(Date.parse(sz.start) + 43200e3), new Date(Date.parse(sz.end) - 43200e3)];
+  if (sz && Date.parse(sz.end) > Date.now() - 30 * 864e5) return [new Date(Date.parse(sz.start) + 43200e3), new Date(Date.parse(sz.end) - 43200e3)];   // ESPN donne parfois encore la saison passée
   const t = dayAt(0), y = t.getMonth() >= 6 ? t.getFullYear() : t.getFullYear() - 1;
   return L.id === 'nfl' ? [new Date(y, 7, 1, 12), new Date(y + 1, 1, 28, 12)] : [new Date(y, 6, 1, 12), new Date(y + 1, 5, 30, 12)];
 }
