@@ -1,0 +1,459 @@
+# Calendrier Liga 2026-27
+# Source : openfootball (github.com/openfootball/football.json)
+# Une journée par bloc, une ligne par match (domicile - extérieur).
+
+Journée 1
+Deportivo Alavés - Getafe CF
+Sevilla FC - Rayo Vallecano de Madrid
+Real Racing Club de Santander - Villarreal CF
+RCD Espanyol de Barcelona - Levante UD
+RC Deportivo La Coruña - Elche CF
+Club Atlético de Madrid - Málaga CF
+Valencia CF - Real Betis Balompié
+Real Madrid CF - Real Sociedad de Fútbol
+RC Celta de Vigo - CA Osasuna
+FC Barcelona - Athletic Club
+
+Journée 2
+Rayo Vallecano de Madrid - Deportivo Alavés
+Real Betis Balompié - Real Sociedad de Fútbol
+Athletic Club - Sevilla FC
+Valencia CF - RC Celta de Vigo
+RCD Espanyol de Barcelona - Real Madrid CF
+Club Atlético de Madrid - Villarreal CF
+Getafe CF - Real Racing Club de Santander
+Elche CF - FC Barcelona
+CA Osasuna - Levante UD
+Málaga CF - RC Deportivo La Coruña
+
+Journée 3
+Real Racing Club de Santander - Elche CF
+Deportivo Alavés - Villarreal CF
+Levante UD - Real Betis Balompié
+Real Sociedad de Fútbol - RCD Espanyol de Barcelona
+Sevilla FC - Club Atlético de Madrid
+Real Madrid CF - Málaga CF
+RC Deportivo La Coruña - Valencia CF
+RC Celta de Vigo - Athletic Club
+CA Osasuna - Getafe CF
+FC Barcelona - Rayo Vallecano de Madrid
+
+Journée 4
+Real Betis Balompié - Real Madrid CF
+Athletic Club - Club Atlético de Madrid
+Rayo Vallecano de Madrid - Real Racing Club de Santander
+Villarreal CF - RC Deportivo La Coruña
+Valencia CF - FC Barcelona
+Deportivo Alavés - CA Osasuna
+Málaga CF - Levante UD
+RCD Espanyol de Barcelona - Sevilla FC
+Getafe CF - RC Celta de Vigo
+Elche CF - Real Sociedad de Fútbol
+
+Journée 5
+Sevilla FC - Valencia CF
+Real Racing Club de Santander - Deportivo Alavés
+CA Osasuna - RCD Espanyol de Barcelona
+Athletic Club - Elche CF
+Real Madrid CF - Rayo Vallecano de Madrid
+RC Celta de Vigo - Málaga CF
+Levante UD - FC Barcelona
+Getafe CF - RC Deportivo La Coruña
+Real Sociedad de Fútbol - Club Atlético de Madrid
+Villarreal CF - Real Betis Balompié
+
+Journée 6
+Real Sociedad de Fútbol - RC Celta de Vigo
+Rayo Vallecano de Madrid - RCD Espanyol de Barcelona
+Deportivo Alavés - Valencia CF
+Elche CF - Real Madrid CF
+RC Deportivo La Coruña - Sevilla FC
+Club Atlético de Madrid - CA Osasuna
+FC Barcelona - Real Racing Club de Santander
+Real Betis Balompié - Getafe CF
+Málaga CF - Villarreal CF
+Levante UD - Athletic Club
+
+Journée 7
+RCD Espanyol de Barcelona - Elche CF
+CA Osasuna - Rayo Vallecano de Madrid
+Athletic Club - Deportivo Alavés
+RC Celta de Vigo - Real Racing Club de Santander
+Sevilla FC - FC Barcelona
+Getafe CF - Málaga CF
+Club Atlético de Madrid - Real Madrid CF
+RC Deportivo La Coruña - Real Betis Balompié
+Villarreal CF - Levante UD
+Valencia CF - Real Sociedad de Fútbol
+
+Journée 8
+Málaga CF - RCD Espanyol de Barcelona
+Rayo Vallecano de Madrid - Athletic Club
+Deportivo Alavés - Club Atlético de Madrid
+FC Barcelona - Getafe CF
+Real Madrid CF - Villarreal CF
+Elche CF - RC Celta de Vigo
+Real Sociedad de Fútbol - RC Deportivo La Coruña
+Real Betis Balompié - CA Osasuna
+Real Racing Club de Santander - Valencia CF
+Levante UD - Sevilla FC
+
+Journée 9
+RC Deportivo La Coruña - Levante UD
+RCD Espanyol de Barcelona - Club Atlético de Madrid
+Villarreal CF - Elche CF
+Real Betis Balompié - FC Barcelona
+Valencia CF - Athletic Club
+CA Osasuna - Real Racing Club de Santander
+RC Celta de Vigo - Deportivo Alavés
+Málaga CF - Real Sociedad de Fútbol
+Real Madrid CF - Sevilla FC
+Getafe CF - Rayo Vallecano de Madrid
+
+Journée 10
+Rayo Vallecano de Madrid - Elche CF
+Deportivo Alavés - Málaga CF
+Athletic Club - Getafe CF
+Sevilla FC - CA Osasuna
+Valencia CF - Villarreal CF
+FC Barcelona - Real Madrid CF
+Club Atlético de Madrid - RC Deportivo La Coruña
+RC Celta de Vigo - Real Betis Balompié
+Real Sociedad de Fútbol - Levante UD
+Real Racing Club de Santander - RCD Espanyol de Barcelona
+
+Journée 11
+Real Betis Balompié - Málaga CF
+Villarreal CF - RCD Espanyol de Barcelona
+Elche CF - Valencia CF
+Athletic Club - Real Sociedad de Fútbol
+Levante UD - Club Atlético de Madrid
+RC Deportivo La Coruña - CA Osasuna
+FC Barcelona - Deportivo Alavés
+Getafe CF - Sevilla FC
+Real Racing Club de Santander - Real Madrid CF
+Rayo Vallecano de Madrid - RC Celta de Vigo
+
+Journée 12
+Elche CF - Real Betis Balompié
+CA Osasuna - Athletic Club
+Sevilla FC - Deportivo Alavés
+Valencia CF - Real Madrid CF
+RC Celta de Vigo - Levante UD
+Real Sociedad de Fútbol - Rayo Vallecano de Madrid
+Málaga CF - Real Racing Club de Santander
+RCD Espanyol de Barcelona - RC Deportivo La Coruña
+Club Atlético de Madrid - FC Barcelona
+Villarreal CF - Getafe CF
+
+Journée 13
+Athletic Club - RCD Espanyol de Barcelona
+FC Barcelona - Villarreal CF
+Real Racing Club de Santander - Real Sociedad de Fútbol
+Rayo Vallecano de Madrid - Valencia CF
+CA Osasuna - Málaga CF
+Getafe CF - Club Atlético de Madrid
+Real Madrid CF - RC Celta de Vigo
+Deportivo Alavés - RC Deportivo La Coruña
+Sevilla FC - Real Betis Balompié
+Levante UD - Elche CF
+
+Journée 14
+RC Celta de Vigo - Villarreal CF
+Elche CF - Club Atlético de Madrid
+Real Betis Balompié - Rayo Vallecano de Madrid
+Valencia CF - CA Osasuna
+Real Madrid CF - Deportivo Alavés
+RCD Espanyol de Barcelona - Getafe CF
+Real Sociedad de Fútbol - Sevilla FC
+Levante UD - Real Racing Club de Santander
+RC Deportivo La Coruña - FC Barcelona
+Málaga CF - Athletic Club
+
+Journée 15
+CA Osasuna - Elche CF
+Sevilla FC - Málaga CF
+Deportivo Alavés - RCD Espanyol de Barcelona
+Club Atlético de Madrid - Real Betis Balompié
+Real Racing Club de Santander - RC Deportivo La Coruña
+FC Barcelona - RC Celta de Vigo
+Getafe CF - Valencia CF
+Athletic Club - Real Madrid CF
+Villarreal CF - Real Sociedad de Fútbol
+Rayo Vallecano de Madrid - Levante UD
+
+Journée 16
+RCD Espanyol de Barcelona - RC Celta de Vigo
+Málaga CF - FC Barcelona
+Real Madrid CF - CA Osasuna
+RC Deportivo La Coruña - Athletic Club
+Levante UD - Deportivo Alavés
+Elche CF - Sevilla FC
+Villarreal CF - Rayo Vallecano de Madrid
+Real Betis Balompié - Real Racing Club de Santander
+Real Sociedad de Fútbol - Getafe CF
+Club Atlético de Madrid - Valencia CF
+
+Journée 17
+Athletic Club - Real Betis Balompié
+Getafe CF - Levante UD
+Deportivo Alavés - Elche CF
+Valencia CF - RCD Espanyol de Barcelona
+CA Osasuna - Villarreal CF
+FC Barcelona - Real Sociedad de Fútbol
+RC Celta de Vigo - Club Atlético de Madrid
+Rayo Vallecano de Madrid - Málaga CF
+RC Deportivo La Coruña - Real Madrid CF
+Sevilla FC - Real Racing Club de Santander
+
+Journée 18
+Real Madrid CF - Getafe CF
+Real Sociedad de Fútbol - CA Osasuna
+Levante UD - Valencia CF
+Real Racing Club de Santander - Athletic Club
+Málaga CF - Elche CF
+Real Betis Balompié - Deportivo Alavés
+RC Celta de Vigo - RC Deportivo La Coruña
+RCD Espanyol de Barcelona - FC Barcelona
+Villarreal CF - Sevilla FC
+Rayo Vallecano de Madrid - Club Atlético de Madrid
+
+Journée 19
+Athletic Club - Villarreal CF
+Elche CF - Getafe CF
+Real Madrid CF - Levante UD
+CA Osasuna - FC Barcelona
+RC Deportivo La Coruña - Rayo Vallecano de Madrid
+Club Atlético de Madrid - Real Racing Club de Santander
+Deportivo Alavés - Real Sociedad de Fútbol
+Sevilla FC - RC Celta de Vigo
+RCD Espanyol de Barcelona - Real Betis Balompié
+Valencia CF - Málaga CF
+
+Journée 20
+Málaga CF - Real Madrid CF
+FC Barcelona - Elche CF
+Villarreal CF - Deportivo Alavés
+Real Racing Club de Santander - CA Osasuna
+Levante UD - RCD Espanyol de Barcelona
+RC Celta de Vigo - Valencia CF
+Getafe CF - Athletic Club
+Rayo Vallecano de Madrid - Sevilla FC
+Real Betis Balompié - RC Deportivo La Coruña
+Club Atlético de Madrid - Real Sociedad de Fútbol
+
+Journée 21
+Real Madrid CF - Real Betis Balompié
+Getafe CF - CA Osasuna
+Valencia CF - Sevilla FC
+Elche CF - Rayo Vallecano de Madrid
+Deportivo Alavés - FC Barcelona
+Real Sociedad de Fútbol - Málaga CF
+Real Racing Club de Santander - RC Celta de Vigo
+Athletic Club - Levante UD
+RCD Espanyol de Barcelona - Villarreal CF
+RC Deportivo La Coruña - Club Atlético de Madrid
+
+Journée 22
+Real Betis Balompié - Elche CF
+Rayo Vallecano de Madrid - Real Madrid CF
+Club Atlético de Madrid - RCD Espanyol de Barcelona
+RC Celta de Vigo - Getafe CF
+Villarreal CF - Real Racing Club de Santander
+Levante UD - Real Sociedad de Fútbol
+FC Barcelona - Valencia CF
+Sevilla FC - Athletic Club
+CA Osasuna - RC Deportivo La Coruña
+Málaga CF - Deportivo Alavés
+
+Journée 23
+Athletic Club - CA Osasuna
+Deportivo Alavés - RC Celta de Vigo
+Real Betis Balompié - Sevilla FC
+Elche CF - Levante UD
+RCD Espanyol de Barcelona - Rayo Vallecano de Madrid
+Getafe CF - Villarreal CF
+RC Deportivo La Coruña - Málaga CF
+Real Sociedad de Fútbol - Real Madrid CF
+Valencia CF - Real Racing Club de Santander
+FC Barcelona - Club Atlético de Madrid
+
+Journée 24
+Sevilla FC - RCD Espanyol de Barcelona
+CA Osasuna - Club Atlético de Madrid
+RC Celta de Vigo - Rayo Vallecano de Madrid
+Villarreal CF - FC Barcelona
+Real Sociedad de Fútbol - Real Betis Balompié
+Elche CF - RC Deportivo La Coruña
+Valencia CF - Deportivo Alavés
+Levante UD - Málaga CF
+Real Racing Club de Santander - Getafe CF
+Real Madrid CF - Athletic Club
+
+Journée 25
+Deportivo Alavés - Real Racing Club de Santander
+Málaga CF - Real Betis Balompié
+Villarreal CF - Valencia CF
+FC Barcelona - Levante UD
+Athletic Club - RC Celta de Vigo
+RCD Espanyol de Barcelona - CA Osasuna
+Sevilla FC - Real Madrid CF
+Club Atlético de Madrid - Elche CF
+RC Deportivo La Coruña - Real Sociedad de Fútbol
+Rayo Vallecano de Madrid - Getafe CF
+
+Journée 26
+RC Celta de Vigo - RCD Espanyol de Barcelona
+Levante UD - RC Deportivo La Coruña
+Málaga CF - Club Atlético de Madrid
+CA Osasuna - Sevilla FC
+Real Madrid CF - Valencia CF
+Getafe CF - Deportivo Alavés
+Athletic Club - FC Barcelona
+Real Racing Club de Santander - Rayo Vallecano de Madrid
+Real Betis Balompié - Villarreal CF
+Real Sociedad de Fútbol - Elche CF
+
+Journée 27
+FC Barcelona - Real Betis Balompié
+Elche CF - Málaga CF
+Deportivo Alavés - Athletic Club
+Rayo Vallecano de Madrid - CA Osasuna
+Sevilla FC - Real Sociedad de Fútbol
+Club Atlético de Madrid - RC Celta de Vigo
+Villarreal CF - Real Madrid CF
+Valencia CF - Levante UD
+RC Deportivo La Coruña - Getafe CF
+RCD Espanyol de Barcelona - Real Racing Club de Santander
+
+Journée 28
+CA Osasuna - RC Celta de Vigo
+Elche CF - Villarreal CF
+Deportivo Alavés - Sevilla FC
+Athletic Club - Valencia CF
+Real Betis Balompié - Levante UD
+Real Racing Club de Santander - Club Atlético de Madrid
+Málaga CF - Rayo Vallecano de Madrid
+Getafe CF - Real Sociedad de Fútbol
+FC Barcelona - RC Deportivo La Coruña
+Real Madrid CF - RCD Espanyol de Barcelona
+
+Journée 29
+Villarreal CF - Málaga CF
+Sevilla FC - Elche CF
+Levante UD - CA Osasuna
+RC Celta de Vigo - Real Madrid CF
+Rayo Vallecano de Madrid - FC Barcelona
+Real Sociedad de Fútbol - Deportivo Alavés
+RCD Espanyol de Barcelona - Athletic Club
+Real Racing Club de Santander - Real Betis Balompié
+Valencia CF - RC Deportivo La Coruña
+Club Atlético de Madrid - Getafe CF
+
+Journée 30
+Levante UD - Rayo Vallecano de Madrid
+FC Barcelona - Sevilla FC
+Málaga CF - CA Osasuna
+Athletic Club - Real Racing Club de Santander
+RC Deportivo La Coruña - Villarreal CF
+Real Sociedad de Fútbol - Valencia CF
+Elche CF - Deportivo Alavés
+Real Madrid CF - Club Atlético de Madrid
+Getafe CF - RCD Espanyol de Barcelona
+Real Betis Balompié - RC Celta de Vigo
+
+Journée 31
+Rayo Vallecano de Madrid - Real Sociedad de Fútbol
+RCD Espanyol de Barcelona - Málaga CF
+Villarreal CF - Athletic Club
+Deportivo Alavés - Real Betis Balompié
+Valencia CF - Getafe CF
+Sevilla FC - RC Deportivo La Coruña
+RC Celta de Vigo - Elche CF
+Real Racing Club de Santander - FC Barcelona
+CA Osasuna - Real Madrid CF
+Club Atlético de Madrid - Levante UD
+
+Journée 32
+Club Atlético de Madrid - Sevilla FC
+FC Barcelona - RCD Espanyol de Barcelona
+Levante UD - Villarreal CF
+Real Sociedad de Fútbol - Real Racing Club de Santander
+Málaga CF - Valencia CF
+RC Deportivo La Coruña - RC Celta de Vigo
+Elche CF - CA Osasuna
+Deportivo Alavés - Rayo Vallecano de Madrid
+Real Betis Balompié - Athletic Club
+Getafe CF - Real Madrid CF
+
+Journée 33
+Getafe CF - Real Betis Balompié
+Valencia CF - Rayo Vallecano de Madrid
+RC Celta de Vigo - FC Barcelona
+CA Osasuna - Deportivo Alavés
+Real Madrid CF - Elche CF
+Athletic Club - RC Deportivo La Coruña
+Real Racing Club de Santander - Málaga CF
+Villarreal CF - Club Atlético de Madrid
+Sevilla FC - Levante UD
+RCD Espanyol de Barcelona - Real Sociedad de Fútbol
+
+Journée 34
+RC Deportivo La Coruña - Real Racing Club de Santander
+RC Celta de Vigo - Sevilla FC
+Real Sociedad de Fútbol - Athletic Club
+FC Barcelona - CA Osasuna
+Rayo Vallecano de Madrid - Villarreal CF
+Málaga CF - Getafe CF
+Real Betis Balompié - Valencia CF
+Elche CF - RCD Espanyol de Barcelona
+Levante UD - Real Madrid CF
+Club Atlético de Madrid - Deportivo Alavés
+
+Journée 35
+Valencia CF - Club Atlético de Madrid
+CA Osasuna - Real Sociedad de Fútbol
+Deportivo Alavés - Levante UD
+Athletic Club - Málaga CF
+Real Racing Club de Santander - Sevilla FC
+Rayo Vallecano de Madrid - RC Deportivo La Coruña
+Real Betis Balompié - RCD Espanyol de Barcelona
+Real Madrid CF - FC Barcelona
+Getafe CF - Elche CF
+Villarreal CF - RC Celta de Vigo
+
+Journée 36
+Club Atlético de Madrid - Rayo Vallecano de Madrid
+Sevilla FC - Villarreal CF
+Real Sociedad de Fútbol - FC Barcelona
+Elche CF - Athletic Club
+Málaga CF - RC Celta de Vigo
+RC Deportivo La Coruña - Deportivo Alavés
+Levante UD - Getafe CF
+RCD Espanyol de Barcelona - Valencia CF
+Real Madrid CF - Real Racing Club de Santander
+CA Osasuna - Real Betis Balompié
+
+Journée 37
+Club Atlético de Madrid - Athletic Club
+Deportivo Alavés - Real Madrid CF
+Sevilla FC - Getafe CF
+Villarreal CF - CA Osasuna
+Real Racing Club de Santander - Levante UD
+RC Deportivo La Coruña - RCD Espanyol de Barcelona
+Rayo Vallecano de Madrid - Real Betis Balompié
+FC Barcelona - Málaga CF
+Valencia CF - Elche CF
+RC Celta de Vigo - Real Sociedad de Fútbol
+
+Journée 38
+Levante UD - RC Celta de Vigo
+Real Madrid CF - RC Deportivo La Coruña
+Real Betis Balompié - Club Atlético de Madrid
+Real Sociedad de Fútbol - Villarreal CF
+Málaga CF - Sevilla FC
+Elche CF - Real Racing Club de Santander
+Athletic Club - Rayo Vallecano de Madrid
+RCD Espanyol de Barcelona - Deportivo Alavés
+Getafe CF - FC Barcelona
+CA Osasuna - Valencia CF
