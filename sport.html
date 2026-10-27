@@ -1397,7 +1397,7 @@ function parseCalendar(txt){
     const h = line.match(/^(?:j(?:ourn[ée]e)?\.?\s*(\d{1,2})|(\d{1,2})\s*(?:e|è|ème|eme|re|ère|er)?\s*journ[ée]e)\b\s*[:\-–—.]*\s*/i);
     if (h){ r = +(h[1] || h[2]); line = line.slice(h[0].length).trim(); if (!line) return; }
     if (!r) return;
-    line = line.replace(/\b(lun|mar|mer|jeu|ven|sam|dim)[a-zé]*\.?\s+/gi, '')
+    line = line.replace(/\b(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|lun|mar|mer|jeu|ven|sam|dim)\.?\s+(?=\d)/gi, '')
                .replace(/\b\d{1,2}[\/.]\d{1,2}(?:[\/.]\d{2,4})?\b/g, '')
                .replace(/\b\d{1,2}\s*[h:]\s*\d{0,2}\b/gi, '')
                .replace(/\s\d{1,3}\s*[-–]\s*\d{1,3}\s/, ' / ')
