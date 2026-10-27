@@ -203,11 +203,11 @@ a{color:inherit;text-decoration:none}
 .tile.img > *,.tile.img::before{display:none}
 
 .spacer{flex:1}
-/* Pastille « État des données » (au-dessus du bandeau du bas) */
-.etat{align-self:center;display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:4px 10px;border-radius:999px;font-size:.68rem;font-weight:600;color:var(--ink-soft)}
-.etat i{width:7px;height:7px;border-radius:50%;background:var(--lc, #8b8c89);box-shadow:0 0 0 3px color-mix(in oklab, var(--lc, #8b8c89) 22%, transparent)}
+/* Témoin « État des données » : un simple rond au milieu du bandeau du bas (vert, orange, rouge) */
+.etat{flex:none;width:28px;height:34px;display:grid;place-items:center;border-radius:10px}
+.etat i{width:8px;height:8px;border-radius:50%;background:var(--lc, #8b8c89);opacity:.85;box-shadow:0 0 0 3px color-mix(in oklab, var(--lc, #8b8c89) 20%, transparent)}
 .etat.ok{--lc:#1e8a4c}.etat.warn{--lc:#e08a12}.etat.err{--lc:#d63c3c}
-.etat:active{opacity:.6}
+.etat:active{opacity:.5}
 
 .quick{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 4px;margin-bottom:12px}
 .q-side{display:flex;gap:7px}
@@ -282,8 +282,7 @@ a{color:inherit;text-decoration:none}
     <section class="w-spot glass" id="spot" aria-label="Spotify"></section>
     <div class="grid" id="grid"></div>
     <div class="spacer"></div>
-    <a class="etat" id="etatBtn" href="etat.html" aria-label="État des données"><i></i><span id="etatTxt">Données</span></a>
-    <div class="quick" aria-label="Accès rapides"><div class="q-side" id="quickLeft"></div><div class="q-side" id="quickRight"></div></div>
+    <div class="quick" aria-label="Accès rapides"><div class="q-side" id="quickLeft"></div><a class="etat" id="etatBtn" href="etat.html" aria-label="État des données" title="État des données"><i></i></a><div class="q-side" id="quickRight"></div></div>
   </section>
 
 </div>
@@ -921,8 +920,9 @@ async function loadEtat(){
       !e.tv ? 1 : h(e.tv.updated) < 5 ? 0 : h(e.tv.updated) < 12 ? 1 : 2,
       !e.actus ? 1 : h(e.actus.updated) < 1.5 && e.actus.sources.every(s => s.ok) ? 0 : h(e.actus.updated) < 6 ? 1 : 2
     ], m = Math.max(...lv);
-    const el = $('#etatBtn'); el.className = 'etat ' + ['ok', 'warn', 'err'][m];
-    $('#etatTxt').textContent = ['Données à jour', 'À vérifier', 'Données en panne'][m];
+    const el = $('#etatBtn'), txt = ['Données à jour', 'Données à vérifier', 'Données en panne'][m];
+    el.className = 'etat ' + ['ok', 'warn', 'err'][m];
+    el.setAttribute('aria-label', `État des données : ${txt}`); el.title = txt;
   }catch{}
 }
 loadEtat(); setInterval(() => { if (!document.hidden) loadEtat(); }, 15 * 60e3);
