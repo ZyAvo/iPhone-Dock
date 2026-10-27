@@ -437,7 +437,7 @@ const LEAGUES = [
   {id:'nfl',                 region:'us',  flag:'🇺🇸', sport:'football',   group:'nfl',    name:'NFL', tv:['beIN Sports'], partial:true, rounds:true},
   {id:'nhl',                 region:'us',  flag:'🇺🇸', sport:'hockey',     group:'hockey', name:'NHL', tv:['beIN Sports','DAZN'], partial:true}
 ];
-const VERSION = '2026-10-27.4';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-27.5';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -561,8 +561,12 @@ async function fetchToday(L){                    // rafraîchissement léger des
   const days = ['basketball','football','hockey'].includes(L.sport) ? [ymd(dayAt(-1)), ymd(dayAt(0))] : [ymd(dayAt(0))];
   const res = await pool(days.map(d => () => getJSON(`${base}?dates=${d}&limit=300`)), 2);
   const fresh = res.flatMap(r => (r && r.events) || []).map(e => norm(e, L));
-  const map = new Map((DATA[L.id]?.events || []).map(e => [e.id, e]));
-  fresh.forEach(e => map.set(e.id, e));
+  return mergeLive(DATA[L.id]?.events || [], fresh);
+}
+/* Fusionne des matchs frais d'ESPN avec ceux déjà connus, en gardant journée et détail préparés */
+function mergeLive(base, fresh){
+  const map = new Map(base.map(e => [e.id, e]));
+  fresh.forEach(e => { const o = map.get(e.id); map.set(e.id, o ? {...e, round:o.round || e.round, roundSrc:o.roundSrc || e.roundSrc, full:o.full} : e); });
   return [...map.values()];
 }
 
@@ -595,7 +599,54 @@ function ttl(events){
 
 const idleKey = L => 'sport:idle:' + L.id;
 const isIdle = L => { const t = store.get(idleKey(L)); return !!(L.seasonal && t && Date.now() - t < 12 * 3600e3); };
+/* ---------- Données préparées par la tâche GitHub (donnees/sport) ---------- */
+const PRE = {ok:false, tried:false, at:0, missing:false, idle:{}, files:{}};
+const PRE_MAX = 6 * 3600e3;                         // au-delà, on repasse en lecture directe sur ESPN
+async function loadPre(){
+  PRE.tried = true;
+  if (sample) return false;
+  try{
+    const r = await fetch('donnees/sport/jours.json', {cache:'no-cache'});
+    if (r.status === 404){ PRE.missing = true; renderHealth(); return false; }
+    if (!r.ok) return false;
+    const j = await r.json();
+    PRE.missing = false; PRE.at = Date.parse(j.updated) || 0; renderHealth();
+    if (Date.now() - PRE.at > PRE_MAX) return false;
+    const idx = await fetch('donnees/sport/index.json', {cache:'no-cache'}).then(x => x.ok ? x.json() : null).catch(() => null);
+    PRE.idle = {};
+    if (idx) Object.entries(idx.leagues || {}).forEach(([id, v]) => { if (v.idle) PRE.idle[id] = true; });
+    LEAGUES.forEach(L => {
+      if (PRE.idle[L.id]){ delete DATA[L.id]; return; }
+      const lg = (j.leagues || {})[L.id] || {}, old = DATA[L.id];
+      const evs = (j.events || []).filter(m => m.league === L.id);
+      DATA[L.id] = {at:Date.now(), day:ymd(dayAt(0)), events:old && old.liveAt ? mergeLive(evs, old.events.filter(m => m.state !== 'pre')) : evs,
+                    logo:lg.logo || '', logoDark:lg.logoDark || '', pre:true, liveAt:old && old.liveAt};
+    });
+    PRE.ok = true; failed.clear();
+    return true;
+  }catch{ return false; }
+}
+async function preLeague(L){
+  if (!PRE.ok) return null;
+  const c = PRE.files[L.id];
+  if (c && Date.now() - c.at < 10 * 60e3) return c.data;
+  try{
+    const r = await fetch(`donnees/sport/${slug(L.id)}.json`, {cache:'no-cache'});
+    if (!r.ok) return null;
+    const d = await r.json(); PRE.files[L.id] = {at:Date.now(), data:d}; return d;
+  }catch{ return null; }
+}
+const preCovers = (pre, s, e) => pre && pre.events && pre.events.length && (!pre.range || (s.getTime() >= pre.range.start - 864e5 && e.getTime() <= pre.range.end + 864e5));
+
 async function loadLeague(L, force){
+  if (PRE.ok && !force){                              // données préparées : seuls les matchs du jour sont relus sur ESPN
+    const d = DATA[L.id]; if (!d || PRE.idle[L.id]) return;
+    const today = ymd(dayAt(0));
+    const live = d.events.some(m => m.state === 'in' || (localKey(m.t) === today && m.state !== 'post'));
+    if (!live || Date.now() - (d.liveAt || 0) < ttl(d.events)) return;
+    try{ d.events = await fetchToday(L); d.liveAt = d.at = Date.now(); failed.delete(L.id); }catch{}
+    return;
+  }
   if (L.seasonal && isIdle(L) && !force) return;      // tournoi en pause : on revérifie toutes les 12 h
   const cached = store.get(CACHE + L.id);
   const today = ymd(dayAt(0));
@@ -606,7 +657,7 @@ async function loadLeague(L, force){
     if (cached && cached.day === today && !force) next = {...cached, events:await fetchToday(L)};
     else next = await fetchLeague(L);
     if (!next.logo && cached) { next.logo = cached.logo; next.logoDark = cached.logoDark; }
-    DATA[L.id] = {at:Date.now(), day:today, events:next.events, logo:next.logo || '', logoDark:next.logoDark || '',
+    DATA[L.id] = {at:Date.now(), day:today, events:mergeLive((DATA[L.id] && DATA[L.id].events) || [], next.events), logo:next.logo || '', logoDark:next.logoDark || '',
                   season:next.season || (cached && cached.season) || null};
     store.set(CACHE + L.id, DATA[L.id]);
     failed.delete(L.id);
@@ -619,6 +670,7 @@ async function loadLeague(L, force){
 
 async function loadAll(force = false){
   $('#refreshBtn').classList.add('spin');
+  if (!PRE.tried && !force){ if (await loadPre()) render(); }
   const order = [...LEAGUES].sort((a,b) => (a.group === group || group === 'all' ? 0 : 1) - (b.group === group || group === 'all' ? 0 : 1));
   let pending = 0;
   await pool(order.map(L => async () => { await loadLeague(L, force); if (++pending % 3 === 0) render(); }), 5);
@@ -630,12 +682,12 @@ async function loadAll(force = false){
 /* Directs : on vérifie toutes les 30 s les compétitions qui en ont besoin */
 setInterval(async () => {
   if (document.hidden || sample) return;
-  const due = LEAGUES.filter(L => DATA[L.id] && Date.now() - DATA[L.id].at >= ttl(DATA[L.id].events));
+  const due = LEAGUES.filter(L => DATA[L.id] && Date.now() - (PRE.ok ? (DATA[L.id].liveAt || 0) : DATA[L.id].at) >= ttl(DATA[L.id].events));
   if (!due.length) return;
   await pool(due.map(L => () => loadLeague(L)), 4);
   render();
 }, 30000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden && !sample) loadAll(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden || sample) return; if (PRE.ok && Date.now() - PRE.at > 2 * 3600e3) PRE.tried = false; loadAll(); });
 
 /* ---------- Programme TV (tv.json, mis à jour par la tâche GitHub) ---------- */
 let TV = null;
@@ -799,26 +851,31 @@ function moreHTML(m){
 }
 /* Détail complet d'un match de rugby (essais, transformations, pénalités, cartons) via la fiche ESPN */
 const FULL = {};
+function summaryEvents(j){
+  const hc = (((j.header || {}).competitions) || [])[0] || {};
+  const pools = [j.keyEvents, j.scoringPlays, hc.details, (j.commentary || []).map(c => c.play || c).filter(Boolean), j.plays];
+  const raw = pools.filter(p => Array.isArray(p) && p.length).flat();
+  const diag = Object.keys(j).map(k => Array.isArray(j[k]) ? `${k} (${j[k].length})` : k).concat(hc.details ? [`header.details (${hc.details.length})`] : []).join(', ');
+  const seen = new Set(), evs = [];
+  raw.forEach(p => {
+    const txt = `${(p.type && (p.type.text || p.type.name)) || ''} ${p.text || ''}`;
+    const kind = classify(txt, p.scoringPlay, p); if (!kind) return;
+    const who = ((p.participants || [])[0] || {}).athlete?.displayName || ((p.athletesInvolved || [])[0] || {}).displayName || '';
+    const d = {kind, min:(p.clock && p.clock.displayValue) || '', team:p.team && String(p.team.id), who};
+    const key = `${d.kind}|${d.min}|${d.team}|${d.who}`; if (seen.has(key)) return; seen.add(key);
+    evs.push(d);
+  });
+  return {evs, diag};
+}
 async function loadFull(m, li){
   const cur = FULL[m.id];
   if (sample){ FULL[m.id] = {at:Date.now(), evs:m.details}; if (li && li.isConnected) li.querySelector('.more').outerHTML = moreHTML(m); return; }
   if ((cur && Date.now() - cur.at < (m.state === 'in' ? 45e3 : 15 * 60e3))) return;
+  if (m.full && m.full.length && m.state === 'post'){ FULL[m.id] = {at:Date.now(), evs:m.full}; if (li && li.isConnected){ li.querySelector('.more').outerHTML = moreHTML(m); li.querySelectorAll('.team').forEach((el, i) => { el.outerHTML = teamHTML(m, i ? m.away : m.home); }); } return; }
   const L = LBY[m.league];
   try{
     const j = await getJSON(`${API}/${L.sport}/${L.id}/summary?event=${encodeURIComponent(m.id)}`);
-    const hc = (((j.header || {}).competitions) || [])[0] || {};
-    const pools = [j.keyEvents, j.scoringPlays, hc.details, (j.commentary || []).map(c => c.play || c).filter(Boolean), j.plays];
-    const raw = pools.filter(p => Array.isArray(p) && p.length).flat();
-    const diag = Object.keys(j).map(k => Array.isArray(j[k]) ? `${k} (${j[k].length})` : k).concat(hc.details ? [`header.details (${hc.details.length})`] : []).join(', ');
-    const seen = new Set(), evs = [];
-    raw.forEach(p => {
-      const txt = `${(p.type && (p.type.text || p.type.name)) || ''} ${p.text || ''}`;
-      const kind = classify(txt, p.scoringPlay, p); if (!kind) return;
-      const who = ((p.participants || [])[0] || {}).athlete?.displayName || ((p.athletesInvolved || [])[0] || {}).displayName || '';
-      const d = {kind, min:(p.clock && p.clock.displayValue) || '', team:p.team && String(p.team.id), who};
-      const key = `${d.kind}|${d.min}|${d.team}|${d.who}`; if (seen.has(key)) return; seen.add(key);
-      evs.push(d);
-    });
+    const {evs, diag} = summaryEvents(j);
     FULL[m.id] = {at:Date.now(), evs:evs.length ? evs : m.details, diag:evs.length ? '' : diag, url:`${API}/${L.sport}/${L.id}/summary?event=${encodeURIComponent(m.id)}`};
   }catch{ FULL[m.id] = {at:Date.now(), evs:m.details, diag:'fiche ESPN inaccessible', url:`${API}/${L.sport}/${L.id}/summary?event=${encodeURIComponent(m.id)}`}; }
   if (li && li.isConnected){ li.querySelector('.more').outerHTML = moreHTML(m); li.querySelectorAll('.team').forEach((el, i) => { el.outerHTML = teamHTML(m, i ? m.away : m.home); }); }
@@ -882,7 +939,7 @@ function matchClick(e, extra = []){
   }
 }
 $('#content').addEventListener('click', e => matchClick(e));
-$('#refreshBtn').addEventListener('click', () => { if (!sample) loadAll(true); });
+$('#refreshBtn').addEventListener('click', () => { if (sample) return; PRE.tried = false; PRE.ok = false; PRE.files = {}; loadAll(false); });
 
 /* Glisser pour changer de jour */
 let sx = null, sy = null;
@@ -1152,18 +1209,21 @@ function sortEntries(entries){
           : entries.some(e => v(e, 'points') != null) ? ['points', -1] : ['winPercent', -1];
   return [...entries].sort((a, b) => ((v(a, k[0]) ?? 999) - (v(b, k[0]) ?? 999)) * k[1]);
 }
+function tableFrom(j){
+  return {season:(j.season || {}).displayName || '', tables:tablesOf(j).map(t => ({title:t.title, entries:sortEntries(t.entries).map(e => ({
+    name:(e.team || {}).shortDisplayName || (e.team || {}).displayName || '?', abbr:(e.team || {}).abbreviation || '',
+    logo:((e.team || {}).logos || [])[0]?.href || (e.team || {}).logo || '',
+    note:e.note ? {color:e.note.color, text:e.note.description} : null,
+    stats:(e.stats || []).map(s => ({name:s.name, type:s.type, v:s.displayValue ?? s.value ?? '', abbr:s.abbreviation || s.shortDisplayName || s.displayName || s.name}))
+  }))}))};
+}
 async function loadTable(force = false){
   const c = csheet, L = c.L, key = 'sport:table:' + L.id;
   const cached = store.get(key);
   if (!force && cached && Date.now() - cached.at < 3600e3){ c.table = cached.data; renderCsheet(); return; }
   try{
-    const j = sample ? sampleStandings(L) : await getJSON(`https://site.api.espn.com/apis/v2/sports/${L.sport}/${L.id}/standings`);
-    const data = {season:(j.season || {}).displayName || '', tables:tablesOf(j).map(t => ({title:t.title, entries:sortEntries(t.entries).map(e => ({
-      name:(e.team || {}).shortDisplayName || (e.team || {}).displayName || '?', abbr:(e.team || {}).abbreviation || '',
-      logo:((e.team || {}).logos || [])[0]?.href || (e.team || {}).logo || '',
-      note:e.note ? {color:e.note.color, text:e.note.description} : null,
-      stats:(e.stats || []).map(s => ({name:s.name, type:s.type, v:s.displayValue ?? s.value ?? '', abbr:s.abbreviation || s.shortDisplayName || s.displayName || s.name}))
-    }))}))};
+    const pre = !sample && await preLeague(L);
+    const data = pre && pre.table ? pre.table : tableFrom(sample ? sampleStandings(L) : await getJSON(`https://site.api.espn.com/apis/v2/sports/${L.sport}/${L.id}/standings`));
     if (!sample) store.set(key, {at:Date.now(), data});
     if (csheet === c) c.table = data;
   }catch{ if (csheet === c) c.table = 'err'; }
@@ -1371,6 +1431,9 @@ function healthIssues(){
   if (TV_META === 'missing') out.push({t:'Programme TV introuvable', d:"Le fichier <code>tv.json</code> n'existe pas encore. Dans GitHub, onglet Actions → « Programme TV sport » → Run workflow."});
   else if (typeof TV_META === 'number' && Date.now() - TV_META > 12 * 3600e3)
     out.push({t:'Programme TV pas à jour', d:`Dernière mise à jour le ${new Date(TV_META).toLocaleString('fr-FR', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'})}. La tâche GitHub a sans doute échoué : regarde l'onglet Actions.`});
+  if (PRE.missing) out.push({t:'Données sport préparées absentes', d:"Le dossier <code>donnees/sport</code> est rempli par la tâche GitHub. Lance-la (Actions → Run workflow). En attendant, la page lit ESPN directement."});
+  else if (PRE.at && Date.now() - PRE.at > PRE_MAX)
+    out.push({t:'Données sport pas à jour', d:`Dernière préparation le ${new Date(PRE.at).toLocaleString('fr-FR', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'})}. La page lit ESPN directement en attendant ; regarde l'onglet Actions de GitHub.`});
   if (FILES === 'missing') out.push({t:'Index des fichiers absent', d:"<code>fichiers.json</code> est créé par la tâche GitHub. Lance-la une fois (Actions → Run workflow)."});
   const unv = store.get('sport:unverified') || {};
   LEAGUES.filter(L => L.rounds && L.id !== 'nfl').forEach(L => {
@@ -1456,6 +1519,16 @@ function badgeFor(m, t){
 async function loadRounds(){
   const cs = csheet, c = cs.cal, L = cs.L;
   let all = SEASONS[L.id] && Date.now() - SEASONS[L.id].at < 30 * 60e3 ? SEASONS[L.id].events : null;
+  let fromPre = !!(SEASONS[L.id] && SEASONS[L.id].pre && all);
+  if (!all && !sample){
+    const pre = await preLeague(L);
+    if (csheet !== cs) return;
+    if (pre && pre.events && pre.events.length){
+      all = mergeLive(pre.events, (DATA[L.id] || {}).events || []).sort((a, b) => a.t - b.t);
+      if (all.some(m => !m.round)) assignRounds(all);
+      SEASONS[L.id] = {at:Date.now(), events:all, pre:true}; fromPre = true;
+    }
+  }
   if (!all){
     c.events = null; renderCsheet();
     if (sample) all = Object.values(DATA).flatMap(d => d.events).filter(m => m.league === L.id).map(m => ({...m, round:null}));
@@ -1473,7 +1546,7 @@ async function loadRounds(){
   if (csheet !== cs) return;
   pickRound(c, all);
   showRound(c, all);
-  if (L.tsdb && !sample && all.some(m => m.roundSrc === 'calc')){        // vérification progressive des journées autour de celle affichée
+  if (L.tsdb && !sample && !fromPre && all.some(m => m.roundSrc === 'calc')){        // vérification progressive des journées autour de celle affichée
     const want = c.view === 'week' ? [...new Set(weekEvents(c, all).map(m => m.round))].flatMap(r => [r - 1, r, r + 1]) : [c.round - 1, c.round, c.round + 1];
     const n = await tsdbRounds(L, all, want);
     if (n && csheet === cs){ all.forEach(m => { if (m.roundSrc === 'calc') m.round = null; }); assignRounds(all); showRound(c, all); }
@@ -1555,10 +1628,12 @@ async function loadCal(){
   c.events = null; c.err = false; renderCsheet();
   const [s, e] = calBounds(c);
   try{
-    let evs;
+    let evs = null;
     if (sample) evs = Object.values(DATA).flatMap(d => d.events).filter(m => m.league === L.id);
     else {
-      evs = c.mode === 'month' ? await rangeEvents(L, s, e) : null;
+      const pre = await preLeague(L);
+      if (preCovers(pre, s, e)) evs = mergeLive(pre.events, (DATA[L.id] || {}).events || []);
+      if (!evs && c.mode === 'month') evs = await rangeEvents(L, s, e);
       if (!evs) evs = await fetchDays(L, await matchDates(L, s, e), (n, t) => { if (csheet === cs && c.events === null){ c.progress = `${n}/${t}`; renderCsheet(); } });
       c.progress = null;
     }
@@ -1633,6 +1708,7 @@ function renderCsheet(){
       <h3 class="bx-h">Cette page</h3>
       <div class="clist glass">
         <div class="issue"><b>Version ${esc(VERSION)}</b><span>Compare ce numéro entre l'ordinateur et le téléphone : s'il diffère, le téléphone n'a pas encore la dernière version (ferme et rouvre l'appli).</span></div>
+        <div class="issue"><b>Données préparées</b><span>${PRE.ok ? `Utilisées · préparées le ${new Date(PRE.at).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}` : 'Non utilisées : lecture directe sur ESPN'}.</span></div>
         <div class="issue"><b>Chargements</b><span>${NET.ok} réussis · ${NET.ko} échoués · ${NET.slow} lents (plus de 4 s) depuis l'ouverture.</span></div>
         <div class="issue"><b>Données mémorisées</b><span>Efface ce que la page a gardé sur cet appareil (matchs, journées, logos) et recharge tout.</span>
           <button type="button" class="mini" id="resetData">Réinitialiser les données mémorisées</button></div>
