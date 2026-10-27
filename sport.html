@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
-
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -171,6 +170,7 @@ section.comp{display:flex;flex-direction:column;gap:8px}
 .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:8px;font-size:.72rem;font-weight:600;white-space:nowrap}
 .pill b{font-size:.58rem;letter-spacing:.08em;font-weight:700;opacity:.7}
 .pill.fr{background:var(--accent);color:var(--on-accent)}
+.pill.fr.exact{box-shadow:0 0 0 1px var(--on-accent) inset}
 .pill.fr.partial{background:var(--accent-soft);color:var(--accent)}
 .pill.us{border:1px solid var(--line);color:var(--ink-soft)}
 
@@ -279,8 +279,14 @@ body.locked{overflow:hidden}
 .legend li{display:flex;align-items:center;gap:6px}
 .legend i{width:10px;height:10px;border-radius:3px;display:block}
 .cal-nav{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;border-radius:16px;padding:4px}
-.cal-nav span{text-align:center;font-weight:600;text-transform:capitalize}
+.cal-nav span{text-align:center;font-weight:600;display:flex;flex-direction:column;gap:2px}
+.cal-nav span::first-letter{text-transform:uppercase}
+.cal-nav small{font-size:.72rem;font-weight:500;color:var(--ink-soft)}
+.cal-nav button:disabled{opacity:.25}
 .cal-nav button{height:36px;border-radius:12px;font-size:1.3rem;color:var(--accent)}
+.more-links{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.mini{padding:6px 11px;border-radius:999px;font-size:.76rem;font-weight:600;color:var(--accent);background:var(--accent-soft)}
+#sheetBody > .more-links{justify-content:center}
 @keyframes up{from{transform:translateY(40%)}}
 @keyframes fade{from{opacity:0}}
 @media (max-width:360px){ .row{grid-template-columns:52px 1fr} .tv,.more{padding-left:78px} }
@@ -329,6 +335,8 @@ body.locked{overflow:hidden}
    id/sport : identifiants ESPN · tv : diffuseur(s) France
    tvTeam   : la chaîne ne s'affiche que si cette équipe joue
    partial  : la chaîne ne diffuse qu'une sélection de matchs
+   region   : rubrique dans la liste des compétitions
+   rounds   : calendrier par journée (championnats) ou par semaine (NFL)
    seasonal : tournoi ponctuel, vérifié deux fois par jour et affiché
               seulement quand il a des matchs
    Droits TV vérifiés en octobre 2026 (saison 2026-27).
@@ -349,36 +357,47 @@ const SPORT_ICONS = {
   nfl:'<path d="M3.2 12c2.2-4.6 5.4-6.6 8.8-6.6s6.6 2 8.8 6.6c-2.2 4.6-5.4 6.6-8.8 6.6S5.4 16.6 3.2 12z"/><path d="M8.6 12h6.8M10 10.6v2.8M12 10.6v2.8M14 10.6v2.8"/>',
   hockey:'<path d="M14.5 3.5 9 16.5c-.4.9-1.2 1.5-2.2 1.5H3.5"/><path d="M3.5 18v2h4.2"/><ellipse cx="17" cy="18.5" rx="3.5" ry="1.6"/><path d="M13.5 18.5v.8c0 .9 1.6 1.6 3.5 1.6s3.5-.7 3.5-1.6v-.8"/>'
 };
+const REGIONS = [
+  {id:'fr',    label:'France'},
+  {id:'ec',    label:'Compétitions européennes'},
+  {id:'intl',  label:'Football international'},
+  {id:'en',    label:'Angleterre'},
+  {id:'big',   label:'Espagne · Italie · Allemagne'},
+  {id:'rfr',   label:'Rugby · France'},
+  {id:'reu',   label:'Rugby · Europe'},
+  {id:'rintl', label:'Rugby · International'},
+  {id:'us',    label:'Sports US'}
+];
 const LEAGUES = [
-  {id:'fifa.world', flag:'🌍',          sport:'soccer', group:'foot', name:'Coupe du monde', seasonal:true},
-  {id:'uefa.euro', flag:'🇪🇺',           sport:'soccer', group:'foot', name:'Euro', seasonal:true},
-  {id:'fifa.worldq.uefa', flag:'🌍',    sport:'soccer', group:'foot', name:'Qualifications Coupe du monde', tv:['TF1'], tvTeam:'France', seasonal:true},
-  {id:'uefa.euroq', flag:'🇪🇺',          sport:'soccer', group:'foot', name:'Qualifications Euro', tv:['TF1'], tvTeam:'France', seasonal:true},
-  {id:'fifa.olympics', flag:'🌍',       sport:'soccer', group:'foot', name:'Jeux olympiques', seasonal:true},
-  {id:'fifa.cwc', flag:'🌍',            sport:'soccer', group:'foot', name:'Coupe du monde des clubs', seasonal:true},
-  {id:'uefa.super_cup', flag:'🇪🇺',      sport:'soccer', group:'foot', name:'Supercoupe d\'Europe', seasonal:true},
-  {id:'fra.super_cup', flag:'🇫🇷',       sport:'soccer', group:'foot', name:'Trophée des champions', seasonal:true},
-  {id:'uefa.champions', flag:'🇪🇺',      sport:'soccer', group:'foot', name:'Ligue des champions', tv:['Canal+']},
-  {id:'fra.1', flag:'🇫🇷',               sport:'soccer', group:'foot', name:'Ligue 1',             tv:['Ligue 1+']},
-  {id:'fra.2', flag:'🇫🇷',               sport:'soccer', group:'foot', name:'Ligue 2',             tv:['beIN Sports']},
-  {id:'uefa.nations', flag:'🇪🇺',        sport:'soccer', group:'foot', name:'Ligue des nations',   tv:['TF1'], tvTeam:'France', seasonal:true},
-  {id:'fifa.friendly', flag:'🌍',       sport:'soccer', group:'foot', name:'Amicaux internationaux', tv:['TF1'], tvTeam:'France', seasonal:true},
-  {id:'uefa.europa', flag:'🇪🇺',         sport:'soccer', group:'foot', name:'Ligue Europa',        tv:['Canal+']},
-  {id:'uefa.europa.conf', flag:'🇪🇺',    sport:'soccer', group:'foot', name:'Ligue Conférence',    tv:['Canal+']},
-  {id:'fra.coupe_de_france', flag:'🇫🇷', sport:'soccer', group:'foot', name:'Coupe de France',     tv:['beIN Sports']},
-  {id:'eng.1', flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',               sport:'soccer', group:'foot', name:'Premier League',      tv:['Canal+']},
-  {id:'eng.2', flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',               sport:'soccer', group:'foot', name:'Championship'},
-  {id:'esp.1', flag:'🇪🇸',               sport:'soccer', group:'foot', name:'Liga',                tv:['DAZN','Disney+']},
-  {id:'ita.1', flag:'🇮🇹',               sport:'soccer', group:'foot', name:'Serie A',             tv:['DAZN']},
-  {id:'ger.1', flag:'🇩🇪',               sport:'soccer', group:'foot', name:'Bundesliga',          tv:['beIN Sports']},
-  {id:'164205', flag:'🌍',              sport:'rugby',  group:'rugby', name:'Coupe du monde de rugby', tv:['TF1'], seasonal:true},
-  {id:'270559', flag:'🇫🇷',              sport:'rugby',  group:'rugby', name:'Top 14',             tv:['Canal+']},
-  {id:'271937', flag:'🇪🇺',              sport:'rugby',  group:'rugby', name:'Champions Cup',      tv:['beIN Sports']},
-  {id:'180659', flag:'🇪🇺',              sport:'rugby',  group:'rugby', name:'Six Nations',        tv:['France TV'], seasonal:true},
-  {id:'289234', flag:'🌍',              sport:'rugby',  group:'rugby', name:'Tests internationaux', tv:['TF1'], tvTeam:'France', seasonal:true},
-  {id:'nba', flag:'🇺🇸',                 sport:'basketball', group:'basket', name:'NBA', tv:['beIN Sports','Prime Video'], partial:true},
-  {id:'nfl', flag:'🇺🇸',                 sport:'football',   group:'nfl', name:'NFL', tv:['beIN Sports'], partial:true},
-  {id:'nhl', flag:'🇺🇸',                 sport:'hockey',     group:'hockey', name:'NHL', tv:['beIN Sports','DAZN'], partial:true}
+  {id:'fra.1',               region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Ligue 1',             tv:['Ligue 1+'], rounds:true},
+  {id:'fra.2',               region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Ligue 2',             tv:['beIN Sports'], rounds:true},
+  {id:'fra.coupe_de_france', region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Coupe de France',     tv:['beIN Sports']},
+  {id:'fra.super_cup',       region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Trophée des champions', seasonal:true},
+  {id:'uefa.champions',      region:'ec',  flag:'🇪🇺', sport:'soccer', group:'foot', name:'Ligue des champions', tv:['Canal+']},
+  {id:'uefa.europa',         region:'ec',  flag:'🇪🇺', sport:'soccer', group:'foot', name:'Ligue Europa',        tv:['Canal+']},
+  {id:'uefa.europa.conf',    region:'ec',  flag:'🇪🇺', sport:'soccer', group:'foot', name:'Ligue Conférence',    tv:['Canal+']},
+  {id:'uefa.super_cup',      region:'ec',  flag:'🇪🇺', sport:'soccer', group:'foot', name:'Supercoupe d\'Europe', seasonal:true},
+  {id:'fifa.world',          region:'intl', flag:'🌍', sport:'soccer', group:'foot', name:'Coupe du monde', seasonal:true},
+  {id:'uefa.euro',           region:'intl', flag:'🇪🇺', sport:'soccer', group:'foot', name:'Euro', seasonal:true},
+  {id:'fifa.worldq.uefa',    region:'intl', flag:'🌍', sport:'soccer', group:'foot', name:'Qualifications Coupe du monde', tv:['TF1'], tvTeam:'France', seasonal:true},
+  {id:'uefa.euroq',          region:'intl', flag:'🇪🇺', sport:'soccer', group:'foot', name:'Qualifications Euro', tv:['TF1'], tvTeam:'France', seasonal:true},
+  {id:'uefa.nations',        region:'intl', flag:'🇪🇺', sport:'soccer', group:'foot', name:'Ligue des nations',   tv:['TF1'], tvTeam:'France', seasonal:true},
+  {id:'fifa.friendly',       region:'intl', flag:'🌍', sport:'soccer', group:'foot', name:'Amicaux internationaux', tv:['TF1'], tvTeam:'France', seasonal:true},
+  {id:'fifa.olympics',       region:'intl', flag:'🌍', sport:'soccer', group:'foot', name:'Jeux olympiques', seasonal:true},
+  {id:'fifa.cwc',            region:'intl', flag:'🌍', sport:'soccer', group:'foot', name:'Coupe du monde des clubs', seasonal:true},
+  {id:'eng.1',               region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'Premier League',      tv:['Canal+'], rounds:true},
+  {id:'eng.2',               region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'Championship', rounds:true},
+  {id:'esp.1',               region:'big', flag:'🇪🇸', sport:'soccer', group:'foot', name:'Liga',                tv:['DAZN','Disney+'], rounds:true},
+  {id:'ita.1',               region:'big', flag:'🇮🇹', sport:'soccer', group:'foot', name:'Serie A',             tv:['DAZN'], rounds:true},
+  {id:'ger.1',               region:'big', flag:'🇩🇪', sport:'soccer', group:'foot', name:'Bundesliga',          tv:['beIN Sports'], rounds:true},
+  {id:'270559',              region:'rfr', flag:'🇫🇷', sport:'rugby',  group:'rugby', name:'Top 14',             tv:['Canal+'], rounds:true},
+  {id:'271937',              region:'reu', flag:'🇪🇺', sport:'rugby',  group:'rugby', name:'Champions Cup',      tv:['beIN Sports']},
+  {id:'164205',              region:'rintl', flag:'🌍', sport:'rugby', group:'rugby', name:'Coupe du monde de rugby', tv:['TF1'], seasonal:true},
+  {id:'180659',              region:'rintl', flag:'🇪🇺', sport:'rugby', group:'rugby', name:'Six Nations',       tv:['France TV'], seasonal:true},
+  {id:'289234',              region:'rintl', flag:'🌍', sport:'rugby', group:'rugby', name:'Tests internationaux', tv:['TF1'], tvTeam:'France', seasonal:true},
+  {id:'nba',                 region:'us',  flag:'🇺🇸', sport:'basketball', group:'basket', name:'NBA', tv:['beIN Sports','Prime Video'], partial:true},
+  {id:'nfl',                 region:'us',  flag:'🇺🇸', sport:'football',   group:'nfl',    name:'NFL', tv:['beIN Sports'], partial:true, rounds:true},
+  {id:'nhl',                 region:'us',  flag:'🇺🇸', sport:'hockey',     group:'hockey', name:'NHL', tv:['beIN Sports','DAZN'], partial:true}
 ];
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v2:';
@@ -446,7 +465,8 @@ function norm(ev, L){
   const links = ev.links || [];
   const link = (links.find(l => (l.rel || []).includes('summary')) || links[0] || {}).href || '';
   return {id:ev.id, league:L.id, t:Date.parse(ev.date), state:st.state || 'pre', code:st.name || '',
-          detail:st.shortDetail || st.detail || '', home:side('home',0), away:side('away',1), details, us, link};
+          detail:st.shortDetail || st.detail || '', home:side('home',0), away:side('away',1), details, us, link,
+          round:(ev.week && ev.week.number) || null};
 }
 
 async function fetchLeague(L){
@@ -475,7 +495,9 @@ async function fetchLeague(L){
 function logosOf(leagues){
   const lg = (leagues || [])[0] || {}; const ls = lg.logos || [];
   const pick = rel => (ls.find(l => (l.rel || []).includes(rel)) || {}).href || '';
-  return {logo:pick('default') || (ls[0] || {}).href || '', logoDark:pick('dark')};
+  const sz = lg.season || {};
+  const start = lg.calendarStartDate || sz.startDate, end = lg.calendarEndDate || sz.endDate;
+  return {logo:pick('default') || (ls[0] || {}).href || '', logoDark:pick('dark'), season:start && end ? {start, end} : null};
 }
 
 async function fetchToday(L){                    // rafraîchissement léger des directs
@@ -528,7 +550,8 @@ async function loadLeague(L, force){
     if (cached && cached.day === today && !force) next = {...cached, events:await fetchToday(L)};
     else next = await fetchLeague(L);
     if (!next.logo && cached) { next.logo = cached.logo; next.logoDark = cached.logoDark; }
-    DATA[L.id] = {at:Date.now(), day:today, events:next.events, logo:next.logo || '', logoDark:next.logoDark || ''};
+    DATA[L.id] = {at:Date.now(), day:today, events:next.events, logo:next.logo || '', logoDark:next.logoDark || '',
+                  season:next.season || (cached && cached.season) || null};
     store.set(CACHE + L.id, DATA[L.id]);
     failed.delete(L.id);
     if (L.seasonal){
@@ -557,6 +580,33 @@ setInterval(async () => {
   render();
 }, 30000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !sample) loadAll(); });
+
+/* ---------- Programme TV (tv.json, mis à jour par la tâche GitHub) ---------- */
+let TV = null;
+const normTxt = s => ' ' + String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+const STOP = new Set(['fc','cf','ac','as','sc','rc','ss','sv','afc','club','de','la','le','les','du','des','the','and','olympique','stade','sporting','racing','football','rugby','calcio','ogc','losc','u21']);
+const tokens = t => [...new Set([t.full, t.name, t.abbr].flatMap(x => normTxt(x).trim().split(' ')).filter(w => w.length >= 3 && !STOP.has(w)))];
+async function loadTV(){
+  if (sample) return;
+  try{
+    const r = await fetch('tv.json', {cache:'no-store'});
+    if (!r.ok) return;
+    const j = await r.json();
+    TV = (j.programmes || []).map(p => ({c:p.c, s:Date.parse(p.s), e:Date.parse(p.e || p.s), txt:normTxt(`${p.t} ${p.d || ''}`)}));
+    render();
+  }catch{}
+}
+const GENERIC = /^(canal\+|dazn|bein sports)$/i;
+function tvFor(m){
+  if (!TV || !m.t) return null;
+  const H = tokens(m.home), A = tokens(m.away);
+  if (!H.length || !A.length) return null;
+  const has = (p, ws) => ws.some(w => p.txt.includes(` ${w} `));
+  const hits = TV.filter(p => p.s >= m.t - 75 * 60e3 && p.s <= m.t + 20 * 60e3 && p.e >= m.t + 30 * 60e3 && has(p, H) && has(p, A));
+  const names = [...new Set(hits.map(p => p.c))].sort((a, b) => GENERIC.test(a) - GENERIC.test(b));
+  return names.length ? names.slice(0, 2) : null;
+}
+setInterval(() => { if (!document.hidden) loadTV(); }, 30 * 60e3);
 
 /* ---------- Libellés ---------- */
 const ORD = {'1st':1,'2nd':2,'3rd':3,'4th':4};
@@ -640,11 +690,17 @@ function teamHTML(m, t, other){
 }
 function tvHTML(m){
   const L = LBY[m.league]; const out = [];
-  if (L.tv && (!L.tvTeam || plays(m, L.tvTeam)))
+  const exact = m.state !== 'post' ? tvFor(m) : null;
+  if (exact) out.push(`<span class="pill fr exact" title="D'après le programme TV"><b>FR</b>${esc(exact.join(' · '))}</span>`);
+  else if (L.tv && (!L.tvTeam || plays(m, L.tvTeam)))
     out.push(`<span class="pill fr${L.partial ? ' partial' : ''}"><b>FR</b>${esc(L.tv.join(' · '))}${L.partial ? ' (sélection)' : ''}</span>`);
   m.us.forEach(n => out.push(`<span class="pill us"><b>US</b>${esc(n)}</span>`));
   if (isUS(m) && m.state !== 'pre') out.push(`<button type="button" class="bx-link">Feuille de match ›</button>`);
   return out.length ? `<div class="tv">${out.join('')}</div>` : '';
+}
+function compLinks(m){
+  return `<div class="more-links"><button type="button" class="mini" data-open="table" data-cl="${esc(m.league)}">Classement</button>
+    <button type="button" class="mini" data-open="cal" data-cl="${esc(m.league)}" data-t="${m.t}">${LBY[m.league].rounds ? (m.league === 'nfl' ? 'Semaine' : 'Journée') + ' et calendrier' : 'Calendrier'}</button></div>`;
 }
 function moreHTML(m){
   const name = id => id === m.home.id ? m.home.name : id === m.away.id ? m.away.name : '';
@@ -652,6 +708,7 @@ function moreHTML(m){
       <span class="who">${esc(d.who || (d.red ? 'Carton rouge' : 'But'))}${d.pen && !d.red ? ' (pén.)' : ''}${d.og ? ' (csc)' : ''} <em>${esc(name(d.team))}</em></span></div>`).join('');
   const none = m.state === 'pre' ? 'Le match n’a pas commencé.' : (LBY[m.league].sport === 'soccer' ? 'Aucun but ni carton rouge.' : 'Pas de détail disponible pour ce sport.');
   return `<div class="more" ${open.has(m.id) ? '' : 'hidden'}>${evs || `<span class="none">${none}</span>`}
+    ${compLinks(m)}
     ${m.link ? `<a class="src" href="${esc(m.link)}" target="_blank" rel="noopener">Voir le match sur ESPN</a>` : ''}</div>`;
 }
 function matchHTML(m, showComp){
@@ -698,6 +755,8 @@ $('#filters').addEventListener('click', e => {
   group = b.dataset.g; store.set('sport:group', group); renderFilters(); render();
 });
 function matchClick(e, extra = []){
+  const op = e.target.closest('[data-open]');
+  if (op){ openComp(LBY[op.dataset.cl], false, op.dataset.open, +op.dataset.t || null); return; }
   const hit = e.target.closest('.row, .bx-link'); if (!hit) return;
   const li = hit.closest('.match'), id = li.dataset.id, row = li.querySelector('.row');
   const m = [...extra, ...Object.values(DATA).flatMap(d => d.events)].find(x => String(x.id) === id);
@@ -873,12 +932,15 @@ function renderBox(){
           ${ok ? `<div class="bar"><i style="width:${(a / (a + o) * 100).toFixed(1)}%"></i></div>` : ''}</div>`; }).join('')}
     </div>`;
   }
+  h += compLinks(m);
   if (m.link) h += `<a class="src bx-src" href="${esc(m.link)}" target="_blank" rel="noopener">Voir le match sur ESPN</a>`;
   $('#sheetBody').innerHTML = h;
 }
 
 $('#sheetBody').addEventListener('click', e => {
   if (!box) return;
+  const op = e.target.closest('[data-open]');
+  if (op){ const L = LBY[op.dataset.cl]; closeBox(); openComp(L, false, op.dataset.open, +op.dataset.t || null); return; }
   const t = e.target.closest('[data-team],[data-cat],[data-col]'); if (!t) return;
   if (t.dataset.team != null){ box.team = +t.dataset.team; box.cat = 0; }
   else if (t.dataset.cat != null){ box.cat = +t.dataset.cat; box.sort = null; }
@@ -937,14 +999,15 @@ function openCompList(){
   csheet = {mode:'list', focus:document.activeElement};
   showCsheet();
 }
-function openComp(L, fromList = false){
+function openComp(L, fromList = false, tab = 'table', at = null){
   const focus = csheet ? csheet.focus : document.activeElement;
-  csheet = {mode:'comp', L, fromList, focus, tab:'table', table:null,
-            cal:{mode:(store.get('sport:norange') || {})[L.id] ? 'week' : 'month', start:null, events:null, cache:{}, err:false}};
+  const mode = L.rounds ? 'round' : (store.get('sport:norange') || {})[L.id] ? 'week' : 'month';
+  csheet = {mode:'comp', L, fromList, focus, tab, table:null,
+            cal:{mode, start:null, events:null, cache:{}, err:false, at, round:null, rounds:null}};
   showCsheet();
   loadTable();
-}
-function showCsheet(){
+  if (tab === 'cal') loadCal();
+}function showCsheet(){
   $('#csheet').hidden = false; document.body.classList.add('locked');
   renderCsheet(); $('#csheetClose').focus();
 }
@@ -1021,8 +1084,57 @@ const monthOf = d => new Date(d.getFullYear(), d.getMonth(), 1, 12);
 function calBounds(c){
   return c.mode === 'month' ? [c.start, new Date(c.start.getFullYear(), c.start.getMonth() + 1, 0, 12)] : [c.start, addDays(c.start, 6)];
 }
+const SEASONS = {};
+function seasonBounds(L){
+  const sz = (DATA[L.id] || {}).season;
+  if (sz) return [new Date(Date.parse(sz.start) + 43200e3), new Date(Date.parse(sz.end) - 43200e3)];
+  const t = dayAt(0), y = t.getMonth() >= 6 ? t.getFullYear() : t.getFullYear() - 1;
+  return L.id === 'nfl' ? [new Date(y, 7, 1, 12), new Date(y + 1, 1, 28, 12)] : [new Date(y, 6, 1, 12), new Date(y + 1, 5, 30, 12)];
+}
+function assignRounds(evs){
+  if (evs.some(m => m.round)) return;
+  const n = {};
+  evs.forEach(m => {
+    const h = (n[m.home.id] || 0) + 1, a = (n[m.away.id] || 0) + 1;
+    n[m.home.id] = h; n[m.away.id] = a;
+    m.round = Math.max(h, a);
+  });
+}
+async function loadRounds(){
+  const cs = csheet, c = cs.cal, L = cs.L;
+  let all = SEASONS[L.id] && Date.now() - SEASONS[L.id].at < 30 * 60e3 ? SEASONS[L.id].events : null;
+  if (!all){
+    c.events = null; renderCsheet();
+    if (sample) all = Object.values(DATA).flatMap(d => d.events).filter(m => m.league === L.id).map(m => ({...m, round:null}));
+    else {
+      const [s, e] = seasonBounds(L);
+      try{
+        const j = await getJSON(`${API}/${L.sport}/${L.id}/scoreboard?dates=${ymd(s)}-${ymd(e)}&limit=1000`);
+        if (!Array.isArray(j.events) || !j.events.length) throw 0;
+        const seen = new Map(); j.events.forEach(ev => seen.set(ev.id, norm(ev, L)));
+        all = [...seen.values()];
+      }catch{
+        if (csheet !== cs) return;
+        c.mode = 'month'; return loadCal();
+      }
+    }
+    all.sort((a, b) => a.t - b.t);
+    assignRounds(all);
+    SEASONS[L.id] = {at:Date.now(), events:all};
+  }
+  if (csheet !== cs) return;
+  c.rounds = [...new Set(all.map(m => m.round))].sort((a, b) => a - b);
+  if (c.round == null){
+    if (c.at){ const near = all.reduce((b, m) => Math.abs(m.t - c.at) < Math.abs(b.t - c.at) ? m : b, all[0]); c.round = near.round; }
+    else { const next = all.find(m => m.state !== 'post'); c.round = next ? next.round : c.rounds[c.rounds.length - 1]; }
+  }
+  c.events = all.filter(m => m.round === c.round);
+  renderCsheet();
+}
 async function loadCal(){
   const cs = csheet, c = cs.cal, L = cs.L;
+  if (c.mode === 'round') return loadRounds();
+  if (!c.start && c.at){ const d = new Date(c.at); c.start = c.mode === 'month' ? monthOf(d) : mondayOf(d); }
   if (!c.start) c.start = c.mode === 'month' ? monthOf(dayAt(0)) : mondayOf(dayAt(0));
   const key = c.mode + ymd(c.start);
   if (c.cache[key]){ c.events = c.cache[key]; renderCsheet(); return; }
@@ -1058,11 +1170,24 @@ async function loadCal(){
   }catch{ c.err = true; c.events = []; }
   if (csheet === cs) renderCsheet();
 }
+const roundName = (L, n) => L.id === 'nfl' ? `Semaine ${n}` : `${n}${n === 1 ? 're' : 'e'} journée`;
 function calHTML(L, c){
-  if (!c.start) return '';
-  const [s, e] = calBounds(c);
-  const label = c.mode === 'month' ? MOIS(s) : `${s.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} – ${e.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}`;
-  let h = `<div class="cal-nav glass"><button type="button" data-nav="-1" aria-label="Période précédente">‹</button><span>${esc(label)}</span><button type="button" data-nav="1" aria-label="Période suivante">›</button></div>`;
+  let label, sub = '', first = false, last = false;
+  if (c.mode === 'round'){
+    if (c.round == null) return `<div class="skeleton glass"></div><div class="skeleton glass"></div>`;
+    label = roundName(L, c.round);
+    const i = c.rounds.indexOf(c.round); first = i <= 0; last = i >= c.rounds.length - 1;
+    if (c.events && c.events.length){
+      const a = new Date(c.events[0].t), b = new Date(c.events[c.events.length - 1].t), f = {day:'numeric', month:'short'};
+      sub = localKey(a) === localKey(b) ? a.toLocaleDateString('fr-FR', {weekday:'long', ...f}) : `${a.toLocaleDateString('fr-FR', f)} – ${b.toLocaleDateString('fr-FR', f)}`;
+    }
+  } else {
+    if (!c.start) return '';
+    const [s, e] = calBounds(c);
+    label = c.mode === 'month' ? MOIS(s) : `${s.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} – ${e.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}`;
+  }
+  let h = `<div class="cal-nav glass"><button type="button" data-nav="-1" aria-label="Précédent"${first ? ' disabled' : ''}>‹</button>
+    <span>${esc(label)}${sub ? `<small>${esc(sub)}</small>` : ''}</span><button type="button" data-nav="1" aria-label="Suivant"${last ? ' disabled' : ''}>›</button></div>`;
   if (c.events === null) return h + `<div class="skeleton glass"></div><div class="skeleton glass"></div>`;
   if (c.err) return h + `<div class="empty">Le calendrier n'est pas disponible pour l'instant.</div>`;
   if (!c.events.length) return h + `<div class="empty">Aucun match sur cette période.</div>`;
@@ -1083,9 +1208,10 @@ function renderCsheet(){
   if (c.mode === 'list'){
     back.hidden = true;
     $('#csheetTitle').innerHTML = '<span>Compétitions</span>';
-    $('#csheetBody').innerHTML = GROUPS.filter(g => g.id !== 'all').map(g => {
+    $('#csheetBody').innerHTML = REGIONS.map(g => {
       const idle = L => L.seasonal && !DATA[L.id];
-      const ls = LEAGUES.filter(L => L.group === g.id).sort((a, b) => idle(a) - idle(b));
+      const ls = LEAGUES.filter(L => L.region === g.id).sort((a, b) => idle(a) - idle(b));
+      if (!ls.length) return '';
       return `<h3 class="bx-h">${esc(g.label)}</h3><div class="clist glass">${ls.map(L =>
         `<button type="button" class="citem${L.seasonal && !DATA[L.id] ? ' idle' : ''}" data-league="${esc(L.id)}">${compBadge(L)}<span class="cn">${esc(L.name)}</span>${L.seasonal && !DATA[L.id] ? '<small>pas de match</small>' : ''}<i aria-hidden="true">›</i></button>`).join('')}</div>`;
     }).join('');
@@ -1112,10 +1238,15 @@ $('#csheetBody').addEventListener('click', e => {
   const it = e.target.closest('[data-league]');
   if (it){ openComp(LBY[it.dataset.league], true); return; }
   const tab = e.target.closest('[data-tab]');
-  if (tab){ c.tab = tab.dataset.tab; if (c.tab === 'cal' && !c.cal.start) loadCal(); else renderCsheet(); return; }
+  if (tab){ c.tab = tab.dataset.tab; if (c.tab === 'cal' && c.cal.events === null) loadCal(); else renderCsheet(); return; }
   const nav = e.target.closest('[data-nav]');
   if (nav){
     const d = +nav.dataset.nav, cal = c.cal;
+    if (cal.mode === 'round'){
+      const i = cal.rounds.indexOf(cal.round) + d;
+      if (i >= 0 && i < cal.rounds.length){ cal.round = cal.rounds[i]; loadRounds(); }
+      return;
+    }
     cal.start = cal.mode === 'month' ? new Date(cal.start.getFullYear(), cal.start.getMonth() + d, 1, 12) : addDays(cal.start, 7 * d);
     loadCal(); return;
   }
@@ -1183,6 +1314,7 @@ renderFilters();
 LEAGUES.forEach(L => { const c = store.get(CACHE + L.id); if (c && c.day === ymd(dayAt(0))) DATA[L.id] = c; });
 render();
 loadAll();
+loadTV();
 </script>
 </body>
 </html>
