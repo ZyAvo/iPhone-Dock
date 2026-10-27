@@ -426,9 +426,17 @@ const LEAGUES = [
   {id:'eng.1',               region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'Premier League',      tv:['Canal+'], rounds:true, of:'en.1'},
   {id:'eng.2',               region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'Championship', rounds:true, of:'en.2'},
   {id:'eng.league_cup',      region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'Coupe de la Ligue anglaise', tv:['beIN Sports']},
+  {id:'eng.fa',              region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'FA Cup'},
+  {id:'eng.charity',         region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'Community Shield', seasonal:true},
   {id:'esp.1',               region:'big', flag:'🇪🇸', sport:'soccer', group:'foot', name:'Liga',                tv:['DAZN','Disney+'], rounds:true, of:'es.1'},
   {id:'ita.1',               region:'big', flag:'🇮🇹', sport:'soccer', group:'foot', name:'Serie A',             tv:['DAZN'], rounds:true, of:'it.1'},
   {id:'ger.1',               region:'big', flag:'🇩🇪', sport:'soccer', group:'foot', name:'Bundesliga',          tv:['beIN Sports'], rounds:true, of:'de.1'},
+  {id:'esp.copa_del_rey',    region:'big', flag:'🇪🇸', sport:'soccer', group:'foot', name:'Coupe du Roi'},
+  {id:'esp.super_cup',       region:'big', flag:'🇪🇸', sport:'soccer', group:'foot', name:'Supercoupe d\'Espagne', seasonal:true},
+  {id:'ita.coppa_italia',    region:'big', flag:'🇮🇹', sport:'soccer', group:'foot', name:'Coupe d\'Italie'},
+  {id:'ita.super_cup',       region:'big', flag:'🇮🇹', sport:'soccer', group:'foot', name:'Supercoupe d\'Italie', seasonal:true},
+  {id:'ger.dfb_pokal',       region:'big', flag:'🇩🇪', sport:'soccer', group:'foot', name:'Coupe d\'Allemagne'},
+  {id:'ger.super_cup',       region:'big', flag:'🇩🇪', sport:'soccer', group:'foot', name:'Supercoupe d\'Allemagne', seasonal:true},
   {id:'270559',              region:'rfr', flag:'🇫🇷', sport:'rugby',  group:'rugby', name:'Top 14',             tv:['Canal+'], rounds:true, tsdb:{c:'France', s:'Rugby', re:/top ?14/i}, badges:true},
   {id:'271937',              region:'reu', flag:'🇪🇺', sport:'rugby',  group:'rugby', name:'Champions Cup',      tv:['beIN Sports'], badges:'270559'},
   {id:'164205',              region:'rintl', flag:'🌍', sport:'rugby', group:'rugby', name:'Coupe du monde de rugby', tv:['TF1'], seasonal:true},
@@ -438,7 +446,7 @@ const LEAGUES = [
   {id:'nfl',                 region:'us',  flag:'🇺🇸', sport:'football',   group:'nfl',    name:'NFL', tv:['beIN Sports'], partial:true, rounds:true},
   {id:'nhl',                 region:'us',  flag:'🇺🇸', sport:'hockey',     group:'hockey', name:'NHL', tv:['beIN Sports','DAZN'], partial:true}
 ];
-const VERSION = '2026-10-27.6';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-27.7';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -697,7 +705,10 @@ let TV = null;
 const normTxt = s => ' ' + String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
 const STOP = new Set(['fc','cf','ac','as','sc','rc','ss','sv','afc','club','de','la','le','les','du','des','the','and','olympique','stade','sporting','racing','football','rugby','calcio','ogc','losc','u21']);
 const ALIAS = {cologne:'koln', munich:'munchen', nuremberg:'nurnberg', utd:'united', spurs:'tottenham', wolves:'wolverhampton',
-  paloise:'pau', bayonnais:'bayonne', rochelais:'rochelle', toulousain:'toulouse', brestois:'brest', lyonnais:'lyon', montois:'mont', briviste:'brive', castrais:'castres'};
+  paloise:'pau', bayonnais:'bayonne', rochelais:'rochelle', toulousain:'toulouse', brestois:'brest', lyonnais:'lyon', montois:'mont', briviste:'brive', castrais:'castres',
+  // noms français des clubs étrangers (programmes TV)
+  hambourg:'hamburg', breme:'bremen', mayence:'mainz', augsbourg:'augsburg', fribourg:'freiburg', francfort:'frankfurt', dusseldorf:'duesseldorf',
+  naples:'napoli', rome:'roma', turin:'torino', genes:'genoa', seville:'sevilla', majorque:'mallorca', saragosse:'zaragoza', lisbonne:'lisbon'};
 const tokens = t => [...new Set([t.full, t.name, t.abbr].flatMap(x => normTxt(x).trim().split(' ')).map(w => ALIAS[w] || w).filter(w => (w.length >= 3 || /^\d{2,}$/.test(w)) && !STOP.has(w)))];
 async function loadTV(){
   if (sample) return;
@@ -707,7 +718,8 @@ async function loadTV(){
     if (!r.ok) return;
     const j = await r.json();
     TV_META = Date.parse(j.updated) || null; renderHealth();
-    TV = (j.programmes || []).map(p => ({c:p.c, s:Date.parse(p.s), e:Date.parse(p.e || p.s), txt:normTxt(`${p.t} ${p.d || ''}`)}));
+    const words = t => ' ' + normTxt(t).trim().split(' ').map(w => ALIAS[w] || w).join(' ') + ' ';     // mêmes équivalences que pour les équipes
+    TV = (j.programmes || []).map(p => ({c:p.c, s:Date.parse(p.s), e:Date.parse(p.e || p.s), txt:words(`${p.t} ${p.d || ''}`)}));
     render();
   }catch{}
 }
