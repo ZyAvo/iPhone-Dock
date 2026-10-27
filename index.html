@@ -241,6 +241,14 @@ a{color:inherit;text-decoration:none}
 .pl-msg{font-size:.8rem;color:var(--ink-soft);margin:4px 4px 8px;min-height:1em}
 @keyframes fade{from{opacity:0}}
 @keyframes pop{from{transform:scale(.86)}}
+/* ---------- Toucher visible et fondu entre les pages ---------- */
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
+.tap-dot{position:fixed;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;pointer-events:none;z-index:9999;
+  background:radial-gradient(circle, rgba(96,150,186,.55), rgba(163,206,241,.35) 55%, rgba(255,255,255,.15) 72%);
+  box-shadow:0 0 0 2.5px rgba(255,255,255,.9), 0 0 0 4px rgba(39,76,119,.45), 0 4px 16px rgba(0,0,0,.22);animation:tapdot .6s ease-out forwards}
+@keyframes tapdot{from{transform:scale(.55);opacity:1}to{transform:scale(1.45);opacity:0}}
+@media (prefers-reduced-motion: reduce){.tap-dot{animation:tapfade .5s ease-out forwards!important}@keyframes tapfade{to{opacity:0}}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -915,6 +923,15 @@ if (place.mode === 'gps' && Date.now() - (place.at || 0) > 30 * 60e3 && navigato
 }
 setInterval(() => { if (!document.hidden) loadWx(); }, 10 * 60e3);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) loadWx(); });
+</script>
+<script>
+/* Toucher visible : un rond qui s'efface là où le doigt appuie (pratique aussi pour les vidéos de démo) */
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  const d = document.createElement('span'); d.className = 'tap-dot';
+  d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
+  document.body.appendChild(d); setTimeout(() => d.remove(), 650);
+}, {passive:true, capture:true});
 </script>
 
 </body>
