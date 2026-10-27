@@ -204,6 +204,7 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 /* ======================================================
    CONFIG — onglets et flux RSS
    Ajouter une source : { name:'Nom', color:'--t-…', url:'adresse du flux RSS' }
+   (facultatif) site:'page du site' et hint:'mot' → si le flux ne répond plus, la tâche cherche le bon flux sur cette page
    (la tâche GitHub « Actus » relit cette liste : rien d'autre à modifier)
    ====================================================== */
 const TABS = [
@@ -225,7 +226,7 @@ const TABS = [
     {name:'Courrier international', color:'--t-olive', url:'https://www.courrierinternational.com/feed/all/rss.xml'}
   ]},
   { id:'eco', label:'Éco', feeds:[
-    {name:'Les Échos',   color:'--t-ochre', url:'https://syndication.lesechos.fr/rss/rss_une.xml'},
+    {name:'Les Échos',   color:'--t-ochre', url:'https://syndication.lesechos.fr/rss/rss_une.xml', site:'https://www.lesechos.fr/'},
     {name:"L'Usine Nouvelle", color:'--t-char', url:'https://www.usinenouvelle.com/rss/'},
     {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/economie.rss'},
     {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/economie/rss_full.xml'}
@@ -233,7 +234,7 @@ const TABS = [
   { id:'sport', label:'Sport', feeds:[
     {name:"L'Équipe",       color:'--t-brick', url:'https://dwh.lequipe.fr/api/edito/rss?path=/'},
     {name:"L'Équipe Rugby", color:'--t-teal',  url:'https://dwh.lequipe.fr/api/edito/rss?path=/Rugby/'},
-    {name:'RMC Sport',      color:'--t-olive', url:'https://rmcsport.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/'},
+    {name:'RMC Sport',      color:'--t-olive', url:'https://rmcsport.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/', site:'https://rmcsport.bfmtv.com/'},
     {name:'France Info',    color:'--t-slate', url:'https://www.francetvinfo.fr/sports.rss'}
   ]},
   { id:'tech', label:'Tech', feeds:[
@@ -243,7 +244,7 @@ const TABS = [
     {name:'01net',     color:'--t-char',  url:'https://www.01net.com/feed/'}
   ]},
   { id:'local', label:'Tarn', feeds:[
-    {name:'La Dépêche Tarn',  color:'--t-brick', url:'https://www.ladepeche.fr/tarn/rss.xml'},
+    {name:'La Dépêche Tarn',  color:'--t-brick', url:'https://www.ladepeche.fr/tarn/rss.xml', site:'https://www.ladepeche.fr/tarn/', hint:'tarn'},
     {name:'France 3 Occitanie', color:'--t-slate', url:'https://france3-regions.franceinfo.fr/occitanie/rss'}
   ]}
 ];
