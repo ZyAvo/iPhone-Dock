@@ -47,12 +47,12 @@ jobs:
         if: github.event_name != 'push'
         working-directory: epg
         continue-on-error: true
-        run: npm run grab --- --channels=../outils/chaines-tv.xml --output=../guide-tv.xml --days=7 --maxConnections=6 --timeout=20000
+        run: npm run grab --- --channels=../outils/chaines-tv.xml --output=../guide-tv.xml --days=7 --maxConnections=3 --timeout=30000 2>&1 | tee ../grab.log
 
       - name: Tri des programmes de sport
         if: github.event_name != 'push'
         continue-on-error: true
-        run: node outils/tv-tri.mjs guide-tv.xml tv.json
+        run: node outils/tv-tri.mjs guide-tv.xml tv.json grab.log
 
       # ---------- 2. Données de la page Sport ----------
       - name: Matchs, journées et classements
