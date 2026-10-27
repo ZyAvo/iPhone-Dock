@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>État des données</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
+<style>
+/* Layout : en-tête collant en verre (retour, actualiser, titre) ; une carte par source de données
+   (résumé coloré en tête, détails dépliables) */
+:root{
+  --base:#e7ecef;
+  --blob-1:rgba(163,206,241,.95); --blob-2:rgba(96,150,186,.55); --blob-3:rgba(39,76,119,.35);
+  --ink:#10233a; --ink-soft:#56636f;
+  --glass:rgba(255,255,255,.22); --glass-tint:rgba(163,206,241,.10);
+  --rim-1:rgba(255,255,255,.95); --rim-2:rgba(255,255,255,.12); --rim-3:rgba(255,255,255,.6);
+  --spec:rgba(255,255,255,.55);
+  --shadow:0 14px 34px -16px rgba(39,76,119,.45);
+  --head:rgba(231,236,239,.72);
+  --card:rgba(255,255,255,.6); --line:rgba(39,76,119,.12);
+  --accent:#274c77; --on-accent:#e7ecef;
+  --t-brick:#274c77; --t-slate:#6096ba; --t-olive:#3d6b97; --t-plum:#1b3656;
+  --t-teal:#4c86b0; --t-ochre:#8b8c89; --t-char:#2f3e50; --t-rose:#7fb0d8;
+  --f-ui:"Geist", -apple-system, "SF Pro Text", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --base:#08121f;
+  --blob-1:rgba(39,76,119,.85); --blob-2:rgba(96,150,186,.45); --blob-3:rgba(163,206,241,.22);
+  --ink:#e7ecef; --ink-soft:#a7b6c4;
+  --glass:rgba(231,236,239,.07); --glass-tint:rgba(163,206,241,.06);
+  --rim-1:rgba(231,236,239,.55); --rim-2:rgba(231,236,239,.04); --rim-3:rgba(163,206,241,.35);
+  --spec:rgba(231,236,239,.16);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(8,18,31,.66);
+  --card:rgba(231,236,239,.06); --line:rgba(231,236,239,.1); --accent:#a3cef1; --on-accent:#08121f;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --base:#08121f;
+  --blob-1:rgba(39,76,119,.85); --blob-2:rgba(96,150,186,.45); --blob-3:rgba(163,206,241,.22);
+  --ink:#e7ecef; --ink-soft:#a7b6c4;
+  --glass:rgba(231,236,239,.07); --glass-tint:rgba(163,206,241,.06);
+  --rim-1:rgba(231,236,239,.55); --rim-2:rgba(231,236,239,.04); --rim-3:rgba(163,206,241,.35);
+  --spec:rgba(231,236,239,.16);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(8,18,31,.66);
+  --card:rgba(231,236,239,.06); --line:rgba(231,236,239,.1); --accent:#a3cef1; --on-accent:#08121f;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;font-family:var(--f-ui);color:var(--ink);
+  background-color:var(--base);
+  background-image:
+    radial-gradient(60% 45% at 10% 8%, var(--blob-1), transparent 70%),
+    radial-gradient(55% 45% at 95% 35%, var(--blob-2), transparent 70%),
+    radial-gradient(70% 50% at 30% 100%, var(--blob-3), transparent 70%);
+  background-attachment:fixed;
+  -webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--head);
+  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px)}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:12px}
+
+/* verre */
+.glass{position:relative;isolation:isolate;background:linear-gradient(160deg, var(--glass), var(--glass-tint));box-shadow:var(--shadow);
+  backdrop-filter:blur(30px) saturate(1.8) brightness(1.05);-webkit-backdrop-filter:blur(30px) saturate(1.8) brightness(1.05)}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  background:radial-gradient(120% 70% at 15% 0%, var(--spec), transparent 55%)}
+.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+  background:linear-gradient(145deg, var(--rim-1), var(--rim-2) 35%, var(--rim-2) 65%, var(--rim-3));
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+
+.wrap{max-width:560px;margin:0 auto;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+
+/* ---------- En-tête ---------- */
+header{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--head);
+  backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
+  border-bottom:1px solid var(--line)}
+header .wrap{padding-block:10px 12px;display:flex;flex-direction:column;gap:10px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.back{display:flex;align-items:center;gap:2px;color:var(--accent);font-weight:500;font-size:1rem;padding-block:6px}
+.back svg,.icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn{color:var(--accent);width:38px;height:38px;display:grid;place-items:center;border-radius:50%}
+.icon-btn.spin svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.title-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:1}
+.stamp{font-size:.74rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.tabs{display:flex;gap:4px;padding:4px;border-radius:18px;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;scroll-snap-align:center;padding:8px 14px;border-radius:14px;font-size:.85rem;font-weight:500;color:var(--ink-soft);white-space:nowrap;
+  transition:background .2s ease,color .2s ease}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+
+/* ---------- État ---------- */
+main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
+.sum{border-radius:24px;padding:16px 18px;display:flex;align-items:center;gap:14px}
+.sum b{font-size:1.1rem;letter-spacing:-.01em}
+.sum p{margin:2px 0 0;font-size:.82rem;color:var(--ink-soft)}
+.lamp{width:14px;height:14px;border-radius:50%;flex:none;background:var(--lc);box-shadow:0 0 0 4px color-mix(in oklab, var(--lc) 22%, transparent)}
+.ok{--lc:#1e8a4c}.warn{--lc:#e08a12}.err{--lc:#d63c3c}.none{--lc:#8b8c89}
+.part{border-radius:24px;overflow:hidden}
+.part > summary{list-style:none;display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.part > summary::-webkit-details-marker{display:none}
+.part > summary .t{flex:1;min-width:0}
+.part > summary b{display:block;font-size:1rem}
+.part > summary small{display:block;font-size:.8rem;color:var(--ink-soft);margin-top:2px}
+.part > summary .chev{width:18px;height:18px;fill:none;stroke:var(--ink-soft);stroke-width:2;transition:transform .2s ease}
+.part[open] > summary .chev{transform:rotate(90deg)}
+.body{padding:0 16px 14px;font-size:.84rem}
+.rows{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.rows th,.rows td{text-align:left;padding:6px 4px;border-top:1px solid var(--line);vertical-align:top}
+.rows th{font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;border-top:0}
+.rows td.n{text-align:right;white-space:nowrap}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:600;background:color-mix(in oklab, var(--lc) 16%, transparent);color:color-mix(in oklab, var(--lc) 80%, var(--ink))}
+.note{color:var(--ink-soft);font-size:.8rem;margin:8px 0 0;line-height:1.45}
+.mono{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;font-size:.72rem;overflow-wrap:anywhere;color:var(--ink-soft)}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{padding:10px 14px;border-radius:14px;font-weight:600;font-size:.86rem;background:var(--card);border:1px solid var(--line);color:var(--ink)}
+.btn.main{background:var(--accent);color:var(--on-accent);border-color:transparent}
+/* ---------- Toucher visible et fondu entre les pages ---------- */
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
+.tap-dot{position:fixed;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;pointer-events:none;z-index:9999;
+  background:radial-gradient(circle, rgba(96,150,186,.55), rgba(163,206,241,.35) 55%, rgba(255,255,255,.15) 72%);
+  box-shadow:0 0 0 2.5px rgba(255,255,255,.9), 0 0 0 4px rgba(39,76,119,.45), 0 4px 16px rgba(0,0,0,.22);animation:tapdot .6s ease-out forwards}
+.maj-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:9998;
+  padding:10px 16px;border-radius:999px;background:#274c77;color:#e7ecef;font:600 .85rem/1.2 var(--f-ui, system-ui);box-shadow:0 10px 26px -10px rgba(0,0,0,.5);
+  animation:majin .3s ease-out}
+@keyframes majin{from{opacity:0;transform:translate(-50%, 10px)}}
+@keyframes tapdot{from{transform:scale(.55);opacity:1}to{transform:scale(1.45);opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
+      <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+    </div>
+    <div class="title-row"><h1>État des données</h1><span class="stamp" id="stamp"></span></div>
+  </div>
+</header>
+<main><div class="wrap" id="out"><div class="sum glass none"><span class="lamp"></span><div><b>Chargement…</b></div></div></div></main>
+
+<script>
+/* Lit etat.json (fait par la tâche « Publication ») et juge la fraîcheur de chaque donnée */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hours = t => t ? (Date.now() - Date.parse(t)) / 36e5 : Infinity;
+function ago(t){
+  if (!t) return 'jamais';
+  const m = Math.round((Date.now() - Date.parse(t)) / 60000);
+  if (m < 1) return "à l'instant"; if (m < 60) return `il y a ${m} min`;
+  const h = Math.floor(m / 60); if (h < 48) return `il y a ${h} h${m % 60 && h < 6 ? ' ' + String(m % 60).padStart(2, '0') : ''}`;
+  return `le ${new Date(t).toLocaleDateString('fr-FR', {day:'numeric', month:'short'})}`;
+}
+const LVL = {ok:0, none:1, warn:2, err:3}, worst = l => l.reduce((a, b) => LVL[b] > LVL[a] ? b : a, 'ok');
+function judge(e){
+  const out = {};
+  const age = (t, okH, warnH) => hours(t) < okH ? 'ok' : hours(t) < warnH ? 'warn' : 'err';
+  if (!e.sport) out.sport = {lvl:'err', msg:'Aucune donnée de matchs'};
+  else {
+    const bad = e.sport.ligues.filter(l => l.erreur), lvl = worst([age(e.sport.updated, 5, 12), bad.length ? 'warn' : 'ok']);
+    out.sport = {lvl, msg:`Mis à jour ${ago(e.sport.updated)}${bad.length ? ` · ${bad.length} compétition${bad.length > 1 ? 's' : ''} en erreur` : ''}`};
+  }
+  if (!e.tv) out.tv = {lvl:'warn', msg:'Pas encore de programme TV'};
+  else out.tv = {lvl:age(e.tv.updated, 5, 12), msg:`Mis à jour ${ago(e.tv.updated)} · ${e.tv.chaines.length} chaînes avec programme`};
+  if (!e.actus) out.actus = {lvl:'warn', msg:'Pas encore d\'actus préparées'};
+  else {
+    const ko = e.actus.sources.filter(s => !s.ok);
+    out.actus = {lvl:worst([age(e.actus.updated, 1.5, 6), ko.length ? 'warn' : 'ok']), msg:`Mis à jour ${ago(e.actus.updated)} · ${e.actus.sources.length - ko.length}/${e.actus.sources.length} sources`};
+  }
+  out.global = worst([out.sport.lvl, out.tv.lvl, out.actus.lvl]);
+  return out;
+}
+const chev = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
+const part = (title, j, inner, open) => `<details class="part glass ${j.lvl}"${open ? ' open' : ''}><summary><span class="lamp"></span><span class="t"><b>${title}</b><small>${esc(j.msg)}</small></span>${chev}</summary><div class="body">${inner}</div></details>`;
+
+function render(e){
+  const j = judge(e);
+  const label = {ok:'Tout est à jour', warn:'Quelques points à vérifier', err:'Des données ne se mettent plus à jour'}[j.global];
+  let h = `<div class="sum glass ${j.global}"><span class="lamp"></span><div><b>${label}</b><p>Résumé fait ${ago(e.genere)}. Les données se rafraîchissent toutes les 30 min (actus) et toutes les 2 h (matchs, TV).</p></div></div>`;
+
+  if (e.sport){
+    const rows = e.sport.ligues.map(l => {
+      const st = l.erreur ? `<span class="tag err">erreur</span>` : l.pause ? `<span class="tag none">en pause</span>` : l.joursEnEchec ? `<span class="tag warn">${l.joursEnEchec} j. non lus</span>` : `<span class="tag ok">ok</span>`;
+      return `<tr><td>${esc(l.nom)}</td><td class="n">${l.pause ? '—' : esc(l.matchs ?? '?')}</td><td>${esc(l.classement)}</td><td>${st}</td></tr>`;
+    }).join('');
+    h += part('Matchs et classements', j.sport, `<table class="rows"><thead><tr><th>Compétition</th><th>Matchs</th><th>Classement</th><th>État</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="note">« en pause » : tournoi sans match prévu dans les 45 jours. Version de la page Sport : ${esc(e.sport.version || '?')}.</p>`, j.sport.lvl !== 'ok');
+  } else h += part('Matchs et classements', j.sport, '<p class="note">La tâche « Programme TV sport » n\'a encore rien publié.</p>', true);
+
+  if (e.tv){
+    const rows = e.tv.chaines.map(c => `<tr><td>${esc(c.nom)}</td><td class="n">${c.n}</td><td>${c.jusqu ? new Date(c.jusqu).toLocaleDateString('fr-FR', {weekday:'short', day:'numeric'}) : ''}</td><td>${esc(c.source)}</td></tr>`).join('');
+    h += part('Programme TV', j.tv, `<table class="rows"><thead><tr><th>Chaîne</th><th>Prog.</th><th>Jusqu'au</th><th>Source</th></tr></thead><tbody>${rows}</tbody></table>
+      ${e.tv.vides.length ? `<p class="note"><b>Sans programme :</b> ${e.tv.vides.map(esc).join(', ')}.</p>` : ''}
+      ${e.tv.erreurs.length ? `<p class="note"><b>Erreurs récentes :</b></p>${e.tv.erreurs.map(l => `<div class="mono">${esc(l)}</div>`).join('')}` : ''}`, j.tv.lvl !== 'ok');
+  } else h += part('Programme TV', j.tv, '<p class="note">Pas encore de programme TV publié.</p>', true);
+
+  if (e.actus){
+    const rows = e.actus.sources.map(s => `<tr><td>${esc(s.nom)}${s.onglets ? `<br><small style="color:var(--ink-soft)">${esc(s.onglets)}</small>` : ''}</td><td class="n">${s.n || ''}</td><td>${s.ok ? (s.secours ? '<span class="tag warn">secours</span>' : '<span class="tag ok">ok</span>') : `<span class="tag err">${esc(s.erreur || 'en panne')}</span>`}</td></tr>`).join('');
+    h += part('Actus', j.actus, `<table class="rows"><thead><tr><th>Source</th><th>Articles</th><th>État</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="note">« secours » : le flux du site ne répond pas, ses articles viennent d'une adresse de remplacement (souvent Google Actualités, sans images).</p>`, j.actus.lvl !== 'ok');
+  }
+
+  if (e.fichiers){
+    const f = e.fichiers;
+    h += part('Tes calendriers et logos', {lvl:'ok', msg:`${f.calendriers.length} calendrier${f.calendriers.length > 1 ? 's' : ''} · ${f.logos} logo${f.logos > 1 ? 's' : ''}`},
+      f.calendriers.length ? `<ul class="note">${f.calendriers.map(c => `<li>${esc(c.replace(/^calendriers\//, ''))}</li>`).join('')}</ul>` : '<p class="note">Aucun calendrier déposé.</p>', false);
+  }
+
+  h += `<div class="actions"><a class="btn main" href="https://github.com/ZyAvo/iPhone-Dock/actions" target="_blank" rel="noopener">Voir les tâches GitHub</a>
+    <button type="button" class="btn" id="resetBtn">Vider la mémoire de l'appli</button></div>
+    <p class="note" id="resetMsg">« Vider la mémoire » efface les données gardées sur cet appareil (matchs, actus, pages) ; tes réglages (lieu météo, Spotify) sont conservés.</p>`;
+  $('#out').innerHTML = h;
+  $('#stamp').textContent = '';
+}
+async function load(){
+  $('#refreshBtn').classList.add('spin');
+  try{
+    const r = await fetch('etat.json', {cache:'no-cache'});
+    if (!r.ok) throw new Error(r.status);
+    render(await r.json());
+  }catch(err){
+    $('#out').innerHTML = `<div class="sum glass err"><span class="lamp"></span><div><b>Résumé introuvable</b><p>Le fichier etat.json est fait par la tâche GitHub « Publication ». Vérifie qu'elle a bien tourné (Settings → Pages → Source : GitHub Actions).</p></div></div>`;
+  }finally{ $('#refreshBtn').classList.remove('spin'); }
+}
+$('#refreshBtn').addEventListener('click', load);
+document.addEventListener('click', async e => {
+  if (!e.target.closest('#resetBtn')) return;
+  try{
+    Object.keys(localStorage).filter(k => /^(sport|actus|meteo|icons):/.test(k)).forEach(k => localStorage.removeItem(k));
+    if (window.caches) for (const k of await caches.keys()) await caches.delete(k);
+    $('#resetMsg').textContent = 'Mémoire vidée : les pages et les données seront rechargées à la prochaine ouverture.';
+  }catch{ $('#resetMsg').textContent = 'Impossible de vider la mémoire sur cet appareil.'; }
+});
+load();
+</script>
+<script>
+/* Toucher visible : un rond qui s'efface là où le doigt appuie (pratique aussi pour les vidéos de démo) */
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  const d = document.createElement('span'); d.className = 'tap-dot';
+  d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
+  document.body.appendChild(d); setTimeout(() => d.remove(), 650);
+}, {passive:true, capture:true});
+</script>
+<script>
+/* Mise en mémoire sur l'iPhone (démarrage instantané, hors ligne) + avis quand une nouvelle version est déposée */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'nouvelle-version' || document.querySelector('.maj-toast')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'maj-toast'; b.textContent = 'Nouvelle version — toucher pour l\'afficher';
+    b.addEventListener('click', () => location.reload()); document.body.appendChild(b);
+  });
+}
+</script>
+</body>
+</html>

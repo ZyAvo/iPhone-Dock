@@ -332,6 +332,10 @@ body.locked{overflow:hidden}
 .tap-dot{position:fixed;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;pointer-events:none;z-index:9999;
   background:radial-gradient(circle, rgba(96,150,186,.55), rgba(163,206,241,.35) 55%, rgba(255,255,255,.15) 72%);
   box-shadow:0 0 0 2.5px rgba(255,255,255,.9), 0 0 0 4px rgba(39,76,119,.45), 0 4px 16px rgba(0,0,0,.22);animation:tapdot .6s ease-out forwards}
+.maj-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:9998;
+  padding:10px 16px;border-radius:999px;background:#274c77;color:#e7ecef;font:600 .85rem/1.2 var(--f-ui, system-ui);box-shadow:0 10px 26px -10px rgba(0,0,0,.5);
+  animation:majin .3s ease-out}
+@keyframes majin{from{opacity:0;transform:translate(-50%, 10px)}}
 @keyframes tapdot{from{transform:scale(.55);opacity:1}to{transform:scale(1.45);opacity:0}}
 @media (prefers-reduced-motion: reduce){.tap-dot{animation:tapfade .5s ease-out forwards!important}@keyframes tapfade{to{opacity:0}}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
@@ -456,7 +460,7 @@ const LEAGUES = [
   {id:'nfl',                 region:'us',  flag:'🇺🇸', sport:'football',   group:'nfl',    name:'NFL', tv:['beIN Sports'], partial:true, rounds:true},
   {id:'nhl',                 region:'us',  flag:'🇺🇸', sport:'hockey',     group:'hockey', name:'NHL', tv:['beIN Sports','DAZN'], partial:true}
 ];
-const VERSION = '2026-10-27.9';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-27.10';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -621,6 +625,21 @@ function ttl(events){
 const idleKey = L => 'sport:idle:' + L.id;
 const isIdle = L => { const t = store.get(idleKey(L)); return !!(L.seasonal && t && Date.now() - t < 12 * 3600e3); };
 /* ---------- Données préparées par la tâche GitHub (donnees/sport) ---------- */
+/* Les fichiers préparés sont allégés (valeurs vides retirées, logos de foot implicites) : on les complète ici */
+function expand(m){
+  const L = LBY[m.league];
+  [m.home, m.away].forEach(t => {
+    if (t.full == null) t.full = t.name;
+    if (t.logo == null) t.logo = L && L.sport === 'soccer' && t.id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${t.id}.png` : '';
+    if (t.so === undefined) t.so = null;
+    t.win = !!t.win;
+    if (t.score == null) t.score = '';
+  });
+  m.details = (m.details || []).map(d => ({red:false, yellow:false, goal:false, og:false, pen:false, min:'', who:'', ...d}));
+  if (!m.us) m.us = [];
+  if (m.round === undefined) m.round = null;
+  return m;
+}
 const PRE = {ok:false, tried:false, at:0, missing:false, idle:{}, files:{}};
 const PRE_MAX = 6 * 3600e3;                         // au-delà, on repasse en lecture directe sur ESPN
 async function loadPre(){
@@ -639,7 +658,7 @@ async function loadPre(){
     LEAGUES.forEach(L => {
       if (PRE.idle[L.id]){ delete DATA[L.id]; return; }
       const lg = (j.leagues || {})[L.id] || {}, old = DATA[L.id];
-      const evs = (j.events || []).filter(m => m.league === L.id);
+      const evs = (j.events || []).filter(m => m.league === L.id).map(expand);
       DATA[L.id] = {at:Date.now(), day:ymd(dayAt(0)), events:old && old.liveAt ? mergeLive(evs, old.events.filter(m => m.state !== 'pre')) : evs,
                     logo:lg.logo || '', logoDark:lg.logoDark || '', pre:true, liveAt:old && old.liveAt};
     });
@@ -654,7 +673,7 @@ async function preLeague(L){
   try{
     const r = await fetch(`donnees/sport/${slug(L.id)}.json`, {cache:'no-cache'});
     if (!r.ok) return null;
-    const d = await r.json(); PRE.files[L.id] = {at:Date.now(), data:d}; return d;
+    const d = await r.json(); (d.events || []).forEach(expand); PRE.files[L.id] = {at:Date.now(), data:d}; return d;
   }catch{ return null; }
 }
 const preCovers = (pre, s, e) => pre && pre.events && pre.events.length && (!pre.range || (s.getTime() >= pre.range.start - 864e5 && e.getTime() <= pre.range.end + 864e5));
@@ -1798,7 +1817,8 @@ function renderCsheet(){
         <div class="issue"><b>Données préparées</b><span>${PRE.ok ? `Utilisées · préparées le ${new Date(PRE.at).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}` : 'Non utilisées : lecture directe sur ESPN'}.</span></div>
         <div class="issue"><b>Chargements</b><span>${NET.ok} réussis · ${NET.ko} échoués · ${NET.slow} lents (plus de 4 s) depuis l'ouverture.</span></div>
         <div class="issue"><b>Données mémorisées</b><span>Efface ce que la page a gardé sur cet appareil (matchs, journées, logos) et recharge tout.</span>
-          <button type="button" class="mini" id="resetData">Réinitialiser les données mémorisées</button></div>
+          <button type="button" class="mini" id="resetData">Réinitialiser les données mémorisées</button>
+          <a class="mini" href="etat.html">État de toutes les données ›</a></div>
       </div>`;
     return;
   }
@@ -1935,6 +1955,17 @@ document.addEventListener('pointerdown', e => {
   d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
   document.body.appendChild(d); setTimeout(() => d.remove(), 650);
 }, {passive:true, capture:true});
+</script>
+<script>
+/* Mise en mémoire sur l'iPhone (démarrage instantané, hors ligne) + avis quand une nouvelle version est déposée */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'nouvelle-version' || document.querySelector('.maj-toast')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'maj-toast'; b.textContent = 'Nouvelle version — toucher pour l\'afficher';
+    b.addEventListener('click', () => location.reload()); document.body.appendChild(b);
+  });
+}
 </script>
 </body>
 </html>

@@ -203,9 +203,11 @@ a{color:inherit;text-decoration:none}
 .tile.img > *,.tile.img::before{display:none}
 
 .spacer{flex:1}
-.dots{display:flex;justify-content:center;gap:6px;margin-bottom:12px}
-.dots span{width:6px;height:6px;border-radius:50%;background:var(--ink);opacity:.22}
-.dots span.on{opacity:.7;width:16px;border-radius:3px}
+/* Pastille « État des données » (au-dessus du bandeau du bas) */
+.etat{align-self:center;display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:4px 10px;border-radius:999px;font-size:.68rem;font-weight:600;color:var(--ink-soft)}
+.etat i{width:7px;height:7px;border-radius:50%;background:var(--lc, #8b8c89);box-shadow:0 0 0 3px color-mix(in oklab, var(--lc, #8b8c89) 22%, transparent)}
+.etat.ok{--lc:#1e8a4c}.etat.warn{--lc:#e08a12}.etat.err{--lc:#d63c3c}
+.etat:active{opacity:.6}
 
 .quick{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 4px;margin-bottom:12px}
 .q-side{display:flex;gap:7px}
@@ -247,6 +249,10 @@ a{color:inherit;text-decoration:none}
 .tap-dot{position:fixed;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;pointer-events:none;z-index:9999;
   background:radial-gradient(circle, rgba(96,150,186,.55), rgba(163,206,241,.35) 55%, rgba(255,255,255,.15) 72%);
   box-shadow:0 0 0 2.5px rgba(255,255,255,.9), 0 0 0 4px rgba(39,76,119,.45), 0 4px 16px rgba(0,0,0,.22);animation:tapdot .6s ease-out forwards}
+.maj-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:9998;
+  padding:10px 16px;border-radius:999px;background:#274c77;color:#e7ecef;font:600 .85rem/1.2 var(--f-ui, system-ui);box-shadow:0 10px 26px -10px rgba(0,0,0,.5);
+  animation:majin .3s ease-out}
+@keyframes majin{from{opacity:0;transform:translate(-50%, 10px)}}
 @keyframes tapdot{from{transform:scale(.55);opacity:1}to{transform:scale(1.45);opacity:0}}
 @media (prefers-reduced-motion: reduce){.tap-dot{animation:tapfade .5s ease-out forwards!important}@keyframes tapfade{to{opacity:0}}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
@@ -276,7 +282,7 @@ a{color:inherit;text-decoration:none}
     <section class="w-spot glass" id="spot" aria-label="Spotify"></section>
     <div class="grid" id="grid"></div>
     <div class="spacer"></div>
-    <div class="dots" aria-hidden="true"><span class="on"></span><span></span></div>
+    <a class="etat" id="etatBtn" href="etat.html" aria-label="État des données"><i></i><span id="etatTxt">Données</span></a>
     <div class="quick" aria-label="Accès rapides"><div class="q-side" id="quickLeft"></div><div class="q-side" id="quickRight"></div></div>
   </section>
 
@@ -905,6 +911,22 @@ document.addEventListener('click', async e => {
 document.addEventListener('visibilitychange', () => { if (!document.hidden) spPoll(); else clearTimeout(spTimer); });
 spCallback().finally(() => { spRender(); spPoll(); });
 
+/* ---------- Pastille d'état des données (lit etat.json, fait par la tâche « Publication ») ---------- */
+async function loadEtat(){
+  try{
+    const r = await fetch('etat.json', {cache:'no-cache'}); if (!r.ok) throw 0;
+    const e = await r.json(), h = t => t ? (Date.now() - Date.parse(t)) / 36e5 : Infinity;
+    const lv = [
+      !e.sport ? 2 : h(e.sport.updated) < 5 && !e.sport.ligues.some(l => l.erreur) ? 0 : h(e.sport.updated) < 12 ? 1 : 2,
+      !e.tv ? 1 : h(e.tv.updated) < 5 ? 0 : h(e.tv.updated) < 12 ? 1 : 2,
+      !e.actus ? 1 : h(e.actus.updated) < 1.5 && e.actus.sources.every(s => s.ok) ? 0 : h(e.actus.updated) < 6 ? 1 : 2
+    ], m = Math.max(...lv);
+    const el = $('#etatBtn'); el.className = 'etat ' + ['ok', 'warn', 'err'][m];
+    $('#etatTxt').textContent = ['Données à jour', 'À vérifier', 'Données en panne'][m];
+  }catch{}
+}
+loadEtat(); setInterval(() => { if (!document.hidden) loadEtat(); }, 15 * 60e3);
+
 tick(); setInterval(tick, 15000);
 loadWidget();
 showPlace(); loadWx();
@@ -923,6 +945,17 @@ document.addEventListener('pointerdown', e => {
   d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
   document.body.appendChild(d); setTimeout(() => d.remove(), 650);
 }, {passive:true, capture:true});
+</script>
+<script>
+/* Mise en mémoire sur l'iPhone (démarrage instantané, hors ligne) + avis quand une nouvelle version est déposée */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'nouvelle-version' || document.querySelector('.maj-toast')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'maj-toast'; b.textContent = 'Nouvelle version — toucher pour l\'afficher';
+    b.addEventListener('click', () => location.reload()); document.body.appendChild(b);
+  });
+}
 </script>
 
 </body>

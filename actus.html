@@ -177,6 +177,10 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .tap-dot{position:fixed;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;pointer-events:none;z-index:9999;
   background:radial-gradient(circle, rgba(96,150,186,.55), rgba(163,206,241,.35) 55%, rgba(255,255,255,.15) 72%);
   box-shadow:0 0 0 2.5px rgba(255,255,255,.9), 0 0 0 4px rgba(39,76,119,.45), 0 4px 16px rgba(0,0,0,.22);animation:tapdot .6s ease-out forwards}
+.maj-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:9998;
+  padding:10px 16px;border-radius:999px;background:#274c77;color:#e7ecef;font:600 .85rem/1.2 var(--f-ui, system-ui);box-shadow:0 10px 26px -10px rgba(0,0,0,.5);
+  animation:majin .3s ease-out}
+@keyframes majin{from{opacity:0;transform:translate(-50%, 10px)}}
 @keyframes tapdot{from{transform:scale(.55);opacity:1}to{transform:scale(1.45);opacity:0}}
 @media (prefers-reduced-motion: reduce){.tap-dot{animation:tapfade .5s ease-out forwards!important}@keyframes tapfade{to{opacity:0}}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
@@ -214,7 +218,8 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 /* ======================================================
    CONFIG — onglets et flux RSS
    Ajouter une source : { name:'Nom', color:'#couleur du média', url:'adresse du flux RSS' }
-   (facultatif) site:'page du site' et hint:'mot' → si le flux ne répond plus, la tâche cherche le bon flux sur cette page
+   (facultatif) alt:['adresse de secours', …] → essayées si le flux ne répond pas (ex. Google Actualités limité au site)
+   (facultatif) site:'page du site' et hint:'mot' → sinon, la tâche cherche le bon flux sur cette page
    (la tâche GitHub « Actus » relit cette liste : rien d'autre à modifier)
    ====================================================== */
 const TABS = [
@@ -236,7 +241,8 @@ const TABS = [
     {name:'Courrier international', color:'#c8102e', url:'https://www.courrierinternational.com/feed/all/rss.xml'}
   ]},
   { id:'eco', label:'Éco', feeds:[
-    {name:'Les Échos',   color:'#8a1538', url:'https://syndication.lesechos.fr/rss/rss_une.xml', site:'https://www.lesechos.fr/'},
+    {name:'Les Échos',   color:'#8a1538', url:'https://syndication.lesechos.fr/rss/rss_une.xml', site:'https://www.lesechos.fr/', alt:['https://news.google.com/rss/search?q=site:lesechos.fr&hl=fr&gl=FR&ceid=FR:fr']},
+    {name:'La Tribune',  color:'#0b6a8a', url:'https://www.latribune.fr/feed.xml', site:'https://www.latribune.fr/', alt:['https://news.google.com/rss/search?q=site:latribune.fr&hl=fr&gl=FR&ceid=FR:fr']},
     {name:"L'Usine Nouvelle", color:'#f08a00', url:'https://www.usinenouvelle.com/rss/'},
     {name:'France Info', color:'#f2b705', url:'https://www.francetvinfo.fr/economie.rss'},
     {name:'Le Monde',    color:'#2b2b2b',  url:'https://www.lemonde.fr/economie/rss_full.xml'}
@@ -244,7 +250,7 @@ const TABS = [
   { id:'sport', label:'Sport', feeds:[
     {name:"L'Équipe",       color:'#e30613', url:'https://dwh.lequipe.fr/api/edito/rss?path=/'},
     {name:"L'Équipe Rugby", color:'#a3121a',  url:'https://dwh.lequipe.fr/api/edito/rss?path=/Rugby/'},
-    {name:'RMC Sport',      color:'#4a4a4a', url:'https://rmcsport.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/', site:'https://rmcsport.bfmtv.com/'},
+    {name:'RMC Sport',      color:'#4a4a4a', url:'https://rmcsport.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/', site:'https://rmcsport.bfmtv.com/', alt:['https://news.google.com/rss/search?q=site:rmcsport.bfmtv.com&hl=fr&gl=FR&ceid=FR:fr']},
     {name:'France Info',    color:'#f2b705', url:'https://www.francetvinfo.fr/sports.rss'}
   ]},
   { id:'tech', label:'Tech', feeds:[
@@ -254,7 +260,8 @@ const TABS = [
     {name:'01net',     color:'#d6002a',  url:'https://www.01net.com/feed/'}
   ]},
   { id:'local', label:'Tarn', feeds:[
-    {name:'La Dépêche Tarn',  color:'#d4021d', url:'https://www.ladepeche.fr/tarn/rss.xml', site:'https://www.ladepeche.fr/tarn/', hint:'tarn'},
+    {name:'Le Tarn Libre',    color:'#e85d0c', url:'https://www.letarnlibre.com/feed/', site:'https://www.letarnlibre.com/', alt:['https://news.google.com/rss/search?q=site:letarnlibre.com&hl=fr&gl=FR&ceid=FR:fr']},
+    {name:'La Dépêche Tarn',  color:'#d4021d', url:'https://www.ladepeche.fr/tarn/rss.xml', site:'https://www.ladepeche.fr/tarn/', hint:'tarn', alt:['https://news.google.com/rss/search?q=site:ladepeche.fr+Tarn&hl=fr&gl=FR&ceid=FR:fr']},
     {name:'France 3 Occitanie', color:'#1f5ba8', url:'https://france3-regions.franceinfo.fr/occitanie/rss'}
   ]}
 ];
@@ -496,6 +503,17 @@ document.addEventListener('pointerdown', e => {
   d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
   document.body.appendChild(d); setTimeout(() => d.remove(), 650);
 }, {passive:true, capture:true});
+</script>
+<script>
+/* Mise en mémoire sur l'iPhone (démarrage instantané, hors ligne) + avis quand une nouvelle version est déposée */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'nouvelle-version' || document.querySelector('.maj-toast')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'maj-toast'; b.textContent = 'Nouvelle version — toucher pour l\'afficher';
+    b.addEventListener('click', () => location.reload()); document.body.appendChild(b);
+  });
+}
 </script>
 </body>
 </html>
