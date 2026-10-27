@@ -1,11 +1,11 @@
 name: Actus
 
-# Toutes les 30 minutes : télécharge les flux RSS de la page Actus et prépare donnees/actus/actus.json
+# Toutes les 15 minutes : télécharge les flux RSS de la page Actus et prépare donnees/actus/actus.json
 # (les onglets et les sources se règlent dans actus.html, liste TABS).
 # Les données vont sur la branche « donnees » (sans historique), puis la tâche « Publication » met le site à jour.
 on:
   schedule:
-    - cron: '7,37 * * * *'
+    - cron: '4,19,34,49 * * * *'     # GitHub peut retarder ou sauter un passage : un rythme serré limite l'écart
   workflow_dispatch:            # bouton « Run workflow » pour lancer à la main
   push:                         # dès que tu modifies les sources dans actus.html
     paths:
