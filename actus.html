@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Actus</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
+<style>
+/* Layout : en-tête collant en verre (retour, titre, actualiser, onglets défilants) ; fil d'articles : une carte « à la une » avec image, puis cartes compactes à vignette */
+:root{
+  --base:#e7ecef;
+  --blob-1:rgba(163,206,241,.95); --blob-2:rgba(96,150,186,.55); --blob-3:rgba(39,76,119,.35);
+  --ink:#10233a; --ink-soft:#56636f;
+  --glass:rgba(255,255,255,.22); --glass-tint:rgba(163,206,241,.10);
+  --rim-1:rgba(255,255,255,.95); --rim-2:rgba(255,255,255,.12); --rim-3:rgba(255,255,255,.6);
+  --spec:rgba(255,255,255,.55);
+  --shadow:0 14px 34px -16px rgba(39,76,119,.45);
+  --head:rgba(231,236,239,.72);
+  --card:rgba(255,255,255,.6); --line:rgba(39,76,119,.12);
+  --accent:#274c77; --on-accent:#e7ecef;
+  --t-brick:#274c77; --t-slate:#6096ba; --t-olive:#3d6b97; --t-plum:#1b3656;
+  --t-teal:#4c86b0; --t-ochre:#8b8c89; --t-char:#2f3e50; --t-rose:#7fb0d8;
+  --f-ui:"Geist", -apple-system, "SF Pro Text", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --base:#08121f;
+  --blob-1:rgba(39,76,119,.85); --blob-2:rgba(96,150,186,.45); --blob-3:rgba(163,206,241,.22);
+  --ink:#e7ecef; --ink-soft:#a7b6c4;
+  --glass:rgba(231,236,239,.07); --glass-tint:rgba(163,206,241,.06);
+  --rim-1:rgba(231,236,239,.55); --rim-2:rgba(231,236,239,.04); --rim-3:rgba(163,206,241,.35);
+  --spec:rgba(231,236,239,.16);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(8,18,31,.66);
+  --card:rgba(231,236,239,.06); --line:rgba(231,236,239,.1); --accent:#a3cef1; --on-accent:#08121f;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --base:#08121f;
+  --blob-1:rgba(39,76,119,.85); --blob-2:rgba(96,150,186,.45); --blob-3:rgba(163,206,241,.22);
+  --ink:#e7ecef; --ink-soft:#a7b6c4;
+  --glass:rgba(231,236,239,.07); --glass-tint:rgba(163,206,241,.06);
+  --rim-1:rgba(231,236,239,.55); --rim-2:rgba(231,236,239,.04); --rim-3:rgba(163,206,241,.35);
+  --spec:rgba(231,236,239,.16);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(8,18,31,.66);
+  --card:rgba(231,236,239,.06); --line:rgba(231,236,239,.1); --accent:#a3cef1; --on-accent:#08121f;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;font-family:var(--f-ui);color:var(--ink);
+  background-color:var(--base);
+  background-image:
+    radial-gradient(60% 45% at 10% 8%, var(--blob-1), transparent 70%),
+    radial-gradient(55% 45% at 95% 35%, var(--blob-2), transparent 70%),
+    radial-gradient(70% 50% at 30% 100%, var(--blob-3), transparent 70%);
+  background-attachment:fixed;
+  -webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--head);
+  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px)}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:12px}
+
+/* verre */
+.glass{position:relative;isolation:isolate;background:linear-gradient(160deg, var(--glass), var(--glass-tint));box-shadow:var(--shadow);
+  backdrop-filter:blur(30px) saturate(1.8) brightness(1.05);-webkit-backdrop-filter:blur(30px) saturate(1.8) brightness(1.05)}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  background:radial-gradient(120% 70% at 15% 0%, var(--spec), transparent 55%)}
+.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+  background:linear-gradient(145deg, var(--rim-1), var(--rim-2) 35%, var(--rim-2) 65%, var(--rim-3));
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+
+.wrap{max-width:560px;margin:0 auto;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+
+/* ---------- En-tête ---------- */
+header{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--head);
+  backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
+  border-bottom:1px solid var(--line)}
+header .wrap{padding-block:10px 12px;display:flex;flex-direction:column;gap:10px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.back{display:flex;align-items:center;gap:2px;color:var(--accent);font-weight:500;font-size:1rem;padding-block:6px}
+.back svg,.icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn{color:var(--accent);width:38px;height:38px;display:grid;place-items:center;border-radius:50%}
+.icon-btn.spin svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.title-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:1}
+.stamp{font-size:.74rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.tabs{display:flex;gap:4px;padding:4px;border-radius:18px;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;scroll-snap-align:center;padding:8px 14px;border-radius:14px;font-size:.85rem;font-weight:500;color:var(--ink-soft);white-space:nowrap;
+  transition:background .2s ease,color .2s ease}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+
+/* ---------- Fil ---------- */
+main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
+.sources{font-size:.76rem;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.sources span{display:inline-flex;align-items:center;gap:5px}
+.sources i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.sources span.off{opacity:.5;text-decoration:line-through}
+.notice{font-size:.8rem;line-height:1.45;color:var(--ink-soft);background:var(--card);border:1px dashed var(--line);border-radius:18px;padding:10px 12px}
+.feed{display:flex;flex-direction:column;gap:10px;list-style:none;margin:0;padding:0;transition:opacity .2s ease}
+.feed.loading{opacity:.45}
+
+.item a{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;border-radius:24px;padding:14px 15px}
+.item .txt{display:flex;flex-direction:column;gap:6px;min-width:0}
+.thumb{width:76px;height:76px;border-radius:16px;object-fit:cover;background:var(--card);display:block}
+.meta{display:flex;align-items:center;gap:7px;font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);min-width:0}
+.meta .dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--c)}
+.meta time{font-weight:400;letter-spacing:0;text-transform:none;margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
+.item h2{font-size:.98rem;line-height:1.3;margin:0;font-weight:600;letter-spacing:-.01em;text-wrap:balance;overflow-wrap:anywhere}
+.item p{margin:0;font-size:.84rem;line-height:1.45;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+.item.hero a{grid-template-columns:1fr;padding:0;overflow:hidden;
+  background:linear-gradient(160deg, color-mix(in oklab, var(--c) 30%, transparent), var(--glass-tint) 75%)}
+.item.hero .cover{width:100%;max-width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+.item.hero .txt{padding:16px 18px 18px;gap:9px}
+.item.hero h2{font-size:1.32rem;letter-spacing:-.02em}
+.item.hero p{-webkit-line-clamp:3}
+
+.empty{text-align:center;color:var(--ink-soft);font-size:.9rem;padding:40px 0}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
+      <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+    </div>
+    <div class="title-row"><h1 id="tabTitle">À la une</h1><span class="stamp" id="stamp"></span></div>
+    <nav class="tabs glass" id="tabs" role="tablist" aria-label="Thèmes"></nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="sources" id="sources"></div>
+    <div class="notice" id="notice" hidden></div>
+    <ul class="feed" id="feed" role="tabpanel" aria-labelledby="tabTitle"></ul>
+  </div>
+</main>
+
+<script>
+/* ======================================================
+   CONFIG — onglets et flux RSS
+   Ajouter une source : { name:'Nom', color:'--t-…', url:'adresse du flux RSS' }
+   ====================================================== */
+const TABS = [
+  { id:'une', label:'À la une', feeds:[
+    {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/titres.rss'},
+    {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/rss/une.xml'},
+    {name:'20 Minutes',  color:'--t-teal',  url:'https://www.20minutes.fr/feeds/rss-une.xml'}
+  ]},
+  { id:'france', label:'France', feeds:[
+    {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/france.rss'},
+    {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/politique/rss_full.xml'}
+  ]},
+  { id:'monde', label:'Monde', feeds:[
+    {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/monde.rss'},
+    {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/international/rss_full.xml'}
+  ]},
+  { id:'eco', label:'Éco', feeds:[
+    {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/economie.rss'},
+    {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/economie/rss_full.xml'}
+  ]},
+  { id:'sport', label:'Sport', feeds:[
+    {name:"L'Équipe",       color:'--t-brick', url:'https://dwh.lequipe.fr/api/edito/rss?path=/'},
+    {name:"L'Équipe Rugby", color:'--t-teal',  url:'https://dwh.lequipe.fr/api/edito/rss?path=/Rugby/'},
+    {name:'France Info',    color:'--t-slate', url:'https://www.francetvinfo.fr/sports.rss'}
+  ]},
+  { id:'tech', label:'Tech', feeds:[
+    {name:'Numerama',  color:'--t-teal',  url:'https://www.numerama.com/feed/'},
+    {name:'Frandroid', color:'--t-olive', url:'https://www.frandroid.com/feed'},
+    {name:'01net',     color:'--t-char',  url:'https://www.01net.com/feed/'}
+  ]},
+  { id:'local', label:'Tarn', feeds:[
+    {name:'La Dépêche Tarn',  color:'--t-brick', url:'https://www.ladepeche.fr/tarn/rss.xml'},
+    {name:'France 3 Occitanie', color:'--t-slate', url:'https://france3-regions.franceinfo.fr/occitanie/rss'}
+  ]}
+];
+const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
+const CACHE_MIN = 15;      // durée de conservation d'un onglet chargé, en minutes
+const MAX_ITEMS = 30;      // nombre d'articles max par onglet
+
+/* ====================================================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = {
+  get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch{ return null; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+};
+
+let current = null, reqId = 0;
+
+/* Onglets */
+function renderTabs(){
+  $('#tabs').innerHTML = TABS.map(t =>
+    `<button type="button" class="tab" role="tab" id="tab-${t.id}" data-id="${t.id}" aria-selected="${t.id === current}">${esc(t.label)}</button>`).join('');
+  $(`#tab-${current}`)?.scrollIntoView({inline:'center', block:'nearest'});
+}
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) select(b.dataset.id); });
+$('#tabs').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  step(e.key === 'ArrowRight' ? 1 : -1); $(`#tab-${current}`)?.focus();
+});
+function step(d){
+  const i = TABS.findIndex(t => t.id === current);
+  const n = TABS[(i + d + TABS.length) % TABS.length];
+  select(n.id);
+}
+
+function select(id, force = false){
+  if (!TABS.some(t => t.id === id)) id = TABS[0].id;
+  const changed = id !== current;
+  current = id;
+  store.set('actus:tab', id);
+  try{ history.replaceState(null, '', '#' + id); }catch{}
+  const tab = TABS.find(t => t.id === id);
+  $('#tabTitle').textContent = tab.label;
+  renderTabs();
+  if (changed) window.scrollTo({top:0});
+  load(tab, force);
+}
+
+/* Glisser à gauche / à droite pour changer d'onglet */
+let sx = null, sy = null;
+$('main').addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+$('main').addEventListener('touchend', e => {
+  if (sx === null) return;
+  const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+  sx = null;
+  if (Math.abs(dx) > 70 && Math.abs(dy) < 40) step(dx < 0 ? 1 : -1);
+}, {passive:true});
+
+/* Chargement */
+function strip(html){ const d = document.createElement('div'); d.innerHTML = html || ''; return (d.textContent || '').replace(/\s+/g,' ').trim(); }
+function imageOf(it){
+  if (it.thumbnail) return it.thumbnail;
+  if (it.enclosure && it.enclosure.link && /image|jpe?g|png|webp/i.test((it.enclosure.type || '') + it.enclosure.link)) return it.enclosure.link;
+  const m = /<img[^>]+src=["']([^"']+)/i.exec(it.description || it.content || '');
+  return m ? m[1] : '';
+}
+
+async function fetchFeed(f){
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 8000);
+  try{
+    const r = await fetch(RSS_PROXY + encodeURIComponent(f.url), {signal:ctrl.signal});
+    const j = await r.json();
+    if (j.status !== 'ok') throw new Error(j.message || 'flux indisponible');
+    return j.items.map(it => ({
+      source:f.name, color:f.color, title:strip(it.title), link:it.link, img:imageOf(it),
+      desc:strip(it.description).slice(0,240),
+      date:Date.parse((it.pubDate || '').replace(' ','T') + 'Z') || Date.now()
+    }));
+  } finally { clearTimeout(t); }
+}
+
+async function load(tab, force){
+  const id = ++reqId;
+  const cached = store.get('actus:' + tab.id);
+  if (cached) render(tab, cached);
+  else { $('#feed').innerHTML = ''; $('#sources').innerHTML = ''; }
+  if (cached && !force && Date.now() - cached.at < CACHE_MIN * 60000) return;
+
+  $('#feed').classList.add('loading'); $('#refreshBtn').classList.add('spin');
+  const res = await Promise.allSettled(tab.feeds.map(fetchFeed));
+  if (id !== reqId) return;                 // un autre onglet a été choisi entre-temps
+  $('#feed').classList.remove('loading'); $('#refreshBtn').classList.remove('spin');
+
+  const failed = tab.feeds.filter((f,i) => res[i].status === 'rejected').map(f => f.name);
+  let items = res.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
+  if (!items.length){
+    if (cached) { render(tab, {...cached, failed}); return; }
+    render(tab, {at:Date.now(), items:sample(tab), failed, sample:true});
+    return;
+  }
+  const seen = new Set();
+  items = items.sort((a,b) => b.date - a.date).filter(i => !seen.has(i.link) && seen.add(i.link)).slice(0, MAX_ITEMS);
+  const data = {at:Date.now(), items, failed};
+  store.set('actus:' + tab.id, data);
+  if (tab.id === 'une') store.set('actus:top', items[0]);
+  render(tab, data);
+}
+
+function sample(tab){
+  const now = Date.now(), min = 60000;
+  return tab.feeds.flatMap((f, k) => [0,1,2].map(n => ({
+    source:f.name, color:f.color, link:'#', img:'',
+    title:`Exemple ${n+1} · ${tab.label} — le vrai titre de ${f.name} s'affichera ici`,
+    desc:"Le début de l'article apparaît sous le titre. Un tap ouvre l'article complet sur le site de la source.",
+    date:now - (k*17 + n*55 + 4) * min
+  }))).sort((a,b) => b.date - a.date);
+}
+
+/* Affichage */
+function ago(t){
+  const m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return "à l'instant";
+  if (m < 60) return `${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} h`;
+  return new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+}
+
+function render(tab, data){
+  const failed = data.failed || [];
+  $('#sources').innerHTML = tab.feeds.map(f =>
+    `<span class="${failed.includes(f.name) ? 'off' : ''}" style="--c:var(${f.color})"><i></i>${esc(f.name)}</span>`).join('');
+  const n = $('#notice');
+  if (data.sample){
+    n.hidden = false;
+    n.textContent = "Aperçu avec des articles d'exemple : les flux en direct ne se chargent pas ici. Sur ta page hébergée, les vrais titres s'affichent.";
+  } else if (failed.length){
+    n.hidden = false;
+    n.textContent = `Pas de réponse pour l'instant : ${failed.join(', ')}. Les autres sources sont affichées.`;
+  } else n.hidden = true;
+
+  $('#stamp').textContent = data.sample ? '' : `Mis à jour à ${new Date(data.at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
+
+  $('#feed').innerHTML = data.items.map((i, k) => {
+    const hero = k === 0;
+    const img = i.img ? `<img class="${hero ? 'cover' : 'thumb'}" src="${esc(i.img)}" alt="" loading="lazy" onerror="this.remove()">` : '';
+    const ext = i.link && i.link !== '#' ? ' target="_blank" rel="noopener"' : '';
+    return `<li class="item${hero ? ' hero' : ''}" style="--c:var(${i.color})"><a class="glass" href="${esc(i.link)}"${ext}>
+      ${hero ? img : ''}
+      <span class="txt">
+        <span class="meta"><span class="dot"></span>${esc(i.source)}<time>${ago(i.date)}</time></span>
+        <h2>${esc(i.title)}</h2>
+        ${i.desc && (hero || !i.img) ? `<p>${esc(i.desc)}</p>` : ''}
+      </span>
+      ${hero ? '' : img}
+    </a></li>`;
+  }).join('') || '<li class="empty">Aucun article pour ce thème.</li>';
+}
+
+$('#refreshBtn').addEventListener('click', () => select(current, true));
+
+/* Démarrage : onglet de l'adresse (#sport…), sinon le dernier consulté */
+const start = location.hash.slice(1) || store.get('actus:tab') || 'une';
+select(start);
+</script>
+
+</body>
+</html>

@@ -8,8 +8,6 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Mon Écran">
-<meta name="theme-color" content="#e7ecef" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#08121f" media="(prefers-color-scheme: dark)">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <style>
@@ -153,35 +151,6 @@ a{color:inherit;text-decoration:none}
 
 @keyframes rise{from{transform:translateY(8px) scale(.96)}}
 
-/* ---------- Vue Actus ---------- */
-#actus{flex:1;display:flex;flex-direction:column;min-height:0;background:transparent;
-  margin-left:calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
-  margin-right:calc(-1 * max(16px, env(safe-area-inset-right, 0px)))}
-.bar{display:flex;align-items:center;justify-content:space-between;gap:8px;
-  padding:12px max(16px, env(safe-area-inset-right, 0px)) 4px max(16px, env(safe-area-inset-left, 0px))}
-.back{display:flex;align-items:center;gap:2px;color:var(--accent);font-weight:500;font-size:1rem}
-.back svg,.icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.icon-btn{color:var(--accent);width:38px;height:38px;display:grid;place-items:center;border-radius:50%}
-.icon-btn.spin svg{animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.scroller{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:0 max(16px, env(safe-area-inset-right, 0px)) 28px max(16px, env(safe-area-inset-left, 0px))}
-.scroller h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:6px 0 14px}
-.seg{display:flex;gap:4px;padding:4px;border-radius:18px;overflow-x:auto;scrollbar-width:none;margin-bottom:14px}
-.seg::-webkit-scrollbar{display:none}
-.chip{flex:1 0 auto;padding:8px 12px;border-radius:14px;font-size:.82rem;font-weight:500;color:var(--ink-soft);text-align:center;white-space:nowrap}
-.chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
-.notice{font-size:.8rem;line-height:1.45;color:var(--ink-soft);background:var(--card);border:1px dashed var(--line);border-radius:18px;padding:10px 12px;margin-bottom:14px}
-.feed{display:flex;flex-direction:column;gap:10px;list-style:none;margin:0;padding:0}
-.item a{display:flex;flex-direction:column;gap:7px;border-radius:24px;padding:14px 15px}
-.item.hero a{padding:18px;gap:10px;background:linear-gradient(160deg, color-mix(in oklab, var(--c) 35%, transparent), var(--glass-tint) 75%)}
-.item.hero h2{font-size:1.3rem;letter-spacing:-.02em}
-.meta{display:flex;align-items:center;gap:7px;font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
-.meta .dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--c)}
-.meta time{font-weight:400;letter-spacing:0;text-transform:none;margin-left:auto;font-variant-numeric:tabular-nums}
-.item h2{font-size:1rem;line-height:1.3;margin:0;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
-.item p{margin:0;font-size:.86rem;line-height:1.45;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-
 /* ---------- Dossier ---------- */
 .scrim{position:fixed;inset:0;z-index:20;display:grid;place-items:center;
   padding:max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px));
@@ -207,11 +176,11 @@ a{color:inherit;text-decoration:none}
         <span class="day" id="day"></span>
         <span class="place">Réalmont · Tarn</span>
       </div>
-      <button type="button" class="w w-news glass" id="newsWidget" aria-label="Ouvrir les actus">
+      <a class="w w-news glass" id="newsWidget" href="actus.html" aria-label="Ouvrir les actus">
         <span class="src"><i id="wDot"></i><span class="w-label" id="wSrc">À la une</span></span>
         <span class="headline" id="wTitle">Chargement des actus…</span>
         <span class="foot"><span>Actus</span><span id="wTime"></span></span>
-      </button>
+      </a>
     </div>
     <div class="grid" id="grid"></div>
     <div class="spacer"></div>
@@ -219,18 +188,6 @@ a{color:inherit;text-decoration:none}
     <nav class="dock glass" id="dock" aria-label="Dock"></nav>
   </section>
 
-  <section id="actus" hidden aria-label="Actus">
-    <div class="bar">
-      <button class="back" id="backBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</button>
-      <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
-    </div>
-    <div class="scroller">
-      <h1>Actus</h1>
-      <div class="seg glass" id="chips" role="toolbar" aria-label="Sources"></div>
-      <div class="notice" id="notice" hidden></div>
-      <ul class="feed" id="feed"></ul>
-    </div>
-  </section>
 </div>
 
 <div class="scrim" id="scrim" hidden>
@@ -243,7 +200,7 @@ a{color:inherit;text-decoration:none}
 <script>
 /* ======================================================
    CONFIG — c'est ici qu'on ajoute / retire des "apps"
-   type : "view" (page interne), "folder" (dossier), "link" (site)
+   type : "page" (page du projet), "folder" (dossier), "link" (site)
    ====================================================== */
 const ICONS = {
   news:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 8.5h6M7 12h10M7 15.5h10"/>',
@@ -255,7 +212,8 @@ const ICONS = {
   search:'<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
   play:'<rect x="2.5" y="5.5" width="19" height="13" rx="3.5"/><path d="m10 9.2 5 2.8-5 2.8z"/>',
   book:'<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3"/>',
-  tag:'<path d="M3 11.5V4h7.5L21 14.5 13.5 22z"/><circle cx="7.5" cy="8" r="1.4"/>'
+  tag:'<path d="M3 11.5V4h7.5L21 14.5 13.5 22z"/><circle cx="7.5" cy="8" r="1.4"/>',
+  sport:'<circle cx="12" cy="12" r="8.5"/><path d="m12 7.6 4.2 3-1.6 4.9H9.4l-1.6-4.9z"/><path d="M12 3.5v4.1M16.2 10.6l3.9-1.3M14.6 15.5l2.4 3.4M9.4 15.5 7 18.9M7.8 10.6 3.9 9.3"/>'
 };
 
 const FOLDERS = {
@@ -298,7 +256,7 @@ const FOLDERS = {
     {label:'Unsplash',      mono:'U',  color:'--t-char',  url:'https://unsplash.com'}
   ]},
   actus:{ title:'Actualités', items:[
-    {label:"Fil d'actus", type:'view', target:'actus', icon:'news', color:'--t-brick'},
+    {label:"Fil d'actus", type:'page', url:'actus.html', icon:'news', color:'--t-brick'},
     {label:'France Info', mono:'fi', color:'--t-slate', url:'https://www.francetvinfo.fr'},
     {label:'Le Monde',    mono:'M',  color:'--t-char',  url:'https://www.lemonde.fr'},
     {label:'La Dépêche',  mono:'LD', color:'--t-olive', url:'https://www.ladepeche.fr'},
@@ -322,21 +280,19 @@ const HOME = [
   {label:'Travail',         type:'folder', target:'travail'},
   {label:'Photos',          type:'folder', target:'photos'},
   {label:'Actualités',      type:'folder', target:'actus'},
-  {label:'Système',         type:'folder', target:'systeme'}
+  {label:'Système',         type:'folder', target:'systeme'},
+  {label:'Sport',           type:'page', url:'sport.html', icon:'sport', color:'--t-slate'}
 ];
 
 const DOCK = [
-  {label:"Fil d'actus", type:'view', target:'actus', icon:'news', color:'--t-brick'},
+  {label:'Actus',       type:'page', url:'actus.html', icon:'news', color:'--t-brick'},
   {label:'Recherche',   type:'link', icon:'search', color:'--t-char',  url:'https://www.google.fr'},
   {label:'Gmail',       type:'link', icon:'mail',   color:'--t-rose',  url:'https://mail.google.com'},
   {label:'Maps',        type:'link', icon:'map',    color:'--t-teal',  url:'https://maps.google.com'}
 ];
 
-const FEEDS = [
-  {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/titres.rss'},
-  {name:'Le Monde',    color:'--t-char',  url:'https://www.lemonde.fr/rss/une.xml'},
-  {name:'La Dépêche',  color:'--t-brick', url:'https://www.ladepeche.fr/rss.xml'}
-];
+/* Widget « À la une » : reprend le titre chargé par la page Actus, sinon interroge ce flux */
+const WIDGET_FEED = {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/titres.rss'};
 const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
 
 /* ====================================================== */
@@ -354,6 +310,7 @@ function tileHTML(a){
 function appHTML(a, idx = 0){
   const body = `${tileHTML(a)}<span class="name">${esc(a.label)}</span>`;
   const delay = `style="animation-delay:${idx * 35}ms"`;
+  if (a.type === 'page') return `<a class="app-btn" ${delay} href="${esc(a.url)}" aria-label="${esc(a.label)}">${body}</a>`;
   if (!a.type || a.type === 'link') return `<a class="app-btn" ${delay} href="${esc(a.url)}" target="_blank" rel="noopener" aria-label="${esc(a.label)}">${body}</a>`;
   return `<button type="button" class="app-btn" ${delay} data-type="${a.type}" data-target="${a.target}" aria-label="${esc(a.label)}">${body}</button>`;
 }
@@ -365,16 +322,14 @@ document.addEventListener('click', e => {
   const b = e.target.closest('button.app-btn');
   if (!b) return;
   if (b.dataset.type === 'folder') openFolder(b.dataset.target);
-  if (b.dataset.type === 'view'){ if (!$('#scrim').hidden) $('#scrim').hidden = true; showView(b.dataset.target); }
 });
-$('#newsWidget').addEventListener('click', () => showView('actus'));
 
 /* Horloge */
 function tick(){
   const d = new Date();
   $('#clock').textContent = d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   $('#day').textContent = d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-  if (items.length) renderWidget();
+  if (top) renderWidget();
 }
 
 /* Dossiers */
@@ -388,101 +343,44 @@ function openFolder(id){
 }
 function closeFolder(){ $('#scrim').hidden = true; lastFocus?.focus(); }
 $('#scrim').addEventListener('click', e => { if (!e.target.closest('.folder-box')) closeFolder(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (!$('#scrim').hidden) closeFolder(); else if (!$('#actus').hidden) showView('home'); }});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#scrim').hidden) closeFolder(); });
 
-/* Vues */
-function showView(id){
-  const actus = id === 'actus';
-  $('#home').hidden = actus; $('#actus').hidden = !actus;
-}
-$('#backBtn').addEventListener('click', () => showView('home'));
-
-/* Actus / RSS */
-let items = [], filter = 'Tout';
-
-function renderChips(){
-  const names = ['Tout', ...FEEDS.map(f => f.name)];
-  $('#chips').innerHTML = names.map(n => `<button type="button" class="chip" aria-pressed="${n===filter}">${esc(n)}</button>`).join('');
-}
-$('#chips').addEventListener('click', e => {
-  const c = e.target.closest('.chip'); if (!c) return;
-  filter = c.textContent; renderChips(); renderFeed();
-});
-
-function ago(date){
-  const m = Math.round((Date.now() - date) / 60000);
+/* Widget À la une */
+let top = null;
+function ago(t){
+  const m = Math.round((Date.now() - t) / 60000);
   if (m < 1) return "à l'instant";
   if (m < 60) return `il y a ${m} min`;
   const h = Math.round(m / 60);
   if (h < 24) return `il y a ${h} h`;
-  return date.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
-}
-function renderFeed(){
-  const list = items.filter(i => filter === 'Tout' || i.source === filter);
-  $('#feed').innerHTML = list.map((i, k) => `
-    <li class="item${k === 0 ? ' hero' : ''}" style="--c:var(${i.color})"><a href="${esc(i.link)}" target="_blank" rel="noopener" class="glass">
-      <span class="meta"><span class="dot"></span>${esc(i.source)}<time>${ago(i.date)}</time></span>
-      <h2>${esc(i.title)}</h2>
-      ${i.desc ? `<p>${esc(i.desc)}</p>` : ''}
-    </a></li>`).join('') || '<li class="notice">Aucun article pour cette source.</li>';
+  return new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
 }
 function renderWidget(){
-  const top = items[0]; if (!top) return;
   $('#wSrc').textContent = top.source;
   $('#wDot').style.background = `var(${top.color})`;
   $('#wTitle').textContent = top.title;
-  $('#wTime').textContent = ago(top.date);
+  $('#wTime').textContent = top.sample ? '' : ago(top.date);
 }
-
-function strip(html){ const d = document.createElement('div'); d.innerHTML = html || ''; return (d.textContent || '').trim(); }
-
-async function fetchFeed(f){
-  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 7000);
+async function loadWidget(){
   try{
-    const r = await fetch(RSS_PROXY + encodeURIComponent(f.url), {signal:ctrl.signal});
+    const saved = JSON.parse(localStorage.getItem('actus:top'));
+    if (saved && Date.now() - saved.date < 6 * 3600000){ top = saved; renderWidget(); }
+  }catch{}
+  try{
+    const r = await fetch(RSS_PROXY + encodeURIComponent(WIDGET_FEED.url));
     const j = await r.json();
-    if (j.status !== 'ok') throw new Error(j.message || 'flux indisponible');
-    return j.items.slice(0,12).map(it => ({
-      source:f.name, color:f.color, title:it.title, link:it.link,
-      desc:strip(it.description).slice(0,220), date:new Date((it.pubDate||'').replace(' ','T') + 'Z')
-    }));
-  } finally { clearTimeout(t); }
-}
-
-function sampleItems(){
-  const now = Date.now(), min = 60000;
-  return FEEDS.flatMap((f, k) => [0,1].map(n => ({
-    source:f.name, color:f.color, link:'#',
-    title:`Exemple d'article ${n+1} — le titre réel de ${f.name} s'affichera ici`,
-    desc:"Les deux premières lignes du chapeau de l'article apparaissent sous le titre, puis un tap ouvre l'article sur le site.",
-    date:new Date(now - (k*25 + n*70 + 6) * min)
-  }))).sort((a,b) => b.date - a.date);
-}
-
-async function loadFeeds(){
-  const btn = $('#refreshBtn'); btn.classList.add('spin');
-  const res = await Promise.allSettled(FEEDS.map(fetchFeed));
-  btn.classList.remove('spin');
-  const ok = res.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
-  const failed = FEEDS.filter((f,i) => res[i].status === 'rejected').map(f => f.name);
-  const notice = $('#notice');
-  if (ok.length){
-    items = ok.sort((a,b) => b.date - a.date);
-    notice.hidden = !failed.length;
-    notice.textContent = failed.length ? `Source indisponible pour l'instant : ${failed.join(', ')}.` : '';
-  } else {
-    items = sampleItems();
-    notice.hidden = false;
-    notice.textContent = "Aperçu avec des articles d'exemple : les flux en direct ne peuvent pas se charger ici. Une fois la page hébergée de ton côté, les vrais titres s'affichent automatiquement.";
+    if (j.status !== 'ok' || !j.items.length) throw 0;
+    const it = j.items[0];
+    top = {source:WIDGET_FEED.name, color:WIDGET_FEED.color, title:it.title,
+           date:Date.parse((it.pubDate || '').replace(' ','T') + 'Z') || Date.now()};
+  }catch{
+    if (!top) top = {source:'À la une', color:'--t-slate', title:'Toutes les actus, classées par thème', sample:true};
   }
-  renderChips(); renderFeed(); renderWidget();
+  renderWidget();
 }
-$('#refreshBtn').addEventListener('click', loadFeeds);
 
-renderChips();
 tick(); setInterval(tick, 15000);
-loadFeeds();
-if (location.hash === '#actus') showView('actus');
+loadWidget();
 </script>
 
 </body>
