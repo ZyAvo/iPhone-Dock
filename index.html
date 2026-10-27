@@ -19,7 +19,7 @@ img{max-width:100%}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
 <style>
-/* Layout : fond en dégradé maillé ; rangée de 2 widgets carrés (heure, À la une), grille d'apps 4 colonnes, dock flottant en verre */
+/* Layout : fond en dégradé maillé ; rangée de 2 widgets carrés (heure + météo, À la une), grille d'apps 5 colonnes, bandeau d'accès rapides en bas */
 :root{
   --base:#e7ecef;
   --blob-1:rgba(163,206,241,.95); --blob-2:rgba(96,150,186,.55); --blob-3:rgba(39,76,119,.35);
@@ -108,7 +108,20 @@ a{color:inherit;text-decoration:none}
 .w-clock .day{font-weight:600;font-size:.92rem;margin-top:8px;text-transform:capitalize}
 .w-clock a{color:inherit;text-decoration:none;display:block;align-self:flex-start;border-radius:10px}
 .w-clock a:active{opacity:.6}
-.w-clock .place{font-size:.78rem;color:var(--ink-soft);margin-top:2px}
+.w-clock .place{font-size:.78rem;color:var(--ink-soft);margin-top:2px;display:flex;align-items:center;gap:3px;align-self:flex-start;border-radius:8px;max-width:100%}
+.w-clock .place span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.w-clock .place svg{width:11px;height:11px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.w-clock .place:active{opacity:.6}
+.w-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+.w-clock .wx{display:flex;align-self:auto;align-items:center;gap:4px;margin:-6px -6px 0 0;padding:2px 4px;border-radius:12px;font-size:.92rem;font-weight:500;font-variant-numeric:tabular-nums}
+.wx svg{width:30px;height:30px;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.wx .sun{stroke:#e9a23b;fill:rgba(233,162,59,.18)}
+.wx .moon{stroke:#8fa8c4;fill:rgba(143,168,196,.18)}
+.wx .cloud{stroke:var(--ink-soft);fill:color-mix(in oklab, var(--base) 75%, transparent)}
+.wx .rain{stroke:#4c86b0}
+.wx .snow{stroke:#7fb0d8}
+.wx .bolt{stroke:#e9a23b}
+.wx:active{opacity:.6}
 .w-news{gap:8px}
 .w-news .src{display:flex;align-items:center;gap:6px}
 .w-news .src i{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
@@ -118,8 +131,8 @@ a{color:inherit;text-decoration:none}
 .w:active{transform:scale(.97)}
 .w{transition:transform .15s ease}
 
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px 18px;margin-top:26px;padding:0 4px}
-.app-btn{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px 12px;margin-top:24px;padding:0 2px}
+.app-btn{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
 .tile{
   width:100%;aspect-ratio:1;max-width:100%;border-radius:26%;
   display:grid;place-items:center;color:var(--glyph);position:relative;isolation:isolate;
@@ -130,9 +143,9 @@ a{color:inherit;text-decoration:none}
 }
 .app-btn:active .tile{transform:scale(.9)}
 .tile svg{width:50%;height:50%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))}
-.tile .mono.long{font-size:clamp(.7rem,3.2vw,.85rem)}
-.tile .mono{font-weight:700;font-size:clamp(.92rem,4.4vw,1.15rem);letter-spacing:-.03em;text-shadow:0 1px 1px rgba(0,0,0,.18)}
-.app-btn .name{font-size:.72rem;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.tile .mono.long{font-size:clamp(.62rem,2.6vw,.75rem)}
+.tile .mono{font-weight:700;font-size:clamp(.8rem,3.6vw,1rem);letter-spacing:-.03em;text-shadow:0 1px 1px rgba(0,0,0,.18)}
+.app-btn .name{font-size:.66rem;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
 .tile.folder{
   background:linear-gradient(160deg, var(--glass), var(--glass-tint));
@@ -150,16 +163,13 @@ a{color:inherit;text-decoration:none}
 .dots span{width:6px;height:6px;border-radius:50%;background:var(--ink);opacity:.22}
 .dots span.on{opacity:.7;width:16px;border-radius:3px}
 
-.dock{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;padding:13px 15px;margin-bottom:10px;border-radius:36px}
-.quick{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 6px;margin-bottom:10px}
+.quick{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 4px;margin-bottom:12px}
 .q-side{display:flex;gap:7px}
 .q{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:var(--ink);position:relative;isolation:isolate}
 .q svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .q.img{background:var(--img) center / cover no-repeat;backdrop-filter:none;-webkit-backdrop-filter:none}
 .q.img svg,.q.img::before{display:none}
 .q:active{transform:scale(.9)}
-.dock .name{display:none}
-.dock .app-btn{animation:none}
 
 @keyframes rise{from{transform:translateY(8px) scale(.96)}}
 
@@ -171,6 +181,20 @@ a{color:inherit;text-decoration:none}
 .folder-panel h3{font-weight:600;font-size:1.6rem;letter-spacing:-.03em;color:#fff;text-align:center;margin:0 0 16px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
 .folder-box{border-radius:40px;padding:22px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px 16px}
 .folder-box .app-btn{animation:none}
+/* ---------- Choix du lieu ---------- */
+.place-panel{width:min(100%,360px);border-radius:32px;padding:20px 16px 16px;animation:pop .28s cubic-bezier(.2,.9,.25,1.15);max-height:100%;overflow:auto}
+.place-panel h3{font-weight:600;font-size:1.15rem;letter-spacing:-.02em;margin:0 4px 12px}
+.pl-list{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:4px}
+.pl-row{display:flex;align-items:center;gap:6px}
+.pl-pick{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:var(--card)}
+.pl-pick[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.pl-pick b{font-weight:600}
+.pl-pick small{opacity:.7;font-size:.78rem;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-pick svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pl-del{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--ink-soft);font-size:1.1rem}
+.pl-search{display:flex;gap:6px;margin-bottom:8px}
+.pl-search input{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.pl-msg{font-size:.8rem;color:var(--ink-soft);margin:4px 4px 8px;min-height:1em}
 @keyframes fade{from{opacity:0}}
 @keyframes pop{from{transform:scale(.86)}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
@@ -183,10 +207,13 @@ a{color:inherit;text-decoration:none}
   <section id="home" aria-label="Écran d'accueil">
     <div class="widgets">
       <div class="w w-clock glass">
-        <span class="w-label">Aujourd'hui</span>
-        <a class="time" id="clock" href="clock-alarm://" data-app="clock-alarm://" data-alt="Horloge" aria-label="Ouvrir Horloge">--:--</a>
+        <div class="w-top">
+          <span class="w-label">Aujourd'hui</span>
+          <a class="wx" id="wx" href="weather://" data-app="weather://" aria-label="Ouvrir Météo"></a>
+        </div>
+        <a class="time" id="clock" href="shortcuts://run-shortcut?name=Horloge" data-app="shortcuts://run-shortcut?name=Horloge" aria-label="Ouvrir Horloge">--:--</a>
         <a class="day" id="day" href="calshow://" data-app="calshow://" data-alt="Calendrier" aria-label="Ouvrir Calendrier"></a>
-        <span class="place">Réalmont · Tarn</span>
+        <button type="button" class="place" id="placeBtn" aria-haspopup="dialog" aria-label="Changer de lieu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span id="placeName">Réalmont · Tarn</span></button>
       </div>
       <a class="w w-news glass" id="newsWidget" href="actus.html" aria-label="Ouvrir les actus">
         <span class="src"><i id="wDot"></i><span class="w-label" id="wSrc">À la une</span></span>
@@ -197,7 +224,6 @@ a{color:inherit;text-decoration:none}
     <div class="grid" id="grid"></div>
     <div class="spacer"></div>
     <div class="dots" aria-hidden="true"><span class="on"></span><span></span></div>
-    <nav class="dock glass" id="dock" aria-label="Dock"></nav>
     <div class="quick" aria-label="Accès rapides"><div class="q-side" id="quickLeft"></div><div class="q-side" id="quickRight"></div></div>
   </section>
 
@@ -207,6 +233,18 @@ a{color:inherit;text-decoration:none}
   <div class="folder-panel" role="dialog" aria-modal="true" aria-labelledby="folderTitle">
     <h3 id="folderTitle"></h3>
     <div class="folder-box glass" id="folderBox"></div>
+  </div>
+</div>
+
+<div class="scrim" id="placeScrim" hidden>
+  <div class="place-panel glass" role="dialog" aria-modal="true" aria-labelledby="placeTitle">
+    <h3 id="placeTitle">Lieu de la météo</h3>
+    <ul class="pl-list" id="placeList"></ul>
+    <form class="pl-search" id="placeForm" autocomplete="off">
+      <input type="search" id="placeQuery" placeholder="Ajouter une ville…" aria-label="Rechercher une ville">
+    </form>
+    <p class="pl-msg" id="placeMsg" role="status"></p>
+    <ul class="pl-list" id="placeResults"></ul>
   </div>
 </div>
 
@@ -223,9 +261,16 @@ a{color:inherit;text-decoration:none}
    store: nom de l'appli sur l'App Store, pour afficher sa vraie icône
           (ou storeId:'123456789' pour viser une appli précise)
    ====================================================== */
+/* Applis sans adresse fiable : ouvertes par un raccourci du même nom (app Raccourcis → « Ouvrir l'app ») */
+function sc(name){ return 'shortcuts://run-shortcut?name=' + encodeURIComponent(name); }
+
 const ICONS = {
   phone:'<path d="M6.6 3.5h2.6l1.5 4.2-2 1.5a12 12 0 0 0 6.1 6.1l1.5-2 4.2 1.5v2.6a2 2 0 0 1-2.1 2A16.5 16.5 0 0 1 4.6 5.6a2 2 0 0 1 2-2.1z"/>',
   bubble:'<path d="M4 5.5h16a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5V17.5H4A1.5 1.5 0 0 1 2.5 16V7A1.5 1.5 0 0 1 4 5.5z"/>',
+  round:'<path d="M12 3.5a8.5 8.5 0 0 0-7.4 12.7L3.5 20.5l4.4-1.1A8.5 8.5 0 1 0 12 3.5z"/><path d="M8.6 12h.01M12 12h.01M15.4 12h.01"/>',
+  duo:'<path d="M3.5 6.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H9l-3.5 2.8V13.5a2 2 0 0 1-2-2z"/><path d="M15.5 8.5h3a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2V20l-3-2.5h-3.5a2 2 0 0 1-2-2v-.5"/>',
+  card:'<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19M6 15h4"/>',
+  folder:'<path d="M3 7.5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 10h18"/>',
   camera:'<path d="M4 7.5h3.2L9 5h6l1.8 2.5H20a1.5 1.5 0 0 1 1.5 1.5v9.5A1.5 1.5 0 0 1 20 20H4a1.5 1.5 0 0 1-1.5-1.5V9A1.5 1.5 0 0 1 4 7.5z"/><circle cx="12" cy="13.3" r="3.8"/>',
   gear:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/><path d="M4 12h5M13 12h7"/><circle cx="11" cy="12" r="2"/>',
   media:'<rect x="2.5" y="4.5" width="19" height="13" rx="2.5"/><path d="m10 8.2 4.8 2.8-4.8 2.8z"/><path d="M8 20.5h8"/>',
@@ -245,10 +290,10 @@ const ICONS = {
 const FOLDERS = {
   finance:{ title:'Finance', items:[
     {label:'Trade Republic', mono:'TR', color:'--t-char',  store:'Trade Republic', app:'traderepublic://',  web:'https://app.traderepublic.com'},   // à tester
-    {label:'BoursoBank',     mono:'Bo', color:'--t-rose',  store:'BoursoBank', app:'boursorama://',     web:'https://clients.boursobank.com'},  // à tester
+    {label:'BoursoBank',     mono:'Bo', color:'--t-rose',  store:'BoursoBank', app:sc('BoursoBank')},
     {label:'Cyberplus',      mono:'BP', color:'--t-brick', store:'Banque Populaire', app:'cyberplus://',      web:'https://www.banquepopulaire.fr'},  // à tester
     {label:'Swile',          mono:'Sw', color:'--t-plum',  store:'Swile', app:'swile://',          web:'https://app.swile.co'},            // à tester
-    {label:'Esalia',         mono:'Es', color:'--t-teal',  store:'Esalia', app:'esalia://',         web:'https://www.esalia.com'}           // à tester
+    {label:'Esalia',         mono:'Es', color:'--t-teal',  store:'Esalia', app:sc('Esalia')}
   ]},
   social:{ title:'Réseaux sociaux', items:[
     {label:'X',        mono:'X',  color:'--t-char',  store:'X', app:'twitter://',  web:'https://x.com'},
@@ -262,9 +307,9 @@ const FOLDERS = {
     {label:'SmartersPlayerLite', mono:'SP', color:'--t-teal', store:'Smarters Player Lite', app:'smartersplayerlite://', alt:'SmartersPlayerLite'}  // à tester
   ]},
   jeux:{ title:'Jeux', items:[
-    {label:'Chess',             mono:'♞',  color:'--t-olive', store:'Chess Play and Learn', app:'chesscom://',        web:'https://www.chess.com'},     // à tester
+    {label:'Chess',             mono:'♞',  color:'--t-olive', store:'Chess Play and Learn', app:sc('Chess')},
     {label:'Brawl Stars',       mono:'BS', color:'--t-ochre', store:'Brawl Stars', app:'brawlstars://'},
-    {label:'Songs of Conquest', mono:'SC', color:'--t-plum',  store:'Songs of Conquest', app:'songsofconquest://'}                                  // à tester
+    {label:'Songs of Conquest', mono:'SC', color:'--t-plum',  store:'Songs of Conquest', app:sc('Songs of Conquest')}
   ]},
   travail:{ title:'Travail', items:[
     {label:'Outlook', star:true, mono:'O',  color:'--t-slate', store:'Microsoft Outlook', app:'ms-outlook://',     web:'https://outlook.office.com'},
@@ -273,19 +318,10 @@ const FOLDERS = {
     {label:'PowerPoint',        mono:'P',  color:'--t-rose',  store:'Microsoft PowerPoint', app:'ms-powerpoint://',  web:'https://www.office.com'},
     {label:'OneNote',           mono:'N',  color:'--t-plum',  store:'Microsoft OneNote', app:'onenote://',        web:'https://www.onenote.com'},
     {label:'Power BI',          mono:'BI', color:'--t-ochre', store:'Microsoft Power BI', app:'mspbi://',          web:'https://app.powerbi.com'},
-    {label:'SAP Concur',        mono:'Cc', color:'--t-teal',  store:'SAP Concur', app:'concur://',         web:'https://www.concursolutions.com'},  // à tester
+    {label:'SAP Concur',        mono:'Cc', color:'--t-teal',  store:'SAP Concur', app:sc('SAP Concur')},
     {label:'Proton Drive',      mono:'PD', color:'--t-char',  store:'Proton Drive', app:'protondrive://',    web:'https://drive.proton.me'},          // à tester
     {label:'Portail Entreprise',mono:'PE', color:'--t-slate', store:'Intune Company Portal', app:'companyportal://'},
     {label:'Authenticator',     mono:'Au', color:'--t-olive', store:'Microsoft Authenticator', app:'msauth://'}                                                  // à tester
-  ]},
-  securite:{ title:'Identité / Sécurité', items:[
-    {label:'Bitwarden',         mono:'Bw', color:'--t-slate', store:'Bitwarden', app:'bitwarden://',      web:'https://vault.bitwarden.eu'}
-  ]},
-  photos:{ title:'Photos', items:[
-    {label:'Google Photos', mono:'GP', color:'--t-teal',  url:'https://photos.google.com'},
-    {label:'iCloud Photos', mono:'iC', color:'--t-slate', url:'https://www.icloud.com/photos'},
-    {label:'Pinterest',     mono:'P',  color:'--t-brick', url:'https://www.pinterest.fr'},
-    {label:'Unsplash',      mono:'U',  color:'--t-char',  url:'https://unsplash.com'}
   ]},
   actus:{ title:'Actualités', items:[
     {label:"Fil d'actus", type:'page', url:'actus.html', icon:'news', color:'--t-brick'},
@@ -294,47 +330,36 @@ const FOLDERS = {
     {label:'La Dépêche',  mono:'LD', color:'--t-olive', url:'https://www.ladepeche.fr'},
     {label:"L'Équipe",    mono:'É',  color:'--t-teal',  url:'https://www.lequipe.fr'},
     {label:'Castres Olympique', mono:'CO', color:'--t-plum', url:'https://www.castres-olympique.com'}
-  ]},
-  systeme:{ title:'Système', items:[
-    {label:'Météo',    icon:'meteo', color:'--t-slate', url:'https://meteofrance.com/previsions-meteo-france/realmont/81120'},
-    {label:'Maps',     icon:'map',   color:'--t-teal',  url:'https://maps.google.com'},
-    {label:'Gmail',    icon:'mail',  color:'--t-rose',  url:'https://mail.google.com'},
-    {label:'Drive',    icon:'drive', color:'--t-ochre', url:'https://drive.google.com'},
-    {label:'iCloud',   mono:'iC',    color:'--t-char',  url:'https://www.icloud.com'},
-    {label:'Débit',    mono:'Mb',    color:'--t-olive', url:'https://fast.com'}
   ]}
 };
 
+/* Accueil : les applis marquées star:true se placent juste après leur dossier */
 const HOME = [
   {label:'Finance',         type:'folder', target:'finance'},
-  {label:'Jeux',            type:'folder', target:'jeux'},
   {label:'Travail',         type:'folder', target:'travail'},
-  {label:'Sécurité',        type:'folder', target:'securite'},
-  {label:'Photos',          type:'folder', target:'photos'},
-  {label:'Actualités',      type:'folder', target:'actus'},
-  {label:'Système',         type:'folder', target:'systeme'},
-  {label:'Sport',           type:'page', url:'sport.html', icon:'sport', color:'--t-slate'}
-];
-
-const DOCK = [
+  {label:'Jeux',            type:'folder', target:'jeux'},
   {label:'Médias',          type:'folder', target:'medias'},
   {label:'Réseaux sociaux', type:'folder', target:'social'},
-  {label:'Actus',           type:'page', url:'actus.html', icon:'news', color:'--t-brick'},
-  {label:'Recherche',       type:'link', icon:'search', color:'--t-char', url:'https://www.google.fr'}
+  {label:'Actualités',      type:'folder', target:'actus'},
+  {label:'Sport',           type:'page', url:'sport.html', icon:'sport', color:'--t-slate'},
+  {label:'Bitwarden',       mono:'Bw', color:'--t-slate', store:'Bitwarden', app:'bitwarden://', web:'https://vault.bitwarden.eu'},
+  {label:'Fichiers',        icon:'folder', color:'--t-slate', storeId:'1232058109', app:'shareddocuments://'},
+  {label:'Waze',            mono:'Wz', color:'--t-teal', store:'Waze', app:'waze://', web:'https://www.waze.com/live-map'}
 ];
 
-/* Bandeau sous le dock (gauche / droite)
+/* Bandeau du bas (gauche / droite) : petites icônes en verre, toutes dans le même style
    alt : nom d'un raccourci de l'appli Raccourcis, essayé si l'appli ne s'ouvre pas */
 const QUICK_LEFT = [
-  {label:'Téléphone', icon:'phone',  app:'mobilephone://', alt:'Téléphone'},                         // à tester
-  {label:'WhatsApp',  icon:'bubble', store:'WhatsApp Messenger', app:'whatsapp://'},
-  {label:'Messenger', icon:'bubble', store:'Messenger', app:'fb-messenger://'},
+  {label:'Téléphone', icon:'phone',  app:'mobilephone://', alt:'Téléphone'},
+  {label:'WhatsApp',  icon:'round',  app:'whatsapp://'},
+  {label:'Messenger', icon:'duo',    app:'fb-messenger://'},
   {label:'Messages',  icon:'bubble', app:'sms:'}
 ];
 const QUICK_RIGHT = [
-  {label:'Appareil photo', icon:'camera', app:'shortcuts://run-shortcut?name=Appareil%20photo'},     // raccourci à créer
-  {label:'Cartes',         icon:'map',    app:'maps://'},
-  {label:'Réglages',       icon:'gear',   app:'App-prefs:', alt:'Réglages'}                          // à tester
+  {label:'Appareil photo', icon:'camera', app:sc('Appareil photo')},          // raccourci à créer
+  {label:'Recherche',      icon:'search', url:'https://www.google.fr'},
+  {label:'Cartes',         icon:'card',   app:'shoebox://'},                  // Cartes (Wallet) : cartes bancaires, billets…
+  {label:'Réglages',       icon:'gear',   app:'App-prefs:', alt:'Réglages'}
 ];
 
 /* Widget « À la une » : reprend le titre chargé par la page Actus, sinon interroge ce flux */
@@ -348,7 +373,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 /* Icônes App Store : récupérées une fois, puis gardées sur l'iPhone */
 let ICONS_STORE = {};
 try{ ICONS_STORE = JSON.parse(localStorage.getItem('icons:v1')) || {}; }catch{}
-const iconKey = a => a.storeId ? 'id:' + a.storeId : a.store ? 's:' + a.store : '';
+const iconKey = a => a.icon && !a.store && !a.storeId ? '' : a.storeId ? 'id:' + a.storeId : a.store ? 's:' + a.store : '';
 const iconOf = a => { const k = iconKey(a); return k && ICONS_STORE[k] ? ICONS_STORE[k] : ''; };
 function jsonp(url){
   return new Promise((ok, ko) => {
@@ -362,7 +387,7 @@ function jsonp(url){
   });
 }
 async function fetchIcons(){
-  const all = [...HOME, ...DOCK, ...QUICK_LEFT, ...QUICK_RIGHT, ...Object.values(FOLDERS).flatMap(f => f.items)].filter(a => iconKey(a) && !(iconKey(a) in ICONS_STORE));
+  const all = [...HOME, ...QUICK_LEFT, ...QUICK_RIGHT, ...Object.values(FOLDERS).flatMap(f => f.items)].filter(a => iconKey(a) && !(iconKey(a) in ICONS_STORE));
   const todo = [...new Map(all.map(a => [iconKey(a), a])).values()];
   for (const a of todo){
     try{
@@ -401,9 +426,8 @@ function appHTML(a, idx = 0){
 
 Object.entries(FOLDERS).forEach(([id, f]) => {
   const stars = f.items.filter(i => i.star); if (!stars.length) return;
-  const inDock = DOCK.findIndex(d => d.target === id);
-  if (inDock >= 0) DOCK.splice(inDock + 1 + DOCK.slice(inDock + 1).filter(d => d.star).length, 0, ...stars);
-  else HOME.push(...stars);
+  const at = HOME.findIndex(d => d.target === id);
+  if (at >= 0) HOME.splice(at + 1, 0, ...stars); else HOME.push(...stars);
 });
 $('#grid').innerHTML = HOME.map(appHTML).join('');
 setTimeout(fetchIcons, 600);
@@ -424,9 +448,10 @@ document.addEventListener('click', e => {
   };
   next(0);
 });
-$('#dock').innerHTML = DOCK.map(a => appHTML(a)).join('');
-const quickHTML = q => { const u = iconOf(q);
-  return `<a class="q glass${u ? ' img' : ''}"${iconAttrs(q)} href="${esc(q.app)}" data-app="${esc(q.app)}" data-alt="${esc(q.alt || '')}" aria-label="${esc(q.label)}" title="${esc(q.label)}"${u ? ` style="--img:url(&quot;${esc(u)}&quot;)"` : ''}><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[q.icon]}</svg></a>`; };
+const quickHTML = q => {
+  const svg = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[q.icon]}</svg>`;
+  if (!q.app) return `<a class="q glass" href="${esc(q.url)}" target="_blank" rel="noopener" aria-label="${esc(q.label)}" title="${esc(q.label)}">${svg}</a>`;
+  return `<a class="q glass" href="${esc(q.app)}" data-app="${esc(q.app)}" data-alt="${esc(q.alt || '')}" aria-label="${esc(q.label)}" title="${esc(q.label)}">${svg}</a>`; };
 $('#quickLeft').innerHTML = QUICK_LEFT.map(quickHTML).join('');
 $('#quickRight').innerHTML = QUICK_RIGHT.map(quickHTML).join('');
 
@@ -491,8 +516,127 @@ async function loadWidget(){
   renderWidget();
 }
 
+/* ---------- Lieu et météo (Open-Meteo, sans clé) ---------- */
+const FAV_DEFAULT = [
+  {name:'Réalmont', region:'Tarn', lat:43.7767, lon:2.1897},
+  {name:'Mazamet',  region:'Tarn', lat:43.4920, lon:2.3736},
+  {name:'Castres',  region:'Tarn', lat:43.6060, lon:2.2400},
+  {name:'Albi',     region:'Tarn', lat:43.9289, lon:2.1464},
+  {name:'Toulouse', region:'Haute-Garonne', lat:43.6045, lon:1.4440}
+];
+const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } },
+            set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }};
+let favs = LS.get('lieu:favoris', FAV_DEFAULT);
+let place = LS.get('lieu:actuel', {mode:'fav', ...FAV_DEFAULT[0]});    // mode 'gps' = ma position
+const placeLabel = p => p.region ? `${p.name} · ${p.region}` : p.name;
+function showPlace(){ $('#placeName').textContent = place.mode === 'gps' ? `${place.name || 'Ma position'}` : placeLabel(place); }
+
+/* Icônes météo (codes WMO) : soleil, éclaircies, nuages, brouillard, pluie, neige, orage */
+const SUN = '<circle class="sun" cx="12" cy="12" r="4.2"/><path class="sun" d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>';
+const MOON = '<path class="moon" d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"/>';
+const CLOUD = (y = 0) => `<path class="cloud" transform="translate(0 ${y})" d="M7.5 18.5h9.5a3.6 3.6 0 0 0 .3-7.2 5.3 5.3 0 0 0-10.2 1.3 3 3 0 0 0 .4 5.9z"/>`;
+const SMALL_SUN = '<g transform="translate(-3.5 -4) scale(.75)">' + SUN + '</g>';
+const SMALL_MOON = '<g transform="translate(-2.5 -3) scale(.7)">' + MOON + '</g>';
+function wxIcon(code, day){
+  const sky = day ? SMALL_SUN : SMALL_MOON;
+  if (code === 0) return day ? SUN : MOON;
+  if (code <= 2) return sky + CLOUD(1);
+  if (code === 3) return CLOUD();
+  if (code === 45 || code === 48) return CLOUD(-2) + '<path class="cloud" d="M5 20.5h14M7 22.5h10"/>';
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return CLOUD(-3) + '<path class="snow" d="M8 19.5h.01M12 21h.01M16 19.5h.01M10 22.5h.01M14 22.5h.01"/>';
+  if (code >= 95) return CLOUD(-3) + '<path class="bolt" d="m12.5 16-2 3.5h3l-2 3.5"/>';
+  if (code >= 51) return CLOUD(-3) + '<path class="rain" d="m8.5 18.5-1 2.5M12.5 18.5l-1 2.5M16.5 18.5l-1 2.5"/>';
+  return CLOUD();
+}
+const WX_FR = c => c === 0 ? 'Ciel dégagé' : c <= 2 ? 'Éclaircies' : c === 3 ? 'Couvert' : c === 45 || c === 48 ? 'Brouillard' : c >= 95 ? 'Orage'
+  : (c >= 71 && c <= 77) || c === 85 || c === 86 ? 'Neige' : c >= 80 ? 'Averses' : c >= 61 ? 'Pluie' : c >= 51 ? 'Bruine' : '';
+function renderWx(w){
+  const el = $('#wx');
+  if (!w){ el.innerHTML = ''; return; }
+  el.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${wxIcon(w.code, w.day)}</svg><span>${Math.round(w.temp)}°</span>`;
+  el.setAttribute('aria-label', `Météo : ${WX_FR(w.code)}, ${Math.round(w.temp)} degrés. Ouvrir Météo`);
+  el.title = WX_FR(w.code);
+}
+async function loadWx(force){
+  if (place.lat == null){ renderWx(null); return; }
+  const key = `${place.lat.toFixed(2)},${place.lon.toFixed(2)}`, c = LS.get('meteo:v1', null);
+  if (c && c.key === key) renderWx(c);
+  if (!force && c && c.key === key && Date.now() - c.at < 20 * 60e3) return;
+  try{
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,weather_code,is_day&timezone=auto`);
+    const j = await r.json(), cur = j.current;
+    const w = {key, at:Date.now(), code:cur.weather_code, temp:cur.temperature_2m, day:!!cur.is_day};
+    LS.set('meteo:v1', w); renderWx(w);
+  }catch{}
+}
+function setPlace(p){ place = p; LS.set('lieu:actuel', p); showPlace(); loadWx(true); }
+
+/* Fenêtre de choix : favoris, ma position, recherche d'une ville */
+const PIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+const LOC = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 11 17-7.5L13 20.5l-2-7.5z"/></svg>';
+const same = (a, b) => Math.abs(a.lat - b.lat) < .01 && Math.abs(a.lon - b.lon) < .01;
+function renderPlaces(){
+  const gps = place.mode === 'gps';
+  $('#placeList').innerHTML = `<li class="pl-row"><button type="button" class="pl-pick" data-gps="1" aria-pressed="${gps}">${LOC}<b>Ma position</b>${gps && place.name ? `<small>${esc(place.name)}</small>` : ''}</button></li>`
+    + favs.map((f, i) => `<li class="pl-row"><button type="button" class="pl-pick" data-fav="${i}" aria-pressed="${!gps && same(place, f)}">${PIN}<b>${esc(f.name)}</b><small>${esc(f.region || '')}</small></button>
+      <button type="button" class="pl-del" data-del="${i}" aria-label="Retirer ${esc(f.name)} des favoris">×</button></li>`).join('');
+}
+function openPlaces(){ lastFocus = document.activeElement; renderPlaces(); $('#placeMsg').textContent = ''; $('#placeResults').innerHTML = ''; $('#placeQuery').value = '';
+  $('#placeScrim').hidden = false; $('#placeList button')?.focus(); }
+function closePlaces(){ $('#placeScrim').hidden = true; lastFocus?.focus(); }
+$('#placeBtn').addEventListener('click', openPlaces);
+$('#placeScrim').addEventListener('click', e => { if (!e.target.closest('.place-panel')) closePlaces(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#placeScrim').hidden) closePlaces(); });
+function locate(){
+  if (!navigator.geolocation){ $('#placeMsg').textContent = 'La localisation n\'est pas disponible sur cet appareil.'; return; }
+  $('#placeMsg').textContent = 'Recherche de ta position…';
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = +pos.coords.latitude.toFixed(4), lon = +pos.coords.longitude.toFixed(4);
+    let name = 'Ma position';
+    try{
+      const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=fr`);
+      const j = await r.json(); name = j.city || j.locality || name;
+    }catch{}
+    setPlace({mode:'gps', name, lat, lon, at:Date.now()}); closePlaces();
+  }, err => {
+    $('#placeMsg').textContent = err.code === 1 ? 'Localisation refusée : autorise-la dans Réglages › Confidentialité › Service de localisation.' : 'Position introuvable pour l\'instant.';
+  }, {enableHighAccuracy:false, timeout:12000, maximumAge:10 * 60e3});
+}
+$('#placeList').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.gps){ locate(); return; }
+  if (b.dataset.del != null){ favs.splice(+b.dataset.del, 1); LS.set('lieu:favoris', favs); renderPlaces(); return; }
+  if (b.dataset.fav != null){ setPlace({mode:'fav', ...favs[+b.dataset.fav]}); closePlaces(); }
+});
+let found = [];
+$('#placeForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = $('#placeQuery').value.trim(); if (q.length < 2) return;
+  $('#placeMsg').textContent = 'Recherche…'; $('#placeResults').innerHTML = '';
+  try{
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=fr&format=json`);
+    const j = await r.json();
+    found = (j.results || []).map(x => ({name:x.name, region:x.admin2 || x.admin1 || x.country || '', lat:+x.latitude.toFixed(4), lon:+x.longitude.toFixed(4)}));
+    $('#placeMsg').textContent = found.length ? 'Touche une ville pour l\'ajouter à tes favoris.' : 'Aucune ville trouvée.';
+    $('#placeResults').innerHTML = found.map((f, i) => `<li class="pl-row"><button type="button" class="pl-pick" data-add="${i}">${PIN}<b>${esc(f.name)}</b><small>${esc(f.region)}</small></button></li>`).join('');
+  }catch{ $('#placeMsg').textContent = 'Recherche impossible pour l\'instant.'; }
+});
+$('#placeResults').addEventListener('click', e => {
+  const b = e.target.closest('[data-add]'); if (!b) return;
+  const f = found[+b.dataset.add];
+  if (!favs.some(x => same(x, f))){ favs.push(f); LS.set('lieu:favoris', favs); }
+  setPlace({mode:'fav', ...f}); closePlaces();
+});
+
 tick(); setInterval(tick, 15000);
 loadWidget();
+showPlace(); loadWx();
+if (place.mode === 'gps' && Date.now() - (place.at || 0) > 30 * 60e3 && navigator.permissions){       // position relue si déjà autorisée
+  navigator.permissions.query({name:'geolocation'}).then(p => { if (p.state === 'granted') navigator.geolocation.getCurrentPosition(pos => {
+    setPlace({...place, lat:+pos.coords.latitude.toFixed(4), lon:+pos.coords.longitude.toFixed(4), at:Date.now()}); }, () => {}, {timeout:12000, maximumAge:10 * 60e3}); }).catch(() => {});
+}
+setInterval(() => { if (!document.hidden) loadWx(); }, 10 * 60e3);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) loadWx(); });
 </script>
 
 </body>
