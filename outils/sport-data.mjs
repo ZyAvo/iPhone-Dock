@@ -61,6 +61,13 @@ async function pool(tasks, n){
   return out;
 }
 
+/* Match « fantôme » : ESPN garde parfois une ancienne fiche « à venir » déjà dépassée (souvent l'affiche inversée,
+   avec une date fausse). On l'écarte s'il est dépassé de plus d'un jour et jamais commencé. */
+function ghost(m, all){
+  if (m.state !== 'pre' || !/SCHEDULED/.test(m.code || '') || m.t > NOW - 1.5 * DAY) return false;
+  return true;
+}
+
 /* ---------- Saisons ---------- */
 function seasonOf(L){
   const d = new Date(NOW), y = d.getUTCMonth() >= 6 ? d.getUTCFullYear() : d.getUTCFullYear() - 1;
@@ -92,10 +99,14 @@ async function eventsFor(L, S, prev){
       if (j && Array.isArray(j.events) && j.events.length){ ranged = j.events.map(e => norm(e, L)); break; }
     }catch{}
   }
-  // 2) jours à vérifier : les jours de match du calendrier ESPN s'il concerne bien cette saison, sinon tous les jours
-  const lo = ymd(S.start), hi = ymd(S.end);
+  // 2) jours à vérifier : les jours de match du calendrier ESPN s'il est vraiment à jour, sinon tous les jours de la saison.
+  //    ESPN mélange parfois l'ancienne saison et quelques dates de la nouvelle (Top 14) : on ne s'y fie que s'il
+  //    annonce des matchs à venir. Les 3 semaines autour d'aujourd'hui sont toujours relues.
+  const lo = ymd(S.start), hi = ymd(S.end), todayK = ymd(NOW);
   const calIn = (cal || []).filter(d => d >= lo && d <= hi);
-  const cand = calIn.length ? calIn : days(S.start, S.end);
+  const calOk = calIn.length > 0 && (calIn[calIn.length - 1] >= ymd(NOW - 2 * DAY) || todayK > hi);
+  const near = days(Math.max(S.start, NOW - 7 * DAY), Math.min(S.end, NOW + 21 * DAY));
+  const cand = [...new Set([...(calOk ? calIn : days(S.start, S.end)), ...near])].sort();
   const covered = new Set(ranged.map(m => ymd(m.t)));
   const lastCovered = [...covered].sort().pop(); covered.delete(lastCovered);        // le dernier jour peut être incomplet
   const cutoff = ymd(NOW - 3 * DAY);
@@ -104,13 +115,16 @@ async function eventsFor(L, S, prev){
   const keepDay = d => (d < cutoff && checked.has(d)) || (d > far && future[d] && NOW - future[d] < DAY);
   const keep = ((prev && prev.events) || []).filter(m => keepDay(ymd(m.t)));
   const todo = cand.filter(d => !covered.has(d) && !keepDay(d));
-  const res = await pool(todo.map(d => async () => { const j = await get(`${base}?dates=${d}&limit=300`); if (d < cutoff) checked.add(d); else if (d > far) future[d] = NOW; return j; }), 10);
-  covered.forEach(d => checked.add(d));
+  let ok = 0;
+  const res = await pool(todo.map(d => async () => { const j = await get(`${base}?dates=${d}&limit=300`); ok++; if (d < cutoff) checked.add(d); else if (d > far) future[d] = NOW; return j; }), 8);
+  covered.forEach(d => { if (d < cutoff) checked.add(d); });
   const raw = [...keep, ...ranged, ...res.flatMap(j => ((j || {}).events || []).map(e => norm(e, L)))];
-  console.log(`  ${L.name} : ${ranged.length} matchs d'un coup, ${todo.length} jours lus un par un, calendrier ESPN ${calIn.length ? 'à jour' : 'absent ou d\'une autre saison'}`);
   const map = new Map(); raw.forEach(m => map.set(m.id, m));
+  const all = [...map.values()], events = all.filter(m => !ghost(m, all)).sort((a, b) => a.t - b.t);
+  const diag = {range:ranged.length, days:todo.length, ok, failed:todo.length - ok, calendar:calOk ? 'espn' : 'tous les jours', ghosts:all.length - events.length};
+  console.log(`  ${L.name} : ${JSON.stringify(diag)}`);
   Object.keys(future).forEach(d => { if (d <= far) delete future[d]; });
-  return {events:[...map.values()].sort((a, b) => a.t - b.t), info, calendar:cal, checked:[...checked].filter(d => d < cutoff).sort(), future};
+  return {events, info, calendar:cal, checked:[...checked].sort(), future, diag};
 }
 
 /* ---------- Journées ---------- */
@@ -172,12 +186,68 @@ async function rugbyDetails(L, evs, prev){
   if (L.sport !== 'rugby') return 0;
   const old = new Map(((prev && prev.events) || []).filter(m => m.full).map(m => [m.id, m.full]));
   const todo = [];
-  evs.forEach(m => { if (old.has(m.id) && m.state === 'post') m.full = old.get(m.id); else if (m.state !== 'pre' && m.t > NOW - 120 * DAY) todo.push(m); });
+  // on réutilise le détail déjà lu (s'il indique bien le camp de chaque action), sinon on le relit
+  evs.forEach(m => { const f = old.get(m.id); if (f && m.state === 'post' && f.some(d => d.side)) m.full = f; else if (m.state !== 'pre' && m.t > NOW - 120 * DAY) todo.push(m); });
   await pool(todo.slice(0, 80).map(m => async () => {
     const j = await get(`${API}/${L.sport}/${L.id}/summary?event=${encodeURIComponent(m.id)}`, 2);
     if (j){ const {evs:list} = summaryEvents(j); if (list.length) m.full = list; }
   }), 6);
   return todo.length;
+}
+
+/* ---------- Classement ----------
+   ESPN renvoie parfois le classement final de la saison passée (Top 14 : 26 matchs joués fin octobre).
+   On le vérifie avec les matchs joués ; s'il ne colle pas, on essaie la saison demandée explicitement,
+   puis on recalcule le classement à partir des résultats. */
+const gpOf = e => +((e.stats || []).find(s => s.name === 'gamesPlayed') || {}).v || 0;
+function tableStale(L, table, evs){
+  if (!table || !(table.tables || []).length) return true;
+  if (!['soccer', 'rugby'].includes(L.sport)) return false;
+  const played = {};
+  evs.filter(m => m.state === 'post').forEach(m => [m.home.id, m.away.id].forEach(id => { played[id] = (played[id] || 0) + 1; }));
+  const maxGP = Math.max(0, ...table.tables.flatMap(t => t.entries).map(gpOf));
+  const maxPlayed = Math.max(0, ...Object.values(played));
+  return maxGP > maxPlayed + 3;
+}
+function computeTable(L, S, evs){
+  const rugby = L.sport === 'rugby', T = new Map();
+  const row = t => { if (!T.has(t.id)) T.set(t.id, {name:t.name, abbr:t.abbr, logo:t.logo, gp:0, w:0, d:0, l:0, pf:0, pa:0, bonus:0}); const r = T.get(t.id); r.name = t.name; if (t.logo) r.logo = t.logo; return r; };
+  let noTries = 0;
+  const post = evs.filter(m => m.state === 'post' && m.home.score !== '' && m.away.score !== '');
+  post.forEach(m => {
+    const h = row(m.home), a = row(m.away), hs = +m.home.score, as = +m.away.score;
+    [[h, hs, as], [a, as, hs]].forEach(([r, f, c]) => { r.gp++; r.pf += f; r.pa += c; if (f > c) r.w++; else if (f === c) r.d++; else r.l++; });
+    if (!rugby) return;
+    const tries = m.full && m.full.some(d => d.side) ? ['home', 'away'].map(sd => m.full.filter(d => d.kind === 'try' && d.side === sd).length) : null;
+    if (!tries) noTries++;
+    [[h, hs, as, 0], [a, as, hs, 1]].forEach(([r, f, c, i]) => {
+      if (f > c && tries && tries[i] - tries[1 - i] >= 3) r.bonus++;          // bonus offensif : 3 essais de plus
+      if (f < c && c - f <= 5) r.bonus++;                                      // bonus défensif : défaite de 5 points ou moins
+    });
+  });
+  if (!post.length) return null;
+  const rows = [...T.values()].map(r => ({...r, pts:rugby ? r.w * 4 + r.d * 2 + r.bonus : r.w * 3 + r.d}))
+    .sort((x, y) => y.pts - x.pts || (y.pf - y.pa) - (x.pf - x.pa) || y.pf - x.pf);
+  const st = (name, v, abbr) => ({name, type:name.toLowerCase(), v:String(v), abbr});
+  return {season:S.label, src:'calc',
+    note:`Classement recalculé à partir des ${post.length} matchs joués connus (ESPN ne donne pas encore celui de cette saison)${noTries ? ` ; bonus offensif inconnu pour ${noTries} match${noTries > 1 ? 's' : ''}` : ''}.`,
+    tables:[{title:'', entries:rows.map((r, i) => ({name:r.name, abbr:r.abbr, logo:r.logo || '', note:null, stats:[
+      st('rank', i + 1, 'RK'), st('gamesPlayed', r.gp, 'J'), st('wins', r.w, 'G'), st('ties', r.d, 'N'), st('losses', r.l, 'P'),
+      st('pointDifferential', (r.pf - r.pa > 0 ? '+' : '') + (r.pf - r.pa), 'Diff'), ...(rugby ? [st('bonusPoints', r.bonus, 'Bonus')] : []), st('points', r.pts, 'Pts')]}))}]};
+}
+async function standings(L, S, evs, prev){
+  const url = `https://site.api.espn.com/apis/v2/sports/${L.sport}/${L.id}/standings`;
+  for (const q of ['', `?season=${S.y}`, `?season=${S.y + 1}`]){
+    try{
+      const j = await get(url + q, 2); if (!j) continue;
+      const t = tableFrom(j);
+      if (!tableStale(L, t, evs)) return {...t, src:'espn'};
+    }catch{}
+    if (!['soccer', 'rugby'].includes(L.sport)) break;
+  }
+  const calc = ['soccer', 'rugby'].includes(L.sport) && L.rounds ? computeTable(L, S, evs) : null;
+  if (calc) return calc;
+  return prev && prev.table && !tableStale(L, prev.table, evs) ? prev.table : null;
 }
 
 /* ---------- Programme ---------- */
@@ -196,11 +266,9 @@ for (const L of LEAGUES){
     }
     const rounds = await numberRounds(L, S, r.events);
     await rugbyDetails(L, r.events, prev);
-    let table = null;
-    try{ const j = await get(`https://site.api.espn.com/apis/v2/sports/${L.sport}/${L.id}/standings`, 2); if (j) table = tableFrom(j); }catch{}
-    if (!table && prev && prev.table) table = prev.table;
-    write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, calendar:r.calendar, checked:r.checked, future:r.future, rounds, table, events:r.events});
-    index.leagues[L.id] = {count:r.events.length, rounds, table:!!table, file:`${slug(L.id)}.json`};
+    const table = await standings(L, S, r.events, prev);
+    write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, diag:r.diag, calendar:r.calendar, checked:r.checked, future:r.future, rounds, table, events:r.events});
+    index.leagues[L.id] = {count:r.events.length, rounds, table:table ? table.src || 'espn' : false, diag:r.diag, file:`${slug(L.id)}.json`};
     r.events.filter(m => m.t >= NOW - 5 * DAY && m.t <= NOW + 18 * DAY).forEach(m => upcoming.push(m));
     console.log(`${L.name} : ${r.events.length} matchs, ${Math.round((Date.now() - t0) / 1000)} s`, JSON.stringify(rounds));
   }catch(e){

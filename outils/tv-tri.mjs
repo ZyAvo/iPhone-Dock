@@ -44,9 +44,16 @@ const NAMES = {
   DAZN3: 'DAZN 3',
   DAZN4: 'DAZN 4',
   DAZN5: 'DAZN 5',
+  L1P1: 'Ligue 1+',
+  L1P2: 'Ligue 1+ 2',
   L1P3: 'Ligue 1+ 3',
   L1P4: 'Ligue 1+ 4',
   L1P5: 'Ligue 1+ 5',
+  L1P6: 'Ligue 1+ 6',
+  L1P7: 'Ligue 1+ 7',
+  L1P8: 'Ligue 1+ 8',
+  L1P9: 'Ligue 1+ 9',
+  EQUIPE: "La chaîne L'Équipe",
   EUROSPORT1: 'Eurosport 1',
   EUROSPORT2: 'Eurosport 2',
   INFOSPORT: 'Infosport+',
@@ -63,14 +70,21 @@ const SPORT = /sport|foot|soccer|rugby|basket|nba|nfl|nhl|hockey|ligue|league|li
 const now = Date.now(), seen = new Set(), list = [];
 for (const m of xml.matchAll(/<programme\s+([^>]*)>([\s\S]*?)<\/programme>/g)){
   const attr = k => (m[1].match(new RegExp(`${k}="([^"]*)"`)) || [])[1];
-  const id = attr('channel'), c = NAMES[id]; if (!c) continue;
+  const id = attr('channel'), backup = /_W$/.test(id || ''), c = NAMES[(id || '').replace(/_W$/, '')]; if (!c) continue;
   const s = time(attr('start')), e = time(attr('stop')); if (!s) continue;
   if (Date.parse(e || s) < now - 6 * 3600e3) continue;
   const title = tag(m[2], 'title'), sub = tag(m[2], 'sub-title'), desc = tag(m[2], 'desc'), cats = tags(m[2], 'category').join(' ');
   if (/^CPLUS(_B)?$/.test(id) && !SPORT.test(`${title} ${sub} ${cats} ${desc}`)) continue;   // Canal+ : seulement le sport
   const key = `${c}|${s}|${title}`; if (seen.has(key)) continue; seen.add(key);
-  list.push({c, s, e, t: title, d: [sub, desc].filter(Boolean).join(' — ').slice(0, 240)});
+  list.push({c, s, e, t: title, d: [sub, desc].filter(Boolean).join(' — ').slice(0, 240), backup});
 }
+// Source de secours (site beIN) : seulement pour les chaînes que la source principale n'a pas fournies
+const main = new Set(list.filter(p => !p.backup).map(p => p.c));
+for (let i = list.length - 1; i >= 0; i--){ if (list[i].backup && main.has(list[i].c)) list.splice(i, 1); else delete list[i].backup; }
 list.sort((a, b) => a.s.localeCompare(b.s));
 fs.writeFileSync(out, JSON.stringify({updated: new Date().toISOString(), programmes: list}));
+const per = {}; list.forEach(p => { per[p.c] = (per[p.c] || 0) + 1; });
 console.log(`${list.length} programmes de sport écrits dans ${out}`);
+console.log(Object.entries(per).map(([c, n]) => `  ${c} : ${n}`).join('\n') || '  (aucune chaîne)');
+const vides = [...new Set(Object.values(NAMES))].filter(c => !per[c]);
+if (vides.length) console.log(`Chaînes sans programme : ${vides.join(', ')}`);
