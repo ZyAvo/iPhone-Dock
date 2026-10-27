@@ -1,0 +1,459 @@
+# Calendrier Premier League 2026-27
+# Source : openfootball (github.com/openfootball/football.json)
+# Une journée par bloc, une ligne par match (domicile - extérieur).
+
+Journée 1
+Arsenal FC - Coventry City FC
+Hull City AFC - Manchester United FC
+Ipswich Town FC - Sunderland AFC
+Nottingham Forest FC - Leeds United FC
+Everton FC - Crystal Palace FC
+Brentford FC - Tottenham Hotspur FC
+Manchester City FC - AFC Bournemouth
+Brighton & Hove Albion FC - Aston Villa FC
+Newcastle United FC - Liverpool FC
+Fulham FC - Chelsea FC
+
+Journée 2
+Crystal Palace FC - Manchester City FC
+Liverpool FC - Nottingham Forest FC
+AFC Bournemouth - Everton FC
+Coventry City FC - Hull City AFC
+Tottenham Hotspur FC - Newcastle United FC
+Sunderland AFC - Fulham FC
+Chelsea FC - Brighton & Hove Albion FC
+Leeds United FC - Brentford FC
+Manchester United FC - Ipswich Town FC
+Aston Villa FC - Arsenal FC
+
+Journée 3
+Ipswich Town FC - Liverpool FC
+Newcastle United FC - AFC Bournemouth
+Nottingham Forest FC - Tottenham Hotspur FC
+Manchester City FC - Coventry City FC
+Brighton & Hove Albion FC - Leeds United FC
+Brentford FC - Sunderland AFC
+Fulham FC - Crystal Palace FC
+Hull City AFC - Aston Villa FC
+Everton FC - Manchester United FC
+Arsenal FC - Chelsea FC
+
+Journée 4
+Crystal Palace FC - Ipswich Town FC
+Liverpool FC - Fulham FC
+Aston Villa FC - Nottingham Forest FC
+AFC Bournemouth - Brentford FC
+Chelsea FC - Hull City AFC
+Tottenham Hotspur FC - Everton FC
+Sunderland AFC - Arsenal FC
+Coventry City FC - Brighton & Hove Albion FC
+Manchester United FC - Manchester City FC
+Leeds United FC - Newcastle United FC
+
+Journée 5
+Brentford FC - Chelsea FC
+Tottenham Hotspur FC - Aston Villa FC
+Everton FC - Ipswich Town FC
+Brighton & Hove Albion FC - Arsenal FC
+Newcastle United FC - Hull City AFC
+Nottingham Forest FC - Coventry City FC
+AFC Bournemouth - Liverpool FC
+Leeds United FC - Crystal Palace FC
+Manchester City FC - Sunderland AFC
+Fulham FC - Manchester United FC
+
+Journée 6
+Arsenal FC - Leeds United FC
+Sunderland AFC - Brighton & Hove Albion FC
+Chelsea FC - AFC Bournemouth
+Ipswich Town FC - Fulham FC
+Aston Villa FC - Brentford FC
+Manchester United FC - Tottenham Hotspur FC
+Hull City AFC - Everton FC
+Crystal Palace FC - Nottingham Forest FC
+Liverpool FC - Manchester City FC
+Coventry City FC - Newcastle United FC
+
+Journée 7
+Everton FC - Chelsea FC
+Fulham FC - Hull City AFC
+Manchester City FC - Ipswich Town FC
+Brentford FC - Liverpool FC
+Newcastle United FC - Aston Villa FC
+AFC Bournemouth - Sunderland AFC
+Leeds United FC - Manchester United FC
+Brighton & Hove Albion FC - Crystal Palace FC
+Nottingham Forest FC - Arsenal FC
+Tottenham Hotspur FC - Coventry City FC
+
+Journée 8
+Ipswich Town FC - Nottingham Forest FC
+Aston Villa FC - Manchester City FC
+Arsenal FC - Everton FC
+Coventry City FC - Fulham FC
+Chelsea FC - Tottenham Hotspur FC
+Liverpool FC - Brighton & Hove Albion FC
+Crystal Palace FC - Newcastle United FC
+Manchester United FC - AFC Bournemouth
+Hull City AFC - Brentford FC
+Sunderland AFC - Leeds United FC
+
+Journée 9
+Chelsea FC - Manchester United FC
+Manchester City FC - Brighton & Hove Albion FC
+AFC Bournemouth - Leeds United FC
+Coventry City FC - Sunderland AFC
+Hull City AFC - Ipswich Town FC
+Brentford FC - Nottingham Forest FC
+Tottenham Hotspur FC - Crystal Palace FC
+Aston Villa FC - Fulham FC
+Liverpool FC - Arsenal FC
+Newcastle United FC - Everton FC
+
+Journée 10
+Arsenal FC - Hull City AFC
+Nottingham Forest FC - Manchester City FC
+Leeds United FC - Tottenham Hotspur FC
+Fulham FC - Newcastle United FC
+Everton FC - Coventry City FC
+Crystal Palace FC - Liverpool FC
+Sunderland AFC - Chelsea FC
+Ipswich Town FC - AFC Bournemouth
+Brighton & Hove Albion FC - Brentford FC
+Manchester United FC - Aston Villa FC
+
+Journée 11
+Chelsea FC - Leeds United FC
+Manchester City FC - Fulham FC
+Aston Villa FC - Sunderland AFC
+Liverpool FC - Manchester United FC
+Hull City AFC - Brighton & Hove Albion FC
+AFC Bournemouth - Nottingham Forest FC
+Tottenham Hotspur FC - Ipswich Town FC
+Brentford FC - Everton FC
+Coventry City FC - Crystal Palace FC
+Newcastle United FC - Arsenal FC
+
+Journée 12
+Leeds United FC - Coventry City FC
+Ipswich Town FC - Aston Villa FC
+Arsenal FC - Manchester City FC
+Manchester United FC - Brentford FC
+Everton FC - Liverpool FC
+Fulham FC - AFC Bournemouth
+Nottingham Forest FC - Chelsea FC
+Brighton & Hove Albion FC - Newcastle United FC
+Sunderland AFC - Tottenham Hotspur FC
+Crystal Palace FC - Hull City AFC
+
+Journée 13
+Tottenham Hotspur FC - Fulham FC
+Liverpool FC - Sunderland AFC
+Hull City AFC - Nottingham Forest FC
+Chelsea FC - Crystal Palace FC
+Aston Villa FC - Everton FC
+Brentford FC - Arsenal FC
+Coventry City FC - Ipswich Town FC
+Manchester City FC - Leeds United FC
+Newcastle United FC - Manchester United FC
+AFC Bournemouth - Brighton & Hove Albion FC
+
+Journée 14
+Tottenham Hotspur FC - Arsenal FC
+Manchester United FC - Coventry City FC
+Leeds United FC - Ipswich Town FC
+Newcastle United FC - Sunderland AFC
+Chelsea FC - Liverpool FC
+Brentford FC - Manchester City FC
+AFC Bournemouth - Hull City AFC
+Aston Villa FC - Crystal Palace FC
+Nottingham Forest FC - Brighton & Hove Albion FC
+Everton FC - Fulham FC
+
+Journée 15
+Sunderland AFC - Nottingham Forest FC
+Crystal Palace FC - Manchester United FC
+Hull City AFC - Tottenham Hotspur FC
+Brighton & Hove Albion FC - Everton FC
+Ipswich Town FC - Newcastle United FC
+Coventry City FC - Aston Villa FC
+Arsenal FC - AFC Bournemouth
+Manchester City FC - Chelsea FC
+Liverpool FC - Leeds United FC
+Fulham FC - Brentford FC
+
+Journée 16
+Leeds United FC - Fulham FC
+Brighton & Hove Albion FC - Ipswich Town FC
+Nottingham Forest FC - Everton FC
+Brentford FC - Newcastle United FC
+Manchester City FC - Hull City AFC
+Sunderland AFC - Crystal Palace FC
+AFC Bournemouth - Coventry City FC
+Arsenal FC - Manchester United FC
+Liverpool FC - Tottenham Hotspur FC
+Chelsea FC - Aston Villa FC
+
+Journée 17
+Aston Villa FC - Leeds United FC
+Everton FC - Sunderland AFC
+Fulham FC - Brighton & Hove Albion FC
+Tottenham Hotspur FC - AFC Bournemouth
+Ipswich Town FC - Brentford FC
+Hull City AFC - Liverpool FC
+Newcastle United FC - Manchester City FC
+Coventry City FC - Chelsea FC
+Manchester United FC - Nottingham Forest FC
+Crystal Palace FC - Arsenal FC
+
+Journée 18
+Hull City AFC - Leeds United FC
+Tottenham Hotspur FC - Brighton & Hove Albion FC
+Everton FC - Manchester City FC
+Fulham FC - Arsenal FC
+Coventry City FC - Brentford FC
+Newcastle United FC - Nottingham Forest FC
+Manchester United FC - Sunderland AFC
+Crystal Palace FC - AFC Bournemouth
+Aston Villa FC - Liverpool FC
+Ipswich Town FC - Chelsea FC
+
+Journée 19
+Leeds United FC - Everton FC
+Brighton & Hove Albion FC - Manchester United FC
+Brentford FC - Crystal Palace FC
+Arsenal FC - Ipswich Town FC
+Sunderland AFC - Hull City AFC
+Liverpool FC - Coventry City FC
+Nottingham Forest FC - Fulham FC
+AFC Bournemouth - Aston Villa FC
+Chelsea FC - Newcastle United FC
+Manchester City FC - Tottenham Hotspur FC
+
+Journée 20
+Arsenal FC - Brentford FC
+Brighton & Hove Albion FC - AFC Bournemouth
+Nottingham Forest FC - Hull City AFC
+Everton FC - Aston Villa FC
+Sunderland AFC - Liverpool FC
+Fulham FC - Tottenham Hotspur FC
+Crystal Palace FC - Chelsea FC
+Ipswich Town FC - Coventry City FC
+Leeds United FC - Manchester City FC
+Manchester United FC - Newcastle United FC
+
+Journée 21
+AFC Bournemouth - Ipswich Town FC
+Manchester City FC - Nottingham Forest FC
+Chelsea FC - Sunderland AFC
+Brentford FC - Brighton & Hove Albion FC
+Aston Villa FC - Manchester United FC
+Tottenham Hotspur FC - Leeds United FC
+Coventry City FC - Everton FC
+Liverpool FC - Crystal Palace FC
+Hull City AFC - Arsenal FC
+Newcastle United FC - Fulham FC
+
+Journée 22
+Ipswich Town FC - Hull City AFC
+Everton FC - Brentford FC
+Sunderland AFC - Coventry City FC
+Nottingham Forest FC - AFC Bournemouth
+Arsenal FC - Newcastle United FC
+Leeds United FC - Chelsea FC
+Fulham FC - Aston Villa FC
+Manchester United FC - Liverpool FC
+Brighton & Hove Albion FC - Manchester City FC
+Crystal Palace FC - Tottenham Hotspur FC
+
+Journée 23
+Tottenham Hotspur FC - Sunderland AFC
+Brentford FC - Manchester United FC
+Newcastle United FC - Brighton & Hove Albion FC
+Hull City AFC - Crystal Palace FC
+Coventry City FC - Leeds United FC
+AFC Bournemouth - Fulham FC
+Chelsea FC - Nottingham Forest FC
+Liverpool FC - Everton FC
+Manchester City FC - Arsenal FC
+Aston Villa FC - Ipswich Town FC
+
+Journée 24
+Arsenal FC - Liverpool FC
+Brighton & Hove Albion FC - Hull City AFC
+Sunderland AFC - Aston Villa FC
+Crystal Palace FC - Coventry City FC
+Ipswich Town FC - Tottenham Hotspur FC
+Everton FC - Newcastle United FC
+Fulham FC - Manchester City FC
+Leeds United FC - AFC Bournemouth
+Manchester United FC - Chelsea FC
+Nottingham Forest FC - Brentford FC
+
+Journée 25
+Everton FC - Leeds United FC
+Coventry City FC - Liverpool FC
+Hull City AFC - Sunderland AFC
+Aston Villa FC - AFC Bournemouth
+Crystal Palace FC - Brentford FC
+Newcastle United FC - Chelsea FC
+Fulham FC - Nottingham Forest FC
+Tottenham Hotspur FC - Manchester City FC
+Manchester United FC - Brighton & Hove Albion FC
+Ipswich Town FC - Arsenal FC
+
+Journée 26
+Manchester City FC - Newcastle United FC
+AFC Bournemouth - Crystal Palace FC
+Brentford FC - Coventry City FC
+Chelsea FC - Ipswich Town FC
+Liverpool FC - Hull City AFC
+Arsenal FC - Fulham FC
+Nottingham Forest FC - Manchester United FC
+Brighton & Hove Albion FC - Tottenham Hotspur FC
+Sunderland AFC - Everton FC
+Leeds United FC - Aston Villa FC
+
+Journée 27
+Crystal Palace FC - Sunderland AFC
+Manchester United FC - Arsenal FC
+Ipswich Town FC - Brighton & Hove Albion FC
+Coventry City FC - AFC Bournemouth
+Everton FC - Nottingham Forest FC
+Fulham FC - Leeds United FC
+Aston Villa FC - Chelsea FC
+Tottenham Hotspur FC - Liverpool FC
+Newcastle United FC - Brentford FC
+Hull City AFC - Manchester City FC
+
+Journée 28
+Nottingham Forest FC - Newcastle United FC
+AFC Bournemouth - Tottenham Hotspur FC
+Manchester City FC - Everton FC
+Arsenal FC - Crystal Palace FC
+Leeds United FC - Hull City AFC
+Sunderland AFC - Manchester United FC
+Liverpool FC - Aston Villa FC
+Brighton & Hove Albion FC - Fulham FC
+Brentford FC - Ipswich Town FC
+Chelsea FC - Coventry City FC
+
+Journée 29
+Leeds United FC - Brighton & Hove Albion FC
+Tottenham Hotspur FC - Nottingham Forest FC
+Crystal Palace FC - Fulham FC
+Liverpool FC - Ipswich Town FC
+Coventry City FC - Manchester City FC
+AFC Bournemouth - Newcastle United FC
+Chelsea FC - Arsenal FC
+Aston Villa FC - Hull City AFC
+Manchester United FC - Everton FC
+Sunderland AFC - Brentford FC
+
+Journée 30
+Brentford FC - AFC Bournemouth
+Brighton & Hove Albion FC - Coventry City FC
+Manchester City FC - Manchester United FC
+Ipswich Town FC - Crystal Palace FC
+Arsenal FC - Sunderland AFC
+Fulham FC - Liverpool FC
+Hull City AFC - Chelsea FC
+Nottingham Forest FC - Aston Villa FC
+Everton FC - Tottenham Hotspur FC
+Newcastle United FC - Leeds United FC
+
+Journée 31
+Sunderland AFC - Ipswich Town FC
+Leeds United FC - Nottingham Forest FC
+Manchester United FC - Hull City AFC
+Chelsea FC - Fulham FC
+Liverpool FC - Newcastle United FC
+Coventry City FC - Arsenal FC
+AFC Bournemouth - Manchester City FC
+Crystal Palace FC - Everton FC
+Tottenham Hotspur FC - Brentford FC
+Aston Villa FC - Brighton & Hove Albion FC
+
+Journée 32
+Brighton & Hove Albion FC - Chelsea FC
+Fulham FC - Sunderland AFC
+Brentford FC - Leeds United FC
+Nottingham Forest FC - Liverpool FC
+Hull City AFC - Coventry City FC
+Arsenal FC - Aston Villa FC
+Ipswich Town FC - Manchester United FC
+Manchester City FC - Crystal Palace FC
+Newcastle United FC - Tottenham Hotspur FC
+Everton FC - AFC Bournemouth
+
+Journée 33
+Chelsea FC - Manchester City FC
+AFC Bournemouth - Arsenal FC
+Tottenham Hotspur FC - Hull City AFC
+Manchester United FC - Crystal Palace FC
+Everton FC - Brighton & Hove Albion FC
+Nottingham Forest FC - Sunderland AFC
+Newcastle United FC - Ipswich Town FC
+Aston Villa FC - Coventry City FC
+Brentford FC - Fulham FC
+Leeds United FC - Liverpool FC
+
+Journée 34
+Sunderland AFC - Newcastle United FC
+Brighton & Hove Albion FC - Nottingham Forest FC
+Coventry City FC - Manchester United FC
+Hull City AFC - AFC Bournemouth
+Manchester City FC - Brentford FC
+Fulham FC - Everton FC
+Liverpool FC - Chelsea FC
+Arsenal FC - Tottenham Hotspur FC
+Crystal Palace FC - Aston Villa FC
+Ipswich Town FC - Leeds United FC
+
+Journée 35
+Manchester City FC - Liverpool FC
+Leeds United FC - Arsenal FC
+Fulham FC - Ipswich Town FC
+Nottingham Forest FC - Crystal Palace FC
+Brentford FC - Aston Villa FC
+Newcastle United FC - Coventry City FC
+Brighton & Hove Albion FC - Sunderland AFC
+Tottenham Hotspur FC - Chelsea FC
+Everton FC - Hull City AFC
+AFC Bournemouth - Manchester United FC
+
+Journée 36
+Hull City AFC - Fulham FC
+Manchester United FC - Leeds United FC
+Crystal Palace FC - Brighton & Hove Albion FC
+Aston Villa FC - Newcastle United FC
+Chelsea FC - Everton FC
+Coventry City FC - Tottenham Hotspur FC
+Sunderland AFC - AFC Bournemouth
+Liverpool FC - Brentford FC
+Ipswich Town FC - Manchester City FC
+Arsenal FC - Nottingham Forest FC
+
+Journée 37
+Brentford FC - Hull City AFC
+Newcastle United FC - Crystal Palace FC
+Tottenham Hotspur FC - Manchester United FC
+Leeds United FC - Sunderland AFC
+Brighton & Hove Albion FC - Liverpool FC
+Nottingham Forest FC - Ipswich Town FC
+AFC Bournemouth - Chelsea FC
+Fulham FC - Coventry City FC
+Everton FC - Arsenal FC
+Manchester City FC - Aston Villa FC
+
+Journée 38
+Ipswich Town FC - Everton FC
+Arsenal FC - Brighton & Hove Albion FC
+Liverpool FC - AFC Bournemouth
+Coventry City FC - Nottingham Forest FC
+Aston Villa FC - Tottenham Hotspur FC
+Hull City AFC - Newcastle United FC
+Manchester United FC - Fulham FC
+Sunderland AFC - Manchester City FC
+Chelsea FC - Brentford FC
+Crystal Palace FC - Leeds United FC
