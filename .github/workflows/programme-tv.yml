@@ -23,7 +23,7 @@ concurrency:
 jobs:
   donnees:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -43,11 +43,11 @@ jobs:
         working-directory: epg
         run: npm install --no-audit --no-fund
 
-      - name: Récupération du programme (3 jours)
+      - name: Récupération du programme (7 jours)
         if: github.event_name != 'push'
         working-directory: epg
         continue-on-error: true
-        run: npm run grab --- --channels=../outils/chaines-tv.xml --output=../guide-tv.xml --days=3 --maxConnections=6 --timeout=20000
+        run: npm run grab --- --channels=../outils/chaines-tv.xml --output=../guide-tv.xml --days=7 --maxConnections=6 --timeout=20000
 
       - name: Tri des programmes de sport
         if: github.event_name != 'push'
