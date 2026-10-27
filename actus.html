@@ -18,7 +18,8 @@ img{max-width:100%}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
 <style>
-/* Layout : en-tête collant en verre (retour, titre, actualiser, onglets défilants) ; fil d'articles : une carte « à la une » avec image, puis cartes compactes à vignette */
+/* Layout : en-tête collant en verre (retour, recherche, actualiser, titre, onglets défilants) ;
+   fil : grande « une » avec titre sur l'image, deux cartes côte à côte, puis cartes compactes à vignette */
 :root{
   --base:#e7ecef;
   --blob-1:rgba(163,206,241,.95); --blob-2:rgba(96,150,186,.55); --blob-3:rgba(39,76,119,.35);
@@ -110,6 +111,12 @@ h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:
   transition:background .2s ease,color .2s ease}
 .tab[aria-selected="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
 
+/* ---------- Recherche ---------- */
+.search{display:flex;align-items:center;gap:8px;padding:4px 6px 4px 12px;border-radius:16px}
+.search svg{width:18px;height:18px;flex:none;fill:none;stroke:var(--ink-soft);stroke-width:2;stroke-linecap:round}
+.search input{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:none;border:0;padding:8px 0;outline:none}
+.search button{font-size:.82rem;font-weight:600;color:var(--accent);padding:8px 8px}
+
 /* ---------- Fil ---------- */
 main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .sources{font-size:.76rem;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
@@ -117,26 +124,51 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .sources i{width:7px;height:7px;border-radius:50%;background:var(--c)}
 .sources span.off{opacity:.5;text-decoration:line-through}
 .notice{font-size:.8rem;line-height:1.45;color:var(--ink-soft);background:var(--card);border:1px dashed var(--line);border-radius:18px;padding:10px 12px}
-.feed{display:flex;flex-direction:column;gap:10px;list-style:none;margin:0;padding:0;transition:opacity .2s ease}
+.feed{display:grid;grid-template-columns:1fr 1fr;gap:10px;list-style:none;margin:0;padding:0;transition:opacity .2s ease}
 .feed.loading{opacity:.45}
+.feed > li{grid-column:1 / -1;min-width:0}
+.feed > li.duo{grid-column:auto}
 
-.item a{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;border-radius:24px;padding:14px 15px}
+.card{border-radius:24px;overflow:hidden;display:flex;flex-direction:column}
+.card > a{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;padding:14px 15px;border-radius:inherit}
+.card > a:active{opacity:.75}
 .item .txt{display:flex;flex-direction:column;gap:6px;min-width:0}
-.thumb{width:76px;height:76px;border-radius:16px;object-fit:cover;background:var(--card);display:block}
-.meta{display:flex;align-items:center;gap:7px;font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);min-width:0}
+.thumb{width:78px;height:78px;border-radius:16px;object-fit:cover;background:var(--card);display:block}
+.meta{display:flex;align-items:center;gap:7px;font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);min-width:0}
+.meta .src{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .meta .dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--c)}
 .meta time{font-weight:400;letter-spacing:0;text-transform:none;margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
-.item h2{font-size:.98rem;line-height:1.3;margin:0;font-weight:600;letter-spacing:-.01em;text-wrap:balance;overflow-wrap:anywhere}
+.item h2{font-size:.98rem;line-height:1.3;margin:0;font-weight:600;letter-spacing:-.01em;text-wrap:pretty;overflow-wrap:anywhere}
 .item p{margin:0;font-size:.84rem;line-height:1.45;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.also{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:0 15px 13px;margin-top:-4px;font-size:.74rem;color:var(--ink-soft)}
+.also a{padding:4px 9px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--ink);font-weight:500}
+.also a:active{opacity:.6}
 
-.item.hero a{grid-template-columns:1fr;padding:0;overflow:hidden;
-  background:linear-gradient(160deg, color-mix(in oklab, var(--c) 30%, transparent), var(--glass-tint) 75%)}
-.item.hero .cover{width:100%;max-width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+/* À la une : grande image, titre par-dessus */
+.item.hero .card > a{grid-template-columns:1fr;padding:0;position:relative}
+.item.hero .cover{width:100%;aspect-ratio:16/10;object-fit:cover;display:block}
 .item.hero .txt{padding:16px 18px 18px;gap:9px}
-.item.hero h2{font-size:1.32rem;letter-spacing:-.02em}
-.item.hero p{-webkit-line-clamp:3}
+.item.hero.has-img .txt{position:absolute;inset:auto 0 0 0;padding:60px 18px 16px;color:#fff;
+  background:linear-gradient(180deg, transparent, rgba(8,18,31,.55) 35%, rgba(8,18,31,.88))}
+.item.hero.has-img .meta,.item.hero.has-img p{color:rgba(255,255,255,.82)}
+.item.hero h2{font-size:1.36rem;letter-spacing:-.02em;line-height:1.22}
+.item.hero p{-webkit-line-clamp:2}
+.item.hero .also{padding-top:12px;margin-top:0}
 
-.empty{text-align:center;color:var(--ink-soft);font-size:.9rem;padding:40px 0}
+/* Deux cartes côte à côte, image en haut */
+.item.duo .card{height:100%}
+.item.duo .card > a{grid-template-columns:1fr;padding:0;gap:0;flex:1;align-content:start}
+.item.duo .cover{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--card)}
+.item.duo .txt{padding:11px 12px 13px}
+.item.duo h2{font-size:.9rem;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.item.duo .also{padding:0 12px 11px}
+
+/* Déjà lu */
+.item.lu .card{opacity:.55}
+.item.lu h2{font-weight:500}
+
+.section-h{grid-column:1 / -1;font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin:8px 4px 0}
+.empty{grid-column:1 / -1;text-align:center;color:var(--ink-soft);font-size:.9rem;padding:40px 0}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -145,9 +177,17 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
   <div class="wrap">
     <div class="top">
       <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
-      <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+      <span style="display:flex;gap:8px">
+        <button class="icon-btn glass" id="searchBtn" type="button" aria-label="Rechercher dans les actus" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></button>
+        <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+      </span>
     </div>
     <div class="title-row"><h1 id="tabTitle">À la une</h1><span class="stamp" id="stamp"></span></div>
+    <form class="search glass" id="searchBox" role="search" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+      <input type="search" id="q" placeholder="Mot-clé dans tous les onglets…" aria-label="Mot-clé" autocomplete="off">
+      <button type="button" id="qClose">Fermer</button>
+    </form>
     <nav class="tabs glass" id="tabs" role="tablist" aria-label="Thèmes"></nav>
   </div>
 </header>
@@ -164,32 +204,41 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 /* ======================================================
    CONFIG — onglets et flux RSS
    Ajouter une source : { name:'Nom', color:'--t-…', url:'adresse du flux RSS' }
+   (la tâche GitHub « Actus » relit cette liste : rien d'autre à modifier)
    ====================================================== */
 const TABS = [
   { id:'une', label:'À la une', feeds:[
     {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/titres.rss'},
     {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/rss/une.xml'},
+    {name:'Le Figaro',   color:'--t-char',  url:'https://www.lefigaro.fr/rss/figaro_actualites.xml'},
+    {name:'Libération',  color:'--t-brick', url:'https://www.liberation.fr/arc/outboundfeeds/rss-all/?outputType=xml'},
     {name:'20 Minutes',  color:'--t-teal',  url:'https://www.20minutes.fr/feeds/rss-une.xml'}
   ]},
   { id:'france', label:'France', feeds:[
     {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/france.rss'},
-    {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/politique/rss_full.xml'}
+    {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/politique/rss_full.xml'},
+    {name:'Le Figaro',   color:'--t-char',  url:'https://www.lefigaro.fr/rss/figaro_politique.xml'}
   ]},
   { id:'monde', label:'Monde', feeds:[
     {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/monde.rss'},
-    {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/international/rss_full.xml'}
+    {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/international/rss_full.xml'},
+    {name:'Courrier international', color:'--t-olive', url:'https://www.courrierinternational.com/feed/all/rss.xml'}
   ]},
   { id:'eco', label:'Éco', feeds:[
+    {name:'Les Échos',   color:'--t-ochre', url:'https://syndication.lesechos.fr/rss/rss_une.xml'},
+    {name:"L'Usine Nouvelle", color:'--t-char', url:'https://www.usinenouvelle.com/rss/'},
     {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/economie.rss'},
     {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/economie/rss_full.xml'}
   ]},
   { id:'sport', label:'Sport', feeds:[
     {name:"L'Équipe",       color:'--t-brick', url:'https://dwh.lequipe.fr/api/edito/rss?path=/'},
     {name:"L'Équipe Rugby", color:'--t-teal',  url:'https://dwh.lequipe.fr/api/edito/rss?path=/Rugby/'},
+    {name:'RMC Sport',      color:'--t-olive', url:'https://rmcsport.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/'},
     {name:'France Info',    color:'--t-slate', url:'https://www.francetvinfo.fr/sports.rss'}
   ]},
   { id:'tech', label:'Tech', feeds:[
     {name:'Numerama',  color:'--t-teal',  url:'https://www.numerama.com/feed/'},
+    {name:'Les Numériques', color:'--t-plum', url:'https://www.lesnumeriques.com/rss.xml'},
     {name:'Frandroid', color:'--t-olive', url:'https://www.frandroid.com/feed'},
     {name:'01net',     color:'--t-char',  url:'https://www.01net.com/feed/'}
   ]},
@@ -198,9 +247,11 @@ const TABS = [
     {name:'France 3 Occitanie', color:'--t-slate', url:'https://france3-regions.franceinfo.fr/occitanie/rss'}
   ]}
 ];
-const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
-const CACHE_MIN = 15;      // durée de conservation d'un onglet chargé, en minutes
-const MAX_ITEMS = 30;      // nombre d'articles max par onglet
+const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';   // secours si les actus préparées manquent
+const PRE_URL = 'donnees/actus/actus.json';
+const PRE_MAX = 3 * 3600e3;    // au-delà, les actus préparées sont jugées trop vieilles
+const CACHE_MIN = 15;          // secours : durée de conservation d'un onglet, en minutes
+const MAX_ITEMS = 40;
 
 /* ====================================================== */
 const $ = s => document.querySelector(s);
@@ -209,26 +260,35 @@ const store = {
   get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch{ return null; } },
   set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
 };
+const COLOR = Object.fromEntries(TABS.flatMap(t => t.feeds.map(f => [f.name, f.color])));
+let current = null, reqId = 0, PRE = null, query = '';
 
-let current = null, reqId = 0;
+/* Articles déjà lus : grisés */
+let LUS = new Set(store.get('actus:lus') || []);
+function markRead(link){
+  if (!link || link === '#') return;
+  LUS.add(link); const arr = [...LUS].slice(-600); LUS = new Set(arr); store.set('actus:lus', arr);
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[data-link]'); if (!a) return;
+  markRead(a.dataset.link); a.closest('.item')?.classList.add('lu');
+});
 
 /* Onglets */
 function renderTabs(){
   $('#tabs').innerHTML = TABS.map(t =>
-    `<button type="button" class="tab" role="tab" id="tab-${t.id}" data-id="${t.id}" aria-selected="${t.id === current}">${esc(t.label)}</button>`).join('');
+    `<button type="button" class="tab" role="tab" id="tab-${t.id}" data-id="${t.id}" aria-selected="${!query && t.id === current}">${esc(t.label)}</button>`).join('');
   $(`#tab-${current}`)?.scrollIntoView({inline:'center', block:'nearest'});
 }
-$('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) select(b.dataset.id); });
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (b){ closeSearch(); select(b.dataset.id); } });
 $('#tabs').addEventListener('keydown', e => {
   if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
   step(e.key === 'ArrowRight' ? 1 : -1); $(`#tab-${current}`)?.focus();
 });
 function step(d){
   const i = TABS.findIndex(t => t.id === current);
-  const n = TABS[(i + d + TABS.length) % TABS.length];
-  select(n.id);
+  select(TABS[(i + d + TABS.length) % TABS.length].id);
 }
-
 function select(id, force = false){
   if (!TABS.some(t => t.id === id)) id = TABS[0].id;
   const changed = id !== current;
@@ -246,13 +306,28 @@ function select(id, force = false){
 let sx = null, sy = null;
 $('main').addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
 $('main').addEventListener('touchend', e => {
-  if (sx === null) return;
+  if (sx === null || query) return;
   const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
   sx = null;
   if (Math.abs(dx) > 70 && Math.abs(dy) < 40) step(dx < 0 ? 1 : -1);
 }, {passive:true});
 
-/* Chargement */
+/* ---------- Actus préparées par la tâche GitHub (rapide) ---------- */
+async function loadPre(force){
+  if (PRE && !force && Date.now() - PRE.loaded < 5 * 60e3) return PRE;
+  try{
+    const r = await fetch(PRE_URL, {cache:'no-cache'});
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (Date.now() - Date.parse(j.updated) > PRE_MAX) return null;
+    PRE = {...j, loaded:Date.now(), at:Date.parse(j.updated)};
+    const top = (((j.tabs || {}).une || {}).items || [])[0];
+    if (top) store.set('actus:top', {...top, color:COLOR[top.source] || '--t-slate'});
+    return PRE;
+  }catch{ return null; }
+}
+
+/* ---------- Secours : lecture directe des flux via rss2json ---------- */
 function strip(html){ const d = document.createElement('div'); d.innerHTML = html || ''; return (d.textContent || '').replace(/\s+/g,' ').trim(); }
 function imageOf(it){
   if (it.thumbnail) return it.thumbnail;
@@ -260,59 +335,62 @@ function imageOf(it){
   const m = /<img[^>]+src=["']([^"']+)/i.exec(it.description || it.content || '');
   return m ? m[1] : '';
 }
-
 async function fetchFeed(f){
   const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 8000);
   try{
     const r = await fetch(RSS_PROXY + encodeURIComponent(f.url), {signal:ctrl.signal});
     const j = await r.json();
     if (j.status !== 'ok') throw new Error(j.message || 'flux indisponible');
-    return j.items.map(it => ({
-      source:f.name, color:f.color, title:strip(it.title), link:it.link, img:imageOf(it),
-      desc:strip(it.description).slice(0,240),
-      date:Date.parse((it.pubDate || '').replace(' ','T') + 'Z') || Date.now()
-    }));
+    return j.items.map(it => ({source:f.name, title:strip(it.title), link:it.link, img:imageOf(it), desc:strip(it.description).slice(0,240),
+      date:Date.parse((it.pubDate || '').replace(' ','T') + 'Z') || Date.now(), also:[]}));
   } finally { clearTimeout(t); }
 }
-
-async function load(tab, force){
-  const id = ++reqId;
+async function loadDirect(tab, force, id){
   const cached = store.get('actus:' + tab.id);
   if (cached) render(tab, cached);
-  else { $('#feed').innerHTML = ''; $('#sources').innerHTML = ''; }
   if (cached && !force && Date.now() - cached.at < CACHE_MIN * 60000) return;
-
-  $('#feed').classList.add('loading'); $('#refreshBtn').classList.add('spin');
+  busy(true);
   const res = await Promise.allSettled(tab.feeds.map(fetchFeed));
-  if (id !== reqId) return;                 // un autre onglet a été choisi entre-temps
-  $('#feed').classList.remove('loading'); $('#refreshBtn').classList.remove('spin');
-
+  if (id !== reqId) return;
+  busy(false);
   const failed = tab.feeds.filter((f,i) => res[i].status === 'rejected').map(f => f.name);
   let items = res.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
-  if (!items.length){
-    if (cached) { render(tab, {...cached, failed}); return; }
-    render(tab, {at:Date.now(), items:sample(tab), failed, sample:true});
-    return;
-  }
+  if (!items.length){ render(tab, cached ? {...cached, failed} : {at:Date.now(), items:sample(tab), failed, sample:true}); return; }
   const seen = new Set();
   items = items.sort((a,b) => b.date - a.date).filter(i => !seen.has(i.link) && seen.add(i.link)).slice(0, MAX_ITEMS);
   const data = {at:Date.now(), items, failed};
   store.set('actus:' + tab.id, data);
-  if (tab.id === 'une') store.set('actus:top', items[0]);
+  if (tab.id === 'une') store.set('actus:top', {...items[0], color:COLOR[items[0].source]});
   render(tab, data);
+}
+const busy = on => { $('#feed').classList.toggle('loading', on); $('#refreshBtn').classList.toggle('spin', on); };
+
+async function load(tab, force){
+  const id = ++reqId;
+  if (PRE && !force) render(tab, preTab(tab));
+  else { busy(true); if (!PRE) { $('#feed').innerHTML = ''; $('#sources').innerHTML = ''; } }
+  const pre = await loadPre(force);
+  if (id !== reqId) return;
+  busy(false);
+  if (pre) { render(tab, preTab(tab)); return; }
+  loadDirect(tab, force, id);
+}
+function preTab(tab){
+  const st = Object.fromEntries((PRE.sources || []).map(s => [s.url, s]));
+  return {at:PRE.at, items:((PRE.tabs[tab.id] || {}).items) || [], failed:tab.feeds.filter(f => st[f.url] && !st[f.url].ok).map(f => f.name)};
 }
 
 function sample(tab){
   const now = Date.now(), min = 60000;
   return tab.feeds.flatMap((f, k) => [0,1,2].map(n => ({
-    source:f.name, color:f.color, link:'#', img:'',
+    source:f.name, link:'#', img:'', also:n === 0 && k === 0 ? [{source:tab.feeds[1 % tab.feeds.length].name, link:'#'}] : [],
     title:`Exemple ${n+1} · ${tab.label} — le vrai titre de ${f.name} s'affichera ici`,
     desc:"Le début de l'article apparaît sous le titre. Un tap ouvre l'article complet sur le site de la source.",
     date:now - (k*17 + n*55 + 4) * min
   }))).sort((a,b) => b.date - a.date);
 }
 
-/* Affichage */
+/* ---------- Affichage ---------- */
 function ago(t){
   const m = Math.round((Date.now() - t) / 60000);
   if (m < 1) return "à l'instant";
@@ -321,39 +399,77 @@ function ago(t){
   if (h < 24) return `${h} h`;
   return new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
 }
-
+function itemHTML(i, kind, extra = ''){
+  const ext = i.link && i.link !== '#' ? ' target="_blank" rel="noopener"' : '';
+  const img = i.img ? `<img class="${kind === 'list' ? 'thumb' : 'cover'}" src="${esc(i.img)}" alt="" loading="lazy" onerror="this.remove()">` : '';
+  const also = (i.also || []).length ? `<div class="also"><span>Aussi :</span>${i.also.map(x =>
+    `<a href="${esc(x.link)}"${ext} data-link="${esc(x.link)}">${esc(x.source)}</a>`).join('')}</div>` : '';
+  const desc = i.desc && (kind === 'hero' || (kind === 'list' && !i.img)) ? `<p>${esc(i.desc)}</p>` : '';
+  return `<li class="item ${kind}${i.img && kind === 'hero' ? ' has-img' : ''}${LUS.has(i.link) ? ' lu' : ''}" style="--c:var(${COLOR[i.source] || i.color || '--t-slate'})">
+    <div class="card glass"><a href="${esc(i.link)}"${ext} data-link="${esc(i.link)}">
+      ${kind !== 'list' ? img : ''}
+      <span class="txt"><span class="meta"><span class="dot"></span><span class="src">${esc(i.source)}${extra}</span><time>${ago(i.date)}</time></span>
+        <h2>${esc(i.title)}</h2>${desc}</span>
+      ${kind === 'list' ? img : ''}
+    </a>${also}</div></li>`;
+}
 function render(tab, data){
+  if (query) return renderSearch();
   const failed = data.failed || [];
   $('#sources').innerHTML = tab.feeds.map(f =>
     `<span class="${failed.includes(f.name) ? 'off' : ''}" style="--c:var(${f.color})"><i></i>${esc(f.name)}</span>`).join('');
   const n = $('#notice');
-  if (data.sample){
-    n.hidden = false;
-    n.textContent = "Aperçu avec des articles d'exemple : les flux en direct ne se chargent pas ici. Sur ta page hébergée, les vrais titres s'affichent.";
-  } else if (failed.length){
-    n.hidden = false;
-    n.textContent = `Pas de réponse pour l'instant : ${failed.join(', ')}. Les autres sources sont affichées.`;
-  } else n.hidden = true;
-
+  if (data.sample){ n.hidden = false; n.textContent = "Aperçu avec des articles d'exemple : les flux en direct ne se chargent pas ici. Sur ta page hébergée, les vrais titres s'affichent."; }
+  else if (failed.length){ n.hidden = false; n.textContent = `Pas de réponse pour l'instant : ${failed.join(', ')}. Les autres sources sont affichées.`; }
+  else n.hidden = true;
   $('#stamp').textContent = data.sample ? '' : `Mis à jour à ${new Date(data.at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
 
-  $('#feed').innerHTML = data.items.map((i, k) => {
-    const hero = k === 0;
-    const img = i.img ? `<img class="${hero ? 'cover' : 'thumb'}" src="${esc(i.img)}" alt="" loading="lazy" onerror="this.remove()">` : '';
-    const ext = i.link && i.link !== '#' ? ' target="_blank" rel="noopener"' : '';
-    return `<li class="item${hero ? ' hero' : ''}" style="--c:var(${i.color})"><a class="glass" href="${esc(i.link)}"${ext}>
-      ${hero ? img : ''}
-      <span class="txt">
-        <span class="meta"><span class="dot"></span>${esc(i.source)}<time>${ago(i.date)}</time></span>
-        <h2>${esc(i.title)}</h2>
-        ${i.desc && (hero || !i.img) ? `<p>${esc(i.desc)}</p>` : ''}
-      </span>
-      ${hero ? '' : img}
-    </a></li>`;
-  }).join('') || '<li class="empty">Aucun article pour ce thème.</li>';
+  // en « une » : l'info la plus reprise par les autres sites parmi les plus récentes, avec une image de préférence
+  let items = data.items || [];
+  if (items.length > 1){
+    const score = i => (i.also || []).length * 2 + (i.img ? 1 : 0);
+    const h = items.slice(0, 8).reduce((b, i, k) => score(i) > score(items[b]) ? k : b, 0);
+    items = [items[h], ...items.filter((_, k) => k !== h)];
+  }
+  // puis deux cartes côte à côte si elles ont une image, puis la liste
+  const duo = items.length >= 3 && items[1].img && items[2].img;
+  $('#feed').innerHTML = items.map((i, k) => itemHTML(i, k === 0 ? 'hero' : duo && k <= 2 ? 'duo' : 'list')).join('')
+    || '<li class="empty">Aucun article pour ce thème.</li>';
 }
 
-$('#refreshBtn').addEventListener('click', () => select(current, true));
+/* ---------- Recherche par mot-clé, dans tous les onglets ---------- */
+const fold = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+function renderSearch(){
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  const pool = PRE ? TABS.flatMap(t => ((PRE.tabs[t.id] || {}).items || []).map(i => ({...i, tab:t.label})))
+                   : TABS.flatMap(t => ((store.get('actus:' + t.id) || {}).items || []).map(i => ({...i, tab:t.label})));
+  const seen = new Set();
+  const hits = pool.filter(i => { const h = fold(i.title + ' ' + i.desc); return words.every(w => h.includes(w)); })
+    .filter(i => !seen.has(i.link) && seen.add(i.link)).sort((a, b) => b.date - a.date).slice(0, 60);
+  $('#sources').innerHTML = ''; $('#notice').hidden = true;
+  $('#tabTitle').textContent = 'Recherche';
+  $('#stamp').textContent = `${hits.length} article${hits.length > 1 ? 's' : ''}`;
+  $('#feed').innerHTML = hits.map(i => itemHTML(i, 'list', ` · ${esc(i.tab)}`)).join('')
+    || `<li class="empty">Aucun article ne parle de « ${esc(query)} » en ce moment.</li>`;
+}
+function openSearch(){ $('#searchBox').hidden = false; $('#searchBtn').setAttribute('aria-expanded', 'true'); $('#q').focus(); }
+function closeSearch(){
+  if ($('#searchBox').hidden) return;
+  $('#searchBox').hidden = true; $('#searchBtn').setAttribute('aria-expanded', 'false'); $('#q').value = '';
+  if (query){ query = ''; select(current); }
+}
+$('#searchBtn').addEventListener('click', () => $('#searchBox').hidden ? openSearch() : closeSearch());
+$('#qClose').addEventListener('click', closeSearch);
+$('#searchBox').addEventListener('submit', e => { e.preventDefault(); $('#q').blur(); });
+let qt = null;
+$('#q').addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(() => {
+  query = $('#q').value.trim();
+  if (query){ renderTabs(); window.scrollTo({top:0}); renderSearch(); } else select(current);
+}, 200); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#searchBox').hidden) closeSearch(); });
+
+$('#refreshBtn').addEventListener('click', () => query ? loadPre(true).then(renderSearch) : select(current, true));
+document.addEventListener('visibilitychange', () => { if (!document.hidden && PRE && Date.now() - PRE.loaded > 10 * 60e3 && !query) select(current); });
 
 /* Démarrage : onglet de l'adresse (#sport…), sinon le dernier consulté */
 const start = location.hash.slice(1) || store.get('actus:tab') || 'une';

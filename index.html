@@ -539,6 +539,11 @@ async function loadWidget(){
     const saved = JSON.parse(localStorage.getItem('actus:top'));
     if (saved && Date.now() - saved.date < 6 * 3600000){ headline = saved; renderWidget(); }
   }catch{}
+  try{                                                   // actus préparées par la tâche GitHub (rapide)
+    const r = await fetch('donnees/actus/actus.json', {cache:'no-cache'});
+    const j = r.ok ? await r.json() : null, it = j && Date.now() - Date.parse(j.updated) < 3 * 3600e3 && (((j.tabs || {}).une || {}).items || [])[0];
+    if (it){ headline = {source:it.source, color:it.color || '--t-slate', title:it.title, date:it.date}; renderWidget(); return; }
+  }catch{}
   try{
     const r = await fetch(RSS_PROXY + encodeURIComponent(WIDGET_FEED.url));
     const j = await r.json();
