@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
+
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -120,7 +121,8 @@ h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:
 
 .filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
 .filters::-webkit-scrollbar{display:none}
-.chip{flex:none;padding:7px 13px;border-radius:999px;font-size:.82rem;font-weight:500;color:var(--ink-soft);border:1px solid var(--line);background:var(--card)}
+.chip{flex:none;display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 9px;border-radius:999px;font-size:.82rem;font-weight:500;color:var(--ink-soft);border:1px solid var(--line);background:var(--card)}
+.chip svg{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--base);border-color:var(--ink);font-weight:600}
 
 /* ---------- Contenu ---------- */
@@ -128,7 +130,11 @@ main .wrap{padding-block:14px 48px;display:flex;flex-direction:column;gap:18px}
 .notice{font-size:.8rem;line-height:1.45;color:var(--ink-soft);background:var(--card);border:1px dashed var(--line);border-radius:18px;padding:10px 12px}
 section.comp{display:flex;flex-direction:column;gap:8px}
 .comp-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 4px}
-.comp-head h2{margin:0;font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+.comp-head h2{margin:0;font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);display:flex;align-items:center;gap:8px;min-width:0}
+.flag{font-size:1rem;line-height:1;letter-spacing:0;flex:none}
+.clogo{width:20px;height:20px;object-fit:contain;display:block;flex:none}
+.ctag{display:flex;align-items:center;gap:6px;padding:10px 14px 0;font-size:.68rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft)}
+.ctag .flag{font-size:.86rem}.ctag .clogo{width:16px;height:16px}
 .comp-head h2.live-title{color:var(--live);display:flex;align-items:center;gap:7px}
 .comp-head .sp{font-size:.72rem;color:var(--ink-faint)}
 .list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
@@ -208,30 +214,40 @@ section.comp{display:flex;flex-direction:column;gap:8px}
    Droits TV vérifiés en octobre 2026 (saison 2026-27).
    ====================================================== */
 const GROUPS = [
-  {id:'all',   label:'Tout'},
-  {id:'foot',  label:'Foot'},
-  {id:'rugby', label:'Rugby'},
-  {id:'us',    label:'Sports US'}
+  {id:'all',    label:'Tout',    icon:'all'},
+  {id:'foot',   label:'Foot',    icon:'foot'},
+  {id:'rugby',  label:'Rugby',   icon:'rugby'},
+  {id:'basket', label:'Basket',  icon:'basket'},
+  {id:'nfl',    label:'Foot US', icon:'nfl'},
+  {id:'hockey', label:'Hockey',  icon:'hockey'}
 ];
+const SPORT_ICONS = {
+  all:'<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>',
+  foot:'<circle cx="12" cy="12" r="8.5"/><path d="m12 8 3.6 2.6-1.4 4.2H9.8l-1.4-4.2z"/><path d="M12 3.5V8M15.6 10.6l4.1-1.3M14.2 14.8l2.5 3.5M9.8 14.8l-2.5 3.5M8.4 10.6 4.3 9.3"/>',
+  rugby:'<ellipse cx="12" cy="12" rx="9.5" ry="5.6" transform="rotate(-40 12 12)"/><path d="M7.6 16.4 16.4 7.6"/><path d="m9.6 12.6 1.8 1.8M11.2 11l1.8 1.8M12.8 9.4l1.8 1.8"/>',
+  basket:'<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5v17"/><path d="M6 6c2.2 1.6 3.5 3.8 3.5 6s-1.3 4.4-3.5 6M18 6c-2.2 1.6-3.5 3.8-3.5 6s1.3 4.4 3.5 6"/>',
+  nfl:'<path d="M3.2 12c2.2-4.6 5.4-6.6 8.8-6.6s6.6 2 8.8 6.6c-2.2 4.6-5.4 6.6-8.8 6.6S5.4 16.6 3.2 12z"/><path d="M8.6 12h6.8M10 10.6v2.8M12 10.6v2.8M14 10.6v2.8"/>',
+  hockey:'<path d="M14.5 3.5 9 16.5c-.4.9-1.2 1.5-2.2 1.5H3.5"/><path d="M3.5 18v2h4.2"/><ellipse cx="17" cy="18.5" rx="3.5" ry="1.6"/><path d="M13.5 18.5v.8c0 .9 1.6 1.6 3.5 1.6s3.5-.7 3.5-1.6v-.8"/>'
+};
 const LEAGUES = [
-  {id:'uefa.champions',      sport:'soccer', group:'foot', name:'Ligue des champions', tv:['Canal+']},
-  {id:'fra.1',               sport:'soccer', group:'foot', name:'Ligue 1',             tv:['Ligue 1+']},
-  {id:'uefa.nations',        sport:'soccer', group:'foot', name:'Ligue des nations',   tv:['TF1'], tvTeam:'France'},
-  {id:'fifa.friendly',       sport:'soccer', group:'foot', name:'Amicaux internationaux', tv:['TF1'], tvTeam:'France', onlyTeam:'France'},
-  {id:'uefa.europa',         sport:'soccer', group:'foot', name:'Ligue Europa',        tv:['Canal+']},
-  {id:'uefa.europa.conf',    sport:'soccer', group:'foot', name:'Ligue Conférence',    tv:['Canal+']},
-  {id:'fra.coupe_de_france', sport:'soccer', group:'foot', name:'Coupe de France',     tv:['beIN Sports']},
-  {id:'eng.1',               sport:'soccer', group:'foot', name:'Premier League',      tv:['Canal+']},
-  {id:'esp.1',               sport:'soccer', group:'foot', name:'Liga',                tv:['DAZN','Disney+']},
-  {id:'ita.1',               sport:'soccer', group:'foot', name:'Serie A',             tv:['DAZN']},
-  {id:'ger.1',               sport:'soccer', group:'foot', name:'Bundesliga',          tv:['beIN Sports']},
-  {id:'270559',              sport:'rugby',  group:'rugby', name:'Top 14',             tv:['Canal+']},
-  {id:'271937',              sport:'rugby',  group:'rugby', name:'Champions Cup',      tv:['beIN Sports']},
-  {id:'180659',              sport:'rugby',  group:'rugby', name:'Six Nations',        tv:['France TV']},
-  {id:'289234',              sport:'rugby',  group:'rugby', name:'Tests internationaux', tv:['TF1'], tvTeam:'France'},
-  {id:'nba',                 sport:'basketball', group:'us', name:'NBA', tv:['beIN Sports','Prime Video'], partial:true},
-  {id:'nfl',                 sport:'football',   group:'us', name:'NFL', tv:['beIN Sports'], partial:true},
-  {id:'nhl',                 sport:'hockey',     group:'us', name:'NHL', tv:['beIN Sports','DAZN'], partial:true}
+  {id:'uefa.champions', flag:'🇪🇺',      sport:'soccer', group:'foot', name:'Ligue des champions', tv:['Canal+']},
+  {id:'fra.1', flag:'🇫🇷',               sport:'soccer', group:'foot', name:'Ligue 1',             tv:['Ligue 1+']},
+  {id:'uefa.nations', flag:'🇪🇺',        sport:'soccer', group:'foot', name:'Ligue des nations',   tv:['TF1'], tvTeam:'France'},
+  {id:'fifa.friendly', flag:'🌍',       sport:'soccer', group:'foot', name:'Amicaux internationaux', tv:['TF1'], tvTeam:'France', onlyTeam:'France'},
+  {id:'uefa.europa', flag:'🇪🇺',         sport:'soccer', group:'foot', name:'Ligue Europa',        tv:['Canal+']},
+  {id:'uefa.europa.conf', flag:'🇪🇺',    sport:'soccer', group:'foot', name:'Ligue Conférence',    tv:['Canal+']},
+  {id:'fra.coupe_de_france', flag:'🇫🇷', sport:'soccer', group:'foot', name:'Coupe de France',     tv:['beIN Sports']},
+  {id:'eng.1', flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',               sport:'soccer', group:'foot', name:'Premier League',      tv:['Canal+']},
+  {id:'esp.1', flag:'🇪🇸',               sport:'soccer', group:'foot', name:'Liga',                tv:['DAZN','Disney+']},
+  {id:'ita.1', flag:'🇮🇹',               sport:'soccer', group:'foot', name:'Serie A',             tv:['DAZN']},
+  {id:'ger.1', flag:'🇩🇪',               sport:'soccer', group:'foot', name:'Bundesliga',          tv:['beIN Sports']},
+  {id:'270559', flag:'🇫🇷',              sport:'rugby',  group:'rugby', name:'Top 14',             tv:['Canal+']},
+  {id:'271937', flag:'🇪🇺',              sport:'rugby',  group:'rugby', name:'Champions Cup',      tv:['beIN Sports']},
+  {id:'180659', flag:'🇪🇺',              sport:'rugby',  group:'rugby', name:'Six Nations',        tv:['France TV']},
+  {id:'289234', flag:'🌍',              sport:'rugby',  group:'rugby', name:'Tests internationaux', tv:['TF1'], tvTeam:'France'},
+  {id:'nba', flag:'🇺🇸',                 sport:'basketball', group:'basket', name:'NBA', tv:['beIN Sports','Prime Video'], partial:true},
+  {id:'nfl', flag:'🇺🇸',                 sport:'football',   group:'nfl', name:'NFL', tv:['beIN Sports'], partial:true},
+  {id:'nhl', flag:'🇺🇸',                 sport:'hockey',     group:'hockey', name:'NHL', tv:['beIN Sports','DAZN'], partial:true}
 ];
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v1:';
@@ -253,6 +269,7 @@ const OFFSETS = [-3,-2,-1,0,1,2,3];
 
 let selDay = 0;
 let group = store.get('sport:group') || 'all';
+if (!GROUPS.some(g => g.id === group)) group = 'all';
 let DATA = {};                  // league id -> {at, events:[…]}
 let sample = false, failed = new Set(), open = new Set();
 
@@ -304,12 +321,12 @@ async function fetchLeague(L){
   const base = `${API}/${L.sport}/${L.id}/scoreboard`;
   const from = ymd(dayAt(-4)), to = ymd(dayAt(3));
   const rangeKo = store.get('sport:norange') || {};
-  let events = null;
+  let events = null, leagueInfo = null;
   if (!rangeKo[L.id]){
     try{
       const j = await getJSON(`${base}?dates=${from}-${to}&limit=300`);
       if (!Array.isArray(j.events)) throw 0;
-      events = j.events;
+      events = j.events; leagueInfo = j.leagues;
     }catch{ rangeKo[L.id] = 1; store.set('sport:norange', rangeKo); }
   }
   if (!events){                                  // repli : un appel par jour
@@ -317,15 +334,21 @@ async function fetchLeague(L){
     const res = await pool(days.map(d => () => getJSON(`${base}?dates=${d}&limit=300`)), 4);
     if (res.every(r => !r)) throw new Error('indisponible');
     events = res.flatMap(r => (r && r.events) || []);
+    leagueInfo = (res.find(r => r && r.leagues) || {}).leagues;
   }
   const seen = new Map();
   events.forEach(e => seen.set(e.id, norm(e, L)));
-  return [...seen.values()];
+  return {events:[...seen.values()], ...logosOf(leagueInfo)};
+}
+function logosOf(leagues){
+  const lg = (leagues || [])[0] || {}; const ls = lg.logos || [];
+  const pick = rel => (ls.find(l => (l.rel || []).includes(rel)) || {}).href || '';
+  return {logo:pick('default') || (ls[0] || {}).href || '', logoDark:pick('dark')};
 }
 
 async function fetchToday(L){                    // rafraîchissement léger des directs
   const base = `${API}/${L.sport}/${L.id}/scoreboard`;
-  const days = L.group === 'us' ? [ymd(dayAt(-1)), ymd(dayAt(0))] : [ymd(dayAt(0))];
+  const days = ['basketball','football','hockey'].includes(L.sport) ? [ymd(dayAt(-1)), ymd(dayAt(0))] : [ymd(dayAt(0))];
   const res = await pool(days.map(d => () => getJSON(`${base}?dates=${d}&limit=300`)), 2);
   const fresh = res.flatMap(r => (r && r.events) || []).map(e => norm(e, L));
   const map = new Map((DATA[L.id]?.events || []).map(e => [e.id, e]));
@@ -343,11 +366,15 @@ function ttl(events){
 
 async function loadLeague(L, force){
   const cached = store.get(CACHE + L.id);
-  if (cached && cached.day === ymd(dayAt(0))) DATA[L.id] = cached;
+  const today = ymd(dayAt(0));
+  if (cached && cached.day === today) DATA[L.id] = cached;
   if (!force && cached && Date.now() - cached.at < ttl(cached.events)) return;
   try{
-    const events = cached && cached.day === ymd(dayAt(0)) && !force ? await fetchToday(L) : await fetchLeague(L);
-    DATA[L.id] = {at:Date.now(), day:ymd(dayAt(0)), events};
+    let next;
+    if (cached && cached.day === today && !force) next = {...cached, events:await fetchToday(L)};
+    else next = await fetchLeague(L);
+    if (!next.logo && cached) { next.logo = cached.logo; next.logoDark = cached.logoDark; }
+    DATA[L.id] = {at:Date.now(), day:today, events:next.events, logo:next.logo || '', logoDark:next.logoDark || ''};
     store.set(CACHE + L.id, DATA[L.id]);
     failed.delete(L.id);
   }catch{ failed.add(L.id); }
@@ -424,7 +451,16 @@ function renderDays(){
   $('#liveN').textContent = `${nLive} en direct`;
 }
 function renderFilters(){
-  $('#filters').innerHTML = GROUPS.map(g => `<button type="button" class="chip" data-g="${g.id}" aria-pressed="${g.id === group}">${g.label}</button>`).join('');
+  $('#filters').innerHTML = GROUPS.map(g => `<button type="button" class="chip" data-g="${g.id}" aria-pressed="${g.id === group}"><svg viewBox="0 0 24 24" aria-hidden="true">${SPORT_ICONS[g.icon]}</svg>${g.label}</button>`).join('');
+}
+function compBadge(L){
+  const d = DATA[L.id] || {};
+  let logo = '';
+  if (d.logo){
+    const img = `<img class="clogo" src="${esc(d.logo)}" alt="" loading="lazy" onerror="(this.closest('picture')||this).remove()">`;
+    logo = d.logoDark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${esc(d.logoDark)}">${img}</picture>` : img;
+  }
+  return `${L.flag ? `<span class="flag" aria-hidden="true">${L.flag}</span>` : ''}${logo}`;
 }
 
 function teamHTML(m, t, other){
@@ -454,7 +490,7 @@ function moreHTML(m){
 }
 function matchHTML(m, showComp){
   const cls = m.state === 'in' ? ' is-live' : m.state === 'post' ? ' is-post' : '';
-  return `<li class="match glass${cls}" data-id="${esc(m.id)}">
+  return `<li class="match glass${cls}" data-id="${esc(m.id)}">${showComp ? `<div class="ctag">${compBadge(LBY[m.league])}<span>${esc(LBY[m.league].name)}</span></div>` : ''}
     <button type="button" class="row" aria-expanded="${open.has(m.id)}" aria-label="${esc(m.home.name)} contre ${esc(m.away.name)}${showComp ? ', ' + esc(LBY[m.league].name) : ''}">
       ${status(m)}<span class="teams">${teamHTML(m, m.home)}${teamHTML(m, m.away)}</span>
     </button>${tvHTML(m)}${moreHTML(m)}</li>`;
@@ -476,7 +512,7 @@ function render(){
   LEAGUES.forEach(L => {
     const ms = rest.filter(m => m.league === L.id);
     if (!ms.length) return;
-    html += `<section class="comp"><div class="comp-head"><h2>${esc(L.name)}</h2><span class="sp">${ms.length} match${ms.length > 1 ? 's' : ''}</span></div>
+    html += `<section class="comp"><div class="comp-head"><h2>${compBadge(L)}<span>${esc(L.name)}</span></h2><span class="sp">${ms.length} match${ms.length > 1 ? 's' : ''}</span></div>
       <ul class="list">${ms.map(m => matchHTML(m)).join('')}</ul></section>`;
   });
 
