@@ -1,0 +1,647 @@
+# Calendrier Championship 2026-27
+# Source : openfootball (github.com/openfootball/football.json)
+# Une journée par bloc, une ligne par match (domicile - extérieur).
+
+Journée 1
+Wolverhampton Wanderers FC - Blackburn Rovers FC
+Bolton Wanderers FC - Preston North End FC
+Norwich City FC - West Bromwich Albion FC
+Bristol City FC - Millwall FC
+Middlesbrough FC - Lincoln City FC
+Stoke City FC - Swansea City AFC
+Charlton Athletic FC - Derby County FC
+Portsmouth FC - Queens Park Rangers FC
+Sheffield United FC - Birmingham City FC
+Watford FC - Southampton FC
+Burnley FC - West Ham United FC
+Cardiff City FC - Wrexham AFC
+
+Journée 2
+Birmingham City FC - Bristol City FC
+Lincoln City FC - Portsmouth FC
+Millwall FC - Norwich City FC
+Swansea City AFC - Sheffield United FC
+West Ham United FC - Charlton Athletic FC
+Derby County FC - Cardiff City FC
+Preston North End FC - Wolverhampton Wanderers FC
+Wrexham AFC - Watford FC
+Blackburn Rovers FC - Middlesbrough FC
+Southampton FC - Stoke City FC
+Queens Park Rangers FC - Bolton Wanderers FC
+West Bromwich Albion FC - Burnley FC
+
+Journée 3
+Wrexham AFC - Birmingham City FC
+Wolverhampton Wanderers FC - Stoke City FC
+Derby County FC - Swansea City AFC
+Middlesbrough FC - West Bromwich Albion FC
+Norwich City FC - Burnley FC
+Bolton Wanderers FC - Lincoln City FC
+Bristol City FC - Portsmouth FC
+Southampton FC - Millwall FC
+Charlton Athletic FC - Preston North End FC
+Blackburn Rovers FC - Queens Park Rangers FC
+Cardiff City FC - Sheffield United FC
+Watford FC - West Ham United FC
+
+Journée 4
+Preston North End FC - Bristol City FC
+West Ham United FC - Wolverhampton Wanderers FC
+Lincoln City FC - Blackburn Rovers FC
+Sheffield United FC - Bolton Wanderers FC
+Portsmouth FC - Derby County FC
+Swansea City AFC - Watford FC
+Stoke City FC - Norwich City FC
+Birmingham City FC - Southampton FC
+Millwall FC - Wrexham AFC
+Queens Park Rangers FC - Cardiff City FC
+West Bromwich Albion FC - Charlton Athletic FC
+Burnley FC - Middlesbrough FC
+
+Journée 5
+Preston North End FC - Blackburn Rovers FC
+Stoke City FC - Charlton Athletic FC
+Lincoln City FC - Southampton FC
+Queens Park Rangers FC - Middlesbrough FC
+Sheffield United FC - Norwich City FC
+Portsmouth FC - Cardiff City FC
+West Bromwich Albion FC - Watford FC
+West Ham United FC - Derby County FC
+Burnley FC - Bristol City FC
+Millwall FC - Bolton Wanderers FC
+Swansea City AFC - Wrexham AFC
+Birmingham City FC - Wolverhampton Wanderers FC
+
+Journée 6
+Blackburn Rovers FC - Sheffield United FC
+Southampton FC - Swansea City AFC
+Watford FC - Preston North End FC
+Cardiff City FC - Stoke City FC
+Wrexham AFC - Burnley FC
+Bolton Wanderers FC - West Ham United FC
+Derby County FC - West Bromwich Albion FC
+Norwich City FC - Birmingham City FC
+Charlton Athletic FC - Queens Park Rangers FC
+Middlesbrough FC - Millwall FC
+Bristol City FC - Lincoln City FC
+Wolverhampton Wanderers FC - Portsmouth FC
+
+Journée 7
+West Ham United FC - Wrexham AFC
+Derby County FC - Birmingham City FC
+Bolton Wanderers FC - Cardiff City FC
+West Bromwich Albion FC - Queens Park Rangers FC
+Southampton FC - Bristol City FC
+Preston North End FC - Lincoln City FC
+Blackburn Rovers FC - Millwall FC
+Charlton Athletic FC - Portsmouth FC
+Watford FC - Stoke City FC
+Swansea City AFC - Burnley FC
+Middlesbrough FC - Norwich City FC
+Sheffield United FC - Wolverhampton Wanderers FC
+
+Journée 8
+Bristol City FC - Watford FC
+Stoke City FC - Sheffield United FC
+Millwall FC - West Ham United FC
+Cardiff City FC - Charlton Athletic FC
+Wrexham AFC - Southampton FC
+Burnley FC - Derby County FC
+Queens Park Rangers FC - Preston North End FC
+Portsmouth FC - Blackburn Rovers FC
+Birmingham City FC - Middlesbrough FC
+Lincoln City FC - Swansea City AFC
+Wolverhampton Wanderers FC - West Bromwich Albion FC
+Norwich City FC - Bolton Wanderers FC
+
+Journée 9
+West Ham United FC - Queens Park Rangers FC
+West Bromwich Albion FC - Birmingham City FC
+Swansea City AFC - Norwich City FC
+Charlton Athletic FC - Bristol City FC
+Sheffield United FC - Lincoln City FC
+Watford FC - Burnley FC
+Derby County FC - Wrexham AFC
+Blackburn Rovers FC - Cardiff City FC
+Bolton Wanderers FC - Stoke City FC
+Preston North End FC - Millwall FC
+Middlesbrough FC - Wolverhampton Wanderers FC
+Southampton FC - Portsmouth FC
+
+Journée 10
+Wolverhampton Wanderers FC - Bolton Wanderers FC
+Wrexham AFC - West Bromwich Albion FC
+Millwall FC - Swansea City AFC
+Cardiff City FC - Watford FC
+Burnley FC - Charlton Athletic FC
+Bristol City FC - Blackburn Rovers FC
+Birmingham City FC - Preston North End FC
+Stoke City FC - Middlesbrough FC
+Portsmouth FC - Sheffield United FC
+Norwich City FC - Southampton FC
+Queens Park Rangers FC - Derby County FC
+Lincoln City FC - West Ham United FC
+
+Journée 11
+Burnley FC - Wolverhampton Wanderers FC
+Millwall FC - Lincoln City FC
+Middlesbrough FC - Cardiff City FC
+Watford FC - Charlton Athletic FC
+Norwich City FC - Portsmouth FC
+Southampton FC - Bolton Wanderers FC
+Bristol City FC - Sheffield United FC
+Birmingham City FC - Queens Park Rangers FC
+Derby County FC - Stoke City FC
+Swansea City AFC - West Ham United FC
+West Bromwich Albion FC - Blackburn Rovers FC
+Wrexham AFC - Preston North End FC
+
+Journée 12
+Bolton Wanderers FC - Middlesbrough FC
+Sheffield United FC - Derby County FC
+Charlton Athletic FC - Norwich City FC
+Portsmouth FC - Millwall FC
+Cardiff City FC - Birmingham City FC
+Queens Park Rangers FC - Swansea City AFC
+Stoke City FC - Bristol City FC
+Preston North End FC - West Bromwich Albion FC
+Lincoln City FC - Burnley FC
+West Ham United FC - Southampton FC
+Blackburn Rovers FC - Wrexham AFC
+Wolverhampton Wanderers FC - Watford FC
+
+Journée 13
+Sheffield United FC - Wrexham AFC
+Stoke City FC - Preston North End FC
+Norwich City FC - Watford FC
+Lincoln City FC - Birmingham City FC
+Wolverhampton Wanderers FC - Cardiff City FC
+West Ham United FC - West Bromwich Albion FC
+Swansea City AFC - Blackburn Rovers FC
+Bolton Wanderers FC - Bristol City FC
+Middlesbrough FC - Charlton Athletic FC
+Burnley FC - Portsmouth FC
+Millwall FC - Derby County FC
+Southampton FC - Queens Park Rangers FC
+
+Journée 14
+Queens Park Rangers FC - Burnley FC
+Derby County FC - Norwich City FC
+Blackburn Rovers FC - Stoke City FC
+Watford FC - Lincoln City FC
+Charlton Athletic FC - Bolton Wanderers FC
+Birmingham City FC - Millwall FC
+Portsmouth FC - Swansea City AFC
+Preston North End FC - Sheffield United FC
+West Bromwich Albion FC - Southampton FC
+Cardiff City FC - West Ham United FC
+Wrexham AFC - Middlesbrough FC
+Bristol City FC - Wolverhampton Wanderers FC
+
+Journée 15
+Derby County FC - Bolton Wanderers FC
+Wrexham AFC - Wolverhampton Wanderers FC
+Portsmouth FC - Stoke City FC
+Bristol City FC - Norwich City FC
+Queens Park Rangers FC - Lincoln City FC
+Cardiff City FC - Burnley FC
+Charlton Athletic FC - Sheffield United FC
+Watford FC - Middlesbrough FC
+Blackburn Rovers FC - West Ham United FC
+West Bromwich Albion FC - Millwall FC
+Preston North End FC - Southampton FC
+Birmingham City FC - Swansea City AFC
+
+Journée 16
+Sheffield United FC - Watford FC
+Southampton FC - Derby County FC
+Millwall FC - Queens Park Rangers FC
+Swansea City AFC - West Bromwich Albion FC
+Middlesbrough FC - Bristol City FC
+Bolton Wanderers FC - Portsmouth FC
+Stoke City FC - Birmingham City FC
+Norwich City FC - Cardiff City FC
+Lincoln City FC - Wrexham AFC
+West Ham United FC - Preston North End FC
+Wolverhampton Wanderers FC - Charlton Athletic FC
+Burnley FC - Blackburn Rovers FC
+
+Journée 17
+Cardiff City FC - Preston North End FC
+Middlesbrough FC - Swansea City AFC
+Portsmouth FC - West Ham United FC
+Sheffield United FC - Southampton FC
+Charlton Athletic FC - Lincoln City FC
+Bristol City FC - Wrexham AFC
+Norwich City FC - Queens Park Rangers FC
+Wolverhampton Wanderers FC - Derby County FC
+Watford FC - Blackburn Rovers FC
+Bolton Wanderers FC - West Bromwich Albion FC
+Burnley FC - Birmingham City FC
+Stoke City FC - Millwall FC
+
+Journée 18
+Southampton FC - Middlesbrough FC
+Blackburn Rovers FC - Charlton Athletic FC
+Lincoln City FC - Wolverhampton Wanderers FC
+Preston North End FC - Norwich City FC
+Wrexham AFC - Portsmouth FC
+Queens Park Rangers FC - Sheffield United FC
+Millwall FC - Burnley FC
+Birmingham City FC - Bolton Wanderers FC
+Derby County FC - Watford FC
+West Ham United FC - Stoke City FC
+West Bromwich Albion FC - Bristol City FC
+Swansea City AFC - Cardiff City FC
+
+Journée 19
+Sheffield United FC - West Ham United FC
+Bristol City FC - Swansea City AFC
+Bolton Wanderers FC - Blackburn Rovers FC
+Middlesbrough FC - Derby County FC
+Cardiff City FC - Lincoln City FC
+Norwich City FC - Wrexham AFC
+Charlton Athletic FC - Birmingham City FC
+Wolverhampton Wanderers FC - Southampton FC
+Watford FC - Millwall FC
+Portsmouth FC - West Bromwich Albion FC
+Stoke City FC - Queens Park Rangers FC
+Burnley FC - Preston North End FC
+
+Journée 20
+Blackburn Rovers FC - Norwich City FC
+West Bromwich Albion FC - Cardiff City FC
+Wrexham AFC - Charlton Athletic FC
+Millwall FC - Sheffield United FC
+Swansea City AFC - Bolton Wanderers FC
+Queens Park Rangers FC - Wolverhampton Wanderers FC
+Birmingham City FC - Watford FC
+West Ham United FC - Middlesbrough FC
+Preston North End FC - Portsmouth FC
+Lincoln City FC - Stoke City FC
+Derby County FC - Bristol City FC
+Southampton FC - Burnley FC
+
+Journée 21
+Bolton Wanderers FC - Wrexham AFC
+Preston North End FC - Middlesbrough FC
+Queens Park Rangers FC - Watford FC
+Stoke City FC - West Bromwich Albion FC
+Charlton Athletic FC - Swansea City AFC
+West Ham United FC - Bristol City FC
+Lincoln City FC - Norwich City FC
+Blackburn Rovers FC - Derby County FC
+Portsmouth FC - Birmingham City FC
+Sheffield United FC - Burnley FC
+Wolverhampton Wanderers FC - Millwall FC
+Cardiff City FC - Southampton FC
+
+Journée 22
+West Bromwich Albion FC - Sheffield United FC
+Bristol City FC - Cardiff City FC
+Millwall FC - Charlton Athletic FC
+Birmingham City FC - West Ham United FC
+Swansea City AFC - Preston North End FC
+Watford FC - Bolton Wanderers FC
+Middlesbrough FC - Portsmouth FC
+Norwich City FC - Wolverhampton Wanderers FC
+Burnley FC - Stoke City FC
+Derby County FC - Lincoln City FC
+Wrexham AFC - Queens Park Rangers FC
+Southampton FC - Blackburn Rovers FC
+
+Journée 23
+Bolton Wanderers FC - Burnley FC
+Sheffield United FC - Middlesbrough FC
+Portsmouth FC - Watford FC
+Blackburn Rovers FC - Birmingham City FC
+West Ham United FC - Norwich City FC
+Wolverhampton Wanderers FC - Swansea City AFC
+Queens Park Rangers FC - Bristol City FC
+Stoke City FC - Wrexham AFC
+Cardiff City FC - Millwall FC
+Lincoln City FC - West Bromwich Albion FC
+Preston North End FC - Derby County FC
+Charlton Athletic FC - Southampton FC
+
+Journée 24
+Wrexham AFC - Blackburn Rovers FC
+West Bromwich Albion FC - Preston North End FC
+Derby County FC - Sheffield United FC
+Swansea City AFC - Queens Park Rangers FC
+Watford FC - Wolverhampton Wanderers FC
+Norwich City FC - Charlton Athletic FC
+Burnley FC - Lincoln City FC
+Birmingham City FC - Cardiff City FC
+Middlesbrough FC - Bolton Wanderers FC
+Bristol City FC - Stoke City FC
+Millwall FC - Portsmouth FC
+Southampton FC - West Ham United FC
+
+Journée 25
+Middlesbrough FC - Preston North End FC
+Southampton FC - Cardiff City FC
+Watford FC - Queens Park Rangers FC
+Burnley FC - Sheffield United FC
+Derby County FC - Blackburn Rovers FC
+Birmingham City FC - Portsmouth FC
+West Bromwich Albion FC - Stoke City FC
+Norwich City FC - Lincoln City FC
+Swansea City AFC - Charlton Athletic FC
+Wrexham AFC - Bolton Wanderers FC
+Millwall FC - Wolverhampton Wanderers FC
+Bristol City FC - West Ham United FC
+
+Journée 26
+Stoke City FC - Derby County FC
+Charlton Athletic FC - Watford FC
+Wolverhampton Wanderers FC - Burnley FC
+Preston North End FC - Wrexham AFC
+Cardiff City FC - Middlesbrough FC
+Lincoln City FC - Millwall FC
+Portsmouth FC - Norwich City FC
+Queens Park Rangers FC - Birmingham City FC
+Sheffield United FC - Bristol City FC
+West Ham United FC - Swansea City AFC
+Bolton Wanderers FC - Southampton FC
+Blackburn Rovers FC - West Bromwich Albion FC
+
+Journée 27
+Wrexham AFC - Sheffield United FC
+Preston North End FC - Stoke City FC
+Cardiff City FC - Wolverhampton Wanderers FC
+Queens Park Rangers FC - Southampton FC
+Bristol City FC - Bolton Wanderers FC
+Derby County FC - Millwall FC
+Portsmouth FC - Burnley FC
+Charlton Athletic FC - Middlesbrough FC
+Birmingham City FC - Lincoln City FC
+Watford FC - Norwich City FC
+West Bromwich Albion FC - West Ham United FC
+Blackburn Rovers FC - Swansea City AFC
+
+Journée 28
+Bolton Wanderers FC - Charlton Athletic FC
+Norwich City FC - Derby County FC
+Lincoln City FC - Watford FC
+Sheffield United FC - Preston North End FC
+Southampton FC - West Bromwich Albion FC
+Millwall FC - Birmingham City FC
+Stoke City FC - Blackburn Rovers FC
+Burnley FC - Queens Park Rangers FC
+Wolverhampton Wanderers FC - Bristol City FC
+Swansea City AFC - Portsmouth FC
+West Ham United FC - Cardiff City FC
+Middlesbrough FC - Wrexham AFC
+
+Journée 29
+Burnley FC - Cardiff City FC
+Swansea City AFC - Birmingham City FC
+Southampton FC - Preston North End FC
+Millwall FC - West Bromwich Albion FC
+Wolverhampton Wanderers FC - Wrexham AFC
+Lincoln City FC - Queens Park Rangers FC
+Stoke City FC - Portsmouth FC
+Bolton Wanderers FC - Derby County FC
+West Ham United FC - Blackburn Rovers FC
+Middlesbrough FC - Watford FC
+Sheffield United FC - Charlton Athletic FC
+Norwich City FC - Bristol City FC
+
+Journée 30
+West Bromwich Albion FC - Swansea City AFC
+Derby County FC - Southampton FC
+Watford FC - Sheffield United FC
+Preston North End FC - West Ham United FC
+Portsmouth FC - Bolton Wanderers FC
+Queens Park Rangers FC - Millwall FC
+Charlton Athletic FC - Wolverhampton Wanderers FC
+Wrexham AFC - Lincoln City FC
+Blackburn Rovers FC - Burnley FC
+Cardiff City FC - Norwich City FC
+Birmingham City FC - Stoke City FC
+Bristol City FC - Middlesbrough FC
+
+Journée 31
+Bristol City FC - Southampton FC
+Queens Park Rangers FC - West Bromwich Albion FC
+Lincoln City FC - Preston North End FC
+Birmingham City FC - Derby County FC
+Norwich City FC - Middlesbrough FC
+Cardiff City FC - Bolton Wanderers FC
+Wolverhampton Wanderers FC - Sheffield United FC
+Stoke City FC - Watford FC
+Wrexham AFC - West Ham United FC
+Burnley FC - Swansea City AFC
+Portsmouth FC - Charlton Athletic FC
+Millwall FC - Blackburn Rovers FC
+
+Journée 32
+Blackburn Rovers FC - Bristol City FC
+Sheffield United FC - Portsmouth FC
+West Ham United FC - Lincoln City FC
+Charlton Athletic FC - Burnley FC
+Preston North End FC - Birmingham City FC
+Watford FC - Cardiff City FC
+West Bromwich Albion FC - Wrexham AFC
+Derby County FC - Queens Park Rangers FC
+Bolton Wanderers FC - Wolverhampton Wanderers FC
+Swansea City AFC - Millwall FC
+Southampton FC - Norwich City FC
+Middlesbrough FC - Stoke City FC
+
+Journée 33
+Southampton FC - Wrexham AFC
+Charlton Athletic FC - Cardiff City FC
+Swansea City AFC - Lincoln City FC
+Sheffield United FC - Stoke City FC
+Preston North End FC - Queens Park Rangers FC
+Derby County FC - Burnley FC
+Middlesbrough FC - Birmingham City FC
+Watford FC - Bristol City FC
+Blackburn Rovers FC - Portsmouth FC
+West Ham United FC - Millwall FC
+Bolton Wanderers FC - Norwich City FC
+West Bromwich Albion FC - Wolverhampton Wanderers FC
+
+Journée 34
+Queens Park Rangers FC - West Ham United FC
+Portsmouth FC - Southampton FC
+Stoke City FC - Bolton Wanderers FC
+Norwich City FC - Swansea City AFC
+Wrexham AFC - Derby County FC
+Wolverhampton Wanderers FC - Middlesbrough FC
+Bristol City FC - Charlton Athletic FC
+Birmingham City FC - West Bromwich Albion FC
+Lincoln City FC - Sheffield United FC
+Burnley FC - Watford FC
+Cardiff City FC - Blackburn Rovers FC
+Millwall FC - Preston North End FC
+
+Journée 35
+Middlesbrough FC - Blackburn Rovers FC
+Norwich City FC - Millwall FC
+Burnley FC - West Bromwich Albion FC
+Watford FC - Wrexham AFC
+Charlton Athletic FC - West Ham United FC
+Bolton Wanderers FC - Queens Park Rangers FC
+Bristol City FC - Birmingham City FC
+Cardiff City FC - Derby County FC
+Portsmouth FC - Lincoln City FC
+Wolverhampton Wanderers FC - Preston North End FC
+Sheffield United FC - Swansea City AFC
+Stoke City FC - Southampton FC
+
+Journée 36
+Derby County FC - Charlton Athletic FC
+Blackburn Rovers FC - Wolverhampton Wanderers FC
+Southampton FC - Watford FC
+Wrexham AFC - Cardiff City FC
+Swansea City AFC - Stoke City FC
+Preston North End FC - Bolton Wanderers FC
+Lincoln City FC - Middlesbrough FC
+Millwall FC - Bristol City FC
+Queens Park Rangers FC - Portsmouth FC
+West Bromwich Albion FC - Norwich City FC
+Birmingham City FC - Sheffield United FC
+West Ham United FC - Burnley FC
+
+Journée 37
+Watford FC - Derby County FC
+Burnley FC - Millwall FC
+Portsmouth FC - Wrexham AFC
+Middlesbrough FC - Southampton FC
+Sheffield United FC - Queens Park Rangers FC
+Bristol City FC - West Bromwich Albion FC
+Charlton Athletic FC - Blackburn Rovers FC
+Stoke City FC - West Ham United FC
+Norwich City FC - Preston North End FC
+Cardiff City FC - Swansea City AFC
+Bolton Wanderers FC - Birmingham City FC
+Wolverhampton Wanderers FC - Lincoln City FC
+
+Journée 38
+Preston North End FC - Burnley FC
+Swansea City AFC - Bristol City FC
+Queens Park Rangers FC - Stoke City FC
+West Bromwich Albion FC - Portsmouth FC
+Wrexham AFC - Norwich City FC
+Lincoln City FC - Cardiff City FC
+Derby County FC - Middlesbrough FC
+Southampton FC - Wolverhampton Wanderers FC
+West Ham United FC - Sheffield United FC
+Millwall FC - Watford FC
+Blackburn Rovers FC - Bolton Wanderers FC
+Birmingham City FC - Charlton Athletic FC
+
+Journée 39
+Swansea City AFC - Wolverhampton Wanderers FC
+Millwall FC - Cardiff City FC
+Wrexham AFC - Stoke City FC
+Bristol City FC - Queens Park Rangers FC
+Watford FC - Portsmouth FC
+Southampton FC - Charlton Athletic FC
+Birmingham City FC - Blackburn Rovers FC
+Burnley FC - Bolton Wanderers FC
+Middlesbrough FC - Sheffield United FC
+West Bromwich Albion FC - Lincoln City FC
+Norwich City FC - West Ham United FC
+Derby County FC - Preston North End FC
+
+Journée 40
+Stoke City FC - Burnley FC
+Portsmouth FC - Middlesbrough FC
+Cardiff City FC - Bristol City FC
+Bolton Wanderers FC - Watford FC
+Charlton Athletic FC - Millwall FC
+West Ham United FC - Birmingham City FC
+Lincoln City FC - Derby County FC
+Wolverhampton Wanderers FC - Norwich City FC
+Sheffield United FC - West Bromwich Albion FC
+Blackburn Rovers FC - Southampton FC
+Queens Park Rangers FC - Wrexham AFC
+Preston North End FC - Swansea City AFC
+
+Journée 41
+Lincoln City FC - Bristol City FC
+Millwall FC - Middlesbrough FC
+West Ham United FC - Bolton Wanderers FC
+Queens Park Rangers FC - Charlton Athletic FC
+Stoke City FC - Cardiff City FC
+Portsmouth FC - Wolverhampton Wanderers FC
+Swansea City AFC - Southampton FC
+Burnley FC - Wrexham AFC
+Preston North End FC - Watford FC
+West Bromwich Albion FC - Derby County FC
+Birmingham City FC - Norwich City FC
+Sheffield United FC - Blackburn Rovers FC
+
+Journée 42
+Wrexham AFC - Swansea City AFC
+Wolverhampton Wanderers FC - Birmingham City FC
+Watford FC - West Bromwich Albion FC
+Blackburn Rovers FC - Preston North End FC
+Bolton Wanderers FC - Millwall FC
+Norwich City FC - Sheffield United FC
+Middlesbrough FC - Queens Park Rangers FC
+Cardiff City FC - Portsmouth FC
+Southampton FC - Lincoln City FC
+Charlton Athletic FC - Stoke City FC
+Bristol City FC - Burnley FC
+Derby County FC - West Ham United FC
+
+Journée 43
+Preston North End FC - Charlton Athletic FC
+Portsmouth FC - Bristol City FC
+Birmingham City FC - Wrexham AFC
+Stoke City FC - Wolverhampton Wanderers FC
+Lincoln City FC - Bolton Wanderers FC
+West Bromwich Albion FC - Middlesbrough FC
+Queens Park Rangers FC - Blackburn Rovers FC
+West Ham United FC - Watford FC
+Burnley FC - Norwich City FC
+Millwall FC - Southampton FC
+Swansea City AFC - Derby County FC
+Sheffield United FC - Cardiff City FC
+
+Journée 44
+Bolton Wanderers FC - Sheffield United FC
+Norwich City FC - Stoke City FC
+Middlesbrough FC - Burnley FC
+Derby County FC - Portsmouth FC
+Wolverhampton Wanderers FC - West Ham United FC
+Wrexham AFC - Millwall FC
+Southampton FC - Birmingham City FC
+Charlton Athletic FC - West Bromwich Albion FC
+Bristol City FC - Preston North End FC
+Blackburn Rovers FC - Lincoln City FC
+Cardiff City FC - Queens Park Rangers FC
+Watford FC - Swansea City AFC
+
+Journée 45
+Watford FC - Birmingham City FC
+Middlesbrough FC - West Ham United FC
+Stoke City FC - Lincoln City FC
+Burnley FC - Southampton FC
+Bolton Wanderers FC - Swansea City AFC
+Sheffield United FC - Millwall FC
+Wolverhampton Wanderers FC - Queens Park Rangers FC
+Bristol City FC - Derby County FC
+Charlton Athletic FC - Wrexham AFC
+Norwich City FC - Blackburn Rovers FC
+Cardiff City FC - West Bromwich Albion FC
+Portsmouth FC - Preston North End FC
+
+Journée 46
+Queens Park Rangers FC - Norwich City FC
+West Ham United FC - Portsmouth FC
+West Bromwich Albion FC - Bolton Wanderers FC
+Southampton FC - Sheffield United FC
+Birmingham City FC - Burnley FC
+Millwall FC - Stoke City FC
+Wrexham AFC - Bristol City FC
+Blackburn Rovers FC - Watford FC
+Lincoln City FC - Charlton Athletic FC
+Preston North End FC - Cardiff City FC
+Derby County FC - Wolverhampton Wanderers FC
+Swansea City AFC - Middlesbrough FC
