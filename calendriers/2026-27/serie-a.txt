@@ -1,0 +1,459 @@
+# Calendrier Serie A 2026-27
+# Source : openfootball (github.com/openfootball/football.json)
+# Une journée par bloc, une ligne par match (domicile - extérieur).
+
+Journée 1
+Udinese Calcio - Como 1907
+FC Internazionale Milano - AC Monza
+Genoa CFC - SSC Napoli
+Parma Calcio 1913 - Cagliari Calcio
+Frosinone Calcio - Juventus FC
+Venezia FC - US Lecce
+Atalanta BC - US Sassuolo Calcio
+Torino FC - AC Milan
+Bologna FC 1909 - SS Lazio
+AS Roma - ACF Fiorentina
+
+Journée 2
+AC Milan - Venezia FC
+US Sassuolo Calcio - Torino FC
+AC Monza - Udinese Calcio
+ACF Fiorentina - Frosinone Calcio
+Juventus FC - Parma Calcio 1913
+SSC Napoli - Como 1907
+SS Lazio - Genoa CFC
+Cagliari Calcio - FC Internazionale Milano
+US Lecce - AS Roma
+Atalanta BC - Bologna FC 1909
+
+Journée 3
+Genoa CFC - Como 1907
+ACF Fiorentina - Torino FC
+FC Internazionale Milano - SSC Napoli
+AS Roma - Atalanta BC
+Parma Calcio 1913 - AC Monza
+Frosinone Calcio - Venezia FC
+Bologna FC 1909 - US Sassuolo Calcio
+Juventus FC - AC Milan
+Cagliari Calcio - US Lecce
+Udinese Calcio - SS Lazio
+
+Journée 4
+Venezia FC - ACF Fiorentina
+Genoa CFC - Frosinone Calcio
+SS Lazio - AC Milan
+Atalanta BC - Cagliari Calcio
+US Lecce - AC Monza
+SSC Napoli - Bologna FC 1909
+US Sassuolo Calcio - Juventus FC
+Como 1907 - Parma Calcio 1913
+Torino FC - AS Roma
+FC Internazionale Milano - Udinese Calcio
+
+Journée 5
+AC Monza - US Sassuolo Calcio
+Bologna FC 1909 - Torino FC
+Udinese Calcio - Cagliari Calcio
+AS Roma - FC Internazionale Milano
+Venezia FC - SS Lazio
+ACF Fiorentina - SSC Napoli
+Frosinone Calcio - Como 1907
+Parma Calcio 1913 - Genoa CFC
+Juventus FC - Atalanta BC
+AC Milan - US Lecce
+
+Journée 6
+Genoa CFC - ACF Fiorentina
+FC Internazionale Milano - Parma Calcio 1913
+SSC Napoli - Frosinone Calcio
+Como 1907 - AS Roma
+US Lecce - Bologna FC 1909
+SS Lazio - AC Monza
+US Sassuolo Calcio - AC Milan
+Cagliari Calcio - Juventus FC
+Atalanta BC - Venezia FC
+Torino FC - Udinese Calcio
+
+Journée 7
+Frosinone Calcio - US Sassuolo Calcio
+Venezia FC - SSC Napoli
+Bologna FC 1909 - FC Internazionale Milano
+AS Roma - Genoa CFC
+Udinese Calcio - US Lecce
+ACF Fiorentina - Como 1907
+AC Milan - Atalanta BC
+Juventus FC - SS Lazio
+AC Monza - Cagliari Calcio
+Parma Calcio 1913 - Torino FC
+
+Journée 8
+Torino FC - AC Monza
+Cagliari Calcio - Bologna FC 1909
+Como 1907 - US Sassuolo Calcio
+SSC Napoli - AS Roma
+SS Lazio - Parma Calcio 1913
+FC Internazionale Milano - ACF Fiorentina
+Atalanta BC - Frosinone Calcio
+Genoa CFC - Venezia FC
+US Lecce - Juventus FC
+Udinese Calcio - AC Milan
+
+Journée 9
+US Sassuolo Calcio - SS Lazio
+AS Roma - Cagliari Calcio
+Torino FC - Como 1907
+AC Milan - Bologna FC 1909
+Venezia FC - FC Internazionale Milano
+Parma Calcio 1913 - Udinese Calcio
+Genoa CFC - Juventus FC
+AC Monza - SSC Napoli
+Frosinone Calcio - US Lecce
+ACF Fiorentina - Atalanta BC
+
+Journée 10
+Bologna FC 1909 - AC Monza
+Udinese Calcio - AS Roma
+AC Milan - FC Internazionale Milano
+Como 1907 - Venezia FC
+Frosinone Calcio - Torino FC
+SS Lazio - Cagliari Calcio
+US Lecce - Genoa CFC
+Juventus FC - SSC Napoli
+US Sassuolo Calcio - ACF Fiorentina
+Atalanta BC - Parma Calcio 1913
+
+Journée 11
+Venezia FC - Udinese Calcio
+Torino FC - US Lecce
+Cagliari Calcio - Frosinone Calcio
+Parma Calcio 1913 - Bologna FC 1909
+AS Roma - US Sassuolo Calcio
+SSC Napoli - SS Lazio
+Genoa CFC - AC Milan
+AC Monza - Atalanta BC
+FC Internazionale Milano - Como 1907
+ACF Fiorentina - Juventus FC
+
+Journée 12
+Como 1907 - Cagliari Calcio
+SS Lazio - US Lecce
+Parma Calcio 1913 - AS Roma
+SSC Napoli - Torino FC
+US Sassuolo Calcio - Genoa CFC
+AC Milan - Frosinone Calcio
+Bologna FC 1909 - Udinese Calcio
+Atalanta BC - FC Internazionale Milano
+AC Monza - ACF Fiorentina
+Juventus FC - Venezia FC
+
+Journée 13
+US Sassuolo Calcio - SSC Napoli
+Cagliari Calcio - AC Milan
+Como 1907 - Juventus FC
+AS Roma - AC Monza
+Frosinone Calcio - Parma Calcio 1913
+Torino FC - SS Lazio
+Venezia FC - Bologna FC 1909
+US Lecce - Atalanta BC
+Udinese Calcio - ACF Fiorentina
+FC Internazionale Milano - Genoa CFC
+
+Journée 14
+Genoa CFC - Torino FC
+Juventus FC - Udinese Calcio
+Frosinone Calcio - FC Internazionale Milano
+Bologna FC 1909 - AS Roma
+ACF Fiorentina - Cagliari Calcio
+SS Lazio - Atalanta BC
+AC Milan - Parma Calcio 1913
+Venezia FC - US Sassuolo Calcio
+AC Monza - Como 1907
+SSC Napoli - US Lecce
+
+Journée 15
+SSC Napoli - AC Milan
+Como 1907 - Bologna FC 1909
+Udinese Calcio - Frosinone Calcio
+US Lecce - US Sassuolo Calcio
+Parma Calcio 1913 - ACF Fiorentina
+Cagliari Calcio - Venezia FC
+FC Internazionale Milano - Torino FC
+Juventus FC - AC Monza
+Atalanta BC - Genoa CFC
+SS Lazio - AS Roma
+
+Journée 16
+AC Milan - Como 1907
+US Sassuolo Calcio - Parma Calcio 1913
+AS Roma - Juventus FC
+Frosinone Calcio - SS Lazio
+Atalanta BC - SSC Napoli
+ACF Fiorentina - Bologna FC 1909
+Genoa CFC - Udinese Calcio
+US Lecce - FC Internazionale Milano
+Torino FC - Cagliari Calcio
+Venezia FC - AC Monza
+
+Journée 17
+Udinese Calcio - Atalanta BC
+Como 1907 - US Lecce
+AS Roma - Frosinone Calcio
+Parma Calcio 1913 - SSC Napoli
+Cagliari Calcio - Genoa CFC
+Torino FC - Venezia FC
+AC Monza - AC Milan
+FC Internazionale Milano - US Sassuolo Calcio
+Bologna FC 1909 - Juventus FC
+ACF Fiorentina - SS Lazio
+
+Journée 18
+Frosinone Calcio - Bologna FC 1909
+US Sassuolo Calcio - Udinese Calcio
+Genoa CFC - AC Monza
+Venezia FC - AS Roma
+SSC Napoli - Cagliari Calcio
+AC Milan - ACF Fiorentina
+Juventus FC - Torino FC
+Atalanta BC - Como 1907
+SS Lazio - FC Internazionale Milano
+US Lecce - Parma Calcio 1913
+
+Journée 19
+ACF Fiorentina - US Lecce
+Udinese Calcio - SSC Napoli
+Torino FC - Atalanta BC
+AC Monza - Frosinone Calcio
+FC Internazionale Milano - Juventus FC
+Parma Calcio 1913 - Venezia FC
+Bologna FC 1909 - Genoa CFC
+Cagliari Calcio - US Sassuolo Calcio
+Como 1907 - SS Lazio
+AS Roma - AC Milan
+
+Journée 20
+AC Milan - Torino FC
+Parma Calcio 1913 - FC Internazionale Milano
+Juventus FC - Genoa CFC
+US Lecce - Udinese Calcio
+Cagliari Calcio - Como 1907
+US Sassuolo Calcio - AC Monza
+SSC Napoli - ACF Fiorentina
+SS Lazio - Bologna FC 1909
+Venezia FC - Frosinone Calcio
+Atalanta BC - AS Roma
+
+Journée 21
+US Lecce - Torino FC
+Juventus FC - Cagliari Calcio
+FC Internazionale Milano - Venezia FC
+ACF Fiorentina - US Sassuolo Calcio
+Frosinone Calcio - AC Milan
+AS Roma - Udinese Calcio
+Bologna FC 1909 - Atalanta BC
+Genoa CFC - Parma Calcio 1913
+Como 1907 - SSC Napoli
+AC Monza - SS Lazio
+
+Journée 22
+AC Milan - Juventus FC
+AC Monza - AS Roma
+Torino FC - Frosinone Calcio
+Udinese Calcio - Bologna FC 1909
+US Sassuolo Calcio - Como 1907
+Genoa CFC - US Lecce
+Cagliari Calcio - Parma Calcio 1913
+Atalanta BC - ACF Fiorentina
+SS Lazio - Venezia FC
+SSC Napoli - FC Internazionale Milano
+
+Journée 23
+Juventus FC - US Sassuolo Calcio
+FC Internazionale Milano - Cagliari Calcio
+Como 1907 - AC Monza
+US Lecce - SSC Napoli
+Venezia FC - Genoa CFC
+AS Roma - Torino FC
+Atalanta BC - SS Lazio
+Parma Calcio 1913 - Frosinone Calcio
+Bologna FC 1909 - AC Milan
+ACF Fiorentina - Udinese Calcio
+
+Journée 24
+SSC Napoli - Juventus FC
+AC Monza - US Lecce
+Torino FC - US Sassuolo Calcio
+Frosinone Calcio - ACF Fiorentina
+Bologna FC 1909 - Como 1907
+AS Roma - Parma Calcio 1913
+Udinese Calcio - Venezia FC
+Genoa CFC - Atalanta BC
+Cagliari Calcio - SS Lazio
+FC Internazionale Milano - AC Milan
+
+Journée 25
+Como 1907 - Torino FC
+Atalanta BC - AC Monza
+Udinese Calcio - Parma Calcio 1913
+Juventus FC - Bologna FC 1909
+ACF Fiorentina - FC Internazionale Milano
+US Sassuolo Calcio - AS Roma
+AC Milan - Genoa CFC
+Venezia FC - Cagliari Calcio
+US Lecce - Frosinone Calcio
+SS Lazio - SSC Napoli
+
+Journée 26
+FC Internazionale Milano - Atalanta BC
+Cagliari Calcio - Udinese Calcio
+Parma Calcio 1913 - US Sassuolo Calcio
+Genoa CFC - SS Lazio
+AS Roma - Venezia FC
+Como 1907 - AC Milan
+Torino FC - ACF Fiorentina
+Bologna FC 1909 - US Lecce
+AC Monza - Juventus FC
+Frosinone Calcio - SSC Napoli
+
+Journée 27
+Udinese Calcio - FC Internazionale Milano
+Atalanta BC - Torino FC
+SSC Napoli - Parma Calcio 1913
+US Lecce - Como 1907
+SS Lazio - Frosinone Calcio
+US Sassuolo Calcio - Bologna FC 1909
+AC Monza - Genoa CFC
+ACF Fiorentina - Venezia FC
+AC Milan - Cagliari Calcio
+Juventus FC - AS Roma
+
+Journée 28
+Bologna FC 1909 - SSC Napoli
+Cagliari Calcio - ACF Fiorentina
+AC Milan - US Sassuolo Calcio
+Genoa CFC - AS Roma
+Parma Calcio 1913 - US Lecce
+Torino FC - FC Internazionale Milano
+Frosinone Calcio - AC Monza
+Como 1907 - Udinese Calcio
+SS Lazio - Juventus FC
+Venezia FC - Atalanta BC
+
+Journée 29
+SSC Napoli - Venezia FC
+Udinese Calcio - Torino FC
+Juventus FC - Como 1907
+ACF Fiorentina - Genoa CFC
+Parma Calcio 1913 - SS Lazio
+US Sassuolo Calcio - Cagliari Calcio
+AC Monza - Bologna FC 1909
+FC Internazionale Milano - Frosinone Calcio
+AS Roma - US Lecce
+Atalanta BC - AC Milan
+
+Journée 30
+US Lecce - SS Lazio
+Cagliari Calcio - SSC Napoli
+Como 1907 - ACF Fiorentina
+US Sassuolo Calcio - Atalanta BC
+AS Roma - Bologna FC 1909
+AC Milan - AC Monza
+Genoa CFC - FC Internazionale Milano
+Torino FC - Juventus FC
+Venezia FC - Parma Calcio 1913
+Frosinone Calcio - Udinese Calcio
+
+Journée 31
+Juventus FC - US Lecce
+SSC Napoli - US Sassuolo Calcio
+ACF Fiorentina - AC Milan
+SS Lazio - Torino FC
+Cagliari Calcio - Atalanta BC
+Parma Calcio 1913 - Como 1907
+Bologna FC 1909 - Venezia FC
+Frosinone Calcio - Genoa CFC
+FC Internazionale Milano - AS Roma
+Udinese Calcio - AC Monza
+
+Journée 32
+AC Monza - FC Internazionale Milano
+ACF Fiorentina - Parma Calcio 1913
+AS Roma - SS Lazio
+Como 1907 - Frosinone Calcio
+US Sassuolo Calcio - US Lecce
+Bologna FC 1909 - Cagliari Calcio
+Atalanta BC - Udinese Calcio
+Venezia FC - Juventus FC
+AC Milan - SSC Napoli
+Torino FC - Genoa CFC
+
+Journée 33
+Frosinone Calcio - AS Roma
+Cagliari Calcio - AC Monza
+SSC Napoli - Udinese Calcio
+Parma Calcio 1913 - Atalanta BC
+SS Lazio - Como 1907
+Juventus FC - ACF Fiorentina
+Genoa CFC - US Sassuolo Calcio
+US Lecce - AC Milan
+Venezia FC - Torino FC
+FC Internazionale Milano - Bologna FC 1909
+
+Journée 34
+Atalanta BC - Juventus FC
+Torino FC - Parma Calcio 1913
+AC Milan - SS Lazio
+Udinese Calcio - Genoa CFC
+US Sassuolo Calcio - Frosinone Calcio
+Bologna FC 1909 - ACF Fiorentina
+Como 1907 - FC Internazionale Milano
+AC Monza - Venezia FC
+US Lecce - Cagliari Calcio
+AS Roma - SSC Napoli
+
+Journée 35
+Parma Calcio 1913 - AC Milan
+Genoa CFC - Cagliari Calcio
+SS Lazio - US Sassuolo Calcio
+SSC Napoli - AC Monza
+FC Internazionale Milano - US Lecce
+Venezia FC - Como 1907
+Udinese Calcio - Juventus FC
+Torino FC - Bologna FC 1909
+Frosinone Calcio - Atalanta BC
+ACF Fiorentina - AS Roma
+
+Journée 36
+SSC Napoli - Genoa CFC
+US Lecce - ACF Fiorentina
+SS Lazio - Udinese Calcio
+Bologna FC 1909 - Frosinone Calcio
+Como 1907 - Atalanta BC
+Juventus FC - FC Internazionale Milano
+US Sassuolo Calcio - Venezia FC
+AC Monza - Parma Calcio 1913
+AC Milan - AS Roma
+Cagliari Calcio - Torino FC
+
+Journée 37
+AS Roma - Como 1907
+Parma Calcio 1913 - Juventus FC
+Torino FC - SSC Napoli
+Atalanta BC - US Lecce
+FC Internazionale Milano - SS Lazio
+Udinese Calcio - US Sassuolo Calcio
+Frosinone Calcio - Cagliari Calcio
+ACF Fiorentina - AC Monza
+Venezia FC - AC Milan
+Genoa CFC - Bologna FC 1909
+
+Journée 38
+AC Milan - Udinese Calcio
+Juventus FC - Frosinone Calcio
+AC Monza - Torino FC
+US Sassuolo Calcio - FC Internazionale Milano
+Cagliari Calcio - AS Roma
+SS Lazio - ACF Fiorentina
+Como 1907 - Genoa CFC
+SSC Napoli - Atalanta BC
+US Lecce - Venezia FC
+Bologna FC 1909 - Parma Calcio 1913
