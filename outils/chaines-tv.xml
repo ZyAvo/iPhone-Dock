@@ -1,13 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <channels>
   <channel site="canalplus.com" site_id="#301" lang="fr" xmltv_id="CPLUS">Canal+</channel>
-  <channel site="canalplus.com" site_id="#573" lang="fr" xmltv_id="CPLUS_B">Canal+</channel>
   <channel site="canalplus.com" site_id="#177" lang="fr" xmltv_id="CPSPORT">Canal+ Sport</channel>
-  <channel site="canalplus.com" site_id="#574" lang="fr" xmltv_id="CPSPORT_B">Canal+ Sport</channel>
   <channel site="canalplus.com" site_id="#19" lang="fr" xmltv_id="CPFOOT">Canal+ Foot</channel>
-  <channel site="canalplus.com" site_id="#1045" lang="fr" xmltv_id="CPFOOT_B">Canal+ Foot</channel>
   <channel site="canalplus.com" site_id="#83" lang="fr" xmltv_id="CP360">Canal+ Sport 360</channel>
-  <channel site="canalplus.com" site_id="#1048" lang="fr" xmltv_id="CP360_B">Canal+ Sport 360</channel>
   <channel site="canalplus.com" site_id="#1135" lang="fr" xmltv_id="CPLIVE1">Canal+ Live 1</channel>
   <channel site="canalplus.com" site_id="#1136" lang="fr" xmltv_id="CPLIVE2">Canal+ Live 2</channel>
   <channel site="canalplus.com" site_id="#1137" lang="fr" xmltv_id="CPLIVE3">Canal+ Live 3</channel>

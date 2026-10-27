@@ -84,26 +84,33 @@ async function eventsFor(L, S, prev){
     if (!near) return {idle:true, info};
   }
 
-  let raw = null;
-  for (const lim of [1000, 400]){                              // 1) toute la période d'un coup
+  // 1) toute la période d'un coup (ESPN tronque parfois la réponse : on complète ensuite jour par jour)
+  let ranged = [];
+  for (const lim of [1000, 400]){
     try{
       const j = await get(`${base}?dates=${ymd(S.start)}-${ymd(S.end)}&limit=${lim}`, 2);
-      if (j && Array.isArray(j.events) && j.events.length){ raw = j.events.map(e => norm(e, L)); break; }
+      if (j && Array.isArray(j.events) && j.events.length){ ranged = j.events.map(e => norm(e, L)); break; }
     }catch{}
   }
-  if (!raw){                                                    // 2) sinon jour par jour, sur les seuls jours de match
-    let want = cal ? days(S.start, S.end).filter(d => cal.includes(d))
-                   : days(Math.max(S.start, NOW - 10 * DAY), Math.min(S.end, NOW + 25 * DAY));   // sans calendrier : fenêtre courte
-    const keep = new Map();
-    const cutoff = ymd(NOW - 3 * DAY);                          // les matchs anciens et terminés sont repris du fichier précédent
-    ((prev && prev.events) || []).forEach(m => { if (ymd(m.t) < cutoff && m.state === 'post') keep.set(m.id, m); });
-    const doneDays = new Set([...keep.values()].map(m => ymd(m.t)));
-    want = want.filter(d => d >= cutoff || !doneDays.has(d));
-    const res = await pool(want.map(d => () => get(`${base}?dates=${d}&limit=300`)), 10);
-    raw = [...keep.values(), ...res.flatMap(j => ((j || {}).events || []).map(e => norm(e, L)))];
-  }
+  // 2) jours à vérifier : les jours de match du calendrier ESPN s'il concerne bien cette saison, sinon tous les jours
+  const lo = ymd(S.start), hi = ymd(S.end);
+  const calIn = (cal || []).filter(d => d >= lo && d <= hi);
+  const cand = calIn.length ? calIn : days(S.start, S.end);
+  const covered = new Set(ranged.map(m => ymd(m.t)));
+  const lastCovered = [...covered].sort().pop(); covered.delete(lastCovered);        // le dernier jour peut être incomplet
+  const cutoff = ymd(NOW - 3 * DAY);
+  const checked = new Set(((prev && prev.checked) || []).filter(d => d < cutoff));   // jours passés déjà lus aux passages précédents
+  const far = ymd(NOW + 14 * DAY), future = {...((prev && prev.future) || {})};    // jours lointains : relus une fois par jour seulement
+  const keepDay = d => (d < cutoff && checked.has(d)) || (d > far && future[d] && NOW - future[d] < DAY);
+  const keep = ((prev && prev.events) || []).filter(m => keepDay(ymd(m.t)));
+  const todo = cand.filter(d => !covered.has(d) && !keepDay(d));
+  const res = await pool(todo.map(d => async () => { const j = await get(`${base}?dates=${d}&limit=300`); if (d < cutoff) checked.add(d); else if (d > far) future[d] = NOW; return j; }), 10);
+  covered.forEach(d => checked.add(d));
+  const raw = [...keep, ...ranged, ...res.flatMap(j => ((j || {}).events || []).map(e => norm(e, L)))];
+  console.log(`  ${L.name} : ${ranged.length} matchs d'un coup, ${todo.length} jours lus un par un, calendrier ESPN ${calIn.length ? 'à jour' : 'absent ou d\'une autre saison'}`);
   const map = new Map(); raw.forEach(m => map.set(m.id, m));
-  return {events:[...map.values()].sort((a, b) => a.t - b.t), info, calendar:cal};
+  Object.keys(future).forEach(d => { if (d <= far) delete future[d]; });
+  return {events:[...map.values()].sort((a, b) => a.t - b.t), info, calendar:cal, checked:[...checked].filter(d => d < cutoff).sort(), future};
 }
 
 /* ---------- Journées ---------- */
@@ -192,7 +199,7 @@ for (const L of LEAGUES){
     let table = null;
     try{ const j = await get(`https://site.api.espn.com/apis/v2/sports/${L.sport}/${L.id}/standings`, 2); if (j) table = tableFrom(j); }catch{}
     if (!table && prev && prev.table) table = prev.table;
-    write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, calendar:r.calendar, rounds, table, events:r.events});
+    write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, calendar:r.calendar, checked:r.checked, future:r.future, rounds, table, events:r.events});
     index.leagues[L.id] = {count:r.events.length, rounds, table:!!table, file:`${slug(L.id)}.json`};
     r.events.filter(m => m.t >= NOW - 5 * DAY && m.t <= NOW + 18 * DAY).forEach(m => upcoming.push(m));
     console.log(`${L.name} : ${r.events.length} matchs, ${Math.round((Date.now() - t0) / 1000)} s`, JSON.stringify(rounds));
