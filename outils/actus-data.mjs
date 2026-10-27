@@ -45,8 +45,10 @@ function parse(xml){
   return blocks.map(x => {
     const link = strip(tag(x, ['link'])) || attr(x, 'link', 'href', s => !/rel\s*=\s*["'](?!alternate)/i.test(s)) || strip(tag(x, ['guid']));
     const when = strip(tag(x, ['pubDate', 'dc:date', 'published', 'updated']));
-    return {title:strip(tag(x, ['title'])), link:link.trim(), date:Date.parse(when) || null,
-            desc:strip(tag(x, ['description', 'summary', 'content:encoded', 'content'])).slice(0, 260), img:imageOf(x)};
+    const g = /news\.google\./.test(link);              // Google Actualités : « Titre - Média », sans résumé utile
+    const title = strip(tag(x, ['title']));
+    return {title:g ? title.replace(/\s+[-–]\s+[^-–]+$/, '') : title, link:link.trim(), date:Date.parse(when) || null,
+            desc:g ? '' : strip(tag(x, ['description', 'summary', 'content:encoded', 'content'])).slice(0, 260), img:imageOf(x)};
   }).filter(i => i.title && /^https?:\/\//.test(i.link));
 }
 
@@ -110,6 +112,9 @@ async function discover(f){
 const got = await pool(feeds.map(f => async () => {
   let items = [], err = '';
   try{ items = parse(await get(f.url)); if (!items.length) err = 'flux vide ou illisible'; }catch(e){ err = String(e.message || e); }
+  for (const alt of (items.length ? [] : f.alt || [])){               // adresses de secours (ex. Google Actualités limité au site)
+    try{ const it = parse(await get(alt)); if (it.length){ state[f.url] = {name:f.name, url:f.url, ok:true, n:it.length, img:it.filter(i => i.img).length, trouve:alt, err:`flux principal : ${err}`}; return [f.url, it]; } }catch{}
+  }
   if (!items.length){
     const d = await discover(f);
     if (d){ items = d.items; state[f.url] = {name:f.name, url:f.url, ok:true, n:items.length, img:items.filter(i => i.img).length, trouve:d.url, err:`adresse à mettre à jour (${err})`}; return [f.url, items]; }
@@ -134,6 +139,7 @@ for (const t of TABS){
   tabs[t.id] = {items:cluster(items).slice(0, MAX_ITEMS)};
 }
 fs.mkdirSync(OUT, {recursive:true});
+Object.values(state).forEach(st => { st.onglets = TABS.filter(t => t.feeds.some(f => f.url === st.url)).map(t => t.label); });
 fs.writeFileSync(`${OUT}/actus.json`, JSON.stringify({v:1, updated:new Date(NOW).toISOString(), tabs, sources:Object.values(state)}));
 const ko = Object.values(state).filter(s => !s.ok);
 console.log(`${feeds.length - ko.length}/${feeds.length} flux lus.` + Object.entries(tabs).map(([k, v]) => ` ${k}:${v.items.length}`).join(''));

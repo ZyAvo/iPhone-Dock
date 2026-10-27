@@ -34,6 +34,27 @@ const shared = [
 vm.runInThisContext(shared, {filename:'sport.html (extraits)'});
 const {LEAGUES, applyRefs, parseCalendar, norm, logosOf, tableFrom, summaryEvents, assignRounds, slug, tokens} = globalThis;
 
+/* ---------- Fichiers plus légers : on retire ce que la page sait reconstituer (voir expand() dans sport.html) ---------- */
+const SPORT_OF = Object.fromEntries(LEAGUES.map(L => [L.id, L.sport]));
+const LOGO = (sport, id) => sport === 'soccer' && id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${id}.png` : null;
+function slimSide(t, sport){
+  const o = {...t};
+  if (o.full === o.name) delete o.full;
+  if (o.logo && o.logo === LOGO(sport, o.id)) delete o.logo;
+  if (!o.win) delete o.win;
+  if (o.so == null) delete o.so;
+  return o;
+}
+function slim(m){
+  const sport = SPORT_OF[m.league], o = {...m, home:slimSide(m.home, sport), away:slimSide(m.away, sport)};
+  o.details = (m.details || []).map(d => Object.fromEntries(Object.entries(d).filter(([, v]) => v !== false && v !== null && v !== '' && v !== undefined)));
+  if (!o.details.length) delete o.details;
+  if (!(o.us || []).length) delete o.us;
+  if (o.round == null) delete o.round;
+  if (!o.roundSrc) delete o.roundSrc;
+  return o;
+}
+
 /* ---------- Outils ---------- */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const ymd = t => new Date(t).toISOString().slice(0, 10).replace(/-/g, '');
@@ -267,18 +288,18 @@ for (const L of LEAGUES){
     const rounds = await numberRounds(L, S, r.events);
     await rugbyDetails(L, r.events, prev);
     const table = await standings(L, S, r.events, prev);
-    write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, diag:r.diag, calendar:r.calendar, checked:r.checked, future:r.future, rounds, table, events:r.events});
+    write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, diag:r.diag, calendar:r.calendar, checked:r.checked, future:r.future, rounds, table, events:r.events.map(slim)});
     index.leagues[L.id] = {count:r.events.length, rounds, table:table ? table.src || 'espn' : false, diag:r.diag, file:`${slug(L.id)}.json`};
-    r.events.filter(m => m.t >= NOW - 5 * DAY && m.t <= NOW + 18 * DAY).forEach(m => upcoming.push(m));
+    r.events.filter(m => m.t >= NOW - 4 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
     console.log(`${L.name} : ${r.events.length} matchs, ${Math.round((Date.now() - t0) / 1000)} s`, JSON.stringify(rounds));
   }catch(e){
     index.leagues[L.id] = {error:String(e.message || e)};
-    if (prev && prev.events) prev.events.filter(m => m.t >= NOW - 5 * DAY && m.t <= NOW + 18 * DAY).forEach(m => upcoming.push(m));
+    if (prev && prev.events) prev.events.filter(m => m.t >= NOW - 4 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
     console.log(`${L.name} : ERREUR ${e.message}`);
   }
 }
 const logos = {};
 for (const L of LEAGUES){ const f = read(`${OUT}/${slug(L.id)}.json`); if (f) logos[L.id] = {logo:f.logo || '', logoDark:f.logoDark || '', season:f.season || ''}; }
-write(`${OUT}/jours.json`, {v:1, updated:index.updated, leagues:logos, events:upcoming.sort((a, b) => a.t - b.t)});
+write(`${OUT}/jours.json`, {v:2, updated:index.updated, leagues:logos, events:upcoming.sort((a, b) => a.t - b.t).map(slim)});
 write(`${OUT}/index.json`, index);
 console.log(`Terminé : ${calls} appels, ${fails} échecs, ${upcoming.length} matchs dans jours.json`);
