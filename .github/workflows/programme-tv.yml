@@ -1,9 +1,9 @@
 name: Programme TV sport
 
 # Toutes les 2 heures :
-#  1. récupère le programme des chaînes sport (Canal+, beIN, DAZN…)      → tv.json
+#  1. récupère le programme des chaînes sport (Canal+, beIN, SFR…)       → tv.json
 #  2. prépare les matchs, journées et classements de la page Sport       → donnees/sport/
-#  3. fait l'index de tes logos et calendriers                           → fichiers.json
+#  Les données vont sur la branche « donnees » (sans historique), puis la tâche « Publication » met le site à jour.
 on:
   schedule:
     - cron: '17 */2 * * *'
@@ -30,6 +30,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Reprise des données précédentes
+        run: bash outils/reprendre-donnees.sh
 
       # ---------- 1. Programme TV ----------
       - uses: actions/checkout@v4
@@ -59,28 +62,6 @@ jobs:
         continue-on-error: true
         run: node outils/sport-data.mjs
 
-      # ---------- 3. Index des logos et calendriers ----------
-      - name: Index des logos et calendriers
-        run: |
-          node -e '
-            const fs = require("fs"), p = require("path");
-            const walk = d => fs.existsSync(d) ? fs.readdirSync(d, {withFileTypes: true}).flatMap(e => e.isDirectory() ? walk(p.join(d, e.name)) : [p.join(d, e.name).split(p.sep).join("/")]) : [];
-            fs.writeFileSync("fichiers.json", JSON.stringify({
-              updated: new Date().toISOString(),
-              logos: walk("logos").filter(f => /\.(png|jpe?g|svg|webp)$/i.test(f)),
-              calendriers: walk("calendriers").filter(f => /\.txt$/i.test(f))
-            }, null, 1));
-          '
-
-      - name: Enregistrement
-        run: |
-          git config user.name "mon-ecran"
-          git config user.email "mon-ecran@users.noreply.github.com"
-          git add fichiers.json
-          [ -f tv.json ] && git add tv.json
-          [ -d donnees/sport ] && git add donnees/sport
-          if ! git diff --cached --quiet; then
-            git commit -m "Mise à jour des données (TV, sport, index)"
-            git pull --rebase
-            git push
-          fi
+      # ---------- 3. Envoi des données ----------
+      - name: Envoi des données
+        run: bash outils/publier-donnees.sh tv.json donnees/sport
