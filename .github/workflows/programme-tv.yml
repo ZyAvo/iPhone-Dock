@@ -1,12 +1,14 @@
 name: Programme TV sport
 
-# 1. Récupère le programme des chaînes sport (Canal+, beIN, DAZN…) et le résume dans tv.json
-# 2. Fait l'index de tes logos et calendriers dans fichiers.json
+# Toutes les 2 heures :
+#  1. récupère le programme des chaînes sport (Canal+, beIN, DAZN…)      → tv.json
+#  2. prépare les matchs, journées et classements de la page Sport       → donnees/sport/
+#  3. fait l'index de tes logos et calendriers                           → fichiers.json
 on:
   schedule:
-    - cron: '23 */4 * * *'     # toutes les 4 heures
-  workflow_dispatch:           # bouton « Run workflow » pour lancer à la main
-  push:                        # dès que tu ajoutes un logo ou un calendrier
+    - cron: '17 */2 * * *'
+  workflow_dispatch:            # bouton « Run workflow » pour lancer à la main
+  push:                         # dès que tu ajoutes un logo ou un calendrier
     paths:
       - 'logos/**'
       - 'calendriers/**'
@@ -15,162 +17,26 @@ permissions:
   contents: write
 
 concurrency:
-  group: tv
-  cancel-in-progress: true
+  group: donnees
+  cancel-in-progress: false
 
 jobs:
-  tv:
+  donnees:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/checkout@v4
-        if: github.event_name != 'push'
-        with:
-          repository: iptv-org/epg
-          path: epg
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Liste des chaînes et script de tri
-        run: |
-          mkdir -p .tv
-          cat > .tv/channels.xml <<'XML'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <channels>
-            <channel site="canalplus.com" site_id="#301" lang="fr" xmltv_id="CPLUS">Canal+</channel>
-            <channel site="canalplus.com" site_id="#573" lang="fr" xmltv_id="CPLUS_B">Canal+</channel>
-            <channel site="canalplus.com" site_id="#177" lang="fr" xmltv_id="CPSPORT">Canal+ Sport</channel>
-            <channel site="canalplus.com" site_id="#574" lang="fr" xmltv_id="CPSPORT_B">Canal+ Sport</channel>
-            <channel site="canalplus.com" site_id="#19" lang="fr" xmltv_id="CPFOOT">Canal+ Foot</channel>
-            <channel site="canalplus.com" site_id="#1045" lang="fr" xmltv_id="CPFOOT_B">Canal+ Foot</channel>
-            <channel site="canalplus.com" site_id="#83" lang="fr" xmltv_id="CP360">Canal+ Sport 360</channel>
-            <channel site="canalplus.com" site_id="#1048" lang="fr" xmltv_id="CP360_B">Canal+ Sport 360</channel>
-            <channel site="canalplus.com" site_id="#1135" lang="fr" xmltv_id="CPLIVE1">Canal+ Live 1</channel>
-            <channel site="canalplus.com" site_id="#1136" lang="fr" xmltv_id="CPLIVE2">Canal+ Live 2</channel>
-            <channel site="canalplus.com" site_id="#1137" lang="fr" xmltv_id="CPLIVE3">Canal+ Live 3</channel>
-            <channel site="canalplus.com" site_id="#1138" lang="fr" xmltv_id="CPLIVE4">Canal+ Live 4</channel>
-            <channel site="canalplus.com" site_id="#1139" lang="fr" xmltv_id="CPLIVE5">Canal+ Live 5</channel>
-            <channel site="canalplus.com" site_id="#1140" lang="fr" xmltv_id="CPLIVE6">Canal+ Live 6</channel>
-            <channel site="canalplus.com" site_id="#1141" lang="fr" xmltv_id="CPLIVE7">Canal+ Live 7</channel>
-            <channel site="canalplus.com" site_id="#1142" lang="fr" xmltv_id="CPLIVE8">Canal+ Live 8</channel>
-            <channel site="canalplus.com" site_id="#1143" lang="fr" xmltv_id="CPLIVE9">Canal+ Live 9</channel>
-            <channel site="canalplus.com" site_id="#1144" lang="fr" xmltv_id="CPLIVE10">Canal+ Live 10</channel>
-            <channel site="canalplus.com" site_id="#1145" lang="fr" xmltv_id="CPLIVE11">Canal+ Live 11</channel>
-            <channel site="canalplus.com" site_id="#1146" lang="fr" xmltv_id="CPLIVE12">Canal+ Live 12</channel>
-            <channel site="canalplus.com" site_id="#1147" lang="fr" xmltv_id="CPLIVE13">Canal+ Live 13</channel>
-            <channel site="canalplus.com" site_id="#1148" lang="fr" xmltv_id="CPLIVE14">Canal+ Live 14</channel>
-            <channel site="canalplus.com" site_id="#1149" lang="fr" xmltv_id="CPLIVE15">Canal+ Live 15</channel>
-            <channel site="canalplus.com" site_id="#1150" lang="fr" xmltv_id="CPLIVE16">Canal+ Live 16</channel>
-            <channel site="canalplus.com" site_id="#1151" lang="fr" xmltv_id="CPLIVE17">Canal+ Live 17</channel>
-            <channel site="canalplus.com" site_id="#1152" lang="fr" xmltv_id="CPLIVE18">Canal+ Live 18</channel>
-            <channel site="canalplus.com" site_id="#1153" lang="fr" xmltv_id="CPLIVE19">Canal+ Live 19</channel>
-            <channel site="canalplus.com" site_id="#381" lang="fr" xmltv_id="BEIN1">beIN Sports 1</channel>
-            <channel site="canalplus.com" site_id="#384" lang="fr" xmltv_id="BEIN2">beIN Sports 2</channel>
-            <channel site="canalplus.com" site_id="#516" lang="fr" xmltv_id="BEIN3">beIN Sports 3</channel>
-            <channel site="canalplus.com" site_id="#596" lang="fr" xmltv_id="BEINMAX4">beIN Sports Max 4</channel>
-            <channel site="canalplus.com" site_id="#597" lang="fr" xmltv_id="BEINMAX5">beIN Sports Max 5</channel>
-            <channel site="canalplus.com" site_id="#598" lang="fr" xmltv_id="BEINMAX6">beIN Sports Max 6</channel>
-            <channel site="canalplus.com" site_id="#599" lang="fr" xmltv_id="BEINMAX7">beIN Sports Max 7</channel>
-            <channel site="canalplus.com" site_id="#603" lang="fr" xmltv_id="BEINMAX8">beIN Sports Max 8</channel>
-            <channel site="canalplus.com" site_id="#604" lang="fr" xmltv_id="BEINMAX9">beIN Sports Max 9</channel>
-            <channel site="canalplus.com" site_id="#605" lang="fr" xmltv_id="BEINMAX10">beIN Sports Max 10</channel>
-            <channel site="canalplus.com" site_id="#1077" lang="fr" xmltv_id="DAZN1">DAZN 1</channel>
-            <channel site="canalplus.com" site_id="#1155" lang="fr" xmltv_id="DAZN2">DAZN 2</channel>
-            <channel site="canalplus.com" site_id="#1156" lang="fr" xmltv_id="DAZN3">DAZN 3</channel>
-            <channel site="canalplus.com" site_id="#1157" lang="fr" xmltv_id="DAZN4">DAZN 4</channel>
-            <channel site="canalplus.com" site_id="#1158" lang="fr" xmltv_id="DAZN5">DAZN 5</channel>
-            <channel site="canalplus.com" site_id="#1174" lang="fr" xmltv_id="L1P3">Ligue 1+ 3</channel>
-            <channel site="canalplus.com" site_id="#1179" lang="fr" xmltv_id="L1P4">Ligue 1+ 4</channel>
-            <channel site="canalplus.com" site_id="#1180" lang="fr" xmltv_id="L1P5">Ligue 1+ 5</channel>
-            <channel site="canalplus.com" site_id="#101" lang="fr" xmltv_id="EUROSPORT1">Eurosport 1</channel>
-            <channel site="canalplus.com" site_id="#436" lang="fr" xmltv_id="EUROSPORT2">Eurosport 2</channel>
-            <channel site="canalplus.com" site_id="#551" lang="fr" xmltv_id="INFOSPORT">Infosport+</channel>
-            <channel site="canalplus.com" site_id="#732" lang="fr" xmltv_id="RMC1">RMC Sport 1</channel>
-            <channel site="canalplus.com" site_id="#733" lang="fr" xmltv_id="RMC2">RMC Sport 2</channel>
-          </channels>
-          XML
-          cat > .tv/build.mjs <<'JS'
-          // Trie le programme TV (XMLTV) et ne garde que le sport -> tv.json
-          import fs from 'node:fs';
-          const [,, src = 'guide.xml', out = 'tv.json'] = process.argv;
-          const NAMES = {
-            CPLUS: 'Canal+',
-            CPLUS_B: 'Canal+',
-            CPSPORT: 'Canal+ Sport',
-            CPSPORT_B: 'Canal+ Sport',
-            CPFOOT: 'Canal+ Foot',
-            CPFOOT_B: 'Canal+ Foot',
-            CP360: 'Canal+ Sport 360',
-            CP360_B: 'Canal+ Sport 360',
-            CPLIVE1: 'Canal+ Live 1',
-            CPLIVE2: 'Canal+ Live 2',
-            CPLIVE3: 'Canal+ Live 3',
-            CPLIVE4: 'Canal+ Live 4',
-            CPLIVE5: 'Canal+ Live 5',
-            CPLIVE6: 'Canal+ Live 6',
-            CPLIVE7: 'Canal+ Live 7',
-            CPLIVE8: 'Canal+ Live 8',
-            CPLIVE9: 'Canal+ Live 9',
-            CPLIVE10: 'Canal+ Live 10',
-            CPLIVE11: 'Canal+ Live 11',
-            CPLIVE12: 'Canal+ Live 12',
-            CPLIVE13: 'Canal+ Live 13',
-            CPLIVE14: 'Canal+ Live 14',
-            CPLIVE15: 'Canal+ Live 15',
-            CPLIVE16: 'Canal+ Live 16',
-            CPLIVE17: 'Canal+ Live 17',
-            CPLIVE18: 'Canal+ Live 18',
-            CPLIVE19: 'Canal+ Live 19',
-            BEIN1: 'beIN Sports 1',
-            BEIN2: 'beIN Sports 2',
-            BEIN3: 'beIN Sports 3',
-            BEINMAX4: 'beIN Sports Max 4',
-            BEINMAX5: 'beIN Sports Max 5',
-            BEINMAX6: 'beIN Sports Max 6',
-            BEINMAX7: 'beIN Sports Max 7',
-            BEINMAX8: 'beIN Sports Max 8',
-            BEINMAX9: 'beIN Sports Max 9',
-            BEINMAX10: 'beIN Sports Max 10',
-            DAZN1: 'DAZN 1',
-            DAZN2: 'DAZN 2',
-            DAZN3: 'DAZN 3',
-            DAZN4: 'DAZN 4',
-            DAZN5: 'DAZN 5',
-            L1P3: 'Ligue 1+ 3',
-            L1P4: 'Ligue 1+ 4',
-            L1P5: 'Ligue 1+ 5',
-            EUROSPORT1: 'Eurosport 1',
-            EUROSPORT2: 'Eurosport 2',
-            INFOSPORT: 'Infosport+',
-            RMC1: 'RMC Sport 1',
-            RMC2: 'RMC Sport 2'
-          };
-          const xml = fs.existsSync(src) ? fs.readFileSync(src, 'utf8') : '';
-          const dec = s => s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).replace(/&amp;/g, '&').trim();
-          const tag = (body, t) => { const m = body.match(new RegExp(`<${t}[^>]*>([\\s\\S]*?)</${t}>`)); return m ? dec(m[1]) : ''; };
-          const tags = (body, t) => [...body.matchAll(new RegExp(`<${t}[^>]*>([\\s\\S]*?)</${t}>`, 'g'))].map(m => dec(m[1]));
-          const time = s => { const m = /^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)\s*([+-]\d{4})?/.exec(s || ''); if (!m) return null;
-            const z = m[7] ? `${m[7].slice(0, 3)}:${m[7].slice(3)}` : 'Z'; return new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}${z}`).toISOString(); };
-          const SPORT = /sport|foot|soccer|rugby|basket|nba|nfl|nhl|hockey|ligue|league|liga|serie a|bundesliga|top 14|pro d2|champions|europa|coupe|cup|tournoi|nations|match|multiplex/i;
-          const now = Date.now(), seen = new Set(), list = [];
-          for (const m of xml.matchAll(/<programme\s+([^>]*)>([\s\S]*?)<\/programme>/g)){
-            const attr = k => (m[1].match(new RegExp(`${k}="([^"]*)"`)) || [])[1];
-            const id = attr('channel'), c = NAMES[id]; if (!c) continue;
-            const s = time(attr('start')), e = time(attr('stop')); if (!s) continue;
-            if (Date.parse(e || s) < now - 6 * 3600e3) continue;
-            const title = tag(m[2], 'title'), sub = tag(m[2], 'sub-title'), desc = tag(m[2], 'desc'), cats = tags(m[2], 'category').join(' ');
-            if (/^CPLUS(_B)?$/.test(id) && !SPORT.test(`${title} ${sub} ${cats} ${desc}`)) continue;   // Canal+ : seulement le sport
-            const key = `${c}|${s}|${title}`; if (seen.has(key)) continue; seen.add(key);
-            list.push({c, s, e, t: title, d: [sub, desc].filter(Boolean).join(' — ').slice(0, 240)});
-          }
-          list.sort((a, b) => a.s.localeCompare(b.s));
-          fs.writeFileSync(out, JSON.stringify({updated: new Date().toISOString(), programmes: list}));
-          console.log(`${list.length} programmes de sport écrits dans ${out}`);
-          JS
+      # ---------- 1. Programme TV ----------
+      - uses: actions/checkout@v4
+        if: github.event_name != 'push'
+        with:
+          repository: iptv-org/epg
+          path: epg
 
       - name: Installation de l'outil de programme TV
         if: github.event_name != 'push'
@@ -181,12 +47,19 @@ jobs:
         if: github.event_name != 'push'
         working-directory: epg
         continue-on-error: true
-        run: npm run grab --- --channels=../.tv/channels.xml --output=../.tv/guide.xml --days=7 --maxConnections=4 --timeout=20000
+        run: npm run grab --- --channels=../outils/chaines-tv.xml --output=../guide-tv.xml --days=7 --maxConnections=4 --timeout=20000
 
       - name: Tri des programmes de sport
         if: github.event_name != 'push'
-        run: node .tv/build.mjs .tv/guide.xml tv.json
+        continue-on-error: true
+        run: node outils/tv-tri.mjs guide-tv.xml tv.json
 
+      # ---------- 2. Données de la page Sport ----------
+      - name: Matchs, journées et classements
+        continue-on-error: true
+        run: node outils/sport-data.mjs
+
+      # ---------- 3. Index des logos et calendriers ----------
       - name: Index des logos et calendriers
         run: |
           node -e '
@@ -199,10 +72,15 @@ jobs:
             }, null, 1));
           '
 
-      - name: Enregistrement de tv.json et fichiers.json
+      - name: Enregistrement
         run: |
-          git config user.name "programme-tv"
-          git config user.email "programme-tv@users.noreply.github.com"
+          git config user.name "mon-ecran"
+          git config user.email "mon-ecran@users.noreply.github.com"
           git add fichiers.json
           [ -f tv.json ] && git add tv.json
-          git diff --cached --quiet || (git commit -m "Programme TV et index des fichiers" && git pull --rebase && git push)
+          [ -d donnees/sport ] && git add donnees/sport
+          if ! git diff --cached --quiet; then
+            git commit -m "Mise à jour des données (TV, sport, index)"
+            git pull --rebase
+            git push
+          fi
