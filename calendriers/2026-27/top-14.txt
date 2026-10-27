@@ -1,0 +1,237 @@
+# Calendrier Top 14 2026-27
+# Source : allrugby.com (contrôlé : chaque équipe une fois par journée, chaque affiche une seule fois)
+# Une journée par bloc, une ligne par match (domicile - extérieur).
+
+Journée 1
+Bayonne - Toulon
+Castres - Vannes
+Lyon - Clermont
+Montpellier - Pau
+Stade Français Paris - Perpignan
+Bordeaux - Racing 92
+La Rochelle - Toulouse
+
+Journée 2
+Clermont - Stade Français Paris
+Pau - Bayonne
+Perpignan - Castres
+Racing 92 - Lyon
+Vannes - Montpellier
+Toulon - La Rochelle
+Toulouse - Bordeaux
+
+Journée 3
+Castres - Toulon
+Bayonne - Clermont
+La Rochelle - Racing 92
+Lyon - Pau
+Montpellier - Perpignan
+Vannes - Toulouse
+Bordeaux - Stade Français Paris
+
+Journée 4
+Perpignan - Bordeaux
+Clermont - Castres
+Stade Français Paris - Lyon
+Racing 92 - Bayonne
+Toulon - Vannes
+Pau - La Rochelle
+Toulouse - Montpellier
+
+Journée 5
+Bordeaux - Lyon
+Bayonne - Stade Français Paris
+La Rochelle - Clermont
+Racing 92 - Perpignan
+Vannes - Pau
+Castres - Toulouse
+Montpellier - Toulon
+
+Journée 6
+Stade Français Paris - Montpellier
+Lyon - La Rochelle
+Pau - Castres
+Perpignan - Vannes
+Toulon - Racing 92
+Clermont - Bordeaux
+Toulouse - Bayonne
+
+Journée 7
+Vannes - Clermont
+Bayonne - Lyon
+Castres - Stade Français Paris
+Racing 92 - Montpellier
+Toulouse - Perpignan
+Toulon - Pau
+La Rochelle - Bordeaux
+
+Journée 8
+Clermont - Racing 92
+Bordeaux - Bayonne
+Lyon - Vannes
+Montpellier - Castres
+Stade Français Paris - La Rochelle
+Perpignan - Toulon
+Pau - Toulouse
+
+Journée 9
+Vannes - Bordeaux
+Castres - Racing 92
+Montpellier - Lyon
+Pau - Perpignan
+Toulon - Stade Français Paris
+Toulouse - Clermont
+La Rochelle - Bayonne
+
+Journée 10
+Bayonne - Castres
+Bordeaux - Montpellier
+Clermont - Toulon
+La Rochelle - Perpignan
+Lyon - Toulouse
+Stade Français Paris - Vannes
+Racing 92 - Pau
+
+Journée 11
+Castres - Lyon
+Montpellier - La Rochelle
+Pau - Stade Français Paris
+Perpignan - Clermont
+Toulon - Bordeaux
+Toulouse - Racing 92
+Vannes - Bayonne
+
+Journée 12
+Bayonne - Perpignan
+Bordeaux - Pau
+Clermont - Montpellier
+La Rochelle - Castres
+Lyon - Toulon
+Stade Français Paris - Toulouse
+Racing 92 - Vannes
+
+Journée 13
+Castres - Bordeaux
+Montpellier - Bayonne
+Pau - Clermont
+Perpignan - Lyon
+Racing 92 - Stade Français Paris
+Toulouse - Toulon
+Vannes - La Rochelle
+
+Journée 14
+Bayonne - Toulouse
+Bordeaux - Perpignan
+Clermont - Vannes
+La Rochelle - Pau
+Lyon - Racing 92
+Stade Français Paris - Castres
+Toulon - Montpellier
+
+Journée 15
+Vannes - Perpignan
+Castres - Clermont
+Montpellier - Stade Français Paris
+Pau - Lyon
+Racing 92 - Bordeaux
+Toulon - Bayonne
+Toulouse - La Rochelle
+
+Journée 16
+Bordeaux - Vannes
+Clermont - Toulouse
+La Rochelle - Toulon
+Lyon - Bayonne
+Pau - Montpellier
+Perpignan - Stade Français Paris
+Racing 92 - Castres
+
+Journée 17
+Bayonne - La Rochelle
+Montpellier - Racing 92
+Stade Français Paris - Bordeaux
+Perpignan - Pau
+Toulon - Clermont
+Toulouse - Lyon
+Vannes - Castres
+
+Journée 18
+Bordeaux - Toulon
+Castres - Perpignan
+Clermont - Bayonne
+La Rochelle - Stade Français Paris
+Lyon - Montpellier
+Pau - Vannes
+Racing 92 - Toulouse
+
+Journée 19
+Bayonne - Bordeaux
+Castres - La Rochelle
+Montpellier - Clermont
+Stade Français Paris - Pau
+Perpignan - Racing 92
+Toulon - Lyon
+Toulouse - Vannes
+
+Journée 20
+Bayonne - Montpellier
+Bordeaux - Toulouse
+Clermont - Pau
+Lyon - Castres
+Perpignan - La Rochelle
+Racing 92 - Toulon
+Vannes - Stade Français Paris
+
+Journée 21
+Castres - Bayonne
+La Rochelle - Vannes
+Lyon - Perpignan
+Montpellier - Bordeaux
+Stade Français Paris - Clermont
+Pau - Racing 92
+Toulon - Toulouse
+
+Journée 22
+Bayonne - Pau
+Bordeaux - La Rochelle
+Clermont - Lyon
+Stade Français Paris - Racing 92
+Perpignan - Montpellier
+Toulouse - Castres
+Vannes - Toulon
+
+Journée 23
+Bayonne - Vannes
+Clermont - Perpignan
+Lyon - Stade Français Paris
+Montpellier - Toulouse
+Pau - Bordeaux
+Racing 92 - La Rochelle
+Toulon - Castres
+
+Journée 24
+Bordeaux - Clermont
+Castres - Montpellier
+La Rochelle - Lyon
+Stade Français Paris - Toulon
+Perpignan - Bayonne
+Toulouse - Pau
+Vannes - Racing 92
+
+Journée 25
+Bayonne - Racing 92
+Castres - Pau
+Clermont - La Rochelle
+Lyon - Bordeaux
+Montpellier - Vannes
+Toulon - Perpignan
+Toulouse - Stade Français Paris
+
+Journée 26
+Bordeaux - Castres
+La Rochelle - Montpellier
+Stade Français Paris - Bayonne
+Pau - Toulon
+Perpignan - Toulouse
+Racing 92 - Clermont
+Vannes - Lyon
