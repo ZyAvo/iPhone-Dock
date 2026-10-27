@@ -312,11 +312,13 @@ body.locked{overflow:hidden}
 .cal-nav + .wk-head,.hint + .wk-head{border-top:0;margin-top:0}
 .wk-head b{font-size:1rem;font-weight:700;letter-spacing:-.01em}
 .wk-head span{font-size:.76rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
-.icon-btn.health{color:var(--warn);position:relative}
+.icon-btn.health{position:relative}
+.icon-btn.health.warn{color:var(--warn)}
 .icon-btn.health b{position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--warn);color:#fff;font-size:.62rem;display:grid;place-items:center}
 .issue{display:flex;flex-direction:column;gap:4px;padding:12px 16px;border-bottom:1px solid var(--line)}
 .issue:last-child{border-bottom:0}
 .issue b{font-size:.9rem}
+.issue .mini{align-self:flex-start;margin-top:6px}
 .issue span{font-size:.8rem;color:var(--ink-soft);line-height:1.45}
 .issue code{font-family:var(--f-num);font-size:.76rem;background:var(--accent-soft);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
 @keyframes up{from{transform:translateY(40%)}}
@@ -331,7 +333,7 @@ body.locked{overflow:hidden}
   <div class="wrap">
     <div class="top">
       <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
-      <span class="top-actions"><button class="icon-btn glass health" id="healthBtn" type="button" aria-label="État des données" hidden><svg viewBox="0 0 24 24"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.2M12 16.8v.2"/></svg><b id="healthN"></b></button>
+      <span class="top-actions"><button class="icon-btn glass health" id="healthBtn" type="button" aria-label="État des données"><svg viewBox="0 0 24 24" id="healthIc"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2M12 7.8v.2"/></svg><b id="healthN" hidden></b></button>
       <button class="icon-btn glass" id="compsBtn" type="button" aria-label="Classements et calendriers"><svg viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 3.5M17 6h2.5a2.5 2.5 0 0 1-2.6 3.5M12 13v3.5M8.5 20h7M9.5 20l.5-3.5h4l.5 3.5"/></svg></button>
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span>
     </div>
@@ -435,6 +437,7 @@ const LEAGUES = [
   {id:'nfl',                 region:'us',  flag:'🇺🇸', sport:'football',   group:'nfl',    name:'NFL', tv:['beIN Sports'], partial:true, rounds:true},
   {id:'nhl',                 region:'us',  flag:'🇺🇸', sport:'hockey',     group:'hockey', name:'NHL', tv:['beIN Sports','DAZN'], partial:true}
 ];
+const VERSION = '2026-10-27.4';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -461,13 +464,15 @@ let DATA = {};                  // league id -> {at, events:[…]}
 let sample = false, failed = new Set(), open = new Set();
 
 /* ---------- Récupération ---------- */
+const NET = {ok:0, ko:0, slow:0};
 async function getJSON(url){
-  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 10000);
+  const ctrl = new AbortController(), t0 = Date.now(); const t = setTimeout(() => ctrl.abort(), 9000);
   try{
     const r = await fetch(url, {signal:ctrl.signal});
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    return await r.json();
-  } finally { clearTimeout(t); }
+    const j = await r.json(); NET.ok++; return j;
+  } catch(e){ NET.ko++; throw e; }
+  finally { clearTimeout(t); if (Date.now() - t0 > 4000) NET.slow++; }
 }
 async function pool(tasks, n){
   const out = []; let i = 0;
@@ -851,7 +856,7 @@ function render(){
     ? '<div class="skeleton glass"></div><div class="skeleton glass"></div><div class="skeleton glass"></div>'
     : `<div class="empty">Aucun match ${selDay < 0 ? 'joué' : 'prévu'} ce jour-là${group !== 'all' ? ' pour ce sport' : ''}.</div>`;
 
-  html += `<p class="foot-note">Scores : ESPN · Chaînes France : droits 2026-27, à confirmer selon le match</p>`;
+  html += `<p class="foot-note">Scores : ESPN · Chaînes France : droits 2026-27, à confirmer selon le match · v${VERSION}</p>`;
   box.innerHTML = html;
 }
 
@@ -1195,14 +1200,24 @@ function setCalendar(L, lg){
   const cal = (lg || {}).calendar;
   if (Array.isArray(cal) && cal.length && typeof cal[0] === 'string') CALDATES[L.id] = new Set(cal.map(x => x.slice(0, 10).replace(/-/g, '')));
 }
-async function fetchDays(L, days){
-  const C = DAYCACHE[L.id] || (DAYCACHE[L.id] = {}), today = ymd(dayAt(0)), now = Date.now();
-  const fresh = d => C[d] && now - C[d].at < (d < today ? 6 * 3600e3 : d === today ? 60e3 : 30 * 60e3);
-  await pool([...new Set(days)].filter(d => !fresh(d)).map(d => async () => {
-    const j = await getJSON(`${API}/${L.sport}/${L.id}/scoreboard?dates=${d}&limit=300`);
-    C[d] = {at:Date.now(), events:(j.events || []).map(ev => norm(ev, L))};
-    if (!CALDATES[L.id] && j.leagues) setCalendar(L, j.leagues[0]);
-  }), 6);
+async function fetchDays(L, days, onStep){
+  if (!DAYCACHE[L.id]) DAYCACHE[L.id] = store.get('sport:days:' + L.id) || {};
+  const C = DAYCACHE[L.id], today = ymd(dayAt(0)), now = Date.now();
+  const fresh = d => C[d] && now - C[d].at < (d < today ? 12 * 3600e3 : d === today ? 60e3 : 30 * 60e3);
+  const todo = [...new Set(days)].filter(d => !fresh(d));
+  let done = 0; if (onStep && todo.length) onStep(0, todo.length);
+  await pool(todo.map(d => async () => {
+    try{
+      const j = await getJSON(`${API}/${L.sport}/${L.id}/scoreboard?dates=${d}&limit=300`);
+      C[d] = {at:Date.now(), events:(j.events || []).map(ev => norm(ev, L))};
+      if (!CALDATES[L.id] && j.leagues) setCalendar(L, j.leagues[0]);
+    } finally { if (onStep) onStep(++done, todo.length); }
+  }), 8);
+  if (todo.length){                                   // on garde ±3 semaines sur l'appareil pour les prochaines ouvertures
+    const lo = ymd(dayAt(-21)), hi = ymd(dayAt(21)), keep = {};
+    Object.keys(C).filter(d => d >= lo && d <= hi).forEach(d => keep[d] = C[d]);
+    store.set('sport:days:' + L.id, keep);
+  }
   const map = new Map();
   days.forEach(d => ((C[d] || {}).events || []).forEach(m => map.set(m.id, m)));
   return [...map.values()].sort((a, b) => a.t - b.t);
@@ -1371,10 +1386,17 @@ function healthIssues(){
 }
 function renderHealth(){
   const n = healthIssues().length;
-  $('#healthBtn').hidden = !n; $('#healthN').textContent = n || '';
+  $('#healthBtn').classList.toggle('warn', !!n);
+  $('#healthN').hidden = !n; $('#healthN').textContent = n || '';
+  $('#healthIc').innerHTML = n ? '<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.2M12 16.8v.2"/>' : '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2M12 7.8v.2"/>';
   if (csheet && csheet.mode === 'health') renderCsheet();
 }
 $('#healthBtn').addEventListener('click', () => { csheet = {mode:'health', focus:document.activeElement}; showCsheet(); });
+document.addEventListener('click', e => {
+  if (!e.target.closest('#resetData')) return;
+  try{ Object.keys(localStorage).filter(k => k.startsWith('sport:')).forEach(k => localStorage.removeItem(k)); }catch{}
+  location.reload();
+});
 
 const TSDB = 'https://www.thesportsdb.com/api/v1/json/123';
 async function tsdbLeagueId(L){
@@ -1477,20 +1499,36 @@ async function loadRoundsByDays(cs){
   if (c.round == null){ const i = clusters.findIndex(cl => cl[cl.length - 1] >= target); c.round = i < 0 ? clusters.length : i + 1; }
   if (!c.week) c.week = mondayOf(c.at ? new Date(c.at) : dayAt(0));
   c.events = null; renderCsheet();
-  let want;
+  let want, extra = [];
   if (c.view === 'week') want = daysBetween(addDays(c.week, -1), addDays(c.week, 6)).filter(d => cd.has(d));
-  else { const i = c.round - 1; want = [i - 1, i, i + 1].filter(k => clusters[k]).flatMap(k => clusters[k]); }
+  else { const i = c.round - 1; want = clusters[i] || []; extra = [i - 1, i + 1].filter(k => clusters[k]).flatMap(k => clusters[k]); }
+  const step = (n, t) => { if (csheet === cs && c.events === null){ c.progress = `${n}/${t}`; renderCsheet(); } };
   let evs;
-  try{ evs = await fetchDays(L, want); }catch{ evs = []; }
+  try{ evs = await fetchDays(L, want, step); }catch{ evs = []; }
   if (csheet !== cs) return;
+  await placeRounds(cs, L, evs, clusters);
+  if (extra.length){                                    // journées voisines ensuite (matchs reportés), sans bloquer l'affichage
+    try{ evs = await fetchDays(L, [...want, ...extra]); }catch{}
+    if (csheet !== cs) return;
+    await placeRounds(cs, L, evs, clusters);
+  }
+}
+async function placeRounds(cs, L, evs, clusters){
+  const c = cs.cal;
+  const idx = d => clusters.findIndex(cl => cl.includes(d));
+  const fill = () => evs.forEach(m => { if (!m.round || m.roundSrc === 'calc'){ const i = idx(ymd(new Date(m.t))); const j = i < 0 ? idx(ymd(addDays(new Date(m.t), -1))) : i; m.round = j < 0 ? null : j + 1; m.roundSrc = 'calc'; } });
+  const show = () => {
+    if (csheet !== cs) return;
+    c.events = c.view === 'week' ? evs.filter(m => m.t >= c.week.getTime() - 43200e3 && m.t < addDays(c.week, 7).getTime() - 43200e3) : evs.filter(m => m.round === c.round);
+    c.progress = null; renderCsheet();
+  };
   evs.forEach(m => { m.round = null; m.roundSrc = null; });
   await refRounds(L, evs); await officialRounds(L, evs);
-  if (L.tsdb) await tsdbRounds(L, evs, [c.round - 1, c.round, c.round + 1]);
-  const idx = d => clusters.findIndex(cl => cl.includes(d));
-  evs.forEach(m => { if (!m.round){ const i = idx(ymd(new Date(m.t))); const j = i < 0 ? idx(ymd(addDays(new Date(m.t), -1))) : i; m.round = j < 0 ? null : j + 1; m.roundSrc = 'calc'; } });
-  if (csheet !== cs) return;
-  c.events = c.view === 'week' ? evs.filter(m => m.t >= c.week.getTime() - 43200e3 && m.t < addDays(c.week, 7).getTime() - 43200e3) : evs.filter(m => m.round === c.round);
-  renderCsheet();
+  fill(); show();                                         // affichage immédiat
+  if (L.tsdb && evs.some(m => m.roundSrc === 'calc')){    // vérification TheSportsDB ensuite, sans bloquer
+    const n = await tsdbRounds(L, evs, [c.round - 1, c.round, c.round + 1]);
+    if (n){ fill(); show(); }
+  }
 }
 function pickRound(c, all){
   c.rounds = [...new Set(all.map(m => m.round))].sort((a, b) => a - b);
@@ -1521,7 +1559,8 @@ async function loadCal(){
     if (sample) evs = Object.values(DATA).flatMap(d => d.events).filter(m => m.league === L.id);
     else {
       evs = c.mode === 'month' ? await rangeEvents(L, s, e) : null;
-      if (!evs) evs = await fetchDays(L, await matchDates(L, s, e));
+      if (!evs) evs = await fetchDays(L, await matchDates(L, s, e), (n, t) => { if (csheet === cs && c.events === null){ c.progress = `${n}/${t}`; renderCsheet(); } });
+      c.progress = null;
     }
     const a = ymd(s), b = ymd(e);
     c.events = evs.filter(m => localKey(m.t) >= a && localKey(m.t) <= b && (!L.onlyTeam || plays(m, L.onlyTeam))).sort((x, y) => x.t - y.t);
@@ -1554,7 +1593,7 @@ function calHTML(L, c){
   }
   h += `<div class="cal-nav glass"><button type="button" data-nav="-1" aria-label="Précédent"${first ? ' disabled' : ''}>‹</button>
     <span>${esc(label)}${sub ? `<small>${esc(sub)}</small>` : ''}</span><button type="button" data-nav="1" aria-label="Suivant"${last ? ' disabled' : ''}>›</button></div>`;
-  if (c.events === null) return h + `<div class="skeleton glass"></div><div class="skeleton glass"></div>`;
+  if (c.events === null) return h + `${c.progress ? `<p class="hint">Chargement des jours de match… ${esc(c.progress)}</p>` : ''}<div class="skeleton glass"></div><div class="skeleton glass"></div>`;
   if (c.mode === 'round' && c.view === 'round' && c.events.length && L.id !== 'nfl'){
     const calc = c.events.filter(m => m.roundSrc === 'calc').length;
     const src = c.events.some(m => m.roundSrc === 'ref') ? 'ton calendrier' : c.events.some(m => m.roundSrc === 'of') ? 'openfootball' : 'TheSportsDB';
@@ -1589,8 +1628,15 @@ function renderCsheet(){
     back.hidden = true;
     $('#csheetTitle').innerHTML = '<span>État des données</span>';
     const is = healthIssues();
-    $('#csheetBody').innerHTML = is.length ? `<div class="clist glass">${is.map(i => `<div class="issue"><b>${esc(i.t)}</b><span>${i.d}</span></div>`).join('')}</div>`
-      : '<div class="empty">Tout est à jour.</div>';
+    $('#csheetBody').innerHTML = (is.length ? `<div class="clist glass">${is.map(i => `<div class="issue"><b>${esc(i.t)}</b><span>${i.d}</span></div>`).join('')}</div>`
+      : '<div class="empty">Tout est à jour.</div>') + `
+      <h3 class="bx-h">Cette page</h3>
+      <div class="clist glass">
+        <div class="issue"><b>Version ${esc(VERSION)}</b><span>Compare ce numéro entre l'ordinateur et le téléphone : s'il diffère, le téléphone n'a pas encore la dernière version (ferme et rouvre l'appli).</span></div>
+        <div class="issue"><b>Chargements</b><span>${NET.ok} réussis · ${NET.ko} échoués · ${NET.slow} lents (plus de 4 s) depuis l'ouverture.</span></div>
+        <div class="issue"><b>Données mémorisées</b><span>Efface ce que la page a gardé sur cet appareil (matchs, journées, logos) et recharge tout.</span>
+          <button type="button" class="mini" id="resetData">Réinitialiser les données mémorisées</button></div>
+      </div>`;
     return;
   }
   if (c.mode === 'list'){
