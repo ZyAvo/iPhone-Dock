@@ -121,7 +121,9 @@ h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:
 main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .sources{font-size:.76rem;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
 .sources span{display:inline-flex;align-items:center;gap:5px}
-.sources i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.sources i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.card{border-left:3px solid var(--c)}
+.item.hero .card,.item.duo .card{border-left:0;border-top:3px solid var(--c)}
 .sources span.off{opacity:.5;text-decoration:line-through}
 .notice{font-size:.8rem;line-height:1.45;color:var(--ink-soft);background:var(--card);border:1px dashed var(--line);border-radius:18px;padding:10px 12px}
 .feed{display:grid;grid-template-columns:1fr 1fr;gap:10px;list-style:none;margin:0;padding:0;transition:opacity .2s ease}
@@ -136,7 +138,7 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .thumb{width:78px;height:78px;border-radius:16px;object-fit:cover;background:var(--card);display:block}
 .meta{display:flex;align-items:center;gap:7px;font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);min-width:0}
 .meta .src{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.meta .dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--c)}
+.meta .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--c);box-shadow:0 0 0 1.5px color-mix(in oklab, var(--c) 35%, transparent)}
 .meta time{font-weight:400;letter-spacing:0;text-transform:none;margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
 .item h2{font-size:.98rem;line-height:1.3;margin:0;font-weight:600;letter-spacing:-.01em;text-wrap:pretty;overflow-wrap:anywhere}
 .item p{margin:0;font-size:.84rem;line-height:1.45;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -203,49 +205,49 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 <script>
 /* ======================================================
    CONFIG — onglets et flux RSS
-   Ajouter une source : { name:'Nom', color:'--t-…', url:'adresse du flux RSS' }
+   Ajouter une source : { name:'Nom', color:'#couleur du média', url:'adresse du flux RSS' }
    (facultatif) site:'page du site' et hint:'mot' → si le flux ne répond plus, la tâche cherche le bon flux sur cette page
    (la tâche GitHub « Actus » relit cette liste : rien d'autre à modifier)
    ====================================================== */
 const TABS = [
   { id:'une', label:'À la une', feeds:[
-    {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/titres.rss'},
-    {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/rss/une.xml'},
-    {name:'Le Figaro',   color:'--t-char',  url:'https://www.lefigaro.fr/rss/figaro_actualites.xml'},
-    {name:'Libération',  color:'--t-brick', url:'https://www.liberation.fr/arc/outboundfeeds/rss-all/?outputType=xml'},
-    {name:'20 Minutes',  color:'--t-teal',  url:'https://www.20minutes.fr/feeds/rss-une.xml'}
+    {name:'France Info', color:'#f2b705', url:'https://www.francetvinfo.fr/titres.rss'},
+    {name:'Le Monde',    color:'#2b2b2b',  url:'https://www.lemonde.fr/rss/une.xml'},
+    {name:'Le Figaro',   color:'#163860',  url:'https://www.lefigaro.fr/rss/figaro_actualites.xml'},
+    {name:'Libération',  color:'#e2001a', url:'https://www.liberation.fr/arc/outboundfeeds/rss-all/?outputType=xml'},
+    {name:'20 Minutes',  color:'#0b5fb4',  url:'https://www.20minutes.fr/feeds/rss-une.xml'}
   ]},
   { id:'france', label:'France', feeds:[
-    {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/france.rss'},
-    {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/politique/rss_full.xml'},
-    {name:'Le Figaro',   color:'--t-char',  url:'https://www.lefigaro.fr/rss/figaro_politique.xml'}
+    {name:'France Info', color:'#f2b705', url:'https://www.francetvinfo.fr/france.rss'},
+    {name:'Le Monde',    color:'#2b2b2b',  url:'https://www.lemonde.fr/politique/rss_full.xml'},
+    {name:'Le Figaro',   color:'#163860',  url:'https://www.lefigaro.fr/rss/figaro_politique.xml'}
   ]},
   { id:'monde', label:'Monde', feeds:[
-    {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/monde.rss'},
-    {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/international/rss_full.xml'},
-    {name:'Courrier international', color:'--t-olive', url:'https://www.courrierinternational.com/feed/all/rss.xml'}
+    {name:'France Info', color:'#f2b705', url:'https://www.francetvinfo.fr/monde.rss'},
+    {name:'Le Monde',    color:'#2b2b2b',  url:'https://www.lemonde.fr/international/rss_full.xml'},
+    {name:'Courrier international', color:'#c8102e', url:'https://www.courrierinternational.com/feed/all/rss.xml'}
   ]},
   { id:'eco', label:'Éco', feeds:[
-    {name:'Les Échos',   color:'--t-ochre', url:'https://syndication.lesechos.fr/rss/rss_une.xml', site:'https://www.lesechos.fr/'},
-    {name:"L'Usine Nouvelle", color:'--t-char', url:'https://www.usinenouvelle.com/rss/'},
-    {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/economie.rss'},
-    {name:'Le Monde',    color:'--t-plum',  url:'https://www.lemonde.fr/economie/rss_full.xml'}
+    {name:'Les Échos',   color:'#8a1538', url:'https://syndication.lesechos.fr/rss/rss_une.xml', site:'https://www.lesechos.fr/'},
+    {name:"L'Usine Nouvelle", color:'#f08a00', url:'https://www.usinenouvelle.com/rss/'},
+    {name:'France Info', color:'#f2b705', url:'https://www.francetvinfo.fr/economie.rss'},
+    {name:'Le Monde',    color:'#2b2b2b',  url:'https://www.lemonde.fr/economie/rss_full.xml'}
   ]},
   { id:'sport', label:'Sport', feeds:[
-    {name:"L'Équipe",       color:'--t-brick', url:'https://dwh.lequipe.fr/api/edito/rss?path=/'},
-    {name:"L'Équipe Rugby", color:'--t-teal',  url:'https://dwh.lequipe.fr/api/edito/rss?path=/Rugby/'},
-    {name:'RMC Sport',      color:'--t-olive', url:'https://rmcsport.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/', site:'https://rmcsport.bfmtv.com/'},
-    {name:'France Info',    color:'--t-slate', url:'https://www.francetvinfo.fr/sports.rss'}
+    {name:"L'Équipe",       color:'#e30613', url:'https://dwh.lequipe.fr/api/edito/rss?path=/'},
+    {name:"L'Équipe Rugby", color:'#a3121a',  url:'https://dwh.lequipe.fr/api/edito/rss?path=/Rugby/'},
+    {name:'RMC Sport',      color:'#4a4a4a', url:'https://rmcsport.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/', site:'https://rmcsport.bfmtv.com/'},
+    {name:'France Info',    color:'#f2b705', url:'https://www.francetvinfo.fr/sports.rss'}
   ]},
   { id:'tech', label:'Tech', feeds:[
-    {name:'Numerama',  color:'--t-teal',  url:'https://www.numerama.com/feed/'},
-    {name:'Les Numériques', color:'--t-plum', url:'https://www.lesnumeriques.com/rss.xml'},
-    {name:'Frandroid', color:'--t-olive', url:'https://www.frandroid.com/feed'},
-    {name:'01net',     color:'--t-char',  url:'https://www.01net.com/feed/'}
+    {name:'Numerama',  color:'#e4007c',  url:'https://www.numerama.com/feed/'},
+    {name:'Les Numériques', color:'#0a8f6a', url:'https://www.lesnumeriques.com/rss.xml'},
+    {name:'Frandroid', color:'#29a8e0', url:'https://www.frandroid.com/feed'},
+    {name:'01net',     color:'#d6002a',  url:'https://www.01net.com/feed/'}
   ]},
   { id:'local', label:'Tarn', feeds:[
-    {name:'La Dépêche Tarn',  color:'--t-brick', url:'https://www.ladepeche.fr/tarn/rss.xml', site:'https://www.ladepeche.fr/tarn/', hint:'tarn'},
-    {name:'France 3 Occitanie', color:'--t-slate', url:'https://france3-regions.franceinfo.fr/occitanie/rss'}
+    {name:'La Dépêche Tarn',  color:'#d4021d', url:'https://www.ladepeche.fr/tarn/rss.xml', site:'https://www.ladepeche.fr/tarn/', hint:'tarn'},
+    {name:'France 3 Occitanie', color:'#1f5ba8', url:'https://france3-regions.franceinfo.fr/occitanie/rss'}
   ]}
 ];
 const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';   // secours si les actus préparées manquent
@@ -261,6 +263,7 @@ const store = {
   get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch{ return null; } },
   set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
 };
+const col = c => !c ? 'var(--t-slate)' : c.startsWith('--') ? `var(${c})` : c;     // couleur du média (#rrggbb) ou couleur du thème
 const COLOR = Object.fromEntries(TABS.flatMap(t => t.feeds.map(f => [f.name, f.color])));
 let current = null, reqId = 0, PRE = null, query = '';
 
@@ -406,7 +409,7 @@ function itemHTML(i, kind, extra = ''){
   const also = (i.also || []).length ? `<div class="also"><span>Aussi :</span>${i.also.map(x =>
     `<a href="${esc(x.link)}"${ext} data-link="${esc(x.link)}">${esc(x.source)}</a>`).join('')}</div>` : '';
   const desc = i.desc && (kind === 'hero' || (kind === 'list' && !i.img)) ? `<p>${esc(i.desc)}</p>` : '';
-  return `<li class="item ${kind}${i.img && kind === 'hero' ? ' has-img' : ''}${LUS.has(i.link) ? ' lu' : ''}" style="--c:var(${COLOR[i.source] || i.color || '--t-slate'})">
+  return `<li class="item ${kind}${i.img && kind === 'hero' ? ' has-img' : ''}${LUS.has(i.link) ? ' lu' : ''}" style="--c:${col(COLOR[i.source] || i.color)}">
     <div class="card glass"><a href="${esc(i.link)}"${ext} data-link="${esc(i.link)}">
       ${kind !== 'list' ? img : ''}
       <span class="txt"><span class="meta"><span class="dot"></span><span class="src">${esc(i.source)}${extra}</span><time>${ago(i.date)}</time></span>
@@ -418,7 +421,7 @@ function render(tab, data){
   if (query) return renderSearch();
   const failed = data.failed || [];
   $('#sources').innerHTML = tab.feeds.map(f =>
-    `<span class="${failed.includes(f.name) ? 'off' : ''}" style="--c:var(${f.color})"><i></i>${esc(f.name)}</span>`).join('');
+    `<span class="${failed.includes(f.name) ? 'off' : ''}" style="--c:${col(f.color)}"><i></i>${esc(f.name)}</span>`).join('');
   const n = $('#notice');
   if (data.sample){ n.hidden = false; n.textContent = "Aperçu avec des articles d'exemple : les flux en direct ne se chargent pas ici. Sur ta page hébergée, les vrais titres s'affichent."; }
   else if (failed.length){ n.hidden = false; n.textContent = `Pas de réponse pour l'instant : ${failed.join(', ')}. Les autres sources sont affichées.`; }

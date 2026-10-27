@@ -549,7 +549,7 @@ function renderWidget(){
     if (img){ const pic = new Image(); pic.onload = () => { if (wImg === img){ w.style.setProperty('--wimg', `url("${img.replace(/"/g, '%22')}")`); w.classList.add('has-img'); } }; pic.src = img; }
   }
   $('#wSrc').textContent = headline.source;
-  $('#wDot').style.background = `var(${headline.color})`;
+  $('#wDot').style.background = (headline.color || '').startsWith('#') ? headline.color : `var(${headline.color || '--t-slate'})`;
   $('#wTitle').textContent = headline.title;
   $('#wTime').textContent = headline.sample ? '' : ago(headline.date);
 }
