@@ -128,6 +128,19 @@ a{color:inherit;text-decoration:none}
 .w-news .headline{font-weight:600;font-size:.98rem;line-height:1.28;letter-spacing:-.01em;margin-top:auto;
   display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .w-news .foot{display:flex;justify-content:space-between;font-size:.74rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.w-news .w-body{display:flex;flex-direction:column;gap:8px;margin-top:auto;min-width:0}
+/* Avec l'image de l'article : photo en fond, bandeau flouté en bas, texte en blanc */
+.w-news.has-img{padding:0;background:var(--wimg) center / cover no-repeat, var(--base)}
+.w-news.has-img::before{background:linear-gradient(180deg, rgba(8,18,31,.42), transparent 34%)}
+.w-news.has-img .src{position:absolute;top:14px;left:16px;right:16px}
+.w-news.has-img .w-label{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.w-news.has-img .src i{box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+.w-news.has-img .w-body{padding:11px 14px 13px;gap:6px;color:#fff;
+  background:linear-gradient(180deg, rgba(8,18,31,.18), rgba(8,18,31,.5));
+  backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);
+  border-top:1px solid rgba(255,255,255,.22)}
+.w-news.has-img .headline{-webkit-line-clamp:3;font-size:.92rem;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+.w-news.has-img .foot{color:rgba(255,255,255,.8)}
 .w:active{transform:scale(.97)}
 .w{transition:transform .15s ease}
 
@@ -248,8 +261,8 @@ a{color:inherit;text-decoration:none}
       </div>
       <a class="w w-news glass" id="newsWidget" href="actus.html" aria-label="Ouvrir les actus">
         <span class="src"><i id="wDot"></i><span class="w-label" id="wSrc">À la une</span></span>
-        <span class="headline" id="wTitle">Chargement des actus…</span>
-        <span class="foot"><span>Actus</span><span id="wTime"></span></span>
+        <span class="w-body"><span class="headline" id="wTitle">Chargement des actus…</span>
+        <span class="foot"><span>Actus</span><span id="wTime"></span></span></span>
       </a>
     </div>
     <section class="w-spot glass" id="spot" aria-label="Spotify"></section>
@@ -528,7 +541,13 @@ function ago(t){
   if (h < 24) return `il y a ${h} h`;
   return new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
 }
+let wImg = '';
 function renderWidget(){
+  const w = $('#newsWidget'), img = headline.img || '';
+  if (img !== wImg){                                     // l'image n'est posée qu'une fois chargée (sinon on garde le verre)
+    wImg = img; w.classList.remove('has-img');
+    if (img){ const pic = new Image(); pic.onload = () => { if (wImg === img){ w.style.setProperty('--wimg', `url("${img.replace(/"/g, '%22')}")`); w.classList.add('has-img'); } }; pic.src = img; }
+  }
   $('#wSrc').textContent = headline.source;
   $('#wDot').style.background = `var(${headline.color})`;
   $('#wTitle').textContent = headline.title;
@@ -541,8 +560,11 @@ async function loadWidget(){
   }catch{}
   try{                                                   // actus préparées par la tâche GitHub (rapide)
     const r = await fetch('donnees/actus/actus.json', {cache:'no-cache'});
-    const j = r.ok ? await r.json() : null, it = j && Date.now() - Date.parse(j.updated) < 3 * 3600e3 && (((j.tabs || {}).une || {}).items || [])[0];
-    if (it){ headline = {source:it.source, color:it.color || '--t-slate', title:it.title, date:it.date}; renderWidget(); return; }
+    const j = r.ok ? await r.json() : null, list = j && Date.now() - Date.parse(j.updated) < 3 * 3600e3 ? (((j.tabs || {}).une || {}).items || []) : [];
+    // même choix que la « une » de la page Actus : l'info la plus reprise, avec une image de préférence
+    const score = i => (i.also || []).length * 2 + (i.img ? 1 : 0);
+    const it = list.slice(0, 8).reduce((b, i) => !b || score(i) > score(b) ? i : b, null);
+    if (it){ headline = {source:it.source, color:it.color || '--t-slate', title:it.title, date:it.date, img:it.img || ''}; renderWidget(); return; }
   }catch{}
   try{
     const r = await fetch(RSS_PROXY + encodeURIComponent(WIDGET_FEED.url));
@@ -550,7 +572,8 @@ async function loadWidget(){
     if (j.status !== 'ok' || !j.items.length) throw 0;
     const it = j.items[0];
     headline = {source:WIDGET_FEED.name, color:WIDGET_FEED.color, title:it.title,
-           date:Date.parse((it.pubDate || '').replace(' ','T') + 'Z') || Date.now()};
+           date:Date.parse((it.pubDate || '').replace(' ','T') + 'Z') || Date.now(),
+           img:it.thumbnail || (it.enclosure && it.enclosure.link) || ''};
   }catch{
     if (!headline) headline = {source:'À la une', color:'--t-slate', title:'Toutes les actus, classées par thème', sample:true};
   }
