@@ -106,6 +106,8 @@ a{color:inherit;text-decoration:none}
 .w-label{font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
 .w-clock .time{font-weight:200;font-size:clamp(2.9rem,15vw,3.8rem);line-height:.95;letter-spacing:-.045em;font-variant-numeric:tabular-nums;margin-top:auto}
 .w-clock .day{font-weight:600;font-size:.92rem;margin-top:8px;text-transform:capitalize}
+.w-clock a{color:inherit;text-decoration:none;display:block;align-self:flex-start;border-radius:10px}
+.w-clock a:active{opacity:.6}
 .w-clock .place{font-size:.78rem;color:var(--ink-soft);margin-top:2px}
 .w-news{gap:8px}
 .w-news .src{display:flex;align-items:center;gap:6px}
@@ -148,7 +150,14 @@ a{color:inherit;text-decoration:none}
 .dots span{width:6px;height:6px;border-radius:50%;background:var(--ink);opacity:.22}
 .dots span.on{opacity:.7;width:16px;border-radius:3px}
 
-.dock{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:14px 16px;margin-bottom:10px;border-radius:38px}
+.dock{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;padding:13px 15px;margin-bottom:10px;border-radius:36px}
+.quick{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 6px;margin-bottom:10px}
+.q-side{display:flex;gap:7px}
+.q{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:var(--ink);position:relative;isolation:isolate}
+.q svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.q.img{background:var(--img) center / cover no-repeat;backdrop-filter:none;-webkit-backdrop-filter:none}
+.q.img svg,.q.img::before{display:none}
+.q:active{transform:scale(.9)}
 .dock .name{display:none}
 .dock .app-btn{animation:none}
 
@@ -175,8 +184,8 @@ a{color:inherit;text-decoration:none}
     <div class="widgets">
       <div class="w w-clock glass">
         <span class="w-label">Aujourd'hui</span>
-        <span class="time" id="clock">--:--</span>
-        <span class="day" id="day"></span>
+        <a class="time" id="clock" href="clock-alarm://" data-app="clock-alarm://" data-alt="Horloge" aria-label="Ouvrir Horloge">--:--</a>
+        <a class="day" id="day" href="calshow://" data-app="calshow://" data-alt="Calendrier" aria-label="Ouvrir Calendrier"></a>
         <span class="place">Réalmont · Tarn</span>
       </div>
       <a class="w w-news glass" id="newsWidget" href="actus.html" aria-label="Ouvrir les actus">
@@ -189,6 +198,7 @@ a{color:inherit;text-decoration:none}
     <div class="spacer"></div>
     <div class="dots" aria-hidden="true"><span class="on"></span><span></span></div>
     <nav class="dock glass" id="dock" aria-label="Dock"></nav>
+    <div class="quick" aria-label="Accès rapides"><div class="q-side" id="quickLeft"></div><div class="q-side" id="quickRight"></div></div>
   </section>
 
 </div>
@@ -208,11 +218,17 @@ a{color:inherit;text-decoration:none}
           web : site ouvert à la place si l'appli ne répond pas.
           Si une appli ne s'ouvre pas, remplacer app par
           'shortcuts://run-shortcut?name=NomDuRaccourci' (raccourci « Ouvrir l'app »)
+   alt  : nom d'un raccourci essayé si l'appli ne s'ouvre pas
    star : true → l'appli apparaît dans son dossier ET seule sur l'accueil
    store: nom de l'appli sur l'App Store, pour afficher sa vraie icône
           (ou storeId:'123456789' pour viser une appli précise)
    ====================================================== */
 const ICONS = {
+  phone:'<path d="M6.6 3.5h2.6l1.5 4.2-2 1.5a12 12 0 0 0 6.1 6.1l1.5-2 4.2 1.5v2.6a2 2 0 0 1-2.1 2A16.5 16.5 0 0 1 4.6 5.6a2 2 0 0 1 2-2.1z"/>',
+  bubble:'<path d="M4 5.5h16a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5V17.5H4A1.5 1.5 0 0 1 2.5 16V7A1.5 1.5 0 0 1 4 5.5z"/>',
+  camera:'<path d="M4 7.5h3.2L9 5h6l1.8 2.5H20a1.5 1.5 0 0 1 1.5 1.5v9.5A1.5 1.5 0 0 1 20 20H4a1.5 1.5 0 0 1-1.5-1.5V9A1.5 1.5 0 0 1 4 7.5z"/><circle cx="12" cy="13.3" r="3.8"/>',
+  gear:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/><path d="M4 12h5M13 12h7"/><circle cx="11" cy="12" r="2"/>',
+  media:'<rect x="2.5" y="4.5" width="19" height="13" rx="2.5"/><path d="m10 8.2 4.8 2.8-4.8 2.8z"/><path d="M8 20.5h8"/>',
   news:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 8.5h6M7 12h10M7 15.5h10"/>',
   meteo:'<circle cx="8.5" cy="8.5" r="3.2"/><path d="M8.5 2.5v1.3M2.5 8.5h1.3M4.3 4.3l.9.9M12.7 4.3l-.9.9"/><path d="M8 20h9.5a3.8 3.8 0 0 0 0-7.6 5 5 0 0 0-9.4 1.6A3 3 0 0 0 8 20z"/>',
   map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
@@ -235,12 +251,15 @@ const FOLDERS = {
     {label:'Esalia',         mono:'Es', color:'--t-teal',  store:'Esalia', app:'esalia://',         web:'https://www.esalia.com'}           // à tester
   ]},
   social:{ title:'Réseaux sociaux', items:[
-    {label:'Facebook',  mono:'f',  color:'--t-slate', url:'https://m.facebook.com'},
-    {label:'Instagram', mono:'Ig', color:'--t-rose',  url:'https://www.instagram.com'},
-    {label:'LinkedIn',  mono:'in', color:'--t-brick', url:'https://www.linkedin.com'},
-    {label:'X',         mono:'X',  color:'--t-char',  url:'https://x.com'},
-    {label:'YouTube',   mono:'YT', color:'--t-plum',  url:'https://m.youtube.com'},
-    {label:'Reddit',    mono:'R',  color:'--t-teal',  url:'https://www.reddit.com'}
+    {label:'X',        mono:'X',  color:'--t-char',  store:'X', app:'twitter://',  web:'https://x.com'},
+    {label:'LinkedIn', mono:'in', color:'--t-slate', store:'LinkedIn', app:'linkedin://', web:'https://www.linkedin.com'}
+  ]},
+  medias:{ title:'Médias', items:[
+    {label:'VideoLite',     mono:'VL', color:'--t-plum',  store:'VideoLite', app:'videolite://', alt:'VideoLite'},                                   // à tester
+    {label:'Canal+',        mono:'C+', color:'--t-char',  store:'CANAL+', app:'mycanal://', alt:'CANAL+', web:'https://www.canalplus.com'},             // à tester
+    {label:'Prime Video',   mono:'PV', color:'--t-slate', store:'Amazon Prime Video', app:'aiv://', web:'https://www.primevideo.com'},
+    {label:'Spotify', star:true, mono:'S', color:'--t-olive', store:'Spotify', app:'spotify://', web:'https://open.spotify.com'},
+    {label:'SmartersPlayerLite', mono:'SP', color:'--t-teal', store:'Smarters Player Lite', app:'smartersplayerlite://', alt:'SmartersPlayerLite'}  // à tester
   ]},
   jeux:{ title:'Jeux', items:[
     {label:'Chess',             mono:'♞',  color:'--t-olive', store:'Chess Play and Learn', app:'chesscom://',        web:'https://www.chess.com'},     // à tester
@@ -288,7 +307,6 @@ const FOLDERS = {
 
 const HOME = [
   {label:'Finance',         type:'folder', target:'finance'},
-  {label:'Réseaux sociaux', type:'folder', target:'social'},
   {label:'Jeux',            type:'folder', target:'jeux'},
   {label:'Travail',         type:'folder', target:'travail'},
   {label:'Sécurité',        type:'folder', target:'securite'},
@@ -299,10 +317,24 @@ const HOME = [
 ];
 
 const DOCK = [
-  {label:'Actus',       type:'page', url:'actus.html', icon:'news', color:'--t-brick'},
-  {label:'Recherche',   type:'link', icon:'search', color:'--t-char',  url:'https://www.google.fr'},
-  {label:'Gmail',       type:'link', icon:'mail',   color:'--t-rose',  url:'https://mail.google.com'},
-  {label:'Maps',        type:'link', icon:'map',    color:'--t-teal',  url:'https://maps.google.com'}
+  {label:'Médias',          type:'folder', target:'medias'},
+  {label:'Réseaux sociaux', type:'folder', target:'social'},
+  {label:'Actus',           type:'page', url:'actus.html', icon:'news', color:'--t-brick'},
+  {label:'Recherche',       type:'link', icon:'search', color:'--t-char', url:'https://www.google.fr'}
+];
+
+/* Bandeau sous le dock (gauche / droite)
+   alt : nom d'un raccourci de l'appli Raccourcis, essayé si l'appli ne s'ouvre pas */
+const QUICK_LEFT = [
+  {label:'Téléphone', icon:'phone',  app:'mobilephone://', alt:'Téléphone'},                         // à tester
+  {label:'WhatsApp',  icon:'bubble', store:'WhatsApp Messenger', app:'whatsapp://'},
+  {label:'Messenger', icon:'bubble', store:'Messenger', app:'fb-messenger://'},
+  {label:'Messages',  icon:'bubble', app:'sms:'}
+];
+const QUICK_RIGHT = [
+  {label:'Appareil photo', icon:'camera', app:'shortcuts://run-shortcut?name=Appareil%20photo'},     // raccourci à créer
+  {label:'Cartes',         icon:'map',    app:'maps://'},
+  {label:'Réglages',       icon:'gear',   app:'App-prefs:', alt:'Réglages'}                          // à tester
 ];
 
 /* Widget « À la une » : reprend le titre chargé par la page Actus, sinon interroge ce flux */
@@ -330,7 +362,7 @@ function jsonp(url){
   });
 }
 async function fetchIcons(){
-  const all = [...HOME, ...Object.values(FOLDERS).flatMap(f => f.items)].filter(a => iconKey(a) && !(iconKey(a) in ICONS_STORE));
+  const all = [...HOME, ...DOCK, ...QUICK_LEFT, ...QUICK_RIGHT, ...Object.values(FOLDERS).flatMap(f => f.items)].filter(a => iconKey(a) && !(iconKey(a) in ICONS_STORE));
   const todo = [...new Map(all.map(a => [iconKey(a), a])).values()];
   for (const a of todo){
     try{
@@ -361,31 +393,42 @@ function tileHTML(a){
 function appHTML(a, idx = 0){
   const body = `${tileHTML(a)}<span class="name">${esc(a.label)}</span>`;
   const delay = `style="animation-delay:${idx * 35}ms"`;
-  if (a.app) return `<a class="app-btn" ${delay} href="${esc(a.app)}" data-app="${esc(a.app)}" data-web="${esc(a.web || '')}" aria-label="${esc(a.label)}">${body}</a>`;
+  if (a.app) return `<a class="app-btn" ${delay} href="${esc(a.app)}" data-app="${esc(a.app)}" data-alt="${esc(a.alt || '')}" data-web="${esc(a.web || '')}" aria-label="${esc(a.label)}">${body}</a>`;
   if (a.type === 'page') return `<a class="app-btn" ${delay} href="${esc(a.url)}" aria-label="${esc(a.label)}">${body}</a>`;
   if (!a.type || a.type === 'link') return `<a class="app-btn" ${delay} href="${esc(a.url)}" target="_blank" rel="noopener" aria-label="${esc(a.label)}">${body}</a>`;
   return `<button type="button" class="app-btn" ${delay} data-type="${a.type}" data-target="${a.target}" aria-label="${esc(a.label)}">${body}</button>`;
 }
 
-HOME.push(...Object.values(FOLDERS).flatMap(f => f.items.filter(i => i.star)));
+Object.entries(FOLDERS).forEach(([id, f]) => {
+  const stars = f.items.filter(i => i.star); if (!stars.length) return;
+  const inDock = DOCK.findIndex(d => d.target === id);
+  if (inDock >= 0) DOCK.splice(inDock + 1 + DOCK.slice(inDock + 1).filter(d => d.star).length, 0, ...stars);
+  else HOME.push(...stars);
+});
 $('#grid').innerHTML = HOME.map(appHTML).join('');
 setTimeout(fetchIcons, 600);
 
-/* Ouverture d'une appli : si rien ne s'ouvre après 1,5 s, on bascule sur son site */
+/* Ouverture d'une appli : appli → raccourci (alt) → site, en passant au suivant si rien ne s'ouvre en 1,5 s */
 document.addEventListener('click', e => {
   const a = e.target.closest('a[data-app]'); if (!a) return;
   e.preventDefault();
+  const chain = [a.dataset.app, a.dataset.alt ? `shortcuts://run-shortcut?name=${encodeURIComponent(a.dataset.alt)}` : '', a.dataset.web].filter(Boolean);
   let left = false; const gone = () => { left = true; };
   document.addEventListener('visibilitychange', gone, {once:true});
   window.addEventListener('pagehide', gone, {once:true});
   window.addEventListener('blur', gone, {once:true});
-  window.location.href = a.dataset.app;
-  setTimeout(() => {
-    if (left || document.hidden) return;
-    if (a.dataset.web) window.location.href = a.dataset.web;
-  }, 1500);
+  const next = i => {
+    if (left || document.hidden || i >= chain.length) return;
+    window.location.href = chain[i];
+    setTimeout(() => next(i + 1), 1500);
+  };
+  next(0);
 });
 $('#dock').innerHTML = DOCK.map(a => appHTML(a)).join('');
+const quickHTML = q => { const u = iconOf(q);
+  return `<a class="q glass${u ? ' img' : ''}"${iconAttrs(q)} href="${esc(q.app)}" data-app="${esc(q.app)}" data-alt="${esc(q.alt || '')}" aria-label="${esc(q.label)}" title="${esc(q.label)}"${u ? ` style="--img:url(&quot;${esc(u)}&quot;)"` : ''}><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[q.icon]}</svg></a>`; };
+$('#quickLeft').innerHTML = QUICK_LEFT.map(quickHTML).join('');
+$('#quickRight').innerHTML = QUICK_RIGHT.map(quickHTML).join('');
 
 document.addEventListener('click', e => {
   const b = e.target.closest('button.app-btn');

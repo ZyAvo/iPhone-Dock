@@ -31,6 +31,7 @@ img{max-width:100%}
   --card:rgba(255,255,255,.6); --line:rgba(39,76,119,.12);
   --accent:#274c77; --on-accent:#e7ecef; --accent-soft:rgba(39,76,119,.1);
   --live:#d6343c; --live-soft:rgba(214,52,60,.12); --redcard:#d6343c;
+  --warn:#c77700;
   --sheet:rgba(238,242,245,.94); --sheet-solid:#eef2f5; --scrim:rgba(16,35,58,.28);
   --f-ui:"Geist", -apple-system, "SF Pro Text", system-ui, sans-serif;
   --f-num:"Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -47,6 +48,7 @@ img{max-width:100%}
   --card:rgba(231,236,239,.06); --line:rgba(231,236,239,.1);
   --accent:#a3cef1; --on-accent:#08121f; --accent-soft:rgba(163,206,241,.12);
   --live:#ff5c63; --live-soft:rgba(255,92,99,.14); --redcard:#ff4a52;
+  --warn:#f0a030;
   --sheet:rgba(11,22,37,.95); --sheet-solid:#0f1b2b; --scrim:rgba(0,0,0,.5);
   color-scheme:dark;
 }}
@@ -62,6 +64,7 @@ img{max-width:100%}
   --card:rgba(231,236,239,.06); --line:rgba(231,236,239,.1);
   --accent:#a3cef1; --on-accent:#08121f; --accent-soft:rgba(163,206,241,.12);
   --live:#ff5c63; --live-soft:rgba(255,92,99,.14); --redcard:#ff4a52;
+  --warn:#f0a030;
   --sheet:rgba(11,22,37,.95); --sheet-solid:#0f1b2b; --scrim:rgba(0,0,0,.5);
   color-scheme:dark;
 }
@@ -292,6 +295,13 @@ body.locked{overflow:hidden}
 .cal-nav + .wk-head,.hint + .wk-head{border-top:0;margin-top:0}
 .wk-head b{font-size:1rem;font-weight:700;letter-spacing:-.01em}
 .wk-head span{font-size:.76rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.icon-btn.health{color:var(--warn);position:relative}
+.icon-btn.health b{position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--warn);color:#fff;font-size:.62rem;display:grid;place-items:center}
+.issue{display:flex;flex-direction:column;gap:4px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.issue:last-child{border-bottom:0}
+.issue b{font-size:.9rem}
+.issue span{font-size:.8rem;color:var(--ink-soft);line-height:1.45}
+.issue code{font-family:var(--f-num);font-size:.76rem;background:var(--accent-soft);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
 @keyframes up{from{transform:translateY(40%)}}
 @keyframes fade{from{opacity:0}}
 @media (max-width:360px){ .row{grid-template-columns:52px 1fr} .tv,.more{padding-left:78px} }
@@ -304,7 +314,8 @@ body.locked{overflow:hidden}
   <div class="wrap">
     <div class="top">
       <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
-      <span class="top-actions"><button class="icon-btn glass" id="compsBtn" type="button" aria-label="Classements et calendriers"><svg viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 3.5M17 6h2.5a2.5 2.5 0 0 1-2.6 3.5M12 13v3.5M8.5 20h7M9.5 20l.5-3.5h4l.5 3.5"/></svg></button>
+      <span class="top-actions"><button class="icon-btn glass health" id="healthBtn" type="button" aria-label="État des données" hidden><svg viewBox="0 0 24 24"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.2M12 16.8v.2"/></svg><b id="healthN"></b></button>
+      <button class="icon-btn glass" id="compsBtn" type="button" aria-label="Classements et calendriers"><svg viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 3.5M17 6h2.5a2.5 2.5 0 0 1-2.6 3.5M12 13v3.5M8.5 20h7M9.5 20l.5-3.5h4l.5 3.5"/></svg></button>
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span>
     </div>
     <div class="title-row"><h1>Sport</h1><span class="live-count" id="liveCount" hidden><span class="pulse"></span><span id="liveN"></span></span></div>
@@ -600,8 +611,10 @@ async function loadTV(){
   if (sample) return;
   try{
     const r = await fetch('tv.json', {cache:'no-store'});
+    if (r.status === 404){ TV_META = 'missing'; renderHealth(); return; }
     if (!r.ok) return;
     const j = await r.json();
+    TV_META = Date.parse(j.updated) || null; renderHealth();
     TV = (j.programmes || []).map(p => ({c:p.c, s:Date.parse(p.s), e:Date.parse(p.e || p.s), txt:normTxt(`${p.t} ${p.d || ''}`)}));
     render();
   }catch{}
@@ -681,7 +694,9 @@ function renderFilters(){
 function compBadge(L){
   const d = DATA[L.id] || {};
   let logo = '';
-  if (d.logo){
+  const own = FILES && FILES !== 'missing' && FILES.comps[slug(L.name)];
+  if (own) logo = `<img class="clogo" src="${esc(own)}" alt="" loading="lazy" onerror="this.remove()">`;
+  else if (d.logo){
     const img = `<img class="clogo" src="${esc(d.logo)}" alt="" loading="lazy" onerror="(this.closest('picture')||this).remove()">`;
     logo = d.logoDark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${esc(d.logoDark)}">${img}</picture>` : img;
   }
@@ -1110,13 +1125,13 @@ function assignRounds(evs){
     if (!m.round){ m.round = Math.max(h, a); m.roundSrc = 'calc'; }
   });
 }
-/* Numéros de journée officiels : openfootball (GitHub), sinon TheSportsDB, croisés avec ESPN */
+const same = (w, v) => w === v || (Math.min(w.length, v.length) >= 4 && (w.startsWith(v) || v.startsWith(w)));
+const sim = (a, b) => { const o = a.filter(w => b.some(v => same(w, v))).length; return o / (a.length + b.length - o || 1); };
+/* Numéros de journée : ton calendrier, sinon openfootball (GitHub), sinon TheSportsDB, croisés avec ESPN */
 function applyRefs(evs, ref, src){
-  const same = (w, v) => w === v || (Math.min(w.length, v.length) >= 4 && (w.startsWith(v) || v.startsWith(w)));
-  const sim = (a, b) => { const o = a.filter(w => b.some(v => same(w, v))).length; return o / (a.length + b.length - o || 1); };
   let found = 0;
   evs.forEach(m => {
-    if (m.roundSrc === 'of') return;
+    if (m.roundSrc && m.roundSrc !== 'calc') return;
     const H = tokens(m.home), A = tokens(m.away);
     let best = null, score = 0, tie = false;
     ref.forEach(x => {
@@ -1138,6 +1153,96 @@ async function officialRounds(L, evs){
     return applyRefs(evs, ref, 'of');
   }catch{ return 0; }
 }
+/* ---------- Tes fichiers : logos et calendriers (index fichiers.json fait par la tâche GitHub) ---------- */
+const slug = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const seasonOf = L => { const y = seasonBounds(L)[0].getFullYear(); return `${y}-${String(y + 1).slice(2)}`; };
+const COUNTRY = L => ({fr:'france', rfr:'france', en:'angleterre', us:'etats-unis', intl:'selections', rintl:'selections'})[L.region]
+  || ({'esp.1':'espagne', 'ita.1':'italie', 'ger.1':'allemagne'})[L.id] || null;
+let FILES = null;
+async function loadFiles(){
+  if (sample) return;
+  try{
+    const r = await fetch('fichiers.json', {cache:'no-cache'});
+    if (r.status === 404){ FILES = 'missing'; renderHealth(); return; }
+    if (!r.ok) return;
+    const j = await r.json();
+    const base = f => f.split('/').pop().replace(/\.[a-z0-9]+$/i, '');
+    FILES = {
+      clubs:(j.logos || []).filter(f => f.startsWith('logos/clubs/')).map(f => ({country:f.split('/')[2], k:tokens({full:base(f).replace(/[-_]+/g, ' ')}), u:encodeURI(f)})),
+      comps:Object.fromEntries((j.logos || []).filter(f => f.startsWith('logos/competitions/')).map(f => [slug(base(f)), encodeURI(f)])),
+      cals:new Set((j.calendriers || []).map(f => f.replace(/^calendriers\//, '').replace(/\.txt$/i, '')))
+    };
+    render(); renderHealth();
+  }catch{}
+}
+function userLogo(m, t){
+  if (!FILES || FILES === 'missing' || !FILES.clubs.length) return '';
+  const c = COUNTRY(LBY[m.league]);
+  const pool = c ? FILES.clubs.filter(x => x.country === c) : FILES.clubs;
+  const T = tokens(t); let best = '', sc = 0;
+  pool.forEach(x => { const v = sim(T, x.k); if (v > sc){ sc = v; best = x.u; } });
+  return sc >= 0.5 ? best : '';
+}
+function parseCalendar(txt){
+  const out = []; let r = null;
+  const SEP = [/\s+\/\s+/, /\s+vs\.?\s+/i, /\s+contre\s+/i, /\s+[–—]\s+/, /\s+-\s+/];
+  txt.split(/\r?\n/).forEach(raw => {
+    let line = raw.replace(/#.*$/, '').trim(); if (!line) return;
+    const h = line.match(/^(?:j(?:ourn[ée]e)?\.?\s*(\d{1,2})|(\d{1,2})\s*(?:e|è|ème|eme|re|ère|er)?\s*journ[ée]e)\b\s*[:\-–—.]*\s*/i);
+    if (h){ r = +(h[1] || h[2]); line = line.slice(h[0].length).trim(); if (!line) return; }
+    if (!r) return;
+    line = line.replace(/\b(lun|mar|mer|jeu|ven|sam|dim)[a-zé]*\.?\s+/gi, '')
+               .replace(/\b\d{1,2}[\/.]\d{1,2}(?:[\/.]\d{2,4})?\b/g, '')
+               .replace(/\b\d{1,2}\s*[h:]\s*\d{0,2}\b/gi, '')
+               .replace(/\s\d{1,3}\s*[-–]\s*\d{1,3}\s/, ' / ')
+               .replace(/\s+\d{1,3}\s*[-–]\s*\d{1,3}\s*$/, '').trim();
+    const sep = SEP.find(x => x.test(line)); if (!sep) return;
+    const [a, b] = line.split(sep);
+    if (a && b) out.push({h:tokens({full:a}), a:tokens({full:b}), r});
+  });
+  return out.filter(x => x.h.length && x.a.length);
+}
+async function refRounds(L, evs){
+  const key = `${seasonOf(L)}/${slug(L.name)}`;
+  if (!FILES || FILES === 'missing' || !FILES.cals.has(key)) return 0;
+  try{
+    const r = await fetch(encodeURI(`calendriers/${key}.txt`), {cache:'no-cache'});
+    if (!r.ok) return 0;
+    const n = applyRefs(evs, parseCalendar(await r.text()), 'ref');
+    store.set('sport:refcheck:' + L.id, {season:seasonOf(L), miss:evs.length - n, at:Date.now()});
+    return n;
+  }catch{ return 0; }
+}
+
+/* ---------- État des données ---------- */
+let TV_META = null;
+const RIGHTS_REVIEW = '2027-07-01';      // date à laquelle revérifier les diffuseurs
+function healthIssues(){
+  const out = [];
+  if (sample) return out;
+  if (TV_META === 'missing') out.push({t:'Programme TV introuvable', d:"Le fichier <code>tv.json</code> n'existe pas encore. Dans GitHub, onglet Actions → « Programme TV sport » → Run workflow."});
+  else if (typeof TV_META === 'number' && Date.now() - TV_META > 12 * 3600e3)
+    out.push({t:'Programme TV pas à jour', d:`Dernière mise à jour le ${new Date(TV_META).toLocaleString('fr-FR', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'})}. La tâche GitHub a sans doute échoué : regarde l'onglet Actions.`});
+  if (FILES === 'missing') out.push({t:'Index des fichiers absent', d:"<code>fichiers.json</code> est créé par la tâche GitHub. Lance-la une fois (Actions → Run workflow)."});
+  const unv = store.get('sport:unverified') || {};
+  LEAGUES.filter(L => L.rounds && L.id !== 'nfl').forEach(L => {
+    const season = seasonOf(L), file = `calendriers/${season}/${slug(L.name)}.txt`;
+    const has = FILES && FILES !== 'missing' && FILES.cals.has(`${season}/${slug(L.name)}`);
+    if (!has && unv[`${season}/${L.id}`]) out.push({t:`Calendrier ${L.name} ${season} à fournir`, d:`Aucune source ne confirme les journées. Colle le calendrier dans <code>${file}</code>.`});
+    const chk = store.get('sport:refcheck:' + L.id);
+    if (has && chk && chk.season === season && chk.miss > 0)
+      out.push({t:`${L.name} : ${chk.miss} match${chk.miss > 1 ? 's' : ''} introuvable${chk.miss > 1 ? 's' : ''} dans ton calendrier`, d:`Le calendrier a peut-être changé, ou un nom d'équipe est écrit autrement. Vérifie <code>${file}</code>.`});
+  });
+  if (Date.now() > Date.parse(RIGHTS_REVIEW)) out.push({t:'Diffuseurs TV à revérifier', d:'Les chaînes par compétition datent de la saison 2026-27.'});
+  return out;
+}
+function renderHealth(){
+  const n = healthIssues().length;
+  $('#healthBtn').hidden = !n; $('#healthN').textContent = n || '';
+  if (csheet && csheet.mode === 'health') renderCsheet();
+}
+$('#healthBtn').addEventListener('click', () => { csheet = {mode:'health', focus:document.activeElement}; showCsheet(); });
+
 const TSDB = 'https://www.thesportsdb.com/api/v1/json/123';
 async function tsdbLeagueId(L){
   const key = L.tsdb ? L.id : L.badges;
@@ -1186,6 +1291,7 @@ async function loadBadges(){
   render();
 }
 function badgeFor(m, t){
+  const own = userLogo(m, t); if (own) return own;
   const L = LBY[m.league]; if (!L.badges) return '';
   const list = BADGES[L.badges === true ? L.id : L.badges]; if (!list) return '';
   const T = tokens(t); let best = '', sc = 0;
@@ -1211,7 +1317,7 @@ async function loadRounds(){
       }
     }
     all.sort((a, b) => a.t - b.t);
-    if (!sample) await officialRounds(L, all);
+    if (!sample){ await refRounds(L, all); await officialRounds(L, all); }
     assignRounds(all);
     SEASONS[L.id] = {at:Date.now(), events:all};
   }
@@ -1222,6 +1328,11 @@ async function loadRounds(){
     const want = c.view === 'week' ? [...new Set(weekEvents(c, all).map(m => m.round))].flatMap(r => [r - 1, r, r + 1]) : [c.round - 1, c.round, c.round + 1];
     const n = await tsdbRounds(L, all, want);
     if (n && csheet === cs){ all.forEach(m => { if (m.roundSrc === 'calc') m.round = null; }); assignRounds(all); showRound(c, all); }
+  }
+  if (!sample && L.id !== 'nfl'){
+    const unv = store.get('sport:unverified') || {}, k = `${seasonOf(L)}/${L.id}`;
+    if (all.every(m => m.roundSrc === 'calc')) unv[k] = 1; else delete unv[k];
+    store.set('sport:unverified', unv); renderHealth();
   }
 }
 function pickRound(c, all){
@@ -1304,7 +1415,7 @@ function calHTML(L, c){
   if (c.events === null) return h + `<div class="skeleton glass"></div><div class="skeleton glass"></div>`;
   if (c.mode === 'round' && c.view === 'round' && c.events.length && L.id !== 'nfl'){
     const calc = c.events.filter(m => m.roundSrc === 'calc').length;
-    const src = c.events.some(m => m.roundSrc === 'of') ? 'openfootball' : 'TheSportsDB';
+    const src = c.events.some(m => m.roundSrc === 'ref') ? 'ton calendrier' : c.events.some(m => m.roundSrc === 'of') ? 'openfootball' : 'TheSportsDB';
     h += `<p class="hint">${calc === 0 ? `Journée vérifiée avec ${src}.` : calc < c.events.length ? `Journée vérifiée sauf pour ${calc} match${calc > 1 ? 's' : ''}, estimé${calc > 1 ? 's' : ''} d'après l'ordre des matchs.` : "Journée estimée d'après l'ordre des matchs de chaque équipe."}</p>`;
   }
   if (c.err) return h + `<div class="empty">Le calendrier n'est pas disponible pour l'instant.</div>`;
@@ -1332,6 +1443,14 @@ function calHTML(L, c){
 function renderCsheet(){
   const c = csheet; if (!c) return;
   const back = $('#csheetBack');
+  if (c.mode === 'health'){
+    back.hidden = true;
+    $('#csheetTitle').innerHTML = '<span>État des données</span>';
+    const is = healthIssues();
+    $('#csheetBody').innerHTML = is.length ? `<div class="clist glass">${is.map(i => `<div class="issue"><b>${esc(i.t)}</b><span>${i.d}</span></div>`).join('')}</div>`
+      : '<div class="empty">Tout est à jour.</div>';
+    return;
+  }
   if (c.mode === 'list'){
     back.hidden = true;
     $('#csheetTitle').innerHTML = '<span>Compétitions</span>';
@@ -1451,6 +1570,7 @@ render();
 loadAll();
 loadTV();
 loadBadges();
+loadFiles();
 </script>
 </body>
 </html>
