@@ -446,7 +446,7 @@ const LEAGUES = [
   {id:'nfl',                 region:'us',  flag:'🇺🇸', sport:'football',   group:'nfl',    name:'NFL', tv:['beIN Sports'], partial:true, rounds:true},
   {id:'nhl',                 region:'us',  flag:'🇺🇸', sport:'hockey',     group:'hockey', name:'NHL', tv:['beIN Sports','DAZN'], partial:true}
 ];
-const VERSION = '2026-10-27.7';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-27.8';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -719,19 +719,46 @@ async function loadTV(){
     const j = await r.json();
     TV_META = Date.parse(j.updated) || null; renderHealth();
     const words = t => ' ' + normTxt(t).trim().split(' ').map(w => ALIAS[w] || w).join(' ') + ' ';     // mêmes équivalences que pour les équipes
-    TV = (j.programmes || []).map(p => ({c:p.c, s:Date.parse(p.s), e:Date.parse(p.e || p.s), txt:words(`${p.t} ${p.d || ''}`)}));
+    TV = (j.programmes || []).map(p => ({c:p.c, s:Date.parse(p.s), e:Date.parse(p.e || p.s), tt:words(p.t), txt:words(`${p.t} ${p.d || ''}`)}));
     render();
   }catch{}
 }
 const GENERIC = /^(canal\+|dazn|bein sports)$/i;
+/* Mots qui désignent la compétition dans les programmes TV (quand l'affiche n'est pas écrite) */
+const TVKEY = {'fra.1':['ligue 1'], 'fra.2':['ligue 2'], 'eng.1':['premier league'], 'eng.2':['championship'], 'esp.1':['liga', 'laliga'],
+  'ita.1':['serie a'], 'ger.1':['bundesliga'], '270559':['top 14'], '271937':['champions cup'], 'uefa.champions':['ligue des champions', 'champions league'],
+  'uefa.europa':['ligue europa', 'europa league'], 'uefa.europa.conf':['conference league', 'ligue conference'], 'fra.coupe_de_france':['coupe de france'],
+  'eng.league_cup':['coupe de la ligue anglaise', 'carabao cup', 'efl cup'], 'eng.fa':['fa cup', 'coupe d angleterre'], 'esp.copa_del_rey':['coupe du roi', 'copa del rey'],
+  'ita.coppa_italia':['coupe d italie', 'coppa italia'], 'ger.dfb_pokal':['coupe d allemagne', 'dfb pokal'], nba:['nba'], nfl:['nfl'], nhl:['nhl']};
+/* « beIN Sports Max 4, beIN Sports Max 5… » → « beIN Sports 2 · Max 4/5/6 » */
+function shortList(names){
+  const groups = [];
+  names.forEach(n => { const m = n.match(/^(.*?)\s*(\d+)$/), pre = m ? m[1] : n, g = groups.find(x => x.pre === pre && m);
+    if (g) g.nums.push(m[2]); else groups.push({pre, nums:m ? [m[2]] : []}); });
+  const brand = groups[0] ? groups[0].pre : '';
+  return groups.map((g, i) => `${i && brand && g.pre.startsWith(brand + ' ') ? g.pre.slice(brand.length + 1) : g.pre}${g.nums.length ? ' ' + g.nums.join('/') : ''}`).join(' · ');
+}
+/* Chaîne d'un match : {names, probable}
+   1. programme qui cite les deux équipes (affiche dans le titre d'abord, multiplex en dernier) ;
+   2. sinon, programme de la compétition qui commence à l'heure du match sans citer d'autre affiche → chaîne « probable » */
 function tvFor(m){
   if (!TV || !m.t) return null;
   const H = tokens(m.home), A = tokens(m.away);
   if (!H.length || !A.length) return null;
-  const has = (p, ws) => ws.some(w => p.txt.includes(` ${w} `));
-  const hits = TV.filter(p => p.s >= m.t - 75 * 60e3 && p.s <= m.t + 20 * 60e3 && p.e >= m.t + 30 * 60e3 && has(p, H) && has(p, A));
-  const names = [...new Set(hits.map(p => p.c))].sort((a, b) => GENERIC.test(a) - GENERIC.test(b));
-  return names.length ? names.slice(0, 2) : null;
+  const has = (txt, ws) => ws.some(w => txt.includes(` ${w} `));
+  const near = TV.filter(p => p.s >= m.t - 75 * 60e3 && p.s <= m.t + 20 * 60e3 && p.e >= m.t + 30 * 60e3);
+  const hits = near.filter(p => has(p.txt, H) && has(p.txt, A)).map(p => ({c:p.c, multi:p.txt.includes(' multiplex '), title:has(p.tt, H) && has(p.tt, A)}));
+  if (hits.length){
+    const best = new Map();
+    hits.forEach(h => { const o = best.get(h.c); if (!o || (o.multi && !h.multi) || (!o.title && h.title)) best.set(h.c, h); });
+    const list = [...best.values()].sort((a, b) => a.multi - b.multi || b.title - a.title || GENERIC.test(a.c) - GENERIC.test(b.c));
+    return {names:list.slice(0, 2).map(h => h.multi ? `${h.c} (multiplex)` : h.c)};
+  }
+  const keys = TVKEY[m.league]; if (!keys) return null;
+  const others = Object.values(DATA).flatMap(d => d.events || []).filter(x => x.id !== m.id && Math.abs(x.t - m.t) < 3 * 3600e3);
+  const otherPair = p => others.some(x => { const h = tokens(x.home), a = tokens(x.away); return h.length && a.length && has(p.txt, h) && has(p.txt, a); });
+  const cand = [...new Set(TV.filter(p => p.s >= m.t - 40 * 60e3 && p.s <= m.t + 15 * 60e3 && p.e >= m.t + 60 * 60e3 && has(p.txt, keys) && !otherPair(p)).map(p => p.c))];
+  return cand.length && cand.length <= 6 ? {names:[shortList(cand.sort((a, b) => a.localeCompare(b, 'fr', {numeric:true})))], probable:true} : null;
 }
 setInterval(() => { if (!document.hidden) loadTV(); }, 30 * 60e3);
 
@@ -823,7 +850,8 @@ function teamHTML(m, t, other){
 function tvHTML(m){
   const L = LBY[m.league]; const out = [];
   const exact = m.state !== 'post' ? tvFor(m) : null;
-  if (exact) out.push(`<span class="pill fr exact" title="D'après le programme TV"><b>FR</b>${esc(exact.join(' · '))}</span>`);
+  if (exact && !exact.probable) out.push(`<span class="pill fr exact" title="D'après le programme TV"><b>FR</b>${esc(exact.names.join(' · '))}</span>`);
+  else if (exact) out.push(`<span class="pill fr" title="Chaîne probable : le programme TV annonce la compétition à cette heure sans préciser l'affiche"><b>FR</b>≈ ${esc(exact.names[0])}</span>`);
   else if (L.tv && (!L.tvTeam || plays(m, L.tvTeam)))
     out.push(`<span class="pill fr${L.partial ? ' partial' : ''}"><b>FR</b>${esc(L.tv.join(' · '))}${L.partial ? ' (sélection)' : ''}</span>`);
   m.us.forEach(n => out.push(`<span class="pill us"><b>US</b>${esc(n)}</span>`));
