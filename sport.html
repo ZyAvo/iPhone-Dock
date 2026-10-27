@@ -287,6 +287,11 @@ body.locked{overflow:hidden}
 .more-links{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
 .mini{padding:6px 11px;border-radius:999px;font-size:.76rem;font-weight:600;color:var(--accent);background:var(--accent-soft)}
 #sheetBody > .more-links{justify-content:center}
+.cal-views{margin-bottom:-4px}
+.wk-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:10px 4px 2px;border-top:1px solid var(--line);margin-top:4px}
+.cal-nav + .wk-head,.hint + .wk-head{border-top:0;margin-top:0}
+.wk-head b{font-size:1rem;font-weight:700;letter-spacing:-.01em}
+.wk-head span{font-size:.76rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 @keyframes up{from{transform:translateY(40%)}}
 @keyframes fade{from{opacity:0}}
 @media (max-width:360px){ .row{grid-template-columns:52px 1fr} .tv,.more{padding-left:78px} }
@@ -337,6 +342,9 @@ body.locked{overflow:hidden}
    partial  : la chaîne ne diffuse qu'une sélection de matchs
    region   : rubrique dans la liste des compétitions
    rounds   : calendrier par journée (championnats) ou par semaine (NFL)
+   of       : fichier openfootball pour vérifier les numéros de journée
+   tsdb     : sinon, vérification des journées via TheSportsDB
+   badges   : logos des clubs pris sur TheSportsDB (rugby)
    seasonal : tournoi ponctuel, vérifié deux fois par jour et affiché
               seulement quand il a des matchs
    Droits TV vérifiés en octobre 2026 (saison 2026-27).
@@ -369,8 +377,8 @@ const REGIONS = [
   {id:'us',    label:'Sports US'}
 ];
 const LEAGUES = [
-  {id:'fra.1',               region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Ligue 1',             tv:['Ligue 1+'], rounds:true},
-  {id:'fra.2',               region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Ligue 2',             tv:['beIN Sports'], rounds:true},
+  {id:'fra.1',               region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Ligue 1',             tv:['Ligue 1+'], rounds:true, of:'fr.1'},
+  {id:'fra.2',               region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Ligue 2',             tv:['beIN Sports'], rounds:true, of:'fr.2', tsdb:{c:'France', s:'Soccer', re:/ligue 2/i}},
   {id:'fra.coupe_de_france', region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Coupe de France',     tv:['beIN Sports']},
   {id:'fra.super_cup',       region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Trophée des champions', seasonal:true},
   {id:'uefa.champions',      region:'ec',  flag:'🇪🇺', sport:'soccer', group:'foot', name:'Ligue des champions', tv:['Canal+']},
@@ -385,13 +393,13 @@ const LEAGUES = [
   {id:'fifa.friendly',       region:'intl', flag:'🌍', sport:'soccer', group:'foot', name:'Amicaux internationaux', tv:['TF1'], tvTeam:'France', seasonal:true},
   {id:'fifa.olympics',       region:'intl', flag:'🌍', sport:'soccer', group:'foot', name:'Jeux olympiques', seasonal:true},
   {id:'fifa.cwc',            region:'intl', flag:'🌍', sport:'soccer', group:'foot', name:'Coupe du monde des clubs', seasonal:true},
-  {id:'eng.1',               region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'Premier League',      tv:['Canal+'], rounds:true},
-  {id:'eng.2',               region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'Championship', rounds:true},
-  {id:'esp.1',               region:'big', flag:'🇪🇸', sport:'soccer', group:'foot', name:'Liga',                tv:['DAZN','Disney+'], rounds:true},
-  {id:'ita.1',               region:'big', flag:'🇮🇹', sport:'soccer', group:'foot', name:'Serie A',             tv:['DAZN'], rounds:true},
-  {id:'ger.1',               region:'big', flag:'🇩🇪', sport:'soccer', group:'foot', name:'Bundesliga',          tv:['beIN Sports'], rounds:true},
-  {id:'270559',              region:'rfr', flag:'🇫🇷', sport:'rugby',  group:'rugby', name:'Top 14',             tv:['Canal+'], rounds:true},
-  {id:'271937',              region:'reu', flag:'🇪🇺', sport:'rugby',  group:'rugby', name:'Champions Cup',      tv:['beIN Sports']},
+  {id:'eng.1',               region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'Premier League',      tv:['Canal+'], rounds:true, of:'en.1'},
+  {id:'eng.2',               region:'en',  flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', sport:'soccer', group:'foot', name:'Championship', rounds:true, of:'en.2'},
+  {id:'esp.1',               region:'big', flag:'🇪🇸', sport:'soccer', group:'foot', name:'Liga',                tv:['DAZN','Disney+'], rounds:true, of:'es.1'},
+  {id:'ita.1',               region:'big', flag:'🇮🇹', sport:'soccer', group:'foot', name:'Serie A',             tv:['DAZN'], rounds:true, of:'it.1'},
+  {id:'ger.1',               region:'big', flag:'🇩🇪', sport:'soccer', group:'foot', name:'Bundesliga',          tv:['beIN Sports'], rounds:true, of:'de.1'},
+  {id:'270559',              region:'rfr', flag:'🇫🇷', sport:'rugby',  group:'rugby', name:'Top 14',             tv:['Canal+'], rounds:true, tsdb:{c:'France', s:'Rugby', re:/top ?14/i}, badges:true},
+  {id:'271937',              region:'reu', flag:'🇪🇺', sport:'rugby',  group:'rugby', name:'Champions Cup',      tv:['beIN Sports'], badges:'270559'},
   {id:'164205',              region:'rintl', flag:'🌍', sport:'rugby', group:'rugby', name:'Coupe du monde de rugby', tv:['TF1'], seasonal:true},
   {id:'180659',              region:'rintl', flag:'🇪🇺', sport:'rugby', group:'rugby', name:'Six Nations',       tv:['France TV'], seasonal:true},
   {id:'289234',              region:'rintl', flag:'🌍', sport:'rugby', group:'rugby', name:'Tests internationaux', tv:['TF1'], tvTeam:'France', seasonal:true},
@@ -585,7 +593,9 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && !s
 let TV = null;
 const normTxt = s => ' ' + String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
 const STOP = new Set(['fc','cf','ac','as','sc','rc','ss','sv','afc','club','de','la','le','les','du','des','the','and','olympique','stade','sporting','racing','football','rugby','calcio','ogc','losc','u21']);
-const tokens = t => [...new Set([t.full, t.name, t.abbr].flatMap(x => normTxt(x).trim().split(' ')).filter(w => w.length >= 3 && !STOP.has(w)))];
+const ALIAS = {cologne:'koln', munich:'munchen', nuremberg:'nurnberg', utd:'united', spurs:'tottenham', wolves:'wolverhampton',
+  paloise:'pau', bayonnais:'bayonne', rochelais:'rochelle', toulousain:'toulouse', brestois:'brest', lyonnais:'lyon', montois:'mont', briviste:'brive', castrais:'castres'};
+const tokens = t => [...new Set([t.full, t.name, t.abbr].flatMap(x => normTxt(x).trim().split(' ')).map(w => ALIAS[w] || w).filter(w => (w.length >= 3 || /^\d{2,}$/.test(w)) && !STOP.has(w)))];
 async function loadTV(){
   if (sample) return;
   try{
@@ -681,7 +691,8 @@ function compBadge(L){
 function teamHTML(m, t, other){
   const reds = m.details.filter(d => d.red && d.team && d.team === t.id).length;
   const draw = m.state === 'post' && !m.home.win && !m.away.win;
-  const logo = t.logo ? `<img class="lg" src="${esc(t.logo)}" alt="" loading="lazy" onerror="this.outerHTML='<span class=&quot;lg-ph&quot;>${esc((t.abbr || t.name).slice(0,3))}</span>'">`
+  const src = badgeFor(m, t) || t.logo;
+  const logo = src ? `<img class="lg" src="${esc(src)}" alt="" loading="lazy" onerror="this.outerHTML='<span class=&quot;lg-ph&quot;>${esc((t.abbr || t.name).slice(0,3))}</span>'">`
                       : `<span class="lg-ph">${esc((t.abbr || t.name).slice(0,3))}</span>`;
   const score = m.state === 'pre' ? '' : `${esc(t.score)}${t.so != null && m.state === 'post' && t.so !== '' ? `<span class="so">(${esc(t.so)})</span>` : ''}`;
   return `<span class="team${t.win ? ' win' : ''}${draw ? ' draw' : ''}">${logo}<span class="nm">${esc(t.name)}</span>
@@ -992,7 +1003,7 @@ const COLS = {
   football:  [[['wins'],'V'],[['losses'],'D'],[['ties'],'N'],[['winPercent'],'%'],[['streak'],'Série']],
   hockey:    [[['gamesPlayed'],'MJ'],[['wins'],'V'],[['losses'],'D'],[['otLosses'],'DP'],[['points'],'Pts']]
 };
-const MOIS = d => d.toLocaleDateString('fr-FR',{month:'long', year:'numeric'});
+const MOIS = d => { const t = d.toLocaleDateString('fr-FR',{month:'long', year:'numeric'}); return t.charAt(0).toUpperCase() + t.slice(1); };
 let csheet = null;   // {mode:'list'|'comp', L, fromList, tab, table, cal, focus}
 
 function openCompList(){
@@ -1001,9 +1012,9 @@ function openCompList(){
 }
 function openComp(L, fromList = false, tab = 'table', at = null){
   const focus = csheet ? csheet.focus : document.activeElement;
-  const mode = L.rounds ? 'round' : (store.get('sport:norange') || {})[L.id] ? 'week' : 'month';
+  const mode = L.rounds ? 'round' : 'week';
   csheet = {mode:'comp', L, fromList, focus, tab, table:null,
-            cal:{mode, start:null, events:null, cache:{}, err:false, at, round:null, rounds:null}};
+            cal:{mode, view:mode === 'round' ? 'round' : 'week', start:null, week:null, events:null, cache:{}, err:false, at, round:null, rounds:null}};
   showCsheet();
   loadTable();
   if (tab === 'cal') loadCal();
@@ -1092,13 +1103,94 @@ function seasonBounds(L){
   return L.id === 'nfl' ? [new Date(y, 7, 1, 12), new Date(y + 1, 1, 28, 12)] : [new Date(y, 6, 1, 12), new Date(y + 1, 5, 30, 12)];
 }
 function assignRounds(evs){
-  if (evs.some(m => m.round)) return;
   const n = {};
   evs.forEach(m => {
     const h = (n[m.home.id] || 0) + 1, a = (n[m.away.id] || 0) + 1;
     n[m.home.id] = h; n[m.away.id] = a;
-    m.round = Math.max(h, a);
+    if (!m.round){ m.round = Math.max(h, a); m.roundSrc = 'calc'; }
   });
+}
+/* Numéros de journée officiels : openfootball (GitHub), sinon TheSportsDB, croisés avec ESPN */
+function applyRefs(evs, ref, src){
+  const same = (w, v) => w === v || (Math.min(w.length, v.length) >= 4 && (w.startsWith(v) || v.startsWith(w)));
+  const sim = (a, b) => { const o = a.filter(w => b.some(v => same(w, v))).length; return o / (a.length + b.length - o || 1); };
+  let found = 0;
+  evs.forEach(m => {
+    if (m.roundSrc === 'of') return;
+    const H = tokens(m.home), A = tokens(m.away);
+    let best = null, score = 0, tie = false;
+    ref.forEach(x => {
+      const oh = sim(H, x.h), oa = sim(A, x.a);
+      if (!oh || !oa) return;
+      const sc = oh + oa;
+      if (sc > score){ best = x; score = sc; tie = false; } else if (sc === score) tie = true;
+    });
+    if (best && !tie){ m.round = best.r; m.roundSrc = src; found++; }
+  });
+  return found;
+}
+async function officialRounds(L, evs){
+  if (!L.of) return 0;
+  const y = seasonBounds(L)[0].getFullYear();
+  try{
+    const j = await getJSON(`https://raw.githubusercontent.com/openfootball/football.json/master/${y}-${String(y + 1).slice(2)}/${L.of}.json`);
+    const ref = (j.matches || []).map(x => ({h:tokens({full:x.team1}), a:tokens({full:x.team2}), r:+(String(x.round || '').match(/\d+/) || [])[0] || null})).filter(x => x.r);
+    return applyRefs(evs, ref, 'of');
+  }catch{ return 0; }
+}
+const TSDB = 'https://www.thesportsdb.com/api/v1/json/123';
+async function tsdbLeagueId(L){
+  const key = L.tsdb ? L.id : L.badges;
+  const ids = store.get('sport:tsdbid') || {};
+  if (ids[key]) return ids[key];
+  const T = LBY[key].tsdb;
+  const j = await getJSON(`${TSDB}/search_all_leagues.php?c=${encodeURIComponent(T.c)}&s=${encodeURIComponent(T.s)}`);
+  const hit = (j.countries || j.leagues || []).find(x => [x.strLeague, x.strLeagueAlternate].some(n => n && T.re.test(n)));
+  if (!hit) throw 0;
+  ids[key] = hit.idLeague; store.set('sport:tsdbid', ids);
+  return hit.idLeague;
+}
+async function tsdbRounds(L, evs, rounds){
+  if (!L.tsdb || sample) return 0;
+  try{
+    const id = await tsdbLeagueId(L), y = seasonBounds(L)[0].getFullYear(), season = `${y}-${y + 1}`;
+    let cache = store.get('sport:tsdbr:' + L.id);
+    if (!cache || cache.season !== season) cache = {season, r:{}};
+    const todo = [...new Set(rounds)].filter(r => r > 0 && (!cache.r[r] || Date.now() - cache.r[r].at > 3 * 86400e3));
+    for (const r of todo){
+      try{
+        const j = await getJSON(`${TSDB}/eventsround.php?id=${id}&r=${r}&s=${season}`);
+        cache.r[r] = {at:Date.now(), list:(j.events || []).map(e => [e.strHomeTeam, e.strAwayTeam])};
+      }catch{}
+      await new Promise(ok => setTimeout(ok, 250));
+    }
+    store.set('sport:tsdbr:' + L.id, cache);
+    const ref = Object.entries(cache.r).flatMap(([r, v]) => v.list.map(([h, a]) => ({h:tokens({full:h}), a:tokens({full:a}), r:+r})));
+    return applyRefs(evs, ref, 'tsdb');
+  }catch{ return 0; }
+}
+/* Logos des clubs de rugby (TheSportsDB) */
+let BADGES = {};
+try{ const b = JSON.parse(localStorage.getItem('sport:badges')); if (b && Date.now() - b.at < 7 * 86400e3) BADGES = b.map; }catch{}
+async function loadBadges(){
+  if (sample) return;
+  const src = LEAGUES.filter(L => L.badges === true && !BADGES[L.id]);
+  for (const L of src){
+    try{
+      const id = await tsdbLeagueId(L);
+      const j = await getJSON(`${TSDB}/lookup_all_teams.php?id=${id}`);
+      BADGES[L.id] = (j.teams || []).filter(t => t.strBadge).map(t => ({k:tokens({full:t.strTeam, name:t.strTeamShort || '', abbr:''}), u:t.strBadge + '/small'}));
+    }catch{}
+  }
+  try{ localStorage.setItem('sport:badges', JSON.stringify({at:Date.now(), map:BADGES})); }catch{}
+  render();
+}
+function badgeFor(m, t){
+  const L = LBY[m.league]; if (!L.badges) return '';
+  const list = BADGES[L.badges === true ? L.id : L.badges]; if (!list) return '';
+  const T = tokens(t); let best = '', sc = 0;
+  list.forEach(b => { const o = T.filter(w => b.k.includes(w)).length / (T.length + b.k.length || 1); if (o > sc){ sc = o; best = b.u; } });
+  return sc > 0 ? best : '';
 }
 async function loadRounds(){
   const cs = csheet, c = cs.cal, L = cs.L;
@@ -1115,23 +1207,37 @@ async function loadRounds(){
         all = [...seen.values()];
       }catch{
         if (csheet !== cs) return;
-        c.mode = 'month'; return loadCal();
+        c.mode = c.view = 'week'; c.start = null; return loadCal();
       }
     }
     all.sort((a, b) => a.t - b.t);
+    if (!sample) await officialRounds(L, all);
     assignRounds(all);
     SEASONS[L.id] = {at:Date.now(), events:all};
   }
   if (csheet !== cs) return;
+  pickRound(c, all);
+  showRound(c, all);
+  if (L.tsdb && !sample && all.some(m => m.roundSrc === 'calc')){        // vérification progressive des journées autour de celle affichée
+    const want = c.view === 'week' ? [...new Set(weekEvents(c, all).map(m => m.round))].flatMap(r => [r - 1, r, r + 1]) : [c.round - 1, c.round, c.round + 1];
+    const n = await tsdbRounds(L, all, want);
+    if (n && csheet === cs){ all.forEach(m => { if (m.roundSrc === 'calc') m.round = null; }); assignRounds(all); showRound(c, all); }
+  }
+}
+function pickRound(c, all){
   c.rounds = [...new Set(all.map(m => m.round))].sort((a, b) => a - b);
   if (c.round == null){
     if (c.at){ const near = all.reduce((b, m) => Math.abs(m.t - c.at) < Math.abs(b.t - c.at) ? m : b, all[0]); c.round = near.round; }
     else { const next = all.find(m => m.state !== 'post'); c.round = next ? next.round : c.rounds[c.rounds.length - 1]; }
   }
-  c.events = all.filter(m => m.round === c.round);
-  renderCsheet();
+  if (!c.week){ const ref = c.at ? new Date(c.at) : (all.find(m => m.state !== 'post') ? new Date(all.find(m => m.state !== 'post').t) : dayAt(0)); c.week = mondayOf(ref); }
 }
-async function loadCal(){
+const weekEvents = (c, all) => all.filter(m => m.t >= c.week.getTime() - 43200e3 && m.t < addDays(c.week, 7).getTime() - 43200e3);
+function showRound(c, all){
+  c.rounds = [...new Set(all.map(m => m.round))].sort((a, b) => a - b);
+  c.events = c.view === 'week' ? weekEvents(c, all) : all.filter(m => m.round === c.round);
+  renderCsheet();
+}async function loadCal(){
   const cs = csheet, c = cs.cal, L = cs.L;
   if (c.mode === 'round') return loadRounds();
   if (!c.start && c.at){ const d = new Date(c.at); c.start = c.mode === 'month' ? monthOf(d) : mondayOf(d); }
@@ -1152,7 +1258,7 @@ async function loadCal(){
         if (!Array.isArray(j.events)) throw 0;
         raw = j.events;
       }catch{
-        c.mode = 'week'; c.start = mondayOf(c.start < dayAt(0) && monthOf(dayAt(0)).getTime() === c.start.getTime() ? dayAt(0) : c.start);
+        c.mode = c.view = 'week'; c.start = mondayOf(c.start < dayAt(0) && monthOf(dayAt(0)).getTime() === c.start.getTime() ? dayAt(0) : c.start);
         return loadCal();
       }
     } else {
@@ -1171,33 +1277,54 @@ async function loadCal(){
   if (csheet === cs) renderCsheet();
 }
 const roundName = (L, n) => L.id === 'nfl' ? `Semaine ${n}` : `${n}${n === 1 ? 're' : 'e'} journée`;
+const fmtShort = d => d.toLocaleDateString('fr-FR', {day:'numeric', month:'short'});
+function isoWeek(d){ const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = x.getUTCDay() || 7; x.setUTCDate(x.getUTCDate() + 4 - day); const y0 = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); return Math.ceil(((x - y0) / 864e5 + 1) / 7); }
 function calHTML(L, c){
+  const views = c.mode === 'round' ? [['round', L.id === 'nfl' ? 'Par semaine NFL' : 'Par journée'], ['week', 'Par semaine']] : [['week', 'Par semaine'], ['month', 'Par mois']];
+  let h = `<div class="filters cal-views">${views.map(([v, l]) => `<button type="button" class="chip" data-view="${v}" aria-pressed="${c.view === v}">${l}</button>`).join('')}</div>`;
   let label, sub = '', first = false, last = false;
-  if (c.mode === 'round'){
-    if (c.round == null) return `<div class="skeleton glass"></div><div class="skeleton glass"></div>`;
+  if (c.mode === 'round' && c.view === 'round'){
+    if (c.round == null) return h + `<div class="skeleton glass"></div><div class="skeleton glass"></div>`;
     label = roundName(L, c.round);
     const i = c.rounds.indexOf(c.round); first = i <= 0; last = i >= c.rounds.length - 1;
     if (c.events && c.events.length){
-      const a = new Date(c.events[0].t), b = new Date(c.events[c.events.length - 1].t), f = {day:'numeric', month:'short'};
-      sub = localKey(a) === localKey(b) ? a.toLocaleDateString('fr-FR', {weekday:'long', ...f}) : `${a.toLocaleDateString('fr-FR', f)} – ${b.toLocaleDateString('fr-FR', f)}`;
+      const a = new Date(c.events[0].t), b = new Date(c.events[c.events.length - 1].t);
+      sub = localKey(a) === localKey(b) ? a.toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'short'}) : `${fmtShort(a)} – ${fmtShort(b)}`;
     }
+  } else if (c.mode === 'round'){
+    if (!c.week) return h + `<div class="skeleton glass"></div><div class="skeleton glass"></div>`;
+    label = `Semaine ${isoWeek(c.week)}`; sub = `${fmtShort(c.week)} – ${fmtShort(addDays(c.week, 6))}`;
   } else {
-    if (!c.start) return '';
+    if (!c.start) return h + `<div class="skeleton glass"></div>`;
     const [s, e] = calBounds(c);
-    label = c.mode === 'month' ? MOIS(s) : `${s.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} – ${e.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}`;
+    if (c.mode === 'month') label = MOIS(s); else { label = `Semaine ${isoWeek(s)}`; sub = `${fmtShort(s)} – ${fmtShort(e)}`; }
   }
-  let h = `<div class="cal-nav glass"><button type="button" data-nav="-1" aria-label="Précédent"${first ? ' disabled' : ''}>‹</button>
+  h += `<div class="cal-nav glass"><button type="button" data-nav="-1" aria-label="Précédent"${first ? ' disabled' : ''}>‹</button>
     <span>${esc(label)}${sub ? `<small>${esc(sub)}</small>` : ''}</span><button type="button" data-nav="1" aria-label="Suivant"${last ? ' disabled' : ''}>›</button></div>`;
   if (c.events === null) return h + `<div class="skeleton glass"></div><div class="skeleton glass"></div>`;
+  if (c.mode === 'round' && c.view === 'round' && c.events.length && L.id !== 'nfl'){
+    const calc = c.events.filter(m => m.roundSrc === 'calc').length;
+    const src = c.events.some(m => m.roundSrc === 'of') ? 'openfootball' : 'TheSportsDB';
+    h += `<p class="hint">${calc === 0 ? `Journée vérifiée avec ${src}.` : calc < c.events.length ? `Journée vérifiée sauf pour ${calc} match${calc > 1 ? 's' : ''}, estimé${calc > 1 ? 's' : ''} d'après l'ordre des matchs.` : "Journée estimée d'après l'ordre des matchs de chaque équipe."}</p>`;
+  }
   if (c.err) return h + `<div class="empty">Le calendrier n'est pas disponible pour l'instant.</div>`;
   if (!c.events.length) return h + `<div class="empty">Aucun match sur cette période.</div>`;
-  const byDay = new Map();
-  c.events.forEach(m => { const k = localKey(m.t); (byDay.get(k) || byDay.set(k, []).get(k)).push(m); });
-  byDay.forEach((ms, k) => {
-    const d = new Date(ms[0].t);
-    const today = k === ymd(dayAt(0));
-    h += `<section class="comp"><div class="comp-head"><h2 class="${today ? 'live-title' : ''}">${today ? "Aujourd'hui · " : ''}${esc(d.toLocaleDateString('fr-FR',{weekday:'long', day:'numeric', month:'long'}))}</h2></div>
-      <ul class="list">${ms.map(m => matchHTML(m)).join('')}</ul></section>`;
+  const evs = [...c.events].sort((a, b) => a.t - b.t);
+  const weeks = new Map();
+  evs.forEach(m => { const k = ymd(mondayOf(new Date(m.t))); (weeks.get(k) || weeks.set(k, []).get(k)).push(m); });
+  const showWeeks = weeks.size > 1 || (c.mode === 'round' && c.view === 'round');
+  const tagRound = c.mode === 'round' && c.view === 'week' && L.id !== 'nfl';
+  weeks.forEach(ws => {
+    const mon = mondayOf(new Date(ws[0].t));
+    if (showWeeks) h += `<div class="wk-head"><b>Semaine ${isoWeek(mon)}</b><span>${fmtShort(mon)} – ${fmtShort(addDays(mon, 6))}</span></div>`;
+    const byDay = new Map();
+    ws.forEach(m => { const k = localKey(m.t); (byDay.get(k) || byDay.set(k, []).get(k)).push(m); });
+    byDay.forEach((ms, k) => {
+      const d = new Date(ms[0].t), today = k === ymd(dayAt(0));
+      const rs = tagRound ? [...new Set(ms.map(m => m.round))].map(r => roundName(L, r)).join(' / ') : '';
+      h += `<section class="comp"><div class="comp-head"><h2 class="${today ? 'live-title' : ''}">${today ? "Aujourd'hui · " : ''}${esc(d.toLocaleDateString('fr-FR',{weekday:'long', day:'numeric', month:'long'}))}</h2>${rs ? `<span class="sp">${esc(rs)}</span>` : ''}</div>
+        <ul class="list">${ms.map(m => matchHTML(m)).join('')}</ul></section>`;
+    });
   });
   return h;
 }
@@ -1239,10 +1366,18 @@ $('#csheetBody').addEventListener('click', e => {
   if (it){ openComp(LBY[it.dataset.league], true); return; }
   const tab = e.target.closest('[data-tab]');
   if (tab){ c.tab = tab.dataset.tab; if (c.tab === 'cal' && c.cal.events === null) loadCal(); else renderCsheet(); return; }
+  const vw = e.target.closest('[data-view]');
+  if (vw){
+    const cal = c.cal; cal.view = vw.dataset.view;
+    if (cal.mode === 'round'){ loadRounds(); return; }
+    const ref = cal.start || dayAt(0);
+    cal.mode = cal.view; cal.start = cal.view === 'month' ? monthOf(ref) : mondayOf(ref); loadCal(); return;
+  }
   const nav = e.target.closest('[data-nav]');
   if (nav){
     const d = +nav.dataset.nav, cal = c.cal;
     if (cal.mode === 'round'){
+      if (cal.view === 'week'){ cal.week = addDays(cal.week, 7 * d); loadRounds(); return; }
       const i = cal.rounds.indexOf(cal.round) + d;
       if (i >= 0 && i < cal.rounds.length){ cal.round = cal.rounds[i]; loadRounds(); }
       return;
@@ -1315,6 +1450,7 @@ LEAGUES.forEach(L => { const c = store.get(CACHE + L.id); if (c && c.day === ymd
 render();
 loadAll();
 loadTV();
+loadBadges();
 </script>
 </body>
 </html>
