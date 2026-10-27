@@ -329,7 +329,7 @@ function tick(){
   const d = new Date();
   $('#clock').textContent = d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   $('#day').textContent = d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-  if (top) renderWidget();
+  if (headline) renderWidget();
 }
 
 /* Dossiers */
@@ -346,7 +346,7 @@ $('#scrim').addEventListener('click', e => { if (!e.target.closest('.folder-box'
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#scrim').hidden) closeFolder(); });
 
 /* Widget À la une */
-let top = null;
+let headline = null;
 function ago(t){
   const m = Math.round((Date.now() - t) / 60000);
   if (m < 1) return "à l'instant";
@@ -356,25 +356,25 @@ function ago(t){
   return new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
 }
 function renderWidget(){
-  $('#wSrc').textContent = top.source;
-  $('#wDot').style.background = `var(${top.color})`;
-  $('#wTitle').textContent = top.title;
-  $('#wTime').textContent = top.sample ? '' : ago(top.date);
+  $('#wSrc').textContent = headline.source;
+  $('#wDot').style.background = `var(${headline.color})`;
+  $('#wTitle').textContent = headline.title;
+  $('#wTime').textContent = headline.sample ? '' : ago(headline.date);
 }
 async function loadWidget(){
   try{
     const saved = JSON.parse(localStorage.getItem('actus:top'));
-    if (saved && Date.now() - saved.date < 6 * 3600000){ top = saved; renderWidget(); }
+    if (saved && Date.now() - saved.date < 6 * 3600000){ headline = saved; renderWidget(); }
   }catch{}
   try{
     const r = await fetch(RSS_PROXY + encodeURIComponent(WIDGET_FEED.url));
     const j = await r.json();
     if (j.status !== 'ok' || !j.items.length) throw 0;
     const it = j.items[0];
-    top = {source:WIDGET_FEED.name, color:WIDGET_FEED.color, title:it.title,
+    headline = {source:WIDGET_FEED.name, color:WIDGET_FEED.color, title:it.title,
            date:Date.parse((it.pubDate || '').replace(' ','T') + 'Z') || Date.now()};
   }catch{
-    if (!top) top = {source:'À la une', color:'--t-slate', title:'Toutes les actus, classées par thème', sample:true};
+    if (!headline) headline = {source:'À la une', color:'--t-slate', title:'Toutes les actus, classées par thème', sample:true};
   }
   renderWidget();
 }
