@@ -1,0 +1,377 @@
+# Calendrier Ligue 2 BKT 2026-27
+# Source : Foot Mercato, journée par journée (contrôlé : chaque équipe une fois par journée, chaque affiche une seule fois)
+# Une journée par bloc, une ligne par match (domicile - extérieur).
+
+Journée 1
+Clermont - Reims
+Metz - Guingamp
+Nantes - Red Star
+Rodez - Laval
+Sochaux - Saint-Étienne
+Pau - Annecy
+Dunkerque - Grenoble
+Boulogne - Nancy
+Montpellier - Dijon
+
+Journée 2
+Nancy - Montpellier
+Dijon - Pau
+Grenoble - Metz
+Guingamp - Boulogne
+Reims - Dunkerque
+Laval - Nantes
+Red Star - Sochaux
+Annecy - Rodez
+Saint-Étienne - Clermont
+
+Journée 3
+Dunkerque - Montpellier
+Pau - Nancy
+Clermont - Dijon
+Sochaux - Guingamp
+Boulogne - Red Star
+Metz - Laval
+Nantes - Rodez
+Saint-Étienne - Grenoble
+Reims - Annecy
+
+Journée 4
+Laval - Grenoble
+Rodez - Pau
+Nancy - Dunkerque
+Clermont - Sochaux
+Montpellier - Boulogne
+Red Star - Reims
+Annecy - Metz
+Guingamp - Nantes
+Dijon - Saint-Étienne
+
+Journée 5
+Boulogne - Dijon
+Grenoble - Annecy
+Dunkerque - Clermont
+Laval - Red Star
+Pau - Sochaux
+Reims - Guingamp
+Metz - Rodez
+Saint-Étienne - Montpellier
+Nantes - Nancy
+
+Journée 6
+Nancy - Reims
+Clermont - Boulogne
+Dijon - Laval
+Montpellier - Pau
+Rodez - Grenoble
+Guingamp - Annecy
+Sochaux - Nantes
+Dunkerque - Saint-Étienne
+Red Star - Metz
+
+Journée 7
+Pau - Dunkerque
+Reims - Montpellier
+Rodez - Nancy
+Laval - Sochaux
+Annecy - Dijon
+Grenoble - Clermont
+Boulogne - Nantes
+Guingamp - Red Star
+Metz - Saint-Étienne
+
+Journée 8
+Nancy - Guingamp
+Montpellier - Grenoble
+Pau - Laval
+Dunkerque - Annecy
+Sochaux - Boulogne
+Clermont - Red Star
+Nantes - Reims
+Saint-Étienne - Rodez
+Dijon - Metz
+
+Journée 9
+Reims - Dijon
+Annecy - Nancy
+Guingamp - Pau
+Grenoble - Boulogne
+Laval - Clermont
+Nantes - Dunkerque
+Metz - Sochaux
+Red Star - Saint-Étienne
+Rodez - Montpellier
+
+Journée 10
+Nancy - Laval
+Dunkerque - Metz
+Sochaux - Annecy
+Clermont - Guingamp
+Pau - Grenoble
+Dijon - Rodez
+Saint-Étienne - Nantes
+Boulogne - Reims
+Montpellier - Red Star
+
+Journée 11
+Rodez - Dunkerque
+Nantes - Clermont
+Grenoble - Dijon
+Laval - Boulogne
+Metz - Pau
+Annecy - Montpellier
+Reims - Sochaux
+Guingamp - Saint-Étienne
+Red Star - Nancy
+
+Journée 12
+Boulogne - Annecy
+Nancy - Sochaux
+Dunkerque - Guingamp
+Dijon - Red Star
+Grenoble - Reims
+Montpellier - Metz
+Clermont - Rodez
+Saint-Étienne - Laval
+Pau - Nantes
+
+Journée 13
+Reims - Saint-Étienne
+Nantes - Grenoble
+Guingamp - Rodez
+Laval - Montpellier
+Sochaux - Dunkerque
+Nancy - Dijon
+Red Star - Pau
+Metz - Boulogne
+Annecy - Clermont
+
+Journée 14
+Clermont - Metz
+Grenoble - Guingamp
+Boulogne - Pau
+Annecy - Laval
+Dijon - Sochaux
+Montpellier - Nantes
+Dunkerque - Red Star
+Saint-Étienne - Nancy
+Rodez - Reims
+
+Journée 15
+Laval - Dunkerque
+Guingamp - Dijon
+Nancy - Clermont
+Nantes - Annecy
+Boulogne - Rodez
+Red Star - Grenoble
+Pau - Saint-Étienne
+Metz - Reims
+Sochaux - Montpellier
+
+Journée 16
+Rodez - Red Star
+Dunkerque - Boulogne
+Annecy - Saint-Étienne
+Clermont - Pau
+Grenoble - Sochaux
+Montpellier - Guingamp
+Reims - Laval
+Metz - Nancy
+Dijon - Nantes
+
+Journée 17
+Nancy - Grenoble
+Red Star - Annecy
+Montpellier - Clermont
+Nantes - Metz
+Sochaux - Rodez
+Dijon - Dunkerque
+Laval - Guingamp
+Saint-Étienne - Boulogne
+Pau - Reims
+
+Journée 18
+Dunkerque - Nantes
+Metz - Dijon
+Reims - Red Star
+Rodez - Annecy
+Boulogne - Sochaux
+Grenoble - Montpellier
+Guingamp - Nancy
+Clermont - Saint-Étienne
+Laval - Pau
+
+Journée 19
+Annecy - Grenoble
+Pau - Metz
+Saint-Étienne - Dunkerque
+Montpellier - Rodez
+Sochaux - Reims
+Red Star - Laval
+Nantes - Guingamp
+Nancy - Boulogne
+Dijon - Clermont
+
+Journée 20
+Rodez - Nantes
+Sochaux - Pau
+Reims - Nancy
+Metz - Annecy
+Grenoble - Saint-Étienne
+Laval - Dijon
+Boulogne - Clermont
+Red Star - Montpellier
+Guingamp - Dunkerque
+
+Journée 21
+Dunkerque - Pau
+Rodez - Guingamp
+Nancy - Red Star
+Montpellier - Reims
+Dijon - Grenoble
+Clermont - Laval
+Nantes - Boulogne
+Annecy - Sochaux
+Saint-Étienne - Metz
+
+Journée 22
+Guingamp - Clermont
+Dunkerque - Nancy
+Boulogne - Saint-Étienne
+Grenoble - Rodez
+Pau - Red Star
+Reims - Nantes
+Sochaux - Dijon
+Laval - Annecy
+Metz - Montpellier
+
+Journée 23
+Dijon - Nancy
+Metz - Grenoble
+Annecy - Reims
+Saint-Étienne - Sochaux
+Clermont - Dunkerque
+Montpellier - Laval
+Red Star - Guingamp
+Rodez - Boulogne
+Nantes - Pau
+
+Journée 24
+Reims - Rodez
+Pau - Clermont
+Saint-Étienne - Guingamp
+Montpellier - Annecy
+Nancy - Nantes
+Dunkerque - Dijon
+Sochaux - Metz
+Boulogne - Laval
+Grenoble - Red Star
+
+Journée 25
+Rodez - Sochaux
+Laval - Reims
+Nancy - Pau
+Nantes - Saint-Étienne
+Clermont - Montpellier
+Annecy - Boulogne
+Metz - Dunkerque
+Red Star - Dijon
+Guingamp - Grenoble
+
+Journée 26
+Boulogne - Metz
+Dunkerque - Rodez
+Pau - Montpellier
+Sochaux - Nancy
+Dijon - Annecy
+Reims - Clermont
+Saint-Étienne - Red Star
+Guingamp - Laval
+Grenoble - Nantes
+
+Journée 27
+Red Star - Boulogne
+Montpellier - Dunkerque
+Nantes - Sochaux
+Clermont - Grenoble
+Rodez - Dijon
+Laval - Metz
+Reims - Pau
+Annecy - Guingamp
+Nancy - Saint-Étienne
+
+Journée 28
+Saint-Étienne - Annecy
+Dunkerque - Laval
+Boulogne - Grenoble
+Clermont - Nancy
+Sochaux - Red Star
+Metz - Nantes
+Guingamp - Montpellier
+Dijon - Reims
+Pau - Rodez
+
+Journée 29
+Reims - Metz
+Dijon - Guingamp
+Grenoble - Nancy
+Red Star - Nantes
+Annecy - Dunkerque
+Rodez - Clermont
+Pau - Boulogne
+Laval - Saint-Étienne
+Montpellier - Sochaux
+
+Journée 30
+Metz - Clermont
+Nancy - Annecy
+Grenoble - Pau
+Boulogne - Dunkerque
+Sochaux - Laval
+Saint-Étienne - Dijon
+Guingamp - Reims
+Nantes - Montpellier
+Red Star - Rodez
+
+Journée 31
+Rodez - Metz
+Clermont - Nantes
+Dunkerque - Sochaux
+Laval - Nancy
+Montpellier - Saint-Étienne
+Reims - Grenoble
+Dijon - Boulogne
+Pau - Guingamp
+Annecy - Red Star
+
+Journée 32
+Grenoble - Laval
+Annecy - Pau
+Saint-Étienne - Reims
+Guingamp - Metz
+Sochaux - Clermont
+Boulogne - Montpellier
+Nantes - Dijon
+Red Star - Dunkerque
+Nancy - Rodez
+
+Journée 33
+Dunkerque - Reims
+Boulogne - Guingamp
+Clermont - Annecy
+Rodez - Saint-Étienne
+Sochaux - Grenoble
+Nantes - Laval
+Metz - Red Star
+Montpellier - Nancy
+Pau - Dijon
+
+Journée 34
+Dijon - Montpellier
+Guingamp - Sochaux
+Red Star - Clermont
+Saint-Étienne - Pau
+Laval - Rodez
+Grenoble - Dunkerque
+Annecy - Nantes
+Nancy - Metz
+Reims - Boulogne
