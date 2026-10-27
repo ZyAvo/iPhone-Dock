@@ -185,8 +185,17 @@ section.comp{display:flex;flex-direction:column;gap:8px}
 .ev .ic.goal::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--ink);box-shadow:inset 0 0 0 2px var(--base)}
 .ev .ic.red::before{content:"";width:8px;height:11px;border-radius:2px;background:var(--redcard)}
 .ev .ic.yellow::before{content:"";width:8px;height:11px;border-radius:2px;background:var(--yellowcard)}
-.ev .ic.tag{width:16px;height:16px;border-radius:5px;background:var(--accent);color:var(--on-accent);font-size:.6rem;font-weight:700;font-family:var(--f-ui)}
-.ev{grid-template-columns:38px 16px 1fr}
+.ic.svg{width:18px;height:18px;display:grid;place-items:center;font-style:normal}
+.ic.svg svg{width:18px;height:18px;overflow:visible}
+.ic.svg path{fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:round}
+.ic.svg .f{fill:var(--accent);stroke:none}
+.ic.svg .s{stroke:var(--on-accent);stroke-width:1.1}
+.ic.svg text{font-family:var(--f-ui);font-size:10.5px;font-weight:800;fill:var(--ink);text-anchor:middle}
+.ev{grid-template-columns:38px 18px 1fr}
+.tl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tl b{min-width:6.5em}
+.tk{display:inline-flex;align-items:center;gap:3px;font-family:var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink)}
+.tk .ic.svg,.tk .ic.svg svg{width:15px;height:15px}
 .diag{font-size:.7rem;color:var(--ink-faint);line-height:1.4;overflow-wrap:anywhere}
 .diag a{color:var(--accent)}
 .tally{display:flex;flex-direction:column;gap:3px;font-size:.78rem;color:var(--ink-soft);padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:2px}
@@ -753,20 +762,27 @@ function compLinks(m){
   return `<div class="more-links"><button type="button" class="mini" data-open="table" data-cl="${esc(m.league)}">Classement</button>
     <button type="button" class="mini" data-open="cal" data-cl="${esc(m.league)}" data-t="${m.t}">${LBY[m.league].rounds ? (m.league === 'nfl' ? 'Semaine' : 'Journée') + ' et calendrier' : 'Calendrier'}</button></div>`;
 }
-const KIND = {goal:['goal', 'But'], try:['tag', 'Essai', 'E'], conv:['tag', 'Transformation', 'T'], pen:['tag', 'Pénalité', 'P'],
-              drop:['tag', 'Drop', 'D'], yellow:['yellow', 'Carton jaune'], red:['red', 'Carton rouge']};
+const KIND = {goal:['goal', 'But'], try:['svg', 'Essai'], conv:['svg', 'Transformation'], pen:['svg', 'Pénalité'],
+              drop:['svg', 'Drop'], yellow:['yellow', 'Carton jaune'], red:['red', 'Carton rouge']};
+/* Icônes rugby : ballon pour l'essai, poteaux avec la valeur pour les coups de pied */
+const posts = c => `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 1v18M16.5 1v18M3.5 13.5h13"/><text x="10" y="10.6">${c}</text></svg>`;
+const KIND_ICON = {
+  try:'<svg viewBox="0 0 20 20" aria-hidden="true"><ellipse class="f" cx="10" cy="10" rx="8.2" ry="4.9" transform="rotate(-38 10 10)"/><path class="s" d="M6.4 13.6 13.6 6.4M8.2 10.3l1.5 1.5M9.6 8.9l1.5 1.5M11 7.5l1.5 1.5"/></svg>',
+  conv:posts('2'), pen:posts('3'), drop:posts('D')
+};
 function moreHTML(m){
   const L = LBY[m.league], rugby = L.sport === 'rugby';
   const name = id => id === m.home.id ? m.home.name : id === m.away.id ? m.away.name : '';
   const full = FULL[m.id];
   const list = ((full && full.evs) || m.details).filter(d => KIND[d.kind] && (rugby || d.kind !== 'yellow'));
   const evs = list.map(d => { const k = KIND[d.kind];
-    return `<div class="ev"><span class="m">${esc(d.min)}</span><span class="ic ${k[0]}">${k[2] || ''}</span>
+    return `<div class="ev"><span class="m">${esc(d.min)}</span><span class="ic ${k[0]}" title="${k[1]}">${KIND_ICON[d.kind] || ''}</span>
       <span class="who">${rugby ? `${k[1]}${d.who ? ' · ' : ''}` : ''}${esc(d.who || (rugby ? '' : k[1]))}${!rugby && d.pen && d.kind === 'goal' ? ' (pén.)' : ''}${d.og ? ' (csc)' : ''} <em>${esc(name(d.team))}</em></span></div>`; }).join('');
   let tally = '';
   if (rugby && list.length){
     const cnt = (team, k) => list.filter(d => d.team === team && d.kind === k).length;
-    tally = `<div class="tally">${[m.home, m.away].map(t => `<span><b>${esc(t.name)}</b> ${cnt(t.id, 'try')} E · ${cnt(t.id, 'conv')} T · ${cnt(t.id, 'pen')} P${cnt(t.id, 'drop') ? ` · ${cnt(t.id, 'drop')} D` : ''}</span>`).join('')}</div>`;
+    const part = (t, k, label) => `<span class="tk" title="${label}"><i class="ic svg">${KIND_ICON[k]}</i>${cnt(t.id, k)}</span>`;
+    tally = `<div class="tally">${[m.home, m.away].map(t => `<span class="tl"><b>${esc(t.name)}</b>${part(t, 'try', 'Essais')}${part(t, 'conv', 'Transformations')}${part(t, 'pen', 'Pénalités')}${cnt(t.id, 'drop') ? part(t, 'drop', 'Drops') : ''}</span>`).join('')}</div>`;
   }
   const loading = rugby && m.state !== 'pre' && open.has(m.id) && !full;
   const none = m.state === 'pre' ? 'Le match n’a pas commencé.' : loading ? 'Chargement du détail…' : (L.sport === 'soccer' ? 'Aucun but ni carton rouge.' : rugby ? 'Pas de détail disponible pour ce match.' : 'Pas de détail disponible pour ce sport.');
