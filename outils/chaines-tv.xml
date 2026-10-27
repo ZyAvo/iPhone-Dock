@@ -58,6 +58,41 @@
   <channel site="canalplus.com" site_id="#1174" lang="fr" xmltv_id="L1P3_W">Ligue 1+ 3</channel>
   <channel site="canalplus.com" site_id="#1179" lang="fr" xmltv_id="L1P4_W">Ligue 1+ 4</channel>
   <channel site="canalplus.com" site_id="#1180" lang="fr" xmltv_id="L1P5_W">Ligue 1+ 5</channel>
+  <!-- SFR : Canal+ Foot / 360 / Live, DAZN, RMC, Eurosport, beIN -->
+  <channel site="tv.sfr.fr" site_id="3501" lang="fr" xmltv_id="CPFOOT_S">Canal+ Foot</channel>
+  <channel site="tv.sfr.fr" site_id="3504" lang="fr" xmltv_id="CP360_S">Canal+ Sport 360</channel>
+  <channel site="tv.sfr.fr" site_id="4068" lang="fr" xmltv_id="CPLIVE1_S">Canal+ Live 1</channel>
+  <channel site="tv.sfr.fr" site_id="4069" lang="fr" xmltv_id="CPLIVE2_S">Canal+ Live 2</channel>
+  <channel site="tv.sfr.fr" site_id="4070" lang="fr" xmltv_id="CPLIVE3_S">Canal+ Live 3</channel>
+  <channel site="tv.sfr.fr" site_id="4071" lang="fr" xmltv_id="CPLIVE4_S">Canal+ Live 4</channel>
+  <channel site="tv.sfr.fr" site_id="4072" lang="fr" xmltv_id="CPLIVE5_S">Canal+ Live 5</channel>
+  <channel site="tv.sfr.fr" site_id="4073" lang="fr" xmltv_id="CPLIVE6_S">Canal+ Live 6</channel>
+  <channel site="tv.sfr.fr" site_id="4074" lang="fr" xmltv_id="CPLIVE7_S">Canal+ Live 7</channel>
+  <channel site="tv.sfr.fr" site_id="3795" lang="fr" xmltv_id="DAZN1_S">DAZN 1</channel>
+  <channel site="tv.sfr.fr" site_id="2665" lang="fr" xmltv_id="RMC1_S">RMC Sport 1</channel>
+  <channel site="tv.sfr.fr" site_id="2666" lang="fr" xmltv_id="RMC2_S">RMC Sport 2</channel>
+  <channel site="tv.sfr.fr" site_id="76" lang="fr" xmltv_id="EUROSPORT1_S">Eurosport 1</channel>
+  <channel site="tv.sfr.fr" site_id="439" lang="fr" xmltv_id="EUROSPORT2_S">Eurosport 2</channel>
+  <channel site="tv.sfr.fr" site_id="1401" lang="fr" xmltv_id="EQUIPE_S">La chaîne L'Équipe</channel>
+  <channel site="tv.sfr.fr" site_id="1290" lang="fr" xmltv_id="BEIN1_S">beIN Sports 1</channel>
+  <channel site="tv.sfr.fr" site_id="1304" lang="fr" xmltv_id="BEIN2_S">beIN Sports 2</channel>
+  <channel site="tv.sfr.fr" site_id="1335" lang="fr" xmltv_id="BEIN3_S">beIN Sports 3</channel>
+  <channel site="tv.sfr.fr" site_id="1336" lang="fr" xmltv_id="BEINMAX4_S">beIN Sports Max 4</channel>
+  <channel site="tv.sfr.fr" site_id="1337" lang="fr" xmltv_id="BEINMAX5_S">beIN Sports Max 5</channel>
+  <channel site="tv.sfr.fr" site_id="1338" lang="fr" xmltv_id="BEINMAX6_S">beIN Sports Max 6</channel>
+  <channel site="tv.sfr.fr" site_id="1339" lang="fr" xmltv_id="BEINMAX7_S">beIN Sports Max 7</channel>
+  <channel site="tv.sfr.fr" site_id="1340" lang="fr" xmltv_id="BEINMAX8_S">beIN Sports Max 8</channel>
+  <channel site="tv.sfr.fr" site_id="1341" lang="fr" xmltv_id="BEINMAX9_S">beIN Sports Max 9</channel>
+  <channel site="tv.sfr.fr" site_id="1342" lang="fr" xmltv_id="BEINMAX10_S">beIN Sports Max 10</channel>
+  <!-- epgshare01 (fichier de programme public) : secours Canal+ et DAZN -->
+  <channel site="epgshare01.online" site_id="FR1#Canal+.Sport.fr" lang="fr" xmltv_id="CPSPORT_E">Canal+ Sport</channel>
+  <channel site="epgshare01.online" site_id="FR1#Canal+.Foot.fr" lang="fr" xmltv_id="CPFOOT_E">Canal+ Foot</channel>
+  <channel site="epgshare01.online" site_id="FR1#Canal+.Sport.360.fr" lang="fr" xmltv_id="CP360_E">Canal+ Sport 360</channel>
+  <channel site="epgshare01.online" site_id="FR1#CANAL+.fr" lang="fr" xmltv_id="CPLUS_E">Canal+</channel>
+  <channel site="epgshare01.online" site_id="FR1#CANAL+.PREMIER.LEAGUE.fr" lang="fr" xmltv_id="CPPL_E">Canal+ Premier League</channel>
+  <channel site="epgshare01.online" site_id="FR1#CANAL+.TOP14.fr" lang="fr" xmltv_id="CPTOP14_E">Canal+ Top 14</channel>
+  <channel site="epgshare01.online" site_id="FR1#DAZN.1.fr" lang="fr" xmltv_id="DAZN1_E">DAZN 1</channel>
+  <channel site="epgshare01.online" site_id="FR1#RMC.Sport.1.fr" lang="fr" xmltv_id="RMC1_E">RMC Sport 1</channel>
   <!-- beIN Sports en direct (secours si Orange ne répond pas) -->
   <channel site="beinsports.com" site_id="66265DD1-D2AA-4A89-9412-2455186E90ED" lang="fr" xmltv_id="BEIN1_W">beIN Sports 1</channel>
   <channel site="beinsports.com" site_id="1E886E98-3104-4D8E-A97F-734B23108E8A" lang="fr" xmltv_id="BEIN2_W">beIN Sports 2</channel>

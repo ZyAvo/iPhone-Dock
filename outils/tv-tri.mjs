@@ -57,6 +57,8 @@ const NAMES = {
   EUROSPORT1: 'Eurosport 1',
   EUROSPORT2: 'Eurosport 2',
   INFOSPORT: 'Infosport+',
+  CPPL: 'Canal+ Premier League',
+  CPTOP14: 'Canal+ Top 14',
   RMC1: 'RMC Sport 1',
   RMC2: 'RMC Sport 2'
 };
@@ -70,17 +72,20 @@ const SPORT = /sport|foot|soccer|rugby|basket|nba|nfl|nhl|hockey|ligue|league|li
 const now = Date.now(), seen = new Set(), list = [];
 for (const m of xml.matchAll(/<programme\s+([^>]*)>([\s\S]*?)<\/programme>/g)){
   const attr = k => (m[1].match(new RegExp(`${k}="([^"]*)"`)) || [])[1];
-  const id = attr('channel'), backup = /_W$/.test(id || ''), c = NAMES[(id || '').replace(/_W$/, '')]; if (!c) continue;
+  // Plusieurs sources par chaîne : sans suffixe = principale, puis _S (SFR), _E (epgshare01), _W (site beIN)
+  const id = attr('channel') || '', sfx = (id.match(/_(S|E|W)$/) || [''])[0], c = NAMES[sfx ? id.slice(0, -sfx.length) : id]; if (!c) continue;
+  const prio = {'':0, _S:1, _E:2, _W:3}[sfx];
   const s = time(attr('start')), e = time(attr('stop')); if (!s) continue;
   if (Date.parse(e || s) < now - 6 * 3600e3) continue;
   const title = tag(m[2], 'title'), sub = tag(m[2], 'sub-title'), desc = tag(m[2], 'desc'), cats = tags(m[2], 'category').join(' ');
-  if (/^CPLUS(_B)?$/.test(id) && !SPORT.test(`${title} ${sub} ${cats} ${desc}`)) continue;   // Canal+ : seulement le sport
-  const key = `${c}|${s}|${title}`; if (seen.has(key)) continue; seen.add(key);
-  list.push({c, s, e, t: title, d: [sub, desc].filter(Boolean).join(' — ').slice(0, 240), backup});
+  if (c === 'Canal+' && !SPORT.test(`${title} ${sub} ${cats} ${desc}`)) continue;   // Canal+ : seulement le sport
+  const key = `${c}|${prio}|${s}|${title}`; if (seen.has(key)) continue; seen.add(key);
+  list.push({c, s, e, t: title, d: [sub, desc].filter(Boolean).join(' — ').slice(0, 240), prio});
 }
-// Source de secours (site beIN) : seulement pour les chaînes que la source principale n'a pas fournies
-const main = new Set(list.filter(p => !p.backup).map(p => p.c));
-for (let i = list.length - 1; i >= 0; i--){ if (list[i].backup && main.has(list[i].c)) list.splice(i, 1); else delete list[i].backup; }
+// Pour chaque chaîne, on ne garde que la meilleure source qui a répondu
+const best = {}; list.forEach(p => { if (best[p.c] == null || p.prio < best[p.c]) best[p.c] = p.prio; });
+const source = {}; Object.entries(best).forEach(([c, p]) => { source[c] = ['principale', 'SFR', 'epgshare01', 'site beIN'][p]; });
+for (let i = list.length - 1; i >= 0; i--){ if (list[i].prio !== best[list[i].c]) list.splice(i, 1); else delete list[i].prio; }
 // Si une chaîne n'a rien renvoyé pour un jour (site saturé, erreur passagère), on garde ce que l'on avait déjà pour ce jour-là
 let prev = []; try{ prev = JSON.parse(fs.readFileSync(out, 'utf8')).programmes || []; }catch{}
 const have = new Set(list.map(p => `${p.c}|${p.s.slice(0, 10)}`));
@@ -89,7 +94,7 @@ list.push(...kept);
 list.sort((a, b) => a.s.localeCompare(b.s));
 
 // État de la récupération (lu par Claude pour diagnostiquer, sans avoir besoin du journal GitHub)
-const per = {}; list.forEach(p => { const x = per[p.c] || (per[p.c] = {n:0, jusqu:''}); x.n++; if (p.s > x.jusqu) x.jusqu = p.s.slice(0, 10); });
+const per = {}; list.forEach(p => { const x = per[p.c] || (per[p.c] = {n:0, jusqu:'', source:source[p.c] || 'passage précédent'}); x.n++; if (p.s > x.jusqu) x.jusqu = p.s.slice(0, 10); });
 const vides = [...new Set(Object.values(NAMES))].filter(c => !per[c]);
 let erreurs = [], zero = {};
 if (logFile && fs.existsSync(logFile)){
