@@ -1,5 +1,14 @@
 {
- "updated": "2026-10-27T11:20:50.580Z",
+ "updated": "2026-10-27T11:38:52.550Z",
  "logos": [],
- "calendriers": []
+ "calendriers": [
+  "calendriers/2026-27/bundesliga.txt",
+  "calendriers/2026-27/championship.txt",
+  "calendriers/2026-27/liga.txt",
+  "calendriers/2026-27/ligue-1.txt",
+  "calendriers/2026-27/ligue-2.txt",
+  "calendriers/2026-27/premier-league.txt",
+  "calendriers/2026-27/serie-a.txt",
+  "calendriers/2026-27/top-14.txt"
+ ]
 }
