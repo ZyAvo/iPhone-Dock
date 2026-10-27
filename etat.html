@@ -200,7 +200,7 @@ const part = (title, j, inner, open) => `<details class="part glass ${j.lvl}"${o
 function render(e){
   const j = judge(e);
   const label = {ok:'Tout est à jour', warn:'Quelques points à vérifier', err:'Des données ne se mettent plus à jour'}[j.global];
-  let h = `<div class="sum glass ${j.global}"><span class="lamp"></span><div><b>${label}</b><p>Résumé fait ${ago(e.genere)}. Les données se rafraîchissent toutes les 30 min (actus) et toutes les 2 h (matchs, TV).</p></div></div>`;
+  let h = `<div class="sum glass ${j.global}"><span class="lamp"></span><div><b>${label}</b><p>Résumé fait ${ago(e.genere)}. Les données se rafraîchissent toutes les 15 min (actus) et toutes les 2 h (matchs, TV).</p></div></div>`;
 
   if (e.sport){
     const rows = e.sport.ligues.map(l => {
