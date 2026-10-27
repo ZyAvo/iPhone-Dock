@@ -201,6 +201,11 @@ a{color:inherit;text-decoration:none}
 /* ======================================================
    CONFIG — c'est ici qu'on ajoute / retire des "apps"
    type : "page" (page du projet), "folder" (dossier), "link" (site)
+   app  : ouvre l'application installée (adresse spéciale de l'appli) ;
+          web : site ouvert à la place si l'appli ne répond pas.
+          Si une appli ne s'ouvre pas, remplacer app par
+          'shortcuts://run-shortcut?name=NomDuRaccourci' (raccourci « Ouvrir l'app »)
+   star : true → l'appli apparaît dans son dossier ET seule sur l'accueil
    ====================================================== */
 const ICONS = {
   news:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 8.5h6M7 12h10M7 15.5h10"/>',
@@ -218,12 +223,11 @@ const ICONS = {
 
 const FOLDERS = {
   finance:{ title:'Finance', items:[
-    {label:'Banque Populaire', mono:'BP', color:'--t-brick', url:'https://www.banquepopulaire.fr'},
-    {label:'Impôts',           mono:'Im', color:'--t-char',  url:'https://www.impots.gouv.fr'},
-    {label:'Ameli',            mono:'Am', color:'--t-slate', url:'https://www.ameli.fr'},
-    {label:'PayPal',           mono:'PP', color:'--t-olive', url:'https://www.paypal.com/fr'},
-    {label:'Boursorama',       mono:'Bo', color:'--t-teal',  url:'https://www.boursorama.com'},
-    {label:'CAF',              mono:'CAF',color:'--t-ochre', url:'https://www.caf.fr'}
+    {label:'Trade Republic', mono:'TR', color:'--t-char',  app:'traderepublic://',  web:'https://app.traderepublic.com'},   // à tester
+    {label:'BoursoBank',     mono:'Bo', color:'--t-rose',  app:'boursorama://',     web:'https://clients.boursobank.com'},  // à tester
+    {label:'Cyberplus',      mono:'BP', color:'--t-brick', app:'cyberplus://',      web:'https://www.banquepopulaire.fr'},  // à tester
+    {label:'Swile',          mono:'Sw', color:'--t-plum',  app:'swile://',          web:'https://app.swile.co'},            // à tester
+    {label:'Esalia',         mono:'Es', color:'--t-teal',  app:'esalia://',         web:'https://www.esalia.com'}           // à tester
   ]},
   social:{ title:'Réseaux sociaux', items:[
     {label:'Facebook',  mono:'f',  color:'--t-slate', url:'https://m.facebook.com'},
@@ -234,20 +238,24 @@ const FOLDERS = {
     {label:'Reddit',    mono:'R',  color:'--t-teal',  url:'https://www.reddit.com'}
   ]},
   jeux:{ title:'Jeux', items:[
-    {label:'Sutom',    mono:'Su', color:'--t-brick', url:'https://sutom.nocle.fr'},
-    {label:'Cémantix', mono:'Cé', color:'--t-teal',  url:'https://cemantix.certitudes.org'},
-    {label:'Wordle',   mono:'W',  color:'--t-olive', url:'https://www.nytimes.com/games/wordle'},
-    {label:'Lichess',  mono:'♞',  color:'--t-char',  url:'https://lichess.org'},
-    {label:'Sudoku',   mono:'9',  color:'--t-slate', url:'https://sudoku.com'},
-    {label:'2048',     mono:'2048',color:'--t-ochre',url:'https://play2048.co'}
+    {label:'Chess',             mono:'♞',  color:'--t-olive', app:'chesscom://',        web:'https://www.chess.com'},     // à tester
+    {label:'Brawl Stars',       mono:'BS', color:'--t-ochre', app:'brawlstars://'},
+    {label:'Songs of Conquest', mono:'SC', color:'--t-plum',  app:'songsofconquest://'}                                  // à tester
   ]},
   travail:{ title:'Travail', items:[
-    {label:'Outlook',  mono:'O',  color:'--t-slate', url:'https://outlook.office.com'},
-    {label:'Teams',    mono:'T',  color:'--t-plum',  url:'https://teams.microsoft.com'},
-    {label:'OneDrive', mono:'OD', color:'--t-teal',  url:'https://onedrive.live.com'},
-    {label:'EUDAMED',  mono:'EU', color:'--t-brick', url:'https://ec.europa.eu/tools/eudamed'},
-    {label:'DeepL',    mono:'DL', color:'--t-char',  url:'https://www.deepl.com/translator'},
-    {label:'LinkedIn', mono:'in', color:'--t-olive', url:'https://www.linkedin.com'}
+    {label:'Outlook', star:true, mono:'O',  color:'--t-slate', app:'ms-outlook://',     web:'https://outlook.office.com'},
+    {label:'Teams',   star:true, mono:'T',  color:'--t-plum',  app:'msteams://',        web:'https://teams.microsoft.com'},
+    {label:'Word',              mono:'W',  color:'--t-brick', app:'ms-word://',        web:'https://www.office.com'},
+    {label:'PowerPoint',        mono:'P',  color:'--t-rose',  app:'ms-powerpoint://',  web:'https://www.office.com'},
+    {label:'OneNote',           mono:'N',  color:'--t-plum',  app:'onenote://',        web:'https://www.onenote.com'},
+    {label:'Power BI',          mono:'BI', color:'--t-ochre', app:'mspbi://',          web:'https://app.powerbi.com'},
+    {label:'SAP Concur',        mono:'Cc', color:'--t-teal',  app:'concur://',         web:'https://www.concursolutions.com'},  // à tester
+    {label:'Proton Drive',      mono:'PD', color:'--t-char',  app:'protondrive://',    web:'https://drive.proton.me'},          // à tester
+    {label:'Portail Entreprise',mono:'PE', color:'--t-slate', app:'companyportal://'},
+    {label:'Authenticator',     mono:'Au', color:'--t-olive', app:'msauth://'}                                                  // à tester
+  ]},
+  securite:{ title:'Identité / Sécurité', items:[
+    {label:'Bitwarden',         mono:'Bw', color:'--t-slate', app:'bitwarden://',      web:'https://vault.bitwarden.eu'}
   ]},
   photos:{ title:'Photos', items:[
     {label:'Google Photos', mono:'GP', color:'--t-teal',  url:'https://photos.google.com'},
@@ -278,6 +286,7 @@ const HOME = [
   {label:'Réseaux sociaux', type:'folder', target:'social'},
   {label:'Jeux',            type:'folder', target:'jeux'},
   {label:'Travail',         type:'folder', target:'travail'},
+  {label:'Sécurité',        type:'folder', target:'securite'},
   {label:'Photos',          type:'folder', target:'photos'},
   {label:'Actualités',      type:'folder', target:'actus'},
   {label:'Système',         type:'folder', target:'systeme'},
@@ -310,12 +319,29 @@ function tileHTML(a){
 function appHTML(a, idx = 0){
   const body = `${tileHTML(a)}<span class="name">${esc(a.label)}</span>`;
   const delay = `style="animation-delay:${idx * 35}ms"`;
+  if (a.app) return `<a class="app-btn" ${delay} href="${esc(a.app)}" data-app="${esc(a.app)}" data-web="${esc(a.web || '')}" aria-label="${esc(a.label)}">${body}</a>`;
   if (a.type === 'page') return `<a class="app-btn" ${delay} href="${esc(a.url)}" aria-label="${esc(a.label)}">${body}</a>`;
   if (!a.type || a.type === 'link') return `<a class="app-btn" ${delay} href="${esc(a.url)}" target="_blank" rel="noopener" aria-label="${esc(a.label)}">${body}</a>`;
   return `<button type="button" class="app-btn" ${delay} data-type="${a.type}" data-target="${a.target}" aria-label="${esc(a.label)}">${body}</button>`;
 }
 
+HOME.push(...Object.values(FOLDERS).flatMap(f => f.items.filter(i => i.star)));
 $('#grid').innerHTML = HOME.map(appHTML).join('');
+
+/* Ouverture d'une appli : si rien ne s'ouvre après 1,5 s, on bascule sur son site */
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[data-app]'); if (!a) return;
+  e.preventDefault();
+  let left = false; const gone = () => { left = true; };
+  document.addEventListener('visibilitychange', gone, {once:true});
+  window.addEventListener('pagehide', gone, {once:true});
+  window.addEventListener('blur', gone, {once:true});
+  window.location.href = a.dataset.app;
+  setTimeout(() => {
+    if (left || document.hidden) return;
+    if (a.dataset.web) window.location.href = a.dataset.web;
+  }, 1500);
+});
 $('#dock').innerHTML = DOCK.map(a => appHTML(a)).join('');
 
 document.addEventListener('click', e => {
