@@ -88,13 +88,34 @@ function cluster(items){
 /* ---------- Programme ---------- */
 const feeds = [...new Map(TABS.flatMap(t => t.feeds).map(f => [f.url, f])).values()];
 const state = {};
+/* Flux en panne (adresse changée…) : on cherche le flux annoncé par la page du site
+   (<link rel="alternate" type="application/rss+xml">), en préférant celui qui contient f.hint */
+async function discover(f){
+  const u = new URL(f.url), pages = [...new Set([new URL('.', u).href, f.site, u.origin + '/'].filter(Boolean))];
+  for (const pg of pages){
+    try{
+      const html = await get(pg);
+      const links = [...html.matchAll(/<link\b[^>]*>/gi)].map(m => m[0])
+        .filter(l => /rel\s*=\s*["']?alternate/i.test(l) && /application\/(rss|atom)\+xml/i.test(l))
+        .map(l => decode((l.match(/href\s*=\s*["']([^"']+)/i) || [])[1] || '')).filter(Boolean).map(h => new URL(h, pg).href);
+      const pick = links.find(h => f.hint && h.toLowerCase().includes(f.hint)) || (!f.hint && links[0]);
+      if (pick && pick !== f.url){
+        const items = parse(await get(pick));
+        if (items.length) return {url:pick, items};
+      }
+    }catch{}
+  }
+  return null;
+}
 const got = await pool(feeds.map(f => async () => {
-  try{
-    const items = parse(await get(f.url));
-    state[f.url] = {name:f.name, url:f.url, ok:true, n:items.length, img:items.filter(i => i.img).length};
-    if (!items.length) state[f.url] = {...state[f.url], ok:false, err:'flux vide ou illisible'};
-    return [f.url, items];
-  }catch(e){ state[f.url] = {name:f.name, url:f.url, ok:false, err:String(e.message || e)}; return [f.url, []]; }
+  let items = [], err = '';
+  try{ items = parse(await get(f.url)); if (!items.length) err = 'flux vide ou illisible'; }catch(e){ err = String(e.message || e); }
+  if (!items.length){
+    const d = await discover(f);
+    if (d){ items = d.items; state[f.url] = {name:f.name, url:f.url, ok:true, n:items.length, img:items.filter(i => i.img).length, trouve:d.url, err:`adresse à mettre à jour (${err})`}; return [f.url, items]; }
+  }
+  state[f.url] = items.length ? {name:f.name, url:f.url, ok:true, n:items.length, img:items.filter(i => i.img).length} : {name:f.name, url:f.url, ok:false, err};
+  return [f.url, items];
 }), 6);
 const BY = Object.fromEntries(got);
 
@@ -117,3 +138,4 @@ fs.writeFileSync(`${OUT}/actus.json`, JSON.stringify({v:1, updated:new Date(NOW)
 const ko = Object.values(state).filter(s => !s.ok);
 console.log(`${feeds.length - ko.length}/${feeds.length} flux lus.` + Object.entries(tabs).map(([k, v]) => ` ${k}:${v.items.length}`).join(''));
 ko.forEach(s => console.log(`  ✗ ${s.name} (${s.url}) : ${s.err}`));
+Object.values(state).filter(s => s.trouve).forEach(s => console.log(`  ↻ ${s.name} : flux trouvé à ${s.trouve}`));
