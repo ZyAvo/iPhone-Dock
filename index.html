@@ -131,7 +131,38 @@ a{color:inherit;text-decoration:none}
 .w:active{transform:scale(.97)}
 .w{transition:transform .15s ease}
 
-.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px 12px;margin-top:24px;padding:0 2px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px 12px;margin-top:20px;padding:0 2px}
+
+/* Widget Spotify : pochette, titre, artiste, progression, commandes */
+.w-spot{margin-top:14px;border-radius:28px;padding:10px 10px 10px 10px;display:flex;align-items:center;gap:12px;min-height:78px}
+.sp-open{flex:1;min-width:0;display:flex;align-items:center;gap:12px;border-radius:16px}
+.sp-art:active,.sp-link:active{opacity:.7}
+.sp-art{width:58px;height:58px;border-radius:14px;flex:none;background:var(--card) center / cover no-repeat;display:grid;place-items:center;color:var(--ink-soft);box-shadow:0 6px 14px -8px rgba(0,0,0,.4)}
+.sp-art svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.sp-art.has svg{display:none}
+.sp-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.sp-link{display:flex;flex-direction:column;gap:1px;min-width:0}
+.sp-k{text-align:left;align-self:flex-start;max-width:100%}
+.sp-k{font-size:.62rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-t{font-weight:600;font-size:.92rem;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-a{font-size:.78rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-bar{height:3px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}
+.sp-bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px}
+.sp-btns{display:flex;align-items:center;gap:0;flex:none}
+.sp-btn{width:36px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--ink)}
+.sp-btn svg{width:20px;height:20px;fill:currentColor}
+.sp-btn.main{width:42px;height:42px;background:var(--accent);color:var(--on-accent)}
+.sp-btn:active{transform:scale(.9)}
+.sp-btn[disabled]{opacity:.35}
+.sp-cta{flex:none;padding:9px 14px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-weight:600;font-size:.82rem}
+.sp-steps{margin:0 4px 12px;padding-left:20px;font-size:.86rem;line-height:1.45;display:flex;flex-direction:column;gap:8px}
+.sp-steps a{text-decoration:underline}
+.sp-uri{display:flex;gap:6px;align-items:center;margin-top:4px}
+.sp-uri code{flex:1;min-width:0;font-size:.74rem;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 8px;overflow-wrap:anywhere}
+.sp-mini{flex:none;padding:6px 10px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-size:.78rem;font-weight:600}
+.sp-go{width:100%;padding:11px;border-radius:14px;background:var(--accent);color:var(--on-accent);font-weight:600;text-align:center;margin-bottom:6px}
+.sp-sep{border:0;border-top:1px solid var(--line);margin:12px 4px}
+.sp-code{width:100%;font:inherit;font-size:13px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px;min-height:64px;resize:vertical;overflow-wrap:anywhere}
 .app-btn{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
 .tile{
   width:100%;aspect-ratio:1;max-width:100%;border-radius:26%;
@@ -221,6 +252,7 @@ a{color:inherit;text-decoration:none}
         <span class="foot"><span>Actus</span><span id="wTime"></span></span>
       </a>
     </div>
+    <section class="w-spot glass" id="spot" aria-label="Spotify"></section>
     <div class="grid" id="grid"></div>
     <div class="spacer"></div>
     <div class="dots" aria-hidden="true"><span class="on"></span><span></span></div>
@@ -246,6 +278,10 @@ a{color:inherit;text-decoration:none}
     <p class="pl-msg" id="placeMsg" role="status"></p>
     <ul class="pl-list" id="placeResults"></ul>
   </div>
+</div>
+
+<div class="scrim" id="spScrim" hidden>
+  <div class="place-panel glass" role="dialog" aria-modal="true" aria-labelledby="spTitle" id="spPanel"></div>
 </div>
 
 <script>
@@ -627,6 +663,220 @@ $('#placeResults').addEventListener('click', e => {
   if (!favs.some(x => same(x, f))){ favs.push(f); LS.set('lieu:favoris', favs); }
   setPlace({mode:'fav', ...f}); closePlaces();
 });
+
+/* ---------- Widget Spotify (API officielle, connexion « PKCE » sans serveur) ----------
+   Réglage une seule fois : une appli gratuite sur developer.spotify.com, dont on colle le Client ID ici.
+   La page vérifie ce qui joue toutes les 3 s pendant la lecture (10 s en pause), seulement quand elle est affichée. */
+const SP_API = 'https://api.spotify.com/v1', SP_ACC = 'https://accounts.spotify.com';
+const SP_REDIRECT = location.origin + location.pathname.replace(/index\.html$/, '');
+const SP_SCOPES = 'user-read-currently-playing user-read-playback-state user-modify-playback-state user-read-recently-played';
+const SPI = {
+  note:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5.5l11-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>',
+  play:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>',
+  pause:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg>',
+  prev:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5.5" width="2.6" height="13" rx="1"/><path d="M19 5.5v13L9 12z"/></svg>',
+  next:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="16.4" y="5.5" width="2.6" height="13" rx="1"/><path d="M5 5.5v13L15 12z"/></svg>'
+};
+let spId = LS.get('spotify:client', ''), spTok = LS.get('spotify:jeton', null);
+let sp = {kind:'setup'}, spTimer = null, spTokPromise = null, spBusy = false;
+const standalone = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const b64urlTxt = t => b64url(new TextEncoder().encode(t));
+const unb64url = t => new TextDecoder().decode(Uint8Array.from(atob(t.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)));
+
+async function spConnect(){
+  const v = b64url(crypto.getRandomValues(new Uint8Array(48)));
+  const ch = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v)));
+  const state = b64urlTxt(JSON.stringify({v, id:spId}));        // le vérificateur revient avec la réponse : la connexion marche même si l'iPhone l'ouvre dans Safari
+  location.href = `${SP_ACC}/authorize?` + new URLSearchParams({response_type:'code', client_id:spId, scope:SP_SCOPES, redirect_uri:SP_REDIRECT,
+    code_challenge_method:'S256', code_challenge:ch, state});
+}
+function spSave(j){
+  spTok = {access:j.access_token, refresh:j.refresh_token || (spTok && spTok.refresh), exp:Date.now() + (j.expires_in || 3600) * 1000};
+  LS.set('spotify:jeton', spTok);
+}
+async function spTokenReq(body){
+  const r = await fetch(`${SP_ACC}/api/token`, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:new URLSearchParams(body)});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(j.error_description || j.error || 'jeton'), {status:r.status, code:j.error});
+  return j;
+}
+async function spAccess(force){
+  if (!spTok || !spTok.refresh) throw new Error('non connecté');
+  if (!force && spTok.access && Date.now() < spTok.exp - 60e3) return spTok.access;
+  if (!spTokPromise) spTokPromise = spTokenReq({grant_type:'refresh_token', refresh_token:spTok.refresh, client_id:spId})
+    .then(j => { spSave(j); return spTok.access; })
+    .catch(e => { if (e.code === 'invalid_grant'){ spTok = null; LS.set('spotify:jeton', null); } throw e; })
+    .finally(() => { spTokPromise = null; });
+  return spTokPromise;
+}
+async function spCall(method, path, retry = true){
+  const r = await fetch(SP_API + path, {method, headers:{Authorization:'Bearer ' + await spAccess()}});
+  if (r.status === 401 && retry){ await spAccess(true); return spCall(method, path, false); }
+  if (r.status === 204 || r.status === 202) return null;
+  const j = await r.json().catch(() => null);
+  if (!r.ok) throw Object.assign(new Error((j && j.error && j.error.message) || 'Spotify'), {status:r.status, reason:j && j.error && j.error.reason, retry:+r.headers.get('Retry-After') || 0});
+  return j;
+}
+/* Retour de la page de connexion Spotify */
+async function spCallback(){
+  const q = new URLSearchParams(location.search);
+  if (!q.has('code') && !q.has('error')) return;
+  history.replaceState(null, '', location.pathname);
+  if (q.get('error')){ sp = {kind:'setup', msg:q.get('error') === 'access_denied' ? 'Connexion annulée.' : 'Spotify a refusé la connexion.'}; return; }
+  try{
+    const st = JSON.parse(unb64url(q.get('state') || ''));
+    spId = st.id; LS.set('spotify:client', spId);
+    spSave(await spTokenReq({grant_type:'authorization_code', code:q.get('code'), redirect_uri:SP_REDIRECT, client_id:spId, code_verifier:st.v}));
+    if (!standalone()) spPanel('transfert');                 // ouvert dans Safari : on donne un code à coller dans l'appli de l'écran d'accueil
+  }catch(e){ sp = {kind:'setup', msg:`Connexion impossible (${e.message}). Vérifie le Client ID et l'adresse de redirection.`}; }
+}
+
+const fmtMs = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+function spProgress(){
+  if (sp.kind !== 'track' || !sp.dur) return 0;
+  return Math.min(sp.dur, sp.progress + (sp.playing ? Date.now() - sp.at : 0));
+}
+function spRender(){
+  const el = $('#spot');
+  if (sp.kind === 'setup'){
+    el.innerHTML = `<div class="sp-open"><span class="sp-art">${SPI.note}</span><span class="sp-meta"><span class="sp-k">Spotify</span>
+      <span class="sp-t">${spTok === null && spId ? 'Reconnexion nécessaire' : 'Ce que tu écoutes, ici'}</span><span class="sp-a">${esc(sp.msg || 'Connecte ton compte une fois pour l\'afficher')}</span></span></div>
+      <button type="button" class="sp-cta" data-sp="setup">Connecter</button>`;
+    return;
+  }
+  const t = sp.track || {}, art = t.img ? ` has" style="background-image:url(&quot;${esc(t.img)}&quot;)` : '';
+  const head = sp.kind === 'track' ? (sp.playing ? `En lecture${sp.device ? ' · ' + sp.device : ''}` : `En pause${sp.device ? ' · ' + sp.device : ''}`) : sp.kind === 'recent' ? 'Dernière écoute' : 'Spotify';
+  const app = `href="spotify://" data-app="${esc(t.uri || 'spotify://')}" data-web="https://open.spotify.com"`;
+  el.innerHTML = `<div class="sp-open">
+      <a class="sp-art${art}" ${app} aria-label="Ouvrir Spotify">${SPI.note}</a>
+      <span class="sp-meta"><button type="button" class="sp-k" data-sp="setup" aria-label="${esc(head)} — réglages Spotify">${esc(head)}</button>
+        <a class="sp-link" ${app} tabindex="-1"><span class="sp-t">${esc(t.name || 'Rien en lecture')}</span><span class="sp-a">${esc(t.artist || sp.msg || 'Lance un titre dans Spotify')}</span></a>
+        ${sp.kind === 'track' ? `<span class="sp-bar" role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="spBar"></i></span>` : ''}</span></div>
+    <div class="sp-btns">
+      <button type="button" class="sp-btn" data-sp="prev" aria-label="Titre précédent"${sp.kind !== 'track' ? ' disabled' : ''}>${SPI.prev}</button>
+      <button type="button" class="sp-btn main" data-sp="toggle" aria-label="${sp.playing ? 'Pause' : 'Lecture'}">${sp.playing ? SPI.pause : SPI.play}</button>
+      <button type="button" class="sp-btn" data-sp="next" aria-label="Titre suivant"${sp.kind !== 'track' ? ' disabled' : ''}>${SPI.next}</button>
+    </div>`;
+  spTick();
+}
+function spTick(){
+  const bar = $('#spBar'); if (!bar || !sp.dur) return;
+  const v = spProgress() / sp.dur * 100;
+  bar.style.width = v.toFixed(1) + '%'; bar.parentElement.setAttribute('aria-valuenow', Math.round(v));
+  bar.parentElement.title = `${fmtMs(spProgress())} / ${fmtMs(sp.dur)}`;
+}
+setInterval(() => { if (sp.kind === 'track' && sp.playing){ spTick(); if (spProgress() >= sp.dur) spPoll(1000); } }, 1000);
+
+const trackOf = it => it ? {name:it.name, uri:it.uri,
+  artist:(it.artists || []).map(a => a.name).join(', ') || (it.show && it.show.name) || '',
+  img:(((it.album || it).images || [])[1] || ((it.album || it).images || [])[0] || {}).url || ''} : null;
+async function spPoll(delay){
+  clearTimeout(spTimer);
+  if (delay){ spTimer = setTimeout(() => spPoll(), delay); return; }
+  if (!spTok || !spId){ sp = {kind:'setup', msg:sp.msg}; spRender(); return; }
+  if (document.hidden) return;
+  let wait = 10e3;
+  try{
+    const p = await spCall('GET', '/me/player?additional_types=episode');
+    if (p && p.item){
+      sp = {kind:'track', track:trackOf(p.item), playing:!!p.is_playing, progress:p.progress_ms || 0, dur:p.item.duration_ms || 0, at:Date.now(), device:p.device && p.device.name};
+      wait = p.is_playing ? 3000 : 10e3;
+    } else {
+      const r = await spCall('GET', '/me/player/recently-played?limit=1').catch(() => null);
+      sp = {kind:'recent', track:trackOf(r && r.items && r.items[0] && r.items[0].track), playing:false};
+      wait = 20e3;
+    }
+  }catch(e){
+    if (!spTok){ sp = {kind:'setup', msg:'Reconnecte ton compte Spotify.'}; spRender(); return; }
+    sp = {...sp, msg:e.status === 429 ? 'Spotify demande de patienter…' : 'Spotify ne répond pas pour l\'instant.'};
+    wait = e.retry ? e.retry * 1000 : 30e3;
+  }
+  spRender();
+  spTimer = setTimeout(() => spPoll(), wait);
+}
+async function spCommand(what){
+  if (spBusy) return; spBusy = true;
+  try{
+    if (what === 'toggle'){
+      if (sp.playing){ sp.progress = spProgress(); sp.at = Date.now(); }
+      sp.playing = !sp.playing; spRender();                                   // réponse immédiate à l'écran
+      await spCall('PUT', `/me/player/${sp.playing ? 'play' : 'pause'}`);
+    } else await spCall('POST', `/me/player/${what === 'next' ? 'next' : 'previous'}`);
+    spPoll(450);
+  }catch(e){
+    if (e.status === 404 || e.reason === 'NO_ACTIVE_DEVICE'){ sp.msg = 'Aucun appareil actif : ouvre Spotify'; window.location.href = 'spotify://'; }
+    else if (e.status === 403) sp.msg = e.reason === 'PREMIUM_REQUIRED' ? 'Commandes réservées à Spotify Premium' : 'Commande refusée par Spotify';
+    spPoll(800);
+  }finally{ spBusy = false; }
+}
+/* Fenêtre de réglage : création de l'appli Spotify, connexion, code de transfert */
+function spPanel(mode = 'setup'){
+  lastFocus = document.activeElement;
+  const box = $('#spPanel');
+  if (mode === 'transfert'){
+    const code = b64urlTxt(JSON.stringify({id:spId, r:spTok.refresh}));
+    box.innerHTML = `<h3 id="spTitle">Spotify est connecté ✓</h3>
+      <p class="pl-msg">Si le widget de ton écran d'accueil affiche encore « Connecter », copie ce code puis, dans Mon Écran, touche <b>Connecter</b> → <b>Coller un code</b>.</p>
+      <textarea class="sp-code" readonly aria-label="Code de transfert">${esc(code)}</textarea>
+      <button type="button" class="sp-go" data-sp="copy" data-v="${esc(code)}">Copier le code</button>
+      <button type="button" class="sp-mini" data-sp="close">Fermer</button>`;
+  } else {
+    const on = !!(spTok && spTok.refresh);
+    box.innerHTML = `<h3 id="spTitle">${on ? 'Spotify' : 'Connecter Spotify'}</h3>
+      ${on ? `<p class="pl-msg">Compte connecté. Le widget se met à jour pendant la lecture.</p>
+        <button type="button" class="sp-go" data-sp="logout">Déconnecter</button>` : `
+      <ol class="sp-steps">
+        <li>Ouvre <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a>, connecte-toi avec ton compte Spotify et touche <b>Create app</b>.</li>
+        <li>Donne-lui un nom (ex. « Mon Écran »), coche <b>Web API</b> et colle cette adresse dans <b>Redirect URIs</b> :
+          <span class="sp-uri"><code>${esc(SP_REDIRECT)}</code><button type="button" class="sp-mini" data-sp="copy" data-v="${esc(SP_REDIRECT)}">Copier</button></span></li>
+        <li>Enregistre, puis copie le <b>Client ID</b> de l'appli et colle-le ici :</li>
+      </ol>
+      <form class="pl-search" data-sp-form="id"><input id="spIdIn" value="${esc(spId)}" placeholder="Client ID" aria-label="Client ID Spotify" autocapitalize="off" autocorrect="off" spellcheck="false"></form>
+      <button type="button" class="sp-go" data-sp="login">Se connecter à Spotify</button>
+      <hr class="sp-sep">
+      <p class="pl-msg">Déjà connecté dans Safari ? Colle le code de transfert :</p>
+      <textarea class="sp-code" id="spCodeIn" aria-label="Code de transfert"></textarea>
+      <button type="button" class="sp-mini" data-sp="paste">Valider le code</button>`}
+      <p class="pl-msg" id="spMsg" role="status">${esc(sp.msg || '')}</p>`;
+  }
+  $('#spScrim').hidden = false;
+  box.querySelector('input,button')?.focus();
+}
+function spClose(){ $('#spScrim').hidden = true; lastFocus?.focus(); }
+$('#spScrim').addEventListener('click', e => { if (!e.target.closest('#spPanel')) spClose(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#spScrim').hidden) spClose(); });
+document.addEventListener('submit', e => { if (e.target.matches('[data-sp-form]')){ e.preventDefault(); $('#spPanel [data-sp="login"]').click(); } });
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-sp]'); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const what = b.dataset.sp, msg = t => { const m = $('#spMsg'); if (m) m.textContent = t; };
+  if (what === 'setup') return spPanel();
+  if (what === 'close') return spClose();
+  if (['toggle', 'next', 'prev'].includes(what)) return spCommand(what);
+  if (what === 'copy'){
+    try{ await navigator.clipboard.writeText(b.dataset.v); b.textContent = 'Copié ✓'; }
+    catch{ const ta = $('#spPanel textarea, #spPanel code'); if (ta && ta.select) ta.select(); b.textContent = 'Sélectionné : copie-le'; }
+    return;
+  }
+  if (what === 'login'){
+    const id = ($('#spIdIn').value || '').trim();
+    if (!/^[0-9a-f]{32}$/i.test(id)) return msg('Le Client ID fait 32 caractères (chiffres et lettres a à f).');
+    spId = id; LS.set('spotify:client', id); spConnect(); return;
+  }
+  if (what === 'paste'){
+    try{
+      const c = JSON.parse(unb64url(($('#spCodeIn').value || '').trim()));
+      if (!c.id || !c.r) throw 0;
+      spId = c.id; LS.set('spotify:client', spId); spTok = {refresh:c.r, access:'', exp:0}; LS.set('spotify:jeton', spTok);
+      await spAccess(true); sp = {kind:'idle'}; spClose(); spPoll();
+    }catch{ spTok = null; LS.set('spotify:jeton', null); msg('Code non reconnu ou expiré : reconnecte-toi dans Safari.'); }
+    return;
+  }
+  if (what === 'logout'){ spTok = null; LS.set('spotify:jeton', null); sp = {kind:'setup'}; spClose(); spRender(); }
+}, true);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) spPoll(); else clearTimeout(spTimer); });
+spCallback().finally(() => { spRender(); spPoll(); });
 
 tick(); setInterval(tick, 15000);
 loadWidget();
