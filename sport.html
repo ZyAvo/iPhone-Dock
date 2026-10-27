@@ -187,6 +187,8 @@ section.comp{display:flex;flex-direction:column;gap:8px}
 .ev .ic.yellow::before{content:"";width:8px;height:11px;border-radius:2px;background:var(--yellowcard)}
 .ev .ic.tag{width:16px;height:16px;border-radius:5px;background:var(--accent);color:var(--on-accent);font-size:.6rem;font-weight:700;font-family:var(--f-ui)}
 .ev{grid-template-columns:38px 16px 1fr}
+.diag{font-size:.7rem;color:var(--ink-faint);line-height:1.4;overflow-wrap:anywhere}
+.diag a{color:var(--accent)}
 .tally{display:flex;flex-direction:column;gap:3px;font-size:.78rem;color:var(--ink-soft);padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:2px}
 .tally b{color:var(--ink);font-weight:600}
 .ev .who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -768,7 +770,8 @@ function moreHTML(m){
   }
   const loading = rugby && m.state !== 'pre' && open.has(m.id) && !full;
   const none = m.state === 'pre' ? 'Le match n’a pas commencé.' : loading ? 'Chargement du détail…' : (L.sport === 'soccer' ? 'Aucun but ni carton rouge.' : rugby ? 'Pas de détail disponible pour ce match.' : 'Pas de détail disponible pour ce sport.');
-  return `<div class="more" ${open.has(m.id) ? '' : 'hidden'}>${tally}${evs || `<span class="none">${none}</span>`}
+  const diag = !evs && full && full.diag ? `<span class="diag">Infos reçues d'ESPN : ${esc(full.diag)}. <a href="${esc(full.url)}" target="_blank" rel="noopener">Voir la fiche brute</a></span>` : '';
+  return `<div class="more" ${open.has(m.id) ? '' : 'hidden'}>${tally}${evs || `<span class="none">${none}</span>`}${diag}
     ${compLinks(m)}
     ${m.link ? `<a class="src" href="${esc(m.link)}" target="_blank" rel="noopener">Voir le match sur ESPN</a>` : ''}</div>`;
 }
@@ -781,8 +784,10 @@ async function loadFull(m, li){
   const L = LBY[m.league];
   try{
     const j = await getJSON(`${API}/${L.sport}/${L.id}/summary?event=${encodeURIComponent(m.id)}`);
-    const pools = [j.keyEvents, j.scoringPlays, (j.commentary || []).map(c => c.play).filter(Boolean), j.plays];
-    const raw = pools.find(p => Array.isArray(p) && p.length) || [];
+    const hc = (((j.header || {}).competitions) || [])[0] || {};
+    const pools = [j.keyEvents, j.scoringPlays, hc.details, (j.commentary || []).map(c => c.play || c).filter(Boolean), j.plays];
+    const raw = pools.filter(p => Array.isArray(p) && p.length).flat();
+    const diag = Object.keys(j).map(k => Array.isArray(j[k]) ? `${k} (${j[k].length})` : k).concat(hc.details ? [`header.details (${hc.details.length})`] : []).join(', ');
     const seen = new Set(), evs = [];
     raw.forEach(p => {
       const txt = `${(p.type && (p.type.text || p.type.name)) || ''} ${p.text || ''}`;
@@ -792,8 +797,8 @@ async function loadFull(m, li){
       const key = `${d.kind}|${d.min}|${d.team}|${d.who}`; if (seen.has(key)) return; seen.add(key);
       evs.push(d);
     });
-    FULL[m.id] = {at:Date.now(), evs:evs.length ? evs : m.details};
-  }catch{ FULL[m.id] = {at:Date.now(), evs:m.details}; }
+    FULL[m.id] = {at:Date.now(), evs:evs.length ? evs : m.details, diag:evs.length ? '' : diag, url:`${API}/${L.sport}/${L.id}/summary?event=${encodeURIComponent(m.id)}`};
+  }catch{ FULL[m.id] = {at:Date.now(), evs:m.details, diag:'fiche ESPN inaccessible', url:`${API}/${L.sport}/${L.id}/summary?event=${encodeURIComponent(m.id)}`}; }
   if (li && li.isConnected){ li.querySelector('.more').outerHTML = moreHTML(m); li.querySelectorAll('.team').forEach((el, i) => { el.outerHTML = teamHTML(m, i ? m.away : m.home); }); }
 }
 function matchHTML(m, showComp){
