@@ -147,6 +147,32 @@ a{color:inherit;text-decoration:none}
 .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px 12px;margin-top:20px;padding:0 2px}
 
 /* Widget Spotify : pochette, titre, artiste, progression, commandes */
+/* Widget Investissements (pleine largeur, montants masqués par défaut) */
+.w-inv{margin-top:14px;border-radius:28px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;position:relative}
+.w-inv > a.inv-link::after{content:"";position:absolute;inset:0;border-radius:inherit;z-index:1}
+.inv-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.inv-top .mk{min-width:0;font-size:.68rem;color:var(--ink-soft);display:flex;align-items:center;gap:5px;white-space:nowrap}
+.inv-top .mk i{display:block;flex:none;width:7px;height:7px;border-radius:50%;background:#8b8c89}
+.inv-top .mk:first-child{flex:none}
+.inv-top .mk i.on{background:#1e8a4c}
+.inv-body{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:stretch}
+.inv-l{display:flex;flex-direction:column;gap:2px;min-width:0}
+.inv-tot{display:flex;align-items:center;gap:6px;font-weight:600;font-size:1.25rem;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.inv-tot.masq{letter-spacing:.06em}
+.inv-eye{position:relative;z-index:2;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--accent);flex:none}
+.inv-eye svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.inv-day{font-size:.82rem;font-weight:600;font-variant-numeric:tabular-nums}
+.inv-spark{width:100%;height:30px;display:block;margin-top:auto}
+.inv-r{display:flex;flex-direction:column;justify-content:center;gap:4px;padding-left:12px;border-left:1px solid var(--line);font-size:.78rem;font-variant-numeric:tabular-nums}
+.inv-r div{display:flex;justify-content:space-between;gap:6px}
+.inv-r span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inv-up{color:#1e7a46}.inv-down{color:#b4442c}.inv-flat{color:var(--ink-soft)}
+:root[data-theme="dark"] .inv-up{color:#5fd08e} :root[data-theme="dark"] .inv-down{color:#ff8a70}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .inv-up{color:#5fd08e} :root:not([data-theme="light"]) .inv-down{color:#ff8a70} }
+.inv-alert{min-width:0;font-size:.68rem;font-weight:600;padding:3px 9px;border-radius:999px;background:rgba(224,138,18,.16);color:#8a5200;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root[data-theme="dark"] .inv-alert{color:#f0b04a}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .inv-alert{color:#f0b04a} }
+.inv-empty{font-size:.84rem;color:var(--ink-soft);align-self:center}
 .w-spot{margin-top:14px;border-radius:28px;padding:10px 10px 10px 10px;display:flex;align-items:center;gap:12px;min-height:78px}
 .sp-open{flex:1;min-width:0;display:flex;align-items:center;gap:12px;border-radius:16px}
 .sp-art:active,.sp-link:active{opacity:.7}
@@ -292,6 +318,7 @@ a{color:inherit;text-decoration:none}
         <span class="foot"><span>Actus</span><span id="wTime"></span></span></span>
       </a>
     </div>
+    <section class="w-inv glass" id="inv" aria-label="Investissements"></section>
     <section class="w-spot glass" id="spot" aria-label="Spotify"></section>
     <div class="grid" id="grid"></div>
     <div class="spacer"></div>
@@ -957,6 +984,68 @@ async function loadEtat(){
   }catch{}
 }
 loadEtat(); setInterval(() => { if (!document.hidden) loadEtat(); }, 15 * 60e3);
+
+/* ---------- Widget Investissements : lignes saisies sur la page Investissements (sur cet iPhone), cours préparés par la tâche « Marchés » ---------- */
+const INV_IDX = [['^FCHI', 'CAC 40'], ['^GSPC', 'S&P 500'], ['EUNL.DE', 'MSCI World'], ['EURUSD=X', 'EUR/USD']];
+let invM = null, invAt = 0, invShow = false, invShowT = null;
+const invNum = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); return isFinite(n) ? n : null; };
+const invPct = (x, d = 2) => x == null || !isFinite(x) ? '—' : (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x * 100).toLocaleString('fr-FR', {minimumFractionDigits:d, maximumFractionDigits:d}) + ' %';
+const invCls = x => x == null || !isFinite(x) || Math.abs(x) < 5e-5 ? 'inv-flat' : x > 0 ? 'inv-up' : 'inv-down';
+function invQuote(code){ if (!invM || !invM.cours || !code) return null; const k = String(code).toUpperCase();
+  return invM.cours[code] || Object.values(invM.cours).find(c => (c.s || '').toUpperCase() === k || (c.isin || '').toUpperCase() === k) || null; }
+const invSer = c => c && c.t ? c.t.map((d, i) => [c.t0 + d, c.c[i]]) : [];
+function invAt2(s, d){ let lo = 0, hi = s.length - 1, r = null; while (lo <= hi){ const m = (lo + hi) >> 1; if (s[m][0] <= d){ r = s[m][1]; lo = m + 1; } else hi = m - 1; } return r; }
+function invFx(cur, d){ if (!cur || cur === 'EUR') return 1; if (cur !== 'USD') return null; const e = invQuote('EURUSD=X'); if (!e) return null; const r = d == null ? e.px : (invAt2(invSer(e), d) ?? e.px); return r ? 1 / r : null; }
+function invCalc(){
+  const L = LS.get('invest:lignes', []); if (!L.length) return null;
+  let tot = 0, prev = 0; const cotes = [];
+  L.forEach(l => {
+    if (l.type === 'manuel'){ const v = invNum(l.valeur) || 0; tot += v; prev += v; return; }
+    const c = invQuote(l.code), q = invNum(l.qte), f = c ? invFx(c.cur) : null;
+    if (!c || q == null || f == null){ const v = invNum(l.valeur) || 0; tot += v; prev += v; return; }
+    tot += q * c.px * f; prev += q * (c.prev ?? c.px) * f; cotes.push({q, cur:c.cur, s:invSer(c)});
+  });
+  const fixe = tot - cotes.reduce((s, x) => s + x.q * (x.s.length ? x.s[x.s.length - 1][1] : 0) * (invFx(x.cur) ?? 0), 0);
+  const today = Math.floor(Date.now() / 864e5), days = new Set();
+  cotes.forEach(x => x.s.forEach(([d]) => { if (d >= today - 30) days.add(d); }));
+  const spark = [...days].sort((a, b) => a - b).map(d => fixe + cotes.reduce((s, x) => s + x.q * (invAt2(x.s, d) ?? 0) * (invFx(x.cur, d) ?? 0), 0));
+  return {tot, day:prev > 0 ? tot / prev - 1 : null, spark};
+}
+function invOpen(){
+  const p = new Intl.DateTimeFormat('en-GB', {timeZone:'Europe/Paris', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false}).formatToParts(new Date());
+  const g = t => (p.find(x => x.type === t) || {}).value, m = +g('hour') * 60 + +g('minute');
+  return !['Sat', 'Sun'].includes(g('weekday')) && m >= 540 && m < 1050;
+}
+function renderInv(){
+  const el = $('#inv'); if (!el) return;
+  const R = invCalc(), reg = LS.get('invest:reglages', {}), discret = reg.discret !== false, res = LS.get('invest:resume', {});
+  const hide = discret && !invShow, auto = autoOn('marches');
+  let spark = '';
+  if (R && R.spark.length > 1){ const v = R.spark, lo = Math.min(...v), hi = Math.max(...v), sp = hi - lo || 1;
+    const d = v.map((x, i) => (i ? 'L' : 'M') + (i / (v.length - 1) * 160).toFixed(1) + ' ' + (27 - (x - lo) / sp * 24).toFixed(1)).join(' ');
+    spark = `<svg class="inv-spark" viewBox="0 0 160 30" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`; }
+  const idx = INV_IDX.map(([c, n]) => { const q = invQuote(c), x = q && q.prev ? q.px / q.prev - 1 : null;
+    return `<div><span>${n}</span><b class="${c === 'EURUSD=X' ? 'inv-flat' : invCls(x)}">${c === 'EURUSD=X' ? (q ? q.px.toLocaleString('fr-FR', {minimumFractionDigits:4, maximumFractionDigits:4}) : '—') : invPct(x, 1)}</b></div>`; }).join('');
+  el.innerHTML = `<a class="inv-link" href="invest.html" aria-label="Ouvrir Investissements${R ? ` — ${invPct(R.day)} aujourd'hui` : ''}"></a>
+    <div class="inv-top"><span class="mk" title="${invOpen() ? 'Bourse ouverte' : 'Bourse fermée'}"><i class="${invOpen() ? 'on' : ''}"></i><span class="w-label">Investissements${auto ? '' : ' · ⚠ auto coupé'}</span></span>
+      ${res.alerte ? `<span class="inv-alert">⚠ ${esc(res.alerte)}${res.n > 1 ? ` (+${res.n - 1})` : ''}</span>` : `<span class="mk">${invOpen() ? 'Bourse ouverte' : 'Bourse fermée'}</span>`}</div>
+    <div class="inv-body"><div class="inv-l">${R ? `<span class="inv-tot${hide ? ' masq' : ''}">${hide ? '•••• €' : Math.round(R.tot).toLocaleString('fr-FR') + ' €'}${discret ? `<button type="button" class="inv-eye" id="invEye" aria-label="${hide ? 'Afficher' : 'Masquer'} le montant"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>` : ''}</span>
+      <span class="inv-day ${invCls(R.day)}">${invPct(R.day)} aujourd'hui</span>${spark}` : '<span class="inv-empty">Ajoute tes placements ›</span>'}</div>
+      <div class="inv-r">${idx}</div></div>`;
+}
+async function loadInv(){
+  invM = LS.get('invest:marches', null); renderInv();
+  try{ const r = await fetch('donnees/marches/marches.json', {cache:'no-cache'}); if (r.ok){ invM = await r.json(); LS.set('invest:marches', invM); } }catch{}
+  invAt = Date.now(); renderInv();
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#invEye')) return;
+  e.preventDefault(); invShow = !invShow; renderInv(); clearTimeout(invShowT);
+  if (invShow) invShowT = setTimeout(() => { invShow = false; renderInv(); }, 8000);      // le montant se masque tout seul après 8 s
+});
+loadInv();
+setInterval(() => { if (!document.hidden && autoOn('marches') && Date.now() - invAt > 15 * 60e3) loadInv(); }, 60e3);
+document.addEventListener('visibilitychange', () => { if (!document.hidden){ if (autoOn('marches') && Date.now() - invAt > 10 * 60e3) loadInv(); else renderInv(); } });
 
 /* ---------- Témoin LIVE Sports (matchs du jour préparés + vérification ESPN des matchs censés être en cours) ---------- */
 const SPORT_FAV = {equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']};

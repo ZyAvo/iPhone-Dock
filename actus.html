@@ -280,6 +280,16 @@ const TABS_FR = [
   ]}
 ];
 /* Mode « International » (bulle 🇺🇸) : mêmes onglets, médias anglophones. Tarn n'existe qu'en français. */
+/* Onglets préparés pour d'autres pages (pas affichés ici) : « Marchés » sert à la page Investissements */
+const TABS_AUTRES = [
+  { id:'marches', label:'Marchés', feeds:[
+    {name:'Les Échos Marchés', color:'#8a1538', url:'https://syndication.lesechos.fr/rss/rss_finance-marches.xml', site:'https://www.lesechos.fr/finance-marches', alt:['https://news.google.com/rss/search?q=site:lesechos.fr/finance-marches&hl=fr&gl=FR&ceid=FR:fr']},
+    {name:'Investir',          color:'#0f4c81', url:'https://investir.lesechos.fr/rss', site:'https://investir.lesechos.fr/', alt:['https://news.google.com/rss/search?q=site:investir.lesechos.fr&hl=fr&gl=FR&ceid=FR:fr']},
+    {name:'Boursorama',        color:'#c4006a', url:'https://www.boursorama.com/rss/actualites/marches', site:'https://www.boursorama.com/bourse/actualites/', alt:['https://news.google.com/rss/search?q=site:boursorama.com/bourse/actualites&hl=fr&gl=FR&ceid=FR:fr']},
+    {name:'Zonebourse',        color:'#1f6f43', url:'https://www.zonebourse.com/rss/', site:'https://www.zonebourse.com/', alt:['https://news.google.com/rss/search?q=site:zonebourse.com&hl=fr&gl=FR&ceid=FR:fr']},
+    {name:'AMF',               color:'#1d3c78', url:'https://www.amf-france.org/fr/flux-rss/display/22', site:'https://www.amf-france.org/fr/actualites-publications', alt:['https://news.google.com/rss/search?q=site:amf-france.org&hl=fr&gl=FR&ceid=FR:fr']}
+  ]}
+];
 const TABS_EN = [
   { id:'une', label:'À la une', feeds:[
     {name:'BBC News',      color:'#bb1919', url:'https://feeds.bbci.co.uk/news/rss.xml'},

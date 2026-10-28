@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Investissements</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
+<style>
+/* Layout : en-tête collant en verre (retour, actualiser, titre) ; une carte par source de données
+   (résumé coloré en tête, détails dépliables) */
+:root{
+  --base:#e7ecef;
+  --blob-1:rgba(163,206,241,.95); --blob-2:rgba(96,150,186,.55); --blob-3:rgba(39,76,119,.35);
+  --ink:#10233a; --ink-soft:#56636f;
+  --glass:rgba(255,255,255,.22); --glass-tint:rgba(163,206,241,.10);
+  --rim-1:rgba(255,255,255,.95); --rim-2:rgba(255,255,255,.12); --rim-3:rgba(255,255,255,.6);
+  --spec:rgba(255,255,255,.55);
+  --shadow:0 14px 34px -16px rgba(39,76,119,.45);
+  --head:rgba(231,236,239,.72);
+  --card:rgba(255,255,255,.6); --line:rgba(39,76,119,.12);
+  --accent:#274c77; --on-accent:#e7ecef;
+  --t-brick:#274c77; --t-slate:#6096ba; --t-olive:#3d6b97; --t-plum:#1b3656;
+  --t-teal:#4c86b0; --t-ochre:#8b8c89; --t-char:#2f3e50; --t-rose:#7fb0d8;
+  --f-ui:"Geist", -apple-system, "SF Pro Text", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --base:#08121f;
+  --blob-1:rgba(39,76,119,.85); --blob-2:rgba(96,150,186,.45); --blob-3:rgba(163,206,241,.22);
+  --ink:#e7ecef; --ink-soft:#a7b6c4;
+  --glass:rgba(231,236,239,.07); --glass-tint:rgba(163,206,241,.06);
+  --rim-1:rgba(231,236,239,.55); --rim-2:rgba(231,236,239,.04); --rim-3:rgba(163,206,241,.35);
+  --spec:rgba(231,236,239,.16);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(8,18,31,.66);
+  --card:rgba(231,236,239,.06); --line:rgba(231,236,239,.1); --accent:#a3cef1; --on-accent:#08121f;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --base:#08121f;
+  --blob-1:rgba(39,76,119,.85); --blob-2:rgba(96,150,186,.45); --blob-3:rgba(163,206,241,.22);
+  --ink:#e7ecef; --ink-soft:#a7b6c4;
+  --glass:rgba(231,236,239,.07); --glass-tint:rgba(163,206,241,.06);
+  --rim-1:rgba(231,236,239,.55); --rim-2:rgba(231,236,239,.04); --rim-3:rgba(163,206,241,.35);
+  --spec:rgba(231,236,239,.16);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(8,18,31,.66);
+  --card:rgba(231,236,239,.06); --line:rgba(231,236,239,.1); --accent:#a3cef1; --on-accent:#08121f;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;font-family:var(--f-ui);color:var(--ink);
+  background-color:var(--base);
+  background-image:
+    radial-gradient(60% 45% at 10% 8%, var(--blob-1), transparent 70%),
+    radial-gradient(55% 45% at 95% 35%, var(--blob-2), transparent 70%),
+    radial-gradient(70% 50% at 30% 100%, var(--blob-3), transparent 70%);
+  background-attachment:fixed;
+  -webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--head);
+  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px)}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:12px}
+
+/* verre */
+.glass{position:relative;isolation:isolate;background:linear-gradient(160deg, var(--glass), var(--glass-tint));box-shadow:var(--shadow);
+  backdrop-filter:blur(30px) saturate(1.8) brightness(1.05);-webkit-backdrop-filter:blur(30px) saturate(1.8) brightness(1.05)}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  background:radial-gradient(120% 70% at 15% 0%, var(--spec), transparent 55%)}
+.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+  background:linear-gradient(145deg, var(--rim-1), var(--rim-2) 35%, var(--rim-2) 65%, var(--rim-3));
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+
+.wrap{max-width:560px;margin:0 auto;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+
+/* ---------- Interrupteurs ---------- */
+.sw-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.sw-row small{display:block;color:var(--ink-soft);font-size:.78rem;margin-top:2px}
+.sw{appearance:none;-webkit-appearance:none;flex:none;width:46px;height:28px;border-radius:99px;background:rgba(139,140,137,.45);position:relative;cursor:pointer;transition:background .2s;margin:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.sw:checked{background:#2fa35a}
+.sw:checked::after{transform:translateX(18px)}
+/* ---------- En-tête ---------- */
+header{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--head);
+  backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
+  border-bottom:1px solid var(--line)}
+header .wrap{padding-block:10px 12px;display:flex;flex-direction:column;gap:10px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.back{display:flex;align-items:center;gap:2px;color:var(--accent);font-weight:500;font-size:1rem;padding-block:6px}
+.back svg,.icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn{color:var(--accent);width:38px;height:38px;display:grid;place-items:center;border-radius:50%}
+.icon-btn.spin svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.title-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:1}
+.stamp{font-size:.74rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.tabs{display:flex;gap:4px;padding:4px;border-radius:18px;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;scroll-snap-align:center;padding:8px 14px;border-radius:14px;font-size:.85rem;font-weight:500;color:var(--ink-soft);white-space:nowrap;
+  transition:background .2s ease,color .2s ease}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+
+/* ---------- État ---------- */
+main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
+.sum{border-radius:24px;padding:16px 18px;display:flex;align-items:center;gap:14px}
+.sum b{font-size:1.1rem;letter-spacing:-.01em}
+.sum p{margin:2px 0 0;font-size:.82rem;color:var(--ink-soft)}
+.lamp{width:14px;height:14px;border-radius:50%;flex:none;background:var(--lc);box-shadow:0 0 0 4px color-mix(in oklab, var(--lc) 22%, transparent)}
+.ok{--lc:#1e8a4c}.warn{--lc:#e08a12}.err{--lc:#d63c3c}.none{--lc:#8b8c89}
+.part{border-radius:24px;overflow:hidden}
+.part > summary{list-style:none;display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.part > summary::-webkit-details-marker{display:none}
+.part > summary .t{flex:1;min-width:0}
+.part > summary b{display:block;font-size:1rem}
+.part > summary small{display:block;font-size:.8rem;color:var(--ink-soft);margin-top:2px}
+.part > summary .chev{width:18px;height:18px;fill:none;stroke:var(--ink-soft);stroke-width:2;transition:transform .2s ease}
+.part[open] > summary .chev{transform:rotate(90deg)}
+.body{padding:0 16px 14px;font-size:.84rem}
+.rows{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.rows th,.rows td{text-align:left;padding:6px 4px;border-top:1px solid var(--line);vertical-align:top}
+.rows th{font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;border-top:0}
+.rows td.n{text-align:right;white-space:nowrap}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:600;background:color-mix(in oklab, var(--lc) 16%, transparent);color:color-mix(in oklab, var(--lc) 80%, var(--ink))}
+.note{color:var(--ink-soft);font-size:.8rem;margin:8px 0 0;line-height:1.45}
+.mono{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;font-size:.72rem;overflow-wrap:anywhere;color:var(--ink-soft)}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{padding:10px 14px;border-radius:14px;font-weight:600;font-size:.86rem;background:var(--card);border:1px solid var(--line);color:var(--ink)}
+.btn.main{background:var(--accent);color:var(--on-accent);border-color:transparent}
+/* ---------- Toucher visible et fondu entre les pages ---------- */
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
+.tap-dot{position:fixed;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;pointer-events:none;z-index:9999;
+  background:radial-gradient(circle, rgba(96,150,186,.55), rgba(163,206,241,.35) 55%, rgba(255,255,255,.15) 72%);
+  box-shadow:0 0 0 2.5px rgba(255,255,255,.9), 0 0 0 4px rgba(39,76,119,.45), 0 4px 16px rgba(0,0,0,.22);animation:tapdot .6s ease-out forwards}
+.maj-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:9998;
+  padding:10px 16px;border-radius:999px;background:#274c77;color:#e7ecef;font:600 .85rem/1.2 var(--f-ui, system-ui);box-shadow:0 10px 26px -10px rgba(0,0,0,.5);
+  animation:majin .3s ease-out}
+@keyframes majin{from{opacity:0;transform:translate(-50%, 10px)}}
+@keyframes tapdot{from{transform:scale(.55);opacity:1}to{transform:scale(1.45);opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+:root{--up:#1e7a46;--down:#b4442c;--warn:#a35d00;--panel:#eef2f5}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--up:#5fd08e;--down:#ff8a70;--warn:#f0b04a;--panel:#0e1b2c} }
+:root[data-theme="dark"]{--up:#5fd08e;--down:#ff8a70;--warn:#f0b04a;--panel:#0e1b2c}
+/* ---------- Investissements ---------- */
+.seg{display:flex;gap:4px;padding:4px;border-radius:18px;align-self:flex-start;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.tool-row{display:flex;gap:8px}
+.card{border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.k{font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+.big{font-size:2rem;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.05}
+.big.masq{letter-spacing:.08em}
+.kpis{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.86rem;color:var(--ink-soft)}
+.kpis b{font-variant-numeric:tabular-nums}
+.up{color:var(--up)}.down{color:var(--down)}.flat{color:var(--ink-soft)}
+.chart{width:100%;height:120px;display:block}
+.chart-lab{display:flex;justify-content:space-between;font-size:.72rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.per{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.per button{padding:8px 0;border-radius:12px;font-size:.82rem;font-weight:500;color:var(--ink-soft);text-align:center;min-height:36px}
+.per button[aria-pressed="true"]{background:var(--card);color:var(--ink);font-weight:600;box-shadow:inset 0 0 0 1px var(--line)}
+.alloc{display:flex;align-items:center;gap:16px}
+.alloc svg{width:104px;height:104px;flex:none}
+.legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;font-size:.84rem}
+.legend div{display:flex;align-items:center;gap:8px}
+.legend i{width:10px;height:10px;border-radius:3px;flex:none}
+.legend span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend small{color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.env{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-size:.78rem}
+.env div{padding:8px 10px;border-radius:12px;background:var(--card);color:var(--ink-soft)}
+.env b{display:block;font-size:.95rem;color:var(--ink)}
+.rule{display:flex;gap:10px;align-items:flex-start;font-size:.86rem;line-height:1.4}
+.rule .ic{width:18px;flex:none;font-weight:700;text-align:center}
+.rule.warn .ic{color:var(--warn)}.rule.ok .ic{color:var(--up)}.rule.info .ic{color:var(--ink-soft)}
+.group-h{display:flex;justify-content:space-between;align-items:baseline;padding:6px 4px 0}
+.lines{border-radius:22px;overflow:hidden}
+.line{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line);width:100%;text-align:left;min-height:56px}
+.line:first-child{border-top:0}
+.line .t{flex:1;min-width:0}
+.line .t b{display:block;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line .t small{display:block;font-size:.76rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line .v{text-align:right;font-size:.84rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.line .v b{display:block}
+.empty{text-align:center;padding:26px 18px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.empty p{margin:0;color:var(--ink-soft);font-size:.88rem;line-height:1.45}
+.btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.wide{width:100%}
+.idx{border-radius:24px;overflow:hidden}
+.idx-row{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,.8fr) minmax(0,.85fr) minmax(0,1fr);gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);font-size:.86rem;font-variant-numeric:tabular-nums}
+.idx-row.h{border-top:0;font-size:.64rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);padding-bottom:4px}
+.idx-row .r{text-align:right}
+.idx-row small{display:block;font-size:.7rem;color:var(--ink-soft);font-weight:400}
+.rng{position:relative;height:6px;border-radius:3px;background:var(--line)}
+.rng i{position:absolute;top:-3px;width:4px;height:12px;border-radius:2px;background:var(--accent);margin-left:-2px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tile2{padding:12px;border-radius:18px;display:flex;flex-direction:column;gap:2px}
+.tile2 span{font-size:.74rem;color:var(--ink-soft)}
+.tile2 b{font-size:1.15rem;font-variant-numeric:tabular-nums}
+.tile2 small{font-size:.7rem;color:var(--ink-soft)}
+.agenda{border-radius:22px;overflow:hidden}
+.agenda div{display:flex;gap:12px;padding:11px 14px;border-top:1px solid var(--line);font-size:.86rem}
+.agenda div:first-child{border-top:0}
+.agenda time{width:96px;flex:none;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.art{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:20px}
+.art .src{font-size:.72rem;font-weight:600;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
+.art .src i{width:8px;height:8px;border-radius:50%;flex:none}
+.art b{font-size:.92rem;line-height:1.3;font-weight:600}
+.fiche{border-radius:20px;overflow:hidden}
+.fiche summary{list-style:none;padding:13px 16px;font-weight:600;font-size:.9rem;cursor:pointer;display:flex;justify-content:space-between;gap:10px}
+.fiche summary::-webkit-details-marker{display:none}
+.fiche summary::after{content:"›";color:var(--ink-soft);transition:transform .2s}
+.fiche[open] summary::after{transform:rotate(90deg)}
+.fiche p{margin:0;padding:0 16px 14px;font-size:.84rem;line-height:1.5;color:var(--ink)}
+.calc{display:flex;flex-direction:column;gap:6px;font-size:.88rem;font-variant-numeric:tabular-nums}
+.calc div{display:flex;justify-content:space-between;gap:10px}
+.calc div span:first-child{color:var(--ink-soft)}
+.calc div > :last-child{white-space:nowrap}
+.calc .tot{padding-top:6px;border-top:1px solid var(--line)}
+.calc .net b{font-size:1.1rem}
+.pill{align-self:flex-start;padding:4px 10px;border-radius:999px;font-size:.74rem;font-weight:600;background:color-mix(in oklab, var(--lc) 16%, transparent);color:color-mix(in oklab, var(--lc) 75%, var(--ink))}
+.bars{display:flex;flex-direction:column;gap:8px;font-size:.84rem}
+.bars div{display:flex;align-items:center;gap:10px}
+.bars span:first-child{width:104px;flex:none}
+.bars i{height:10px;border-radius:5px;background:var(--down);min-width:2px}
+.bars i.av{background:color-mix(in oklab, var(--down) 50%, transparent)}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--ink-soft)}
+.f input,.f select{min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);padding:0 12px;font:inherit;font-size:16px;color:var(--ink);width:100%}
+.f .hint{font-size:.72rem}
+.radio{display:flex;gap:4px;padding:4px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+.radio label{flex:1;position:relative}
+.radio input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.radio span{display:block;text-align:center;padding:9px 6px;border-radius:10px;font-size:.84rem;font-weight:500;color:var(--ink-soft)}
+.radio input:checked + span{background:var(--accent);color:var(--on-accent);font-weight:600}
+.radio input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.sheet-bg{position:fixed;inset:0;z-index:50;background:rgba(8,18,31,.35);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:560px;max-height:88vh;overflow-y:auto;border-radius:28px 28px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom, 0px));
+  display:flex;flex-direction:column;gap:12px;background:var(--panel)}
+.sheet h2{margin:0;font-size:1.25rem;letter-spacing:-.01em}
+.sheet .row-btns{display:flex;gap:8px;flex-wrap:wrap}
+.sheet .row-btns .btn{flex:1}
+.sheet textarea{min-height:90px;border-radius:12px;border:1px solid var(--line);background:var(--card);padding:10px;font:12px/1.4 ui-monospace, Menlo, monospace;color:var(--ink);width:100%}
+.msg{font-size:.8rem;color:var(--ink-soft);margin:0}
+.btn.danger{color:var(--down)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
+      <div class="tool-row">
+        <button class="icon-btn glass" id="eyeBtn" type="button" aria-label="Afficher les montants" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button class="icon-btn glass" id="setBtn" type="button" aria-label="Réglages"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+        <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+      </div>
+    </div>
+    <div class="title-row"><h1>Investissements</h1><span class="stamp" id="stamp"></span></div>
+    <div class="tabs glass" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" type="button" data-tab="portef">Portefeuille</button>
+      <button class="tab" role="tab" type="button" data-tab="marches">Marchés</button>
+      <button class="tab" role="tab" type="button" data-tab="vente">Si je vends</button>
+    </div>
+  </div>
+</header>
+<main><div class="wrap" id="out" role="tabpanel"></div></main>
+<div class="sheet-bg" id="sheetBg" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div></div>
+
+<script>
+/* ========== Réglages lus aussi par la tâche GitHub « Marchés » (outils/marches-data.mjs) ==========
+   INDICES : le tableau « Marchés » (accueil:true → affiché aussi dans le widget de l'accueil).
+   SUIVI   : tes placements à suivre, par code ISIN (ou symbole Yahoo dans « code » si l'ISIN n'est pas trouvé).
+             Uniquement les codes : tes quantités et montants restent sur ton iPhone. */
+const INDICES = [
+  {id:'cac40',       code:'^FCHI',     nom:'CAC 40', accueil:true},
+  {id:'eurostoxx50', code:'^STOXX50E', nom:'Euro Stoxx 50'},
+  {id:'sp500',       code:'^GSPC',     nom:'S&P 500', accueil:true},
+  {id:'nasdaq100',   code:'^NDX',      nom:'Nasdaq 100'},
+  {id:'monde',       code:'EUNL.DE',   nom:'MSCI World', note:'via un ETF en euros', accueil:true},
+  {id:'emergents',   code:'IS3N.DE',   nom:'Émergents', note:'via un ETF en euros'},
+  {id:'or',          code:'GC=F',      nom:'Or', note:'en dollars'},
+  {id:'brent',       code:'BZ=F',      nom:'Pétrole Brent', note:'en dollars'},
+  {id:'eurusd',      code:'EURUSD=X',  nom:'EUR / USD', accueil:true, change:true}
+];
+const SUIVI = [
+  // exemple : {isin:'IE00B4L5Y983'},   ou si l'ISIN n'est pas reconnu : {isin:'IE00B4L5Y983', code:'EUNL.DE'}
+];
+/* Repères mis à jour à la main */
+const LIVRET_A = {taux:1.7, depuis:'2026-08-01'};
+const AGENDA = [
+  {d:'2026-10-28', t:'Décision de taux de la Fed'},
+  {d:'2026-10-29', t:'Décision de taux de la BCE'},
+  {d:'2026-12-09', t:'Décision de taux de la Fed'},
+  {d:'2026-12-17', t:'Décision de taux de la BCE'},
+  {d:'2027-01-27', t:'Décision de taux de la Fed'},
+  {d:'2027-02-04', t:'Décision de taux de la BCE'},
+  {d:'2027-03-17', t:'Décision de taux de la Fed'},
+  {d:'2027-03-18', t:'Décision de taux de la BCE'},
+  {d:'2027-04-28', t:'Décision de taux de la Fed'},
+  {d:'2027-04-29', t:'Décision de taux de la BCE'},
+  {d:'2027-06-09', t:'Décision de taux de la Fed'},
+  {d:'2027-06-10', t:'Décision de taux de la BCE'},
+  {d:'2027-07-22', t:'Décision de taux de la BCE'},
+  {d:'2027-07-28', t:'Décision de taux de la Fed'},
+  {d:'2027-09-09', t:'Décision de taux de la BCE'},
+  {d:'2027-09-15', t:'Décision de taux de la Fed'},
+  {d:'2027-10-27', t:'Décision de taux de la Fed'},
+  {d:'2027-10-28', t:'Décision de taux de la BCE'},
+  {d:'2027-12-08', t:'Décision de taux de la Fed'}
+];
+/* Fiscalité 2026 (à revoir si la loi change) */
+const FISC = {ctIR:12.8, ctPS:18.6, avPS:17.2, avIRavant8:12.8, avIRapres8:7.5, avIRapres8haut:12.8, avSeuil:150000, abattSeul:4600, abattCouple:9200};
+
+/* ========== Outils ========== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } },
+            set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }};
+const autoOn = k => { try{ const r = JSON.parse(localStorage.getItem('rafraichissement')) || {}; return r[k] !== false; }catch{ return true; } };
+const DAY = 86400e3, TODAY = Math.floor(Date.now() / DAY), YEAR = new Date().getFullYear();
+const CATS = {
+  monde:{n:'Actions monde', c:'#274c77'}, europe:{n:'Actions Europe', c:'#6096ba'}, france:{n:'Actions France', c:'#3d6b97'},
+  usa:{n:'Actions États-Unis', c:'#1b3656'}, emergents:{n:'Actions émergentes', c:'#4c86b0'}, obligations:{n:'Obligations', c:'#a3cef1'},
+  fondseuros:{n:'Fonds euros', c:'#8b8c89'}, monetaire:{n:'Monétaire', c:'#c5ced6'}, autre:{n:'Autre', c:'#5a6773'}
+};
+const COMPTES = {ct:'Compte-titres', av:'Assurance-vie'};
+
+let LIGNES = LS.get('invest:lignes', []);
+let REG = Object.assign({situation:'seul', avOuverture:'', avVerse:null, gainsAnnee:{an:YEAR, v:0}, mvReport:0, cible:{}, tolerance:5, maxLigne:25, discret:true}, LS.get('invest:reglages', {}));
+if (!REG.gainsAnnee || REG.gainsAnnee.an !== YEAR) REG.gainsAnnee = {an:YEAR, v:0};
+let M = LS.get('invest:marches', null), A = null, loadedAt = 0;
+let tab = 'portef', per = 30, reveal = false, montant = null, ctLine = null;
+const saveL = () => LS.set('invest:lignes', LIGNES), saveR = () => LS.set('invest:reglages', REG);
+
+const num = v => { if (v == null || v === '') return null; const n = parseFloat(String(v).replace(/\s| |€/g, '').replace(',', '.')); return isFinite(n) ? n : null; };
+const fmt = (v, d = 0) => v == null || !isFinite(v) ? '—' : v.toLocaleString('fr-FR', {minimumFractionDigits:d, maximumFractionDigits:d});
+const masked = () => REG.discret && !reveal;
+const eur = (v, d = 0) => masked() ? '•••• €' : `${fmt(v, d)} €`;
+const eurAlways = (v, d = 0) => `${fmt(v, d)} €`;
+const pct = (x, d = 1) => x == null || !isFinite(x) ? '—' : (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x * 100).toLocaleString('fr-FR', {minimumFractionDigits:d, maximumFractionDigits:d}) + ' %';
+const cls = x => x == null || !isFinite(x) || Math.abs(x) < 5e-5 ? 'flat' : x > 0 ? 'up' : 'down';
+const perLabel = p => { const m = /^(\d{4})-(\d{2})$/.exec(p || ''); return m ? new Date(+m[1], +m[2] - 1, 1).toLocaleDateString('fr-FR', {month:'short', year:'numeric'}) : p ? new Date(p).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}) : ''; };
+
+/* ========== Cours ========== */
+const quoteOf = code => {
+  if (!M || !M.cours || !code) return null;
+  const k = String(code).trim().toUpperCase();
+  return M.cours[code] || Object.values(M.cours).find(c => (c.s || '').toUpperCase() === k || (c.isin || '').toUpperCase() === k) || null;
+};
+const serie = c => c && c.t ? c.t.map((d, i) => [c.t0 + d, c.c[i]]) : [];
+function at(s, d){ let lo = 0, hi = s.length - 1, r = null; while (lo <= hi){ const m = (lo + hi) >> 1; if (s[m][0] <= d){ r = s[m][1]; lo = m + 1; } else hi = m - 1; } return r; }
+const FX = () => { const e = quoteOf('EURUSD=X'); return e ? {px:e.px, s:serie(e)} : null; };
+function fxOf(cur, d){                                   // facteur pour passer de la devise de cotation à l'euro
+  if (!cur || cur === 'EUR') return 1;
+  if (cur === 'USD'){ const f = FX(); if (!f) return null; const r = d == null ? f.px : (at(f.s, d) ?? f.px); return r ? 1 / r : null; }
+  return null;
+}
+function valeur(l){
+  if (l.type === 'manuel') return {v:num(l.valeur), prev:num(l.valeur), manuel:true};
+  const c = quoteOf(l.code), q = num(l.qte);
+  if (!c || q == null) return {v:num(l.valeur), prev:num(l.valeur), absent:true};
+  const f = fxOf(c.cur);
+  if (f == null) return {v:null, prev:null, devise:c.cur, c};
+  return {v:q * c.px * f, prev:q * (c.prev ?? c.px) * f, c, f};
+}
+const cout = l => l.compte === 'ct' ? (num(l.qte) != null && num(l.pru) != null ? num(l.qte) * num(l.pru) : null) : num(l.investi);
+
+function analyse(){
+  const rows = LIGNES.map(l => ({l, ...valeur(l), cost:cout(l)}));
+  const ok = rows.filter(r => r.v != null);
+  const total = ok.reduce((s, r) => s + r.v, 0), prevTot = ok.reduce((s, r) => s + (r.prev ?? r.v), 0);
+  const withCost = ok.filter(r => r.cost != null && r.cost > 0);
+  const pv = withCost.length ? withCost.reduce((s, r) => s + r.v - r.cost, 0) / withCost.reduce((s, r) => s + r.cost, 0) : null;
+  const cats = {}; ok.forEach(r => { const k = r.l.cat || 'autre'; cats[k] = (cats[k] || 0) + r.v; });
+  const env = {}; ok.forEach(r => { env[r.l.compte] = (env[r.l.compte] || 0) + r.v; });
+  /* règles */
+  const rules = [];
+  const cible = Object.entries(REG.cible || {}).filter(([, v]) => num(v) > 0);
+  if (total > 0 && cible.length){
+    const keys = new Set([...cible.map(([k]) => k), ...Object.keys(cats)]);
+    keys.forEach(k => { const w = (cats[k] || 0) / total * 100, c = num((REG.cible || {})[k]) || 0, d = w - c;
+      if (Math.abs(d) > (num(REG.tolerance) ?? 5)) rules.push({lvl:'warn', court:`${(CATS[k] || CATS.autre).n} ${d > 0 ? '+' : '−'}${fmt(Math.abs(d))} pts vs cible`,
+        t:`<b>${esc((CATS[k] || CATS.autre).n)} ${d > 0 ? '+' : '−'}${fmt(Math.abs(d))} pts</b> ${d > 0 ? 'au-dessus' : 'en dessous'} de ta cible (écart toléré : ${fmt(num(REG.tolerance) ?? 5)} pts)`}); });
+    if (!rules.length) rules.push({lvl:'ok', t:'Répartition dans ta cible'});
+  } else if (total > 0) rules.push({lvl:'info', t:'Pas encore de répartition cible : fixe-la dans les réglages ⚙︎'});
+  const maxL = num(REG.maxLigne) ?? 25;
+  const lourdes = total > 0 ? ok.filter(r => r.l.cat !== 'fondseuros' && r.v / total * 100 > maxL) : [];
+  lourdes.forEach(r => rules.push({lvl:'warn', court:`${r.l.nom} pèse ${fmt(r.v / total * 100)} % du total`, t:`<b>${esc(r.l.nom)}</b> pèse ${fmt(r.v / total * 100)} % du total (limite : ${fmt(maxL)} %)`}));
+  if (total > 0 && !lourdes.length) rules.push({lvl:'ok', t:`Aucune ligne au-dessus de ${fmt(maxL)} % du total (hors fonds euros)`});
+  rows.filter(r => r.manuel && r.l.date && TODAY - Date.parse(r.l.date) / DAY > 400).forEach(r => rules.push({lvl:'warn', court:`${r.l.nom} : valeur à mettre à jour`, t:`<b>${esc(r.l.nom)}</b> : valeur saisie le ${new Date(r.l.date).toLocaleDateString('fr-FR')}, à mettre à jour avec ton relevé`}));
+  rows.filter(r => r.absent).forEach(r => rules.push({lvl:'warn', court:`${r.l.nom} : cours non suivi`, t:`<b>${esc(r.l.nom)}</b> : pas de cours pour « ${esc(r.l.code)} ». Ajoute-le à la liste SUIVI d'invest.html (le cours arrive au passage suivant de la tâche « Marchés »).`}));
+  rows.filter(r => r.devise).forEach(r => rules.push({lvl:'warn', court:`${r.l.nom} : devise non gérée`, t:`<b>${esc(r.l.nom)}</b> est coté en ${esc(r.devise)} : conversion non gérée, ligne non comptée.`}));
+  const fees = ok.filter(r => num(r.l.frais) != null);
+  if (fees.length){ const e = fees.reduce((s, r) => s + r.v * num(r.l.frais) / 100, 0), base = fees.reduce((s, r) => s + r.v, 0);
+    rules.push({lvl:'info', ic:'€', t:`Frais annuels estimés : <b>${eur(e)}</b> (${fmt(e / base * 100, 2)} % en moyenne sur ${fees.length} ligne${fees.length > 1 ? 's' : ''})`}); }
+  return {rows, total, prevTot, day:prevTot > 0 ? total / prevTot - 1 : null, pv, cats, env, rules};
+}
+
+/* Courbe de la valeur totale (quantités actuelles appliquées aux cours passés) */
+function historique(days){
+  const cotes = LIGNES.filter(l => l.type !== 'manuel').map(l => ({l, c:quoteOf(l.code)})).filter(x => x.c && num(x.l.qte) != null && fxOf(x.c.cur) != null);
+  if (!cotes.length) return [];
+  const fixe = LIGNES.filter(l => l.type === 'manuel' || !quoteOf(l.code)).reduce((s, l) => s + (num(l.valeur) || 0), 0);
+  const ser = cotes.map(x => ({q:num(x.l.qte), cur:x.c.cur, s:serie(x.c)}));
+  const start = Math.max(TODAY - days, ...ser.map(x => x.s.length ? x.s[0][0] : TODAY));
+  const dset = new Set(); ser.forEach(x => x.s.forEach(([d]) => { if (d >= start) dset.add(d); }));
+  return [...dset].sort((a, b) => a - b).map(d => [d, fixe + ser.reduce((s, x) => s + x.q * (at(x.s, d) ?? 0) * (fxOf(x.cur, d) ?? 0), 0)]);
+}
+function chartSVG(h){
+  if (h.length < 2) return '';
+  const W = 340, H = 120, vals = h.map(p => p[1]), lo = Math.min(...vals), hi = Math.max(...vals), sp = hi - lo || 1;
+  const pts = h.map((p, i) => [i / (h.length - 1) * W, H - 8 - (p[1] - lo) / sp * (H - 16)]);
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const ch = vals[vals.length - 1] / vals[0] - 1;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Évolution : ${pct(ch)} sur la période">
+    <path d="${d} L${W} ${H} L0 ${H} Z" fill="color-mix(in oklab, var(--accent) 16%, transparent)"/><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>
+    <div class="chart-lab"><span>${new Date(h[0][0] * DAY).toLocaleDateString('fr-FR', {day:'numeric', month:'short'})}</span><span class="${cls(ch)}">${pct(ch)} sur la période</span><span>aujourd'hui</span></div>`;
+}
+function donut(parts){
+  let off = 25; const C = 2 * Math.PI * 15.9155;
+  return `<svg viewBox="0 0 42 42" role="img" aria-label="Répartition : ${parts.map(p => `${p.n} ${fmt(p.w)} %`).join(', ')}">${parts.map(p => { const s = `<circle cx="21" cy="21" r="15.9155" fill="none" stroke="${p.c}" stroke-width="6" stroke-dasharray="${p.w} ${100 - p.w}" stroke-dashoffset="${off}"/>`; off = (off - p.w + 100) % 100; return s; }).join('')}</svg>`;
+}
+
+/* ========== Rendu ========== */
+function render(){
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
+  $('#eyeBtn').hidden = !REG.discret || tab === 'vente';
+  $('#eyeBtn').setAttribute('aria-pressed', reveal);
+  A = analyse();
+  const w = A.rules.filter(r => r.lvl === 'warn'); LS.set('invest:resume', {alerte:w.length ? w[0].court : '', n:w.length});
+  $('#out').innerHTML = tab === 'portef' ? portefHTML() : tab === 'marches' ? marchesHTML() : venteHTML();
+  stamp();
+}
+function stamp(){
+  const ok = M && M.updated;
+  $('#stamp').textContent = (ok ? `Cours de ${new Date(M.updated).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}` : '') + (autoOn('marches') ? '' : ' · ⚠ auto coupé');
+}
+const marketOpen = () => {
+  const p = new Intl.DateTimeFormat('en-GB', {timeZone:'Europe/Paris', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false}).formatToParts(new Date());
+  const g = t => (p.find(x => x.type === t) || {}).value, m = +g('hour') * 60 + +g('minute');
+  return !['Sat', 'Sun'].includes(g('weekday')) && m >= 540 && m < 1050;
+};
+
+function portefHTML(){
+  if (!LIGNES.length) return `<div class="card glass empty">
+      <b>Ajoute tes placements</b>
+      <p>Compte-titres, unités de compte et fonds euros de ton assurance-vie. Ils restent uniquement sur cet iPhone ; seuls les codes ISIN à suivre vont dans la liste SUIVI d'invest.html.</p>
+      <button class="btn main wide" type="button" data-act="add">Ajouter une ligne</button>
+      <button class="btn wide" type="button" data-act="transfer">Coller un code de transfert</button></div>`;
+  const h = historique(per);
+  const parts = Object.entries(A.cats).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({k, n:(CATS[k] || CATS.autre).n, c:(CATS[k] || CATS.autre).c, w:v / A.total * 100}));
+  const group = c => {
+    const rs = A.rows.filter(r => r.l.compte === c); if (!rs.length) return '';
+    return `<div class="group-h"><span class="k">${COMPTES[c]}</span><span class="k">${eur(A.env[c] || 0)}</span></div>
+      <div class="lines glass">${rs.map(r => { const i = LIGNES.indexOf(r.l), dj = r.prev ? r.v / r.prev - 1 : null, pv = r.cost ? r.v / r.cost - 1 : null;
+        const sub = r.manuel ? `Saisie manuelle${r.l.date ? ' · ' + new Date(r.l.date).toLocaleDateString('fr-FR') : ''}` : r.absent ? `${esc(r.l.code)} · cours non suivi` : `${esc(r.l.code)} · ${masked() ? '••' : fmt(num(r.l.qte), num(r.l.qte) % 1 ? 3 : 0)} part${num(r.l.qte) > 1 ? 's' : ''}${r.c && r.c.ancien ? ' · cours ancien' : ''}`;
+        return `<button class="line" type="button" data-edit="${i}"><span class="t"><b>${esc(r.l.nom || r.l.code)}</b><small>${sub}</small></span>
+          <span class="v">${r.manuel ? `<b>${eur(r.v)}</b>` : `<b class="${cls(dj)}">${pct(dj, 2)}</b><span class="${cls(pv)}">${pv == null ? eur(r.v) : pct(pv)}</span>`}</span></button>`; }).join('')}</div>`;
+  };
+  return `<div class="card glass">
+      <span class="k">Valeur totale</span>
+      <span class="big${masked() ? ' masq' : ''}">${eur(A.total)}</span>
+      <div class="kpis"><span>Aujourd'hui <b class="${cls(A.day)}">${pct(A.day, 2)}</b></span>${A.pv != null ? `<span>Plus-value latente <b class="${cls(A.pv)}">${pct(A.pv)}</b></span>` : ''}
+        <span>${marketOpen() ? 'Bourse de Paris ouverte' : 'Bourse fermée'}</span></div>
+      ${h.length > 1 ? chartSVG(h) : '<p class="msg">La courbe apparaît dès qu\'une ligne cotée a son cours.</p>'}
+      <div class="per" role="group" aria-label="Période">${[[30, '1 mois'], [182, '6 mois'], [366, '1 an']].map(([d, t]) => `<button type="button" data-per="${d}" aria-pressed="${per === d}">${t}</button>`).join('')}</div>
+    </div>
+    ${A.total > 0 ? `<div class="card glass"><span class="k">Répartition${Object.keys(REG.cible || {}).some(k => num(REG.cible[k]) > 0) ? ' · ta cible entre parenthèses' : ''}</span>
+      <div class="alloc">${donut(parts)}<div class="legend">${parts.map(p => `<div><i style="background:${p.c}"></i><span>${esc(p.n)}</span><b>${fmt(p.w)} %</b>${num((REG.cible || {})[p.k]) > 0 ? `<small>(${fmt(num(REG.cible[p.k]))})</small>` : ''}</div>`).join('')}</div></div>
+      <div class="env">${Object.keys(COMPTES).map(c => `<div>${COMPTES[c]}<b>${fmt((A.env[c] || 0) / A.total * 100)} %</b></div>`).join('')}</div></div>` : ''}
+    <div class="card glass"><span class="k">Mes règles</span>${A.rules.map(r => `<div class="rule ${r.lvl}"><span class="ic">${r.ic || (r.lvl === 'warn' ? '⚠' : r.lvl === 'ok' ? '✓' : 'i')}</span><span>${r.t}</span></div>`).join('')}</div>
+    ${group('ct')}${group('av')}
+    <p class="msg">À droite : variation du jour, puis gain depuis ton prix de revient. Cours différés d'environ 15 à 30 min.</p>
+    <div class="actions"><button class="btn main" type="button" data-act="add">Ajouter une ligne</button><button class="btn" type="button" data-act="transfer">Transférer</button></div>`;
+}
+
+function marchesHTML(){
+  const rows = INDICES.map(ix => { const c = M && M.cours && (M.cours[ix.id] || quoteOf(ix.code)); if (!c) return `<div class="idx-row"><b>${esc(ix.nom)}</b><span class="r flat">—</span><span class="r flat">—</span><span></span></div>`;
+    const dj = c.prev ? c.px / c.prev - 1 : null, ytd = c.y0 ? c.px / c.y0 - 1 : null, pos = c.hi > c.lo ? (c.px - c.lo) / (c.hi - c.lo) * 100 : 50;
+    return `<div class="idx-row"><b>${esc(ix.nom)}<small>${fmt(c.px, ix.change ? 4 : c.px < 100 ? 2 : 0)}${ix.note ? ' · ' + esc(ix.note) : ''}${c.ancien ? ' · ancien' : ''}</small></b>
+      <span class="r ${cls(dj)}"><b>${pct(dj, 2)}</b></span><span class="r ${cls(ytd)}">${pct(ytd)}</span>
+      <span class="rng" role="img" aria-label="Sur 1 an : ${fmt(pos)} % entre le plus bas et le plus haut"><i style="left:${Math.max(0, Math.min(100, pos)).toFixed(1)}%"></i></span></div>`; }).join('');
+  const T = (M && M.taux) || {}, tx = (k, n) => { const t = T[k]; return `<div class="tile2 glass"><span>${n}</span><b>${t ? fmt(t.v, 2) + ' %' : '—'}</b><small>${t ? (t.freq === 'mois' ? 'moyenne ' : 'au ') + perLabel(t.per) + (t.avant ? ` · ${fmt(t.avant.v, 2)} % un an avant` : '') : 'pas encore lu'}</small></div>`; };
+  const eu = quoteOf('EURUSD=X');
+  const items = [...AGENDA.map(a => ({d:a.d, t:a.t})), ...emploiUS()].filter(a => Date.parse(a.d) / DAY >= TODAY - 0.5).sort((a, b) => a.d < b.d ? -1 : 1).slice(0, 6);
+  const arts = ((((LS.get('invest:lire', null) || {}).items) || [])).slice(0, 12);
+  return `<div class="idx glass"><div class="idx-row h"><span>Indice</span><span class="r">Jour</span><span class="r">Depuis janv.</span><span class="r">Sur 1 an</span></div>${rows}
+      <p class="msg" style="padding:6px 14px 12px">« Sur 1 an » : position entre le plus bas (gauche) et le plus haut (droite) des 12 derniers mois.</p></div>
+    <span class="k" style="padding:4px 4px 0">Taux et repères</span>
+    <div class="tiles">${tx('oat', 'OAT 10 ans (France)')}${tx('bund', 'Bund 10 ans (Allemagne)')}${tx('depot', 'Taux de dépôt BCE')}${tx('inflation', 'Inflation France (1 an)')}
+      <div class="tile2 glass"><span>Livret A</span><b>${fmt(LIVRET_A.taux, 2)} %</b><small>depuis le ${new Date(LIVRET_A.depuis).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'})}</small></div>
+      <div class="tile2 glass"><span>EUR / USD</span><b>${eu ? fmt(eu.px, 4) : '—'}</b><small>${eu && eu.prev ? pct(eu.px / eu.prev - 1, 2) + ' aujourd\'hui' : ''}</small></div></div>
+    <span class="k" style="padding:4px 4px 0">À venir</span>
+    <div class="agenda glass">${items.map(a => `<div><time datetime="${a.d}">${Date.parse(a.d) / DAY < TODAY + 1 && Date.parse(a.d) / DAY >= TODAY ? 'aujourd\'hui' : new Date(a.d).toLocaleDateString('fr-FR', {weekday:'short', day:'numeric', month:'short'})}</time><span>${esc(a.t)}</span></div>`).join('')}</div>
+    <span class="k" style="padding:4px 4px 0">À lire</span>
+    ${arts.length ? arts.map(i => `<a class="art glass" href="${esc(i.link)}" target="_blank" rel="noopener"><span class="src"><i style="background:${esc((i.color || '').startsWith('#') ? i.color : '#6096ba')}"></i>${esc(i.source)} · ${agoTxt(i.date)}</span><b>${esc(i.title)}</b></a>`).join('') : '<p class="msg">Les articles arrivent avec le prochain passage de la tâche « Actus ».</p>'}
+    <span class="k" style="padding:4px 4px 0">Fiches pratiques</span>
+    ${FICHES.map(f => `<details class="fiche glass"><summary>${esc(f[0])}</summary>${f.slice(1).map(p => `<p>${p}</p>`).join('')}</details>`).join('')}`;
+}
+function emploiUS(){                                    // chiffres de l'emploi américain : en général le 1er vendredi du mois
+  const out = [];
+  for (let k = 0; k < 4; k++){ const d = new Date(YEAR, new Date().getMonth() + k, 1); while (d.getDay() !== 5) d.setDate(d.getDate() + 1);
+    out.push({d:`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`, t:'Emploi américain (date habituelle)'}); }
+  return out;
+}
+const agoTxt = t => { const m = Math.round((Date.now() - t) / 60000); return m < 60 ? `il y a ${Math.max(1, m)} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : new Date(t).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}); };
+const FICHES = [
+  ['Fonds euros ou unités de compte',
+   'Le <b>fonds euros</b> garantit le capital (selon les contrats, parfois après déduction des frais de gestion) et sert un rendement fixé chaque année par l\'assureur ; les intérêts acquis restent acquis.',
+   'Les <b>unités de compte</b> (ETF, fonds actions, obligations, immobilier…) n\'ont pas de garantie en capital : leur valeur suit les marchés, à la hausse comme à la baisse, en échange d\'un potentiel de rendement plus élevé sur longue durée.'],
+  ['Comprendre un ETF',
+   'Un <b>ETF</b> (ou « tracker ») est un fonds coté en bourse qui reproduit un indice : par exemple le MSCI World, qui regroupe environ 1 400 grandes entreprises de 23 pays développés.',
+   'Ses frais annuels sont généralement faibles (souvent quelques dixièmes de pour cent). Il s\'achète et se vend comme une action pendant les heures de bourse. « Capitalisant » : les dividendes sont réinvestis ; « distribuant » : ils sont versés.'],
+  ['Assurance-vie après 8 ans',
+   'Lors d\'un retrait, seule la <b>part de gains</b> contenue dans le montant retiré est imposée. Après 8 ans, un abattement annuel de 4 600 € (9 200 € pour un couple soumis à imposition commune) s\'applique sur ces gains, puis 7,5 % d\'impôt (12,8 % sur la part liée aux versements au-delà de 150 000 €).',
+   'Les prélèvements sociaux (17,2 % pour l\'assurance-vie, non concernée par la hausse de 2026) restent dus. Ceux du fonds euros sont prélevés chaque année au fil de l\'eau.',
+   'Au décès, un régime propre s\'applique : notamment 152 500 € d\'abattement par bénéficiaire sur les sommes versées avant 70 ans.'],
+  ['Flat tax ou barème',
+   'Par défaut, les gains du compte-titres (plus-values, dividendes) sont taxés au <b>prélèvement forfaitaire unique</b> : 31,4 % depuis 2026 (12,8 % d\'impôt + 18,6 % de prélèvements sociaux).',
+   'On peut choisir à la place le <b>barème progressif</b> de l\'impôt sur le revenu, surtout intéressant si ta tranche marginale est faible (0 % ou 11 %). Ce choix se fait dans la déclaration et vaut pour <b>tous</b> les revenus de placements de l\'année.'],
+  ['Rééquilibrer',
+   'Avec le temps, ce qui a monté pèse plus lourd que prévu. Rééquilibrer, c\'est revenir à sa répartition cible.',
+   'Deux façons : orienter les nouveaux versements vers ce qui est en retard (rien n\'est vendu, donc pas d\'impôt), ou arbitrer. Dans une assurance-vie, un arbitrage entre supports n\'est pas imposé ; sur un compte-titres, vendre déclenche l\'impôt sur la plus-value.']
+];
+
+/* ---------- Si je vends ---------- */
+function venteHTML(){
+  const ct = A.rows.filter(r => r.l.compte === 'ct' && r.v != null), av = A.rows.filter(r => r.l.compte === 'av' && r.v != null);
+  if (montant == null) montant = 5000;
+  if (ctLine == null || !ct.some(r => LIGNES.indexOf(r.l) === ctLine)) ctLine = ct.length ? LIGNES.indexOf(ct[0].l) : null;
+  return `<div class="card glass">
+      <span class="k">Ta situation</span>
+      <div class="radio" role="radiogroup" aria-label="Situation">${[['seul', 'Seul'], ['couple', 'En couple (imposition commune)']].map(([v, t]) => `<label><input type="radio" name="sit" value="${v}"${REG.situation === v ? ' checked' : ''}><span>${t}</span></label>`).join('')}</div>
+      <label class="f">Montant à retirer (€)<input id="montant" inputmode="decimal" value="${fmt(montant)}" autocomplete="off"></label></div>
+    <div id="venteRes" style="display:flex;flex-direction:column;gap:12px">${venteRes()}</div>`;
+}
+function venteRes(){
+  const ct = A.rows.filter(r => r.l.compte === 'ct' && r.v != null), av = A.rows.filter(r => r.l.compte === 'av' && r.v != null);
+  const x = montant;
+  /* compte-titres */
+  let ctHTML = '<p class="msg">Ajoute une ligne de compte-titres avec son prix de revient pour estimer.</p>', ctTax = null;
+  const r = ct.find(r => LIGNES.indexOf(r.l) === ctLine);
+  if (r && r.cost != null){
+    const y = Math.min(x, r.v), part = y / r.v, achat = r.cost * part, pv = y - achat, base = Math.max(0, pv - (num(REG.mvReport) || 0));
+    const ir = base * FISC.ctIR / 100, ps = base * FISC.ctPS / 100; ctTax = ir + ps;
+    ctHTML = `<div class="calc">
+      <div><span>Valeur de la ligne</span><span>${eurAlways(r.v)}</span></div>
+      <div><span>Prix de revient de ce qui est vendu</span><span>${eurAlways(achat)}</span></div>
+      <div><span>${pv >= 0 ? 'Plus-value' : 'Moins-value'}</span><b class="${cls(pv)}">${eurAlways(pv)}</b></div>
+      ${num(REG.mvReport) > 0 && pv > 0 ? `<div><span>Moins-values reportées</span><span>− ${eurAlways(Math.min(pv, num(REG.mvReport)))}</span></div>` : ''}
+      <div><span>Impôt sur le revenu · ${fmt(FISC.ctIR, 1)} %</span><span>${eurAlways(ir)}</span></div>
+      <div><span>Prélèvements sociaux · ${fmt(FISC.ctPS, 1)} %</span><span>${eurAlways(ps)}</span></div>
+      <div class="tot"><b>Impôts estimés</b><b class="down">${eurAlways(ctTax)}</b></div>
+      <div class="net"><b>Tu reçois net</b><b>${eurAlways(y - ctTax)}</b></div></div>
+      ${x > r.v + 0.5 ? '<p class="msg">⚠ Le montant dépasse la valeur de la ligne : calcul fait sur la ligne entière.</p>' : ''}
+      ${pv < 0 ? '<p class="msg">Moins-value : pas d\'impôt, et elle pourra réduire tes plus-values de l\'année ou des 10 années suivantes.</p>' : ''}`;
+  } else if (r) ctHTML = '<p class="msg">Renseigne le prix de revient (PRU) de cette ligne pour estimer l\'impôt.</p>';
+  /* assurance-vie */
+  let avHTML = '<p class="msg">Ajoute les lignes de ton assurance-vie pour estimer un retrait.</p>', avTax = null, age = null;
+  const V = av.reduce((s, r) => s + r.v, 0), UC = av.filter(r => r.l.cat !== 'fondseuros').reduce((s, r) => s + r.v, 0), S = num(REG.avVerse);
+  if (REG.avOuverture){ const o = new Date(REG.avOuverture), n = new Date(); age = n.getFullYear() - o.getFullYear() - ((n.getMonth() < o.getMonth() || (n.getMonth() === o.getMonth() && n.getDate() < o.getDate())) ? 1 : 0); }
+  if (V > 0 && (S == null || !REG.avOuverture)) avHTML = `<p class="msg">Pour estimer, renseigne dans les réglages ⚙︎ la date d'ouverture du contrat et le total que tu y as versé.</p><button class="btn" type="button" data-act="settings">Ouvrir les réglages</button>`;
+  else if (V > 0){
+    const y = Math.min(x, V), gains = Math.max(0, V - S), g = y * gains / V, apres8 = age >= 8;
+    const abatt = Math.max(0, (REG.situation === 'couple' ? FISC.abattCouple : FISC.abattSeul) - (num(REG.gainsAnnee.v) || 0));
+    let ir, taux;
+    if (!apres8){ ir = g * FISC.avIRavant8 / 100; taux = fmt(FISC.avIRavant8, 1) + ' %'; }
+    else { const base = Math.max(0, g - abatt), bas = S <= FISC.avSeuil ? 1 : FISC.avSeuil / S;
+      ir = base * (bas * FISC.avIRapres8 + (1 - bas) * FISC.avIRapres8haut) / 100; taux = bas === 1 ? fmt(FISC.avIRapres8, 1) + ' %' : `${fmt(FISC.avIRapres8, 1)} / ${fmt(FISC.avIRapres8haut, 1)} %`; }
+    const ps = g * (V ? UC / V : 1) * FISC.avPS / 100; avTax = ir + ps;
+    avHTML = `<span class="pill ${apres8 ? 'ok' : 'warn'}">${apres8 ? `Plus de 8 ans ✓ (${age} ans)` : `Moins de 8 ans (${age} an${age > 1 ? 's' : ''})`}</span>
+      <div class="calc">
+      <div><span>Contrat : ${eurAlways(V)} dont versements</span><span>${eurAlways(S)}</span></div>
+      <div><span>Part de gains dans le retrait (${fmt(gains / V * 100)} %)</span><b>${eurAlways(g)}</b></div>
+      ${apres8 ? `<div><span>Abattement appliqué (${REG.situation === 'couple' ? 'couple' : 'seul'})</span><span>− ${eurAlways(Math.min(g, abatt))}</span></div>` : ''}
+      <div><span>Impôt sur le revenu · ${taux}</span><span>${eurAlways(ir)}</span></div>
+      <div><span>Prélèvements sociaux · ${fmt(FISC.avPS, 1)} %${UC < V ? ' (part unités de compte)' : ''}</span><span>${eurAlways(ps)}</span></div>
+      <div class="tot"><b>Impôts estimés</b><b class="down">${eurAlways(avTax)}</b></div>
+      <div class="net"><b>Tu reçois net</b><b>${eurAlways(y - avTax)}</b></div></div>
+      ${apres8 ? `<p class="msg">Abattement restant après ce retrait : ${eurAlways(Math.max(0, abatt - g))} de gains cette année.</p>` : ''}
+      ${x > V + 0.5 ? '<p class="msg">⚠ Le montant dépasse la valeur du contrat : calcul fait sur le contrat entier.</p>' : ''}
+      <p class="msg">Prélèvements sociaux comptés sur la part des gains venant des unités de compte (ceux du fonds euros sont déjà prélevés chaque année) : c'est une approximation. Versements faits après le 27/09/2017.</p>`;
+  }
+  const mx = Math.max(ctTax || 0, avTax || 0) || 1;
+  return `<div class="card glass"><span class="k">Compte-titres · vente</span>
+      ${ct.length ? `<label class="f">Ligne<select id="ctLine">${ct.map(r => `<option value="${LIGNES.indexOf(r.l)}"${LIGNES.indexOf(r.l) === ctLine ? ' selected' : ''}>${esc(r.l.nom || r.l.code)}</option>`).join('')}</select></label>` : ''}
+      ${ctHTML}
+      <p class="msg">Flat tax ${fmt(FISC.ctIR + FISC.ctPS, 1)} % (règles 2026). Option possible pour le barème progressif, valable pour tous tes revenus de placements de l'année.</p></div>
+    <div class="card glass"><span class="k">Assurance-vie · retrait</span>${avHTML}</div>
+    ${ctTax != null && avTax != null ? `<div class="card glass"><span class="k">Pour ${eurAlways(x)} retirés</span><div class="bars">
+      <div><span>Compte-titres</span><i style="width:${(ctTax / mx * 150).toFixed(0)}px"></i><b>${eurAlways(ctTax)}</b></div>
+      <div><span>Assurance-vie</span><i class="av" style="width:${(avTax / mx * 150).toFixed(0)}px"></i><b>${eurAlways(avTax)}</b></div></div></div>` : ''}
+    <p class="msg" style="text-align:center">Estimation indicative selon les règles 2026, sans tenir compte de toute ta situation fiscale. Elle ne remplace ni ta déclaration ni l'avis d'un conseiller.</p>`;
+}
+
+/* ========== Fenêtres (ajout, réglages, transfert) ========== */
+let lastFocus = null;
+function openSheet(html){ lastFocus = document.activeElement; $('#sheet').innerHTML = html; $('#sheetBg').hidden = false; const f = $('#sheet').querySelector('input,select,button'); if (f) f.focus(); }
+function closeSheet(){ $('#sheetBg').hidden = true; $('#sheet').innerHTML = ''; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
+const radio = (name, cur, opts) => `<div class="radio" role="radiogroup">${opts.map(([v, t]) => `<label><input type="radio" name="${name}" value="${v}"${cur === v ? ' checked' : ''}><span>${t}</span></label>`).join('')}</div>`;
+function lineSheet(i){
+  const l = i == null ? {compte:'ct', type:'cote', cat:'monde'} : LIGNES[i];
+  openSheet(`<h2 id="sheetTitle">${i == null ? 'Ajouter une ligne' : 'Modifier la ligne'}</h2>
+    <form id="lineForm" data-i="${i ?? ''}" style="display:flex;flex-direction:column;gap:12px">
+      ${radio('compte', l.compte, Object.entries(COMPTES))}
+      ${radio('type', l.type, [['cote', 'Coté (ETF, action, fonds)'], ['manuel', 'Saisie manuelle']])}
+      <label class="f">Nom<input name="nom" value="${esc(l.nom)}" placeholder="ex. ETF MSCI World" autocomplete="off"></label>
+      <div class="cote-only" style="display:flex;flex-direction:column;gap:12px">
+        <label class="f">Code ISIN ou symbole<input name="code" value="${esc(l.code)}" placeholder="ex. IE00B4L5Y983" autocapitalize="characters" autocomplete="off" spellcheck="false"><span class="hint">Le code ISIN est sur ton relevé ou dans ton appli bancaire.</span></label>
+        <div class="grid2"><label class="f">Quantité (parts)<input name="qte" inputmode="decimal" value="${esc(l.qte ?? '')}"></label>
+          <label class="f ct-only">Prix de revient unitaire<input name="pru" inputmode="decimal" value="${esc(l.pru ?? '')}"></label>
+          <label class="f av-only">Montant investi (€)<input name="investi" inputmode="decimal" value="${esc(l.investi ?? '')}"></label></div>
+      </div>
+      <div class="manuel-only grid2"><label class="f">Valeur (€)<input name="valeur" inputmode="decimal" value="${esc(l.valeur ?? '')}"></label>
+        <label class="f">Au<input name="date" type="date" value="${esc(l.date || new Date().toISOString().slice(0, 10))}"></label></div>
+      <div class="grid2"><label class="f">Catégorie<select name="cat">${Object.entries(CATS).map(([k, c]) => `<option value="${k}"${l.cat === k ? ' selected' : ''}>${c.n}</option>`).join('')}</select></label>
+        <label class="f">Frais annuels (%)<input name="frais" inputmode="decimal" value="${esc(l.frais ?? '')}" placeholder="optionnel"></label></div>
+      <p class="msg" id="lineMsg"></p>
+      <div class="row-btns"><button class="btn main" type="submit">Enregistrer</button><button class="btn" type="button" data-act="close">Annuler</button></div>
+      ${i == null ? '' : '<button class="btn danger" type="button" data-act="del">Supprimer cette ligne</button>'}
+    </form>`);
+  syncLineForm();
+}
+function syncLineForm(){
+  const f = $('#lineForm'); if (!f) return;
+  const t = f.type.value, c = f.compte.value;
+  f.querySelector('.cote-only').hidden = t !== 'cote'; f.querySelector('.manuel-only').hidden = t !== 'manuel';
+  f.querySelector('.ct-only').hidden = c !== 'ct'; f.querySelector('.av-only').hidden = c !== 'av';
+  if (t === 'manuel' && c === 'av' && !f.nom.value) f.nom.value = 'Fonds euros';
+  if (t === 'manuel' && c === 'av' && f.cat.value === 'monde') f.cat.value = 'fondseuros';
+}
+function saveLine(f){
+  const g = n => f[n] ? f[n].value.trim() : '';
+  const l = {compte:f.compte.value, type:f.type.value, nom:g('nom'), cat:g('cat'), frais:num(g('frais'))};
+  if (l.type === 'cote'){ Object.assign(l, {code:g('code').toUpperCase(), qte:num(g('qte'))}); if (l.compte === 'ct') l.pru = num(g('pru')); else l.investi = num(g('investi'));
+    if (!l.code || l.qte == null){ $('#lineMsg').textContent = 'Indique au moins le code et la quantité.'; return; } }
+  else { Object.assign(l, {valeur:num(g('valeur')), date:g('date')}); if (l.valeur == null){ $('#lineMsg').textContent = 'Indique la valeur.'; return; } }
+  if (!l.nom) l.nom = l.code || 'Ligne';
+  const i = f.dataset.i === '' ? null : +f.dataset.i;
+  if (i == null) LIGNES.push(l); else LIGNES[i] = l;
+  saveL(); closeSheet(); render();
+}
+function settingsSheet(){
+  const sum = Object.values(REG.cible || {}).reduce((s, v) => s + (num(v) || 0), 0);
+  openSheet(`<h2 id="sheetTitle">Réglages</h2>
+    <form id="setForm" style="display:flex;flex-direction:column;gap:12px">
+      <label class="sw-row" style="border:0;padding:0"><span><b>Mode discret</b><small>Montants masqués par défaut (l'œil les affiche)</small></span><input type="checkbox" class="sw" name="discret"${REG.discret ? ' checked' : ''}></label>
+      <span class="k">Répartition cible (%)</span>
+      <div class="grid2">${Object.entries(CATS).map(([k, c]) => `<label class="f">${c.n}<input name="c_${k}" inputmode="decimal" value="${esc((REG.cible || {})[k] ?? '')}"></label>`).join('')}</div>
+      <p class="msg" id="sumMsg">Total : ${fmt(sum)} %</p>
+      <div class="grid2"><label class="f">Écart toléré (pts)<input name="tolerance" inputmode="decimal" value="${esc(REG.tolerance)}"></label>
+        <label class="f">Poids max d'une ligne (%)<input name="maxLigne" inputmode="decimal" value="${esc(REG.maxLigne)}"></label></div>
+      <span class="k">Pour estimer les impôts</span>
+      ${radio('situation', REG.situation, [['seul', 'Seul'], ['couple', 'En couple']])}
+      <div class="grid2"><label class="f">Ouverture de l'assurance-vie<input type="date" name="avOuverture" value="${esc(REG.avOuverture)}"></label>
+        <label class="f">Total versé dessus (€)<input name="avVerse" inputmode="decimal" value="${esc(REG.avVerse ?? '')}"></label>
+        <label class="f">Gains déjà retirés en ${YEAR} (€)<input name="gains" inputmode="decimal" value="${esc(REG.gainsAnnee.v || '')}"></label>
+        <label class="f">Moins-values reportables (€)<input name="mvReport" inputmode="decimal" value="${esc(REG.mvReport || '')}"></label></div>
+      <p class="msg">« Total versé » : versements moins la part de versements déjà retirée (ton relevé annuel l'indique souvent).</p>
+      <div class="row-btns"><button class="btn main" type="submit">Enregistrer</button><button class="btn" type="button" data-act="close">Annuler</button></div>
+    </form>`);
+}
+function saveSettings(f){
+  const g = n => f[n] ? f[n].value.trim() : '';
+  REG.discret = f.discret.checked; reveal = false;
+  REG.cible = {}; Object.keys(CATS).forEach(k => { const v = num(g('c_' + k)); if (v) REG.cible[k] = v; });
+  REG.tolerance = num(g('tolerance')) ?? 5; REG.maxLigne = num(g('maxLigne')) ?? 25;
+  REG.situation = f.situation.value; REG.avOuverture = g('avOuverture'); REG.avVerse = num(g('avVerse'));
+  REG.gainsAnnee = {an:YEAR, v:num(g('gains')) || 0}; REG.mvReport = num(g('mvReport')) || 0;
+  saveR(); closeSheet(); render();
+}
+const b64 = s => btoa(unescape(encodeURIComponent(s))), unb64 = s => decodeURIComponent(escape(atob(s.trim())));
+function transferSheet(){
+  const code = LIGNES.length ? b64(JSON.stringify({l:LIGNES, r:REG})) : '';
+  openSheet(`<h2 id="sheetTitle">Transférer</h2>
+    ${code ? `<p class="msg">Ce code contient tes lignes et réglages. Colle-le sur l'autre appareil (Mon Écran → Investissements → Transférer). Ne le partage pas.</p>
+      <textarea readonly aria-label="Code de transfert">${esc(code)}</textarea><button class="btn main" type="button" data-act="copy">Copier le code</button><hr style="border:0;border-top:1px solid var(--line);width:100%">` : ''}
+    <p class="msg">Coller un code venant d'un autre appareil (remplace les lignes d'ici) :</p>
+    <textarea id="codeIn" aria-label="Code à coller"></textarea>
+    <p class="msg" id="trMsg"></p>
+    <div class="row-btns"><button class="btn main" type="button" data-act="import">Importer</button><button class="btn" type="button" data-act="close">Fermer</button></div>`);
+}
+
+/* ========== Évènements ========== */
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tab],[data-per],[data-act],[data-edit]');
+  if (e.target === $('#sheetBg')){ closeSheet(); return; }
+  if (!t) return;
+  if (t.dataset.tab){ tab = t.dataset.tab; LS.set('invest:onglet', tab); render(); window.scrollTo({top:0}); return; }
+  if (t.dataset.per){ per = +t.dataset.per; render(); return; }
+  if (t.dataset.edit != null){ lineSheet(+t.dataset.edit); return; }
+  const a = t.dataset.act;
+  if (a === 'add') lineSheet(null);
+  else if (a === 'settings') settingsSheet();
+  else if (a === 'transfer') transferSheet();
+  else if (a === 'close') closeSheet();
+  else if (a === 'del'){ const i = +$('#lineForm').dataset.i; LIGNES.splice(i, 1); saveL(); closeSheet(); render(); }
+  else if (a === 'copy'){ const ta = $('#sheet textarea'); ta.select(); (navigator.clipboard ? navigator.clipboard.writeText(ta.value) : Promise.reject()).then(() => { t.textContent = 'Copié ✓'; }).catch(() => { try{ document.execCommand('copy'); t.textContent = 'Copié ✓'; }catch{} }); }
+  else if (a === 'import'){ try{ const j = JSON.parse(unb64($('#codeIn').value)); if (!Array.isArray(j.l)) throw 0; LIGNES = j.l; REG = Object.assign(REG, j.r || {}); saveL(); saveR(); closeSheet(); render(); }catch{ $('#trMsg').textContent = 'Code invalide.'; } }
+});
+document.addEventListener('submit', e => { e.preventDefault(); if (e.target.id === 'lineForm') saveLine(e.target); else if (e.target.id === 'setForm') saveSettings(e.target); });
+document.addEventListener('change', e => {
+  if (e.target.closest('#lineForm')) syncLineForm();
+  if (e.target.name === 'sit'){ REG.situation = e.target.value; saveR(); render(); }
+  if (e.target.id === 'ctLine'){ ctLine = +e.target.value; $('#venteRes').innerHTML = venteRes(); }
+});
+let mt = null;
+document.addEventListener('input', e => {
+  if (e.target.id === 'montant'){ clearTimeout(mt); mt = setTimeout(() => { const v = num(e.target.value); if (v != null && v >= 0){ montant = v; $('#venteRes').innerHTML = venteRes(); } }, 300); }
+  if (e.target.closest('#setForm') && /^c_/.test(e.target.name)){ const f = e.target.form; $('#sumMsg').textContent = `Total : ${fmt(Object.keys(CATS).reduce((s, k) => s + (num(f['c_' + k].value) || 0), 0))} %`; }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheetBg').hidden) closeSheet(); });
+$('#eyeBtn').addEventListener('click', () => { reveal = !reveal; render(); });
+$('#setBtn').addEventListener('click', settingsSheet);
+$('#refreshBtn').addEventListener('click', () => load(true));
+
+/* ========== Chargement ========== */
+async function load(force){
+  $('#refreshBtn').classList.add('spin');
+  try{
+    const r = await fetch('donnees/marches/marches.json', {cache:'no-cache'});
+    if (r.ok){ M = await r.json(); LS.set('invest:marches', M); }
+  }catch{}
+  try{
+    const r = await fetch('donnees/actus/actus.json', {cache:'no-cache'});
+    if (r.ok){ const j = await r.json(), it = ((j.tabs || {}).marches || {}).items || []; LS.set('invest:lire', {items:it.slice(0, 15).map(i => ({title:i.title, link:i.link, source:i.source, color:i.color, date:i.date}))}); }
+  }catch{}
+  loadedAt = Date.now();
+  $('#refreshBtn').classList.remove('spin');
+  render();
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && autoOn('marches') && Date.now() - loadedAt > 10 * 60e3) load(); });
+tab = ['portef', 'marches', 'vente'].includes(LS.get('invest:onglet', 'portef')) ? LS.get('invest:onglet', 'portef') : 'portef';
+render(); load();
+</script>
+<script>
+/* Toucher visible : un rond qui s'efface là où le doigt appuie (pratique aussi pour les vidéos de démo) */
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  const d = document.createElement('span'); d.className = 'tap-dot';
+  d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
+  document.body.appendChild(d); setTimeout(() => d.remove(), 650);
+}, {passive:true, capture:true});
+</script>
+<script>
+/* Mise en mémoire sur l'iPhone (démarrage instantané, hors ligne) + avis quand une nouvelle version est déposée */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  const t0 = Date.now(); let majDispo = false, cacheAt = 0;
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'nouvelle-version') return;
+    majDispo = true;
+    if (Date.now() - t0 < 8000){ location.reload(); return; }         // page tout juste ouverte : on passe directement à la nouvelle version
+    if (document.querySelector('.maj-toast')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'maj-toast'; b.textContent = 'Nouvelle version — toucher pour l\'afficher';
+    b.addEventListener('click', () => location.reload()); document.body.appendChild(b);
+  });
+  try{ navigator.serviceWorker.startMessages(); }catch{}
+  /* Retour sur l'appli : nouvelle version déjà prête → rechargement ; sinon on vérifie s'il y en a une (au plus toutes les 2 min) */
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    if (majDispo){ location.reload(); return; }
+    if (Date.now() - cacheAt < 120e3) return;
+    cacheAt = Date.now();
+    navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
+    fetch(location.pathname, {cache:'no-cache'}).catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

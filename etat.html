@@ -198,7 +198,11 @@ function judge(e){
     const ko = e.actus.sources.filter(s => !s.ok);
     out.actus = {lvl:worst([age(e.actus.updated, 1.5, 6), ko.length ? 'warn' : 'ok']), msg:`Mis à jour ${ago(e.actus.updated)} · ${e.actus.sources.length - ko.length}/${e.actus.sources.length} sources`};
   }
-  out.global = worst([out.sport.lvl, out.tv.lvl, out.actus.lvl]);
+  if (e.marches){
+    const old = e.marches.series.filter(s => s.ancien), we = [0, 6].includes(new Date().getDay());
+    out.marches = {lvl:worst([age(e.marches.updated, we ? 60 : 3, we ? 80 : 26), old.length ? 'warn' : 'ok']), msg:`Mis à jour ${ago(e.marches.updated)} · ${e.marches.series.length - old.length}/${e.marches.series.length} cours`};
+  }
+  out.global = worst([out.sport.lvl, out.tv.lvl, out.actus.lvl, ...(out.marches ? [out.marches.lvl] : [])]);
   return out;
 }
 const chev = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
@@ -209,6 +213,7 @@ const AUTO = [
   {k:'sport',   t:'Sports',        d:'Scores en direct (toutes les 30 s), témoin LIVE de l\'accueil, programme TV'},
   {k:'actus',   t:'Actus',         d:'Rechargement au retour sur la page Actus et « une » de l\'accueil'},
   {k:'meteo',   t:'Météo',         d:'Mise à jour toutes les 10 min sur l\'accueil'},
+  {k:'marches', t:'Marchés',       d:'Cours du widget et de la page Investissements'},
   {k:'spotify', t:'Spotify',       d:'Suivi du titre en cours (toutes les 3 à 20 s pendant l\'écoute)'}
 ];
 const autoGet = () => { try{ return JSON.parse(localStorage.getItem('rafraichissement')) || {}; }catch{ return {}; } };
@@ -223,7 +228,7 @@ function autoHTML(){
 function render(e){
   const j = judge(e);
   const label = {ok:'Tout est à jour', warn:'Quelques points à vérifier', err:'Des données ne se mettent plus à jour'}[j.global];
-  let h = `<div class="sum glass ${j.global}"><span class="lamp"></span><div><b>${label}</b><p>Résumé fait ${ago(e.genere)}. Les données se rafraîchissent toutes les 15 min (actus) et toutes les 2 h (matchs, TV).</p></div></div>`;
+  let h = `<div class="sum glass ${j.global}"><span class="lamp"></span><div><b>${label}</b><p>Résumé fait ${ago(e.genere)}. Les données se rafraîchissent toutes les 15 min (actus), toutes les 20 min en semaine (marchés) et toutes les 2 h (matchs, TV).</p></div></div>`;
 
   if (e.sport){
     const rows = e.sport.ligues.map(l => {
@@ -247,6 +252,14 @@ function render(e){
       <p class="note">« secours » : le flux du site ne répond pas, ses articles viennent d'une adresse de remplacement (souvent Google Actualités, sans images).</p>`, j.actus.lvl !== 'ok');
   }
 
+  if (e.marches){
+    const rows = e.marches.series.map(s => `<tr><td>${esc(s.nom)}</td><td>${esc(s.symbole || s.cle)}</td><td>${s.ancien ? '<span class="tag warn">ancien</span>' : '<span class="tag ok">ok</span>'}</td></tr>`).join('');
+    h += part('Marchés', j.marches, `<table class="rows"><thead><tr><th>Cours</th><th>Code</th><th>État</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="note"><b>Taux BCE :</b> ${e.marches.taux.map(t => `${esc(t.nom)} (${esc(t.per)})${t.ancien ? ' ⚠' : ''}`).join(', ') || '—'}.</p>
+      ${e.marches.erreurs.length ? `<p class="note"><b>Erreurs :</b></p>${e.marches.erreurs.map(l => `<div class="mono">${esc(l)}</div>`).join('')}` : ''}
+      <p class="note">« ancien » : la source n'a pas répondu, le dernier cours connu est gardé.</p>`, j.marches.lvl !== 'ok');
+  }
+
   if (e.fichiers){
     const f = e.fichiers;
     h += part('Tes calendriers et logos', {lvl:'ok', msg:`${f.calendriers.length} calendrier${f.calendriers.length > 1 ? 's' : ''} · ${f.logos} logo${f.logos > 1 ? 's' : ''}`},
@@ -256,7 +269,7 @@ function render(e){
   h += autoHTML();
   h += `<div class="actions"><a class="btn main" href="https://github.com/ZyAvo/iPhone-Dock/actions" target="_blank" rel="noopener">Voir les tâches GitHub</a>
     <button type="button" class="btn" id="resetBtn">Vider la mémoire de l'appli</button></div>
-    <p class="note" id="resetMsg">« Vider la mémoire » efface les données gardées sur cet appareil (matchs, actus, pages) ; tes réglages (lieu météo, Spotify, favoris, langue des actus, rafraîchissement) sont conservés.</p>`;
+    <p class="note" id="resetMsg">« Vider la mémoire » efface les données gardées sur cet appareil (matchs, actus, pages) ; tes réglages (lieu météo, Spotify, favoris, langue des actus, placements, rafraîchissement) sont conservés.</p>`;
   $('#out').innerHTML = h;
   $('#stamp').textContent = '';
 }
@@ -282,7 +295,7 @@ document.addEventListener('change', e => {
 document.addEventListener('click', async e => {
   if (!e.target.closest('#resetBtn')) return;
   try{
-    Object.keys(localStorage).filter(k => /^(sport|actus|meteo|icons):/.test(k) && !['sport:favoris', 'actus:langue'].includes(k)).forEach(k => localStorage.removeItem(k));
+    Object.keys(localStorage).filter(k => /^(sport|actus|meteo|icons|invest):/.test(k) && !['sport:favoris', 'actus:langue', 'invest:lignes', 'invest:reglages'].includes(k)).forEach(k => localStorage.removeItem(k));
     if (window.caches) for (const k of await caches.keys()) await caches.delete(k);
     $('#resetMsg').textContent = 'Mémoire vidée : les pages et les données seront rechargées à la prochaine ouverture.';
   }catch{ $('#resetMsg').textContent = 'Impossible de vider la mémoire sur cet appareil.'; }
