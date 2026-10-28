@@ -321,10 +321,10 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 
 <script>
 /* ========== Réglages lus aussi par la tâche GitHub « Vidéos » (outils/videos-data.mjs) ==========
-   PLATEFORMES : tmdb = nom de la plateforme chez TMDB ; ouvrir = adresse de recherche de la plateforme (le titre est ajouté au bout).
+   PLATEFORMES : tmdb = nom de la plateforme chez TMDB ; app = ouverture de l'appli iPhone ; web = recherche sur le site (le titre est ajouté au bout).
    CHAINES_YT  : chaînes YouTube suivies (identifiant « UC… » de la chaîne). */
 const PLATEFORMES = [
-  {id:'prime', nom:'Prime Video', tmdb:'amazon prime video', ouvrir:'https://www.primevideo.com/search/ref=atv_nb_sr?phrase='}
+  {id:'prime', nom:'Prime Video', tmdb:'amazon prime video', app:'aiv://', web:'https://www.primevideo.com/search/ref=atv_nb_sr?phrase='}
 ];
 const CHAINES_YT = [
   {id:'UCFKDEp9si4RmHFWJW1vYsMA', nom:'EthosLab'}
@@ -407,7 +407,9 @@ function ficheSheet(k){
       <div class="meta">${x.orig ? esc(x.orig) + '<br>' : ''}${x.t === 'film' ? 'Film' : 'Série'}${x.an ? ' · ' + x.an : ''}${x.genres && x.genres.length ? '<br>' + x.genres.map(esc).join(', ') : ''}
         ${x.note ? `<br>★ ${x.note.toLocaleString('fr-FR')}/10 <small>(${x.votes.toLocaleString('fr-FR')} votes)</small>` : ''}</div></div></div>
     ${x.resume ? `<p class="resume">${esc(x.resume)}</p>` : ''}
-    <a class="btn main wide" href="${esc(P.ouvrir + encodeURIComponent(x.titre))}" target="_blank" rel="noopener">Ouvrir dans ${esc(P.nom)}</a>
+    <button class="btn main wide" type="button" data-act="ouvrir" data-k="${esc(k)}">Ouvrir dans l'appli ${esc(P.nom)}</button>
+    <p class="credit" id="ouvMsg" style="margin:-4px 0 0">Le titre est copié : colle-le dans la recherche de l'appli.</p>
+    <a class="credit" href="${esc(P.web + encodeURIComponent(x.titre))}" target="_blank" rel="noopener">Chercher sur le site ${esc(P.nom)} ›</a>
     <div class="row-btns"><button class="btn${LISTE.has(k) ? ' on' : ''}" type="button" data-act="liste" data-k="${esc(k)}" aria-pressed="${LISTE.has(k)}">${LISTE.has(k) ? '✓ Dans ma liste' : '＋ Ma liste'}</button>
       <button class="btn${VUS.has(k) ? ' on' : ''}" type="button" data-act="vu" data-k="${esc(k)}" aria-pressed="${VUS.has(k)}">${VUS.has(k) ? '✓ Déjà vu' : 'Déjà vu'}</button></div>
     <a class="credit" href="https://www.themoviedb.org/${x.t === 'film' ? 'movie' : 'tv'}/${esc(x.k.slice(1))}?language=fr" target="_blank" rel="noopener">Fiche complète sur TMDB ›</a>
@@ -444,6 +446,13 @@ document.addEventListener('click', e => {
   const a = t.dataset.act;
   if (a === 'close') closeSheet();
   else if (a === 'more'){ shown += 60; render(); }
+  else if (a === 'ouvrir'){                 // l'appli ne sait pas recevoir un titre : on le copie, puis on l'ouvre
+    const P = PLATEFORMES.find(p => p.id === tab), x = CAT[tab].titres.find(y => y.k === t.dataset.k);
+    const go = () => { window.location.href = P.app; };
+    const msg = $('#ouvMsg');
+    (navigator.clipboard ? navigator.clipboard.writeText(x.titre) : Promise.reject()).then(() => { if (msg) msg.textContent = `« ${x.titre} » copié : colle-le dans la recherche de l'appli.`; })
+      .catch(() => { if (msg) msg.textContent = `Cherche « ${x.titre} » dans l'appli.`; }).finally(() => setTimeout(go, 350));
+  }
   else if (a === 'stop'){ playing = null; render(); }
   else if (a === 'liste' || a === 'vu'){ const S = a === 'liste' ? LISTE : VUS, k = t.dataset.k; S.has(k) ? S.delete(k) : S.add(k); saveSets(); ficheSheet(k); render(); }
 });
