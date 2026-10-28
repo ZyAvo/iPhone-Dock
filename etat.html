@@ -15,7 +15,7 @@ body{margin:0;font-size:14px}
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
-<script>/* thème choisi dans État (avant l'affichage) */try{const p=localStorage.getItem('palette');if(p&&p!=='bleu')document.documentElement.dataset.palette=p}catch(e){}</script>
+<script>/* thème et mode clair/sombre choisis dans État (avant l'affichage) */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark'}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
 <style>
@@ -95,7 +95,7 @@ a{color:inherit;text-decoration:none}
 .themes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:4px}
 .th{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:16px;background:var(--card);border:2px solid transparent;text-align:left;min-height:44px}
 .th[aria-checked="true"]{border-color:var(--accent)}
-.th b{font-size:.84rem}
+.themes .th b{font-size:.88rem;letter-spacing:0}
 .th small{font-size:.72rem;color:var(--ink-soft)}
 .pal{display:flex;height:24px;border-radius:8px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)}
 .pal i{flex:1}
@@ -221,16 +221,28 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
   }
 }
 :root[data-palette="gris"][data-theme="dark"]{
-  --base:#1b1e1f; --blob-1:rgba(53,59,60,.9); --blob-2:rgba(132,106,106,.38); --blob-3:rgba(162,153,158,.2);
-  --ink:#eef0f2; --ink-soft:#b5b0b2; --glass:rgba(238,240,242,.07); --glass-tint:rgba(198,199,196,.05);
-  --head:rgba(27,30,31,.7); --panel:#1b1e1f; --card:rgba(238,240,242,.06); --line:rgba(238,240,242,.1);
-  --accent:#c6c7c4; --on-accent:#1b1e1f; --sheet-solid:#1e2122;
+  --base:#1b1e1f;
+  --blob-1:rgba(53,59,60,.9); --blob-2:rgba(132,106,106,.38); --blob-3:rgba(162,153,158,.2);
+  --ink:#eef0f2; --ink-soft:#b5b0b2; --ink-faint:#8f8a8c;
+  --glass:rgba(238,240,242,.07); --glass-tint:rgba(198,199,196,.05);
+  --rim-1:rgba(238,240,242,.5); --rim-2:rgba(238,240,242,.04); --rim-3:rgba(198,199,196,.3); --spec:rgba(238,240,242,.14);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(27,30,31,.7); --panel:#1b1e1f;
+  --card:rgba(238,240,242,.06); --line:rgba(238,240,242,.1);
+  --accent:#c6c7c4; --on-accent:#1b1e1f; --accent-soft:rgba(198,199,196,.12);
+  --sheet:rgba(30,33,34,.95); --sheet-solid:#1e2122; --scrim:rgba(0,0,0,.45);
 }
 :root[data-palette="ardoise"][data-theme="dark"]{
-  --base:#1f2230; --blob-1:rgba(45,49,66,.95); --blob-2:rgba(79,93,117,.5); --blob-3:rgba(239,131,84,.2);
-  --ink:#f4f4f4; --ink-soft:#bfc0c0; --glass:rgba(255,255,255,.07); --glass-tint:rgba(191,192,192,.05);
-  --head:rgba(31,34,48,.72); --panel:#1f2230; --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.1);
-  --accent:#ef8354; --on-accent:#1f2230; --sheet-solid:#222534;
+  --base:#1f2230;
+  --blob-1:rgba(45,49,66,.95); --blob-2:rgba(79,93,117,.5); --blob-3:rgba(239,131,84,.2);
+  --ink:#f4f4f4; --ink-soft:#bfc0c0; --ink-faint:#8e93a0;
+  --glass:rgba(255,255,255,.07); --glass-tint:rgba(191,192,192,.05);
+  --rim-1:rgba(255,255,255,.5); --rim-2:rgba(255,255,255,.04); --rim-3:rgba(239,131,84,.3); --spec:rgba(255,255,255,.14);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(31,34,48,.72); --panel:#1f2230;
+  --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.1);
+  --accent:#ef8354; --on-accent:#1f2230; --accent-soft:rgba(239,131,84,.14);
+  --sheet:rgba(34,37,52,.95); --sheet-solid:#222534; --scrim:rgba(0,0,0,.45);
 }
 /* ==FIN PALETTES== */
 </style>
@@ -291,13 +303,16 @@ const PALETTES = [
   {id:'gris',    t:'Gris',             d:'Icônes noires',            c:['#eef0f2', '#c6c7c4', '#a2999e', '#846a6a', '#353b3c']},
   {id:'ardoise', t:'Ardoise et corail', d:'Bleu nuit, touche orangée', c:['#2d3142', '#4f5d75', '#bfc0c0', '#ffffff', '#ef8354']}
 ];
+const modeNow = () => { try{ return localStorage.getItem('mode') || 'auto'; }catch{ return 'auto'; } };
 const palNow = () => { try{ return localStorage.getItem('palette') || 'bleu'; }catch{ return 'bleu'; } };
 function themeHTML(){
   const cur = palNow();
   return `<div class="sum glass" style="flex-direction:column;align-items:stretch;gap:6px"><b>Thème</b>
     <div class="themes" role="radiogroup" aria-label="Thème de couleurs">${PALETTES.map(p => `<button type="button" class="th" role="radio" aria-checked="${p.id === cur}" data-pal="${p.id}">
       <span class="pal" aria-hidden="true">${p.c.map(c => `<i style="background:${c}"></i>`).join('')}</span><span><b>${p.t}</b><br><small>${p.d}</small></span></button>`).join('')}</div>
-    <p class="note" style="margin:2px 0 0">Appliqué à toutes les pages de cet appareil, en mode clair comme en mode sombre.</p></div>`;
+    <b style="margin-top:8px">Apparence</b>
+    <div class="themes" role="radiogroup" aria-label="Mode clair ou sombre">${[['auto', 'Auto', 'comme l\'iPhone'], ['clair', 'Clair', 'toujours'], ['sombre', 'Sombre', 'toujours']].map(([v, t, d]) => `<button type="button" class="th" role="radio" aria-checked="${v === modeNow()}" data-mode="${v}"><span><b>${t}</b><br><small>${d}</small></span></button>`).join('')}</div>
+    <p class="note" style="margin:2px 0 0">Appliqué à toutes les pages de cet appareil.</p></div>`;
 }
 
 /* Rafraîchissement automatique sur cet iPhone (les tâches GitHub, elles, continuent de tourner) */
@@ -385,6 +400,11 @@ document.addEventListener('change', e => {
   const again = n.querySelector(`[data-auto="${c.dataset.auto}"]`); if (again) again.focus();
 });
 document.addEventListener('click', e => {
+  const m = e.target.closest('[data-mode]');
+  if (m){ const v = m.dataset.mode, d = document.documentElement;
+    try{ if (v === 'auto') localStorage.removeItem('mode'); else localStorage.setItem('mode', v); }catch{}
+    if (v === 'auto') delete d.dataset.theme; else d.dataset.theme = v === 'clair' ? 'light' : 'dark';
+    document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-checked', x.dataset.mode === v)); return; }
   const b = e.target.closest('[data-pal]'); if (!b) return;
   const v = b.dataset.pal;
   try{ if (v === 'bleu') localStorage.removeItem('palette'); else localStorage.setItem('palette', v); }catch{}
