@@ -967,11 +967,25 @@ document.addEventListener('pointerdown', e => {
 <script>
 /* Mise en mémoire sur l'iPhone (démarrage instantané, hors ligne) + avis quand une nouvelle version est déposée */
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  const t0 = Date.now(); let majDispo = false, cacheAt = 0;
   navigator.serviceWorker.register('sw.js').catch(() => {});
   navigator.serviceWorker.addEventListener('message', e => {
-    if (!e.data || e.data.type !== 'nouvelle-version' || document.querySelector('.maj-toast')) return;
+    if (!e.data || e.data.type !== 'nouvelle-version') return;
+    majDispo = true;
+    if (Date.now() - t0 < 8000){ location.reload(); return; }         // page tout juste ouverte : on passe directement à la nouvelle version
+    if (document.querySelector('.maj-toast')) return;
     const b = document.createElement('button'); b.type = 'button'; b.className = 'maj-toast'; b.textContent = 'Nouvelle version — toucher pour l\'afficher';
     b.addEventListener('click', () => location.reload()); document.body.appendChild(b);
+  });
+  try{ navigator.serviceWorker.startMessages(); }catch{}
+  /* Retour sur l'appli : nouvelle version déjà prête → rechargement ; sinon on vérifie s'il y en a une (au plus toutes les 2 min) */
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    if (majDispo){ location.reload(); return; }
+    if (Date.now() - cacheAt < 120e3) return;
+    cacheAt = Date.now();
+    navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
+    fetch(location.pathname, {cache:'no-cache'}).catch(() => {});
   });
 }
 </script>
