@@ -15,7 +15,7 @@ body{margin:0;font-size:14px}
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
-<script>/* thème et mode clair/sombre choisis dans État (avant l'affichage) */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark'}catch(e){}</script>
+<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
 <style>
@@ -285,6 +285,19 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .row-btns{display:flex;gap:8px;flex-wrap:wrap}
 .row-btns .btn{flex:1}
 .btn.on{background:var(--accent-soft, var(--card));border-color:var(--accent);color:var(--accent)}
+/* Écran d'ordinateur */
+html.desk .wrap{max-width:1240px}
+html.desk .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+html.desk .sheet-bg{align-items:center}
+html.desk .sheet{border-radius:28px;max-height:86vh}
+.ytgrid{display:flex;flex-direction:column;gap:12px}
+.ytplay{display:flex;flex-direction:column;gap:10px}
+.ytplay:empty{display:none}
+.ytlist{display:flex;flex-direction:column;gap:12px;min-width:0}
+html.desk .ytgrid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr);align-items:start;gap:20px}
+html.desk .ytplay{position:sticky;top:170px}
+html.desk .ytplay:empty{display:flex;aspect-ratio:16/9;border-radius:18px;background:var(--card);border:1px dashed var(--line)}
+html.desk .ytplay:empty::after{content:"Choisis une vidéo dans la liste";margin:auto;color:var(--ink-soft);font-size:.9rem}
 /* YouTube */
 .player{position:relative;aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:#000;box-shadow:var(--shadow)}
 .player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
@@ -420,13 +433,13 @@ function ficheSheet(k){
 function ytHTML(){
   if (!YT) return '<div class="msgbox glass">Chargement des vidéos…</div>';
   const player = playing ? `<div class="player"><iframe src="https://www.youtube-nocookie.com/embed/${esc(playing.id)}?autoplay=1&playsinline=1&rel=0" title="${esc(playing.titre)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
-    <div class="now"><b>${esc(playing.titre)}</b><a class="chip" href="https://www.youtube.com/watch?v=${esc(playing.id)}" target="_blank" rel="noopener">Ouvrir dans YouTube</a><button class="chip" type="button" data-act="stop" aria-label="Fermer le lecteur">✕</button></div>` : '';
-  return player + (YT.chaines || []).map(c => `<div class="chan"><h2>${esc(c.nom)}</h2><a href="https://www.youtube.com/channel/${esc(c.id)}" target="_blank" rel="noopener">Ouvrir la chaîne ›</a></div>
+    <div class="now"><b>${esc(playing.titre)}</b><a class="chip" href="https://www.youtube.com/watch?v=${esc(playing.id)}" target="_blank" rel="noopener">YouTube</a>${navigator.share ? `<button class="chip" type="button" data-act="partager">Ouvrir avec…</button>` : ''}<button class="chip" type="button" data-act="stop" aria-label="Fermer le lecteur">✕</button></div>` : '';
+  return `<div class="ytgrid"><div class="ytplay">${player}</div><div class="ytlist">` + (YT.chaines || []).map(c => `<div class="chan"><h2>${esc(c.nom)}</h2><a href="https://www.youtube.com/channel/${esc(c.id)}" target="_blank" rel="noopener">Ouvrir la chaîne ›</a></div>
     ${c.videos.length ? `<div class="vlist glass">${c.videos.map(v => { const seen = YTVUS.has(v.id), neu = !seen && v.date && Date.now() - v.date < 48 * 3600e3;
       return `<button class="v${seen ? ' seen' : ''}" type="button" data-yt="${esc(v.id)}"><span class="th"><img src="https://i.ytimg.com/vi/${esc(v.id)}/mqdefault.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">${neu ? '<span class="bd">Nouveau</span>' : v.short ? '<span class="bd">Short</span>' : ''}${seen ? '<span class="vu"></span>' : ''}</span>
         <span><b>${esc(v.titre)}</b><small>${v.date ? ago(v.date) : ''}${v.vues ? ' · ' + v.vues.toLocaleString('fr-FR') + ' vues' : ''}</small></span></button>`; }).join('')}</div>`
       : `<div class="msgbox glass">${esc(c.erreur || 'Pas encore de vidéos.')}</div>`}${c.ancien ? '<p class="credit">YouTube ne répond pas : dernière liste connue.</p>' : ''}`).join('')
-    + '<p class="credit">Lecture avec le lecteur officiel de YouTube. Certaines vidéos ne se lisent que sur YouTube : utilise alors « Ouvrir dans YouTube ».</p>';
+    + '<p class="credit">Lecture avec le lecteur officiel de YouTube. Certaines vidéos ne se lisent que sur YouTube : utilise alors « YouTube » ou « Ouvrir avec… ».</p></div></div>';
 }
 
 /* ========== Fenêtre ========== */
@@ -442,7 +455,7 @@ document.addEventListener('click', e => {
   if (t.dataset.f){ const k = t.dataset.f; F[k] = k === 'vus' ? true : t.dataset.v; shown = 60; render(); return; }
   if (t.dataset.titre){ ficheSheet(t.dataset.titre); return; }
   if (t.dataset.yt){ const v = (YT.chaines || []).flatMap(c => c.videos).find(x => x.id === t.dataset.yt);
-    playing = v; YTVUS.add(v.id); saveSets(); render(); window.scrollTo({top:0, behavior:'smooth'}); return; }
+    playing = v; YTVUS.add(v.id); saveSets(); render(); if (!document.documentElement.classList.contains('desk')) window.scrollTo({top:0, behavior:'smooth'}); return; }
   const a = t.dataset.act;
   if (a === 'close') closeSheet();
   else if (a === 'more'){ shown += 60; render(); }
@@ -454,6 +467,10 @@ document.addEventListener('click', e => {
       .catch(() => { if (msg) msg.textContent = `Cherche « ${x.titre} » dans l'appli.`; }).finally(() => setTimeout(go, 350));
   }
   else if (a === 'stop'){ playing = null; render(); }
+  else if (a === 'partager'){                // feuille de partage de l'iPhone : choisir Video Lite (ou une autre appli) si elle y figure
+    const url = `https://www.youtube.com/watch?v=${playing.id}`;
+    navigator.share({title:playing.titre, url}).catch(() => {});
+  }
   else if (a === 'liste' || a === 'vu'){ const S = a === 'liste' ? LISTE : VUS, k = t.dataset.k; S.has(k) ? S.delete(k) : S.add(k); saveSets(); ficheSheet(k); render(); }
 });
 let qt = null;

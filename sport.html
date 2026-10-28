@@ -15,7 +15,7 @@ body{margin:0;font-size:14px}
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
-<script>/* thème et mode clair/sombre choisis dans État (avant l'affichage) */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark'}catch(e){}</script>
+<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
 <style>
@@ -235,6 +235,15 @@ body.locked{overflow:hidden}
 .sheet{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center;background:var(--scrim);
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:fade .2s ease}
 #sheet{z-index:40}
+/* Écran d'ordinateur : liste plus large, fiche de match / classement en panneau à droite (la liste reste visible et cliquable) */
+html.desk .wrap{max-width:860px}
+html.desk .sheet{inset:0 0 0 auto;width:min(540px,42vw);background:none;backdrop-filter:none;-webkit-backdrop-filter:none;align-items:stretch;justify-content:stretch;animation:none}
+html.desk .panel{max-width:none;max-height:none;height:100%;border-radius:0;border-left:1px solid var(--line);box-shadow:-24px 0 48px -32px rgba(0,0,0,.45);animation:side .25s cubic-bezier(.2,.9,.3,1)}
+html.desk .bx-bar::before{display:none}
+html.desk body:has(.sheet:not([hidden])){padding-right:min(540px,42vw);overflow:auto!important}
+@keyframes side{from{transform:translateX(30px);opacity:0}}
+.kbd-help{display:none}
+html.desk .kbd-help{display:block;font-size:.72rem;color:var(--ink-faint);text-align:center;margin:0}
 .panel{width:100%;max-width:600px;max-height:calc(100% - env(safe-area-inset-top, 0px) - 16px);overflow-y:auto;overscroll-behavior:contain;
   border-radius:30px 30px 0 0;background:var(--sheet);box-shadow:0 -20px 60px -20px rgba(0,0,0,.4);animation:up .32s cubic-bezier(.2,.9,.3,1);
   padding-bottom:calc(28px + env(safe-area-inset-bottom, 0px))}
@@ -1274,6 +1283,7 @@ function render(){
     : `<div class="empty">Aucun match ${selDay < 0 ? 'joué' : 'prévu'} ce jour-là${group === 'fav' ? ' pour tes favoris' : group !== 'all' ? ' pour ce sport' : ''}.</div>`;
 
   html += favBar;
+  html += `<p class="kbd-help">Clavier : ← → pour changer de jour · Maj + ← → pour changer de sport · Échap pour fermer</p>`;
   html += `<p class="foot-note">Scores : ESPN · Chaînes France : droits 2026-27, à confirmer selon le match · v${VERSION}</p>`;
   box.innerHTML = html;
 }
@@ -1497,7 +1507,13 @@ $('#sheetBody').addEventListener('click', e => {
 });
 $('#sheetClose').addEventListener('click', closeBox);
 $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeBox(); });
-document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (box) closeBox(); else closeComp(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape'){ if (box) closeBox(); else closeComp(); return; }
+  /* Clavier sur PC : ← → jours, Maj + ← → sports */
+  if (!['ArrowLeft', 'ArrowRight'].includes(e.key) || e.altKey || e.ctrlKey || e.metaKey || /input|select|textarea/i.test((e.target.tagName || ''))) return;
+  const b = document.querySelector(`[data-arr="${e.shiftKey ? 'grp' : 'day'}"][data-d="${e.key === 'ArrowLeft' ? -1 : 1}"]`);
+  if (b){ e.preventDefault(); b.click(); }
+});
 
 /* Feuille d'exemple (aperçu uniquement, joueurs fictifs) */
 function sampleSummary(m){

@@ -15,7 +15,7 @@ body{margin:0;font-size:14px}
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
-<script>/* thème et mode clair/sombre choisis dans État (avant l'affichage) */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark'}catch(e){}</script>
+<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
 <style>
@@ -140,6 +140,17 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .feed.loading{opacity:.45}
 .feed > li{grid-column:1 / -1;min-width:0}
 .feed > li.duo{grid-column:auto}
+/* Écran d'ordinateur : articles en grille de 3 colonnes, la « une » sur 2 colonnes */
+html.desk .wrap{max-width:1180px}
+html.desk .feed{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+html.desk .feed > li.item{grid-column:auto}
+html.desk .feed{grid-auto-flow:row dense}
+html.desk .feed > li.item.hero{grid-column:span 2}
+html.desk .feed > li.item.hero.has-img{grid-row:span 2}
+html.desk .item.hero h2{font-size:1.6rem}
+html.desk .item .card:hover h2{text-decoration:underline;text-underline-offset:3px}
+.kbd-help{display:none}
+html.desk .kbd-help{display:block;font-size:.72rem;color:var(--ink-soft);text-align:center;margin:4px 0 0}
 
 .card{border-radius:24px;overflow:hidden;display:flex;flex-direction:column}
 .card > a{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;padding:14px 15px;border-radius:inherit}
@@ -207,7 +218,7 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
   --sheet:rgba(240,241,243,.95); --sheet-solid:#f0f1f3; --scrim:rgba(28,31,32,.3);
   --t-brick:#c6c7c4; --t-slate:#d8d9d6; --t-olive:#a2999e; --t-plum:#b8b0b4;
   --t-teal:#cfd0cd; --t-ochre:#c9b8b8; --t-char:#9a9497; --t-rose:#e3e4e2;
-  --glyph:#111111;
+  --glyph:#111111; --sport-accent:#6b4f4f;
 }
 :root[data-palette="ardoise"]{
   --base:#f4f4f4;
@@ -221,7 +232,7 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
   --sheet:rgba(246,246,246,.95); --sheet-solid:#f6f6f6; --scrim:rgba(45,49,66,.3);
   --t-brick:#e0703c; --t-slate:#4f5d75; --t-olive:#2d3142; --t-plum:#3b4256;
   --t-teal:#6b7891; --t-ochre:#ef8354; --t-char:#2d3142; --t-rose:#8a96ab;
-  --glyph:#ffffff;
+  --glyph:#ffffff; --sport-accent:#ef8354;
 }
 @media (prefers-color-scheme: dark){
   :root[data-palette="gris"]:not([data-theme="light"]){
@@ -306,6 +317,7 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
     <div class="sources" id="sources"></div>
     <div class="notice" id="notice" hidden></div>
     <ul class="feed" id="feed" role="tabpanel" aria-labelledby="tabTitle"></ul>
+    <p class="kbd-help">Clavier : ← → pour changer d'onglet · / pour chercher · Échap pour fermer la recherche</p>
   </div>
 </main>
 
@@ -639,6 +651,14 @@ $('#q').addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(() =
   if (query){ renderTabs(); window.scrollTo({top:0}); renderSearch(); } else select(current);
 }, 200); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#searchBox').hidden) closeSearch(); });
+/* Clavier sur PC : ← → onglets, / recherche */
+document.addEventListener('keydown', e => {
+  if (e.altKey || e.ctrlKey || e.metaKey || /input|select|textarea/i.test(e.target.tagName || '') || e.target.closest('#tabs')) return;
+  if (e.key === '/'){ e.preventDefault(); openSearch(); return; }
+  if (!['ArrowLeft', 'ArrowRight'].includes(e.key) || query) return;
+  const i = TABS.findIndex(t => t.id === current), n = TABS[(i + (e.key === 'ArrowRight' ? 1 : -1) + TABS.length) % TABS.length];
+  if (n){ e.preventDefault(); select(n.id); }
+});
 
 $('#refreshBtn').addEventListener('click', () => query ? loadPre(true).then(renderSearch) : select(current, true));
 document.addEventListener('visibilitychange', () => { if (!document.hidden && autoOn('actus') && PRE && Date.now() - PRE.loaded > 10 * 60e3 && !query) select(current); });   // coupé : seulement avec le bouton ↻
