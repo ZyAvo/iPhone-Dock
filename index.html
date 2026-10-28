@@ -660,12 +660,18 @@ function tick(){
 
 /* Dossiers */
 let lastFocus = null;
+/* Au doigt, on ne déplace pas le focus (sinon Safari dessine un cadre de sélection sur la 1re appli) ;
+   au clavier, on le place sur la 1re appli comme d'habitude */
+let viaClavier = false;
+document.addEventListener('keydown', e => { if (['Tab', 'Enter', ' ', 'Escape', 'ArrowDown', 'ArrowUp'].includes(e.key)) viaClavier = true; }, true);
+document.addEventListener('pointerdown', () => { viaClavier = false; }, true);
+const focusSi = el => { if (viaClavier && el) el.focus(); else if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); };
 function openFolder(id){
   const f = FOLDERS[id]; lastFocus = document.activeElement;
   $('#folderTitle').textContent = f.title;
   $('#folderBox').innerHTML = f.items.map((i, k) => appHTML({type:'link', ...i})).join('');
   $('#scrim').hidden = false;
-  $('#folderBox a')?.focus();
+  focusSi($('#folderBox a'));
 }
 /* Bouton Navigation : choix de l'appli, Waze en premier */
 function openNav(){
@@ -674,10 +680,10 @@ function openNav(){
   $('#folderBox').innerHTML = NAV_APPS.map((a, i) => appHTML({...a, color:'--t-slate', mono:a.label.slice(0, 2)}, i)).join('');
   $('#folderBox').classList.add('nav-box');
   $('#scrim').hidden = false;
-  $('#folderBox a')?.focus();
+  focusSi($('#folderBox a'));
 }
 document.addEventListener('click', e => { if (e.target.closest('[data-act="nav"]')) openNav(); });
-function closeFolder(){ $('#scrim').hidden = true; $('#folderBox').classList.remove('nav-box'); lastFocus?.focus(); }
+function closeFolder(){ $('#scrim').hidden = true; $('#folderBox').classList.remove('nav-box'); focusSi(lastFocus); }
 $('#scrim').addEventListener('click', e => { if (!e.target.closest('.folder-box')) closeFolder(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#scrim').hidden) closeFolder(); });
 
@@ -800,8 +806,8 @@ function renderPlaces(){
       <button type="button" class="pl-del" data-del="${i}" aria-label="Retirer ${esc(f.name)} des favoris">×</button></li>`).join('');
 }
 function openPlaces(){ lastFocus = document.activeElement; renderPlaces(); $('#placeMsg').textContent = ''; $('#placeResults').innerHTML = ''; $('#placeQuery').value = '';
-  $('#placeScrim').hidden = false; $('#placeList button')?.focus(); }
-function closePlaces(){ $('#placeScrim').hidden = true; lastFocus?.focus(); }
+  $('#placeScrim').hidden = false; focusSi($('#placeList button')); }
+function closePlaces(){ $('#placeScrim').hidden = true; focusSi(lastFocus); }
 $('#placeBtn').addEventListener('click', openPlaces);
 $('#placeScrim').addEventListener('click', e => { if (!e.target.closest('.place-panel')) closePlaces(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#placeScrim').hidden) closePlaces(); });
@@ -1024,9 +1030,9 @@ function spPanel(mode = 'setup'){
       <p class="pl-msg" id="spMsg" role="status">${esc(sp.msg || '')}</p>`;
   }
   $('#spScrim').hidden = false;
-  box.querySelector('input,button')?.focus();
+  focusSi(box.querySelector('input,button'));
 }
-function spClose(){ $('#spScrim').hidden = true; lastFocus?.focus(); }
+function spClose(){ $('#spScrim').hidden = true; focusSi(lastFocus); }
 $('#spScrim').addEventListener('click', e => { if (!e.target.closest('#spPanel')) spClose(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#spScrim').hidden) spClose(); });
 document.addEventListener('submit', e => { if (e.target.matches('[data-sp-form]')){ e.preventDefault(); $('#spPanel [data-sp="login"]').click(); } });
