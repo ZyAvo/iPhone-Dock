@@ -182,7 +182,7 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .legend i{width:10px;height:10px;border-radius:3px;flex:none}
 .legend span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .legend small{color:var(--ink-soft);font-variant-numeric:tabular-nums}
-.env{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-size:.78rem}
+.env{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;font-size:.78rem}
 .env div{padding:8px 10px;border-radius:12px;background:var(--card);color:var(--ink-soft)}
 .env b{display:block;font-size:.95rem;color:var(--ink)}
 .rule{display:flex;gap:10px;align-items:flex-start;font-size:.86rem;line-height:1.4}
@@ -328,7 +328,7 @@ const AGENDA = [
   {d:'2027-12-08', t:'Décision de taux de la Fed'}
 ];
 /* Fiscalité 2026 (à revoir si la loi change) */
-const FISC = {ctIR:12.8, ctPS:18.6, avPS:17.2, avIRavant8:12.8, avIRapres8:7.5, avIRapres8haut:12.8, avSeuil:150000, abattSeul:4600, abattCouple:9200};
+const FISC = {ctIR:12.8, ctPS:18.6, avPS:17.2, avIRavant8:12.8, avIRapres8:7.5, avIRapres8haut:12.8, avSeuil:150000, abattSeul:4600, abattCouple:9200, peePS:18.6};
 
 /* ========== Outils ========== */
 const $ = s => document.querySelector(s);
@@ -342,7 +342,7 @@ const CATS = {
   usa:{n:'Actions États-Unis', c:'#1b3656'}, emergents:{n:'Actions émergentes', c:'#4c86b0'}, obligations:{n:'Obligations', c:'#a3cef1'},
   fondseuros:{n:'Fonds euros', c:'#8b8c89'}, monetaire:{n:'Monétaire', c:'#c5ced6'}, autre:{n:'Autre', c:'#5a6773'}
 };
-const COMPTES = {ct:'Compte-titres', av:'Assurance-vie'};
+const COMPTES = {ct:'Compte-titres', av:'Assurance-vie', pee:'PEE'};
 
 let LIGNES = LS.get('invest:lignes', []);
 let REG = Object.assign({situation:'seul', avOuverture:'', avVerse:null, gainsAnnee:{an:YEAR, v:0}, mvReport:0, cible:{}, tolerance:5, maxLigne:25, discret:true}, LS.get('invest:reglages', {}));
@@ -403,10 +403,10 @@ function analyse(){
     if (!rules.length) rules.push({lvl:'ok', t:'Répartition dans ta cible'});
   } else if (total > 0) rules.push({lvl:'info', t:'Pas encore de répartition cible : fixe-la dans les réglages ⚙︎'});
   const maxL = num(REG.maxLigne) ?? 25;
-  const lourdes = total > 0 ? ok.filter(r => r.l.cat !== 'fondseuros' && r.v / total * 100 > maxL) : [];
+  const lourdes = total > 0 ? ok.filter(r => !['fondseuros', 'monetaire'].includes(r.l.cat) && r.v / total * 100 > maxL) : [];
   lourdes.forEach(r => rules.push({lvl:'warn', court:`${r.l.nom} pèse ${fmt(r.v / total * 100)} % du total`, t:`<b>${esc(r.l.nom)}</b> pèse ${fmt(r.v / total * 100)} % du total (limite : ${fmt(maxL)} %)`}));
-  if (total > 0 && !lourdes.length) rules.push({lvl:'ok', t:`Aucune ligne au-dessus de ${fmt(maxL)} % du total (hors fonds euros)`});
-  rows.filter(r => r.manuel && r.l.date && TODAY - Date.parse(r.l.date) / DAY > 400).forEach(r => rules.push({lvl:'warn', court:`${r.l.nom} : valeur à mettre à jour`, t:`<b>${esc(r.l.nom)}</b> : valeur saisie le ${new Date(r.l.date).toLocaleDateString('fr-FR')}, à mettre à jour avec ton relevé`}));
+  if (total > 0 && !lourdes.length) rules.push({lvl:'ok', t:`Aucune ligne au-dessus de ${fmt(maxL)} % du total (hors fonds euros et monétaire)`});
+  rows.filter(r => r.manuel && r.l.date && TODAY - Date.parse(r.l.date) / DAY > (r.l.compte === 'pee' ? 120 : 400)).forEach(r => rules.push({lvl:'warn', court:`${r.l.nom} : valeur à mettre à jour`, t:`<b>${esc(r.l.nom)}</b> : valeur saisie le ${new Date(r.l.date).toLocaleDateString('fr-FR')}, à mettre à jour avec ton relevé`}));
   const suivi = code => [...SUIVI, ...INDICES].some(x => [x.isin, x.code].filter(Boolean).map(v => v.toUpperCase()).includes(String(code || '').toUpperCase()));
   rows.filter(r => r.absent).forEach(r => rules.push(suivi(r.l.code)
     ? {lvl:'info', ic:'…', court:'', t:`<b>${esc(r.l.nom)}</b> : cours pas encore reçu. Il arrive au prochain passage réussi de la tâche « Marchés » ; en attendant la ligne n'est pas comptée.`}
@@ -475,9 +475,10 @@ function portefHTML(){
     const rs = A.rows.filter(r => r.l.compte === c); if (!rs.length) return '';
     return `<div class="group-h"><span class="k">${COMPTES[c]}</span><span class="k">${eur(A.env[c] || 0)}</span></div>
       <div class="lines glass">${rs.map(r => { const i = LIGNES.indexOf(r.l), dj = r.prev ? r.v / r.prev - 1 : null, pv = r.cost ? r.v / r.cost - 1 : null;
-        const sub = r.manuel ? `Saisie manuelle${r.l.date ? ' · ' + new Date(r.l.date).toLocaleDateString('fr-FR') : ''}` : r.absent ? `${esc(r.l.code)} · en attente du cours` : `${esc(r.l.code)} · ${masked() ? '••' : fmt(num(r.l.qte), num(r.l.qte) % 1 ? 3 : 0)} part${num(r.l.qte) > 1 ? 's' : ''}${r.c && r.c.ancien ? ' · cours ancien' : ''}`;
+        const bloque = r.l.compte === 'pee' && r.l.dispo && Date.parse(r.l.dispo) > Date.now() ? ` · bloqué jusqu'au ${new Date(r.l.dispo).toLocaleDateString('fr-FR')}` : r.l.compte === 'pee' ? ' · disponible' : '';
+        const sub = (r.manuel ? `Saisie manuelle${r.l.date ? ' · ' + new Date(r.l.date).toLocaleDateString('fr-FR') : ''}` : r.absent ? `${esc(r.l.code)} · en attente du cours` : `${esc(r.l.code)} · ${masked() ? '••' : fmt(num(r.l.qte), num(r.l.qte) % 1 ? 3 : 0)} part${num(r.l.qte) > 1 ? 's' : ''}${r.c && r.c.ancien ? ' · cours ancien' : ''}`) + bloque;
         return `<button class="line" type="button" data-edit="${i}"><span class="t"><b>${esc(r.l.nom || r.l.code)}</b><small>${sub}</small></span>
-          <span class="v">${r.manuel ? `<b>${eur(r.v)}</b>` : `<b class="${cls(dj)}">${pct(dj, 2)}</b><span class="${cls(pv)}">${pv == null ? eur(r.v) : pct(pv)}</span>`}</span></button>`; }).join('')}</div>`;
+          <span class="v">${r.manuel ? `<b>${eur(r.v)}</b>${pv != null ? `<span class="${cls(pv)}">${pct(pv)}</span>` : ''}` : `<b class="${cls(dj)}">${pct(dj, 2)}</b><span class="${cls(pv)}">${pv == null ? eur(r.v) : pct(pv)}</span>`}</span></button>`; }).join('')}</div>`;
   };
   return `<div class="card glass">
       <span class="k">Valeur totale</span>
@@ -489,9 +490,9 @@ function portefHTML(){
     </div>
     ${A.total > 0 ? `<div class="card glass"><span class="k">Répartition${Object.keys(REG.cible || {}).some(k => num(REG.cible[k]) > 0) ? ' · ta cible entre parenthèses' : ''}</span>
       <div class="alloc">${donut(parts)}<div class="legend">${parts.map(p => `<div><i style="background:${p.c}"></i><span>${esc(p.n)}</span><b>${fmt(p.w)} %</b>${num((REG.cible || {})[p.k]) > 0 ? `<small>(${fmt(num(REG.cible[p.k]))})</small>` : ''}</div>`).join('')}</div></div>
-      <div class="env">${Object.keys(COMPTES).map(c => `<div>${COMPTES[c]}<b>${fmt((A.env[c] || 0) / A.total * 100)} %</b></div>`).join('')}</div></div>` : ''}
+      <div class="env">${Object.keys(COMPTES).filter(c => A.env[c]).map(c => `<div>${COMPTES[c]}<b>${fmt((A.env[c] || 0) / A.total * 100)} %</b></div>`).join('')}</div></div>` : ''}
     <div class="card glass"><span class="k">Mes règles</span>${A.rules.map(r => `<div class="rule ${r.lvl}"><span class="ic">${r.ic || (r.lvl === 'warn' ? '⚠' : r.lvl === 'ok' ? '✓' : 'i')}</span><span>${r.t}</span></div>`).join('')}</div>
-    ${group('ct')}${group('av')}
+    ${group('ct')}${group('av')}${group('pee')}
     <p class="msg">À droite : variation du jour, puis gain depuis ton prix de revient. Cours différés d'environ 15 à 30 min.</p>
     <div class="actions"><button class="btn main" type="button" data-act="add">Ajouter une ligne</button><button class="btn" type="button" data-act="transfer">Transférer</button></div>`;
 }
@@ -540,6 +541,10 @@ const FICHES = [
   ['Flat tax ou barème',
    'Par défaut, les gains du compte-titres (plus-values, dividendes) sont taxés au <b>prélèvement forfaitaire unique</b> : 31,4 % depuis 2026 (12,8 % d\'impôt + 18,6 % de prélèvements sociaux).',
    'On peut choisir à la place le <b>barème progressif</b> de l\'impôt sur le revenu, surtout intéressant si ta tranche marginale est faible (0 % ou 11 %). Ce choix se fait dans la déclaration et vaut pour <b>tous</b> les revenus de placements de l\'année.'],
+  ['PEE (épargne salariale)',
+   'Chaque versement est <b>bloqué 5 ans</b>, sauf cas de déblocage anticipé prévus par la loi (mariage ou PACS, naissance ou adoption d\'un 3e enfant, achat de la résidence principale, fin du contrat de travail…).',
+   'Au retrait, les gains sont <b>exonérés d\'impôt sur le revenu</b> ; seuls les prélèvements sociaux sont dus sur ces gains (18,6 % depuis 2026 pour l\'épargne salariale). L\'abondement de l\'entreprise, l\'intéressement et la participation placés sur le PEE ne sont pas soumis à l\'impôt sur le revenu au moment du versement.',
+   'Un fonds <b>monétaire</b> suit les taux courts de la BCE : il progresse lentement mais régulièrement, avec très peu de risque de baisse.'],
   ['Rééquilibrer',
    'Avec le temps, ce qui a monté pèse plus lourd que prévu. Rééquilibrer, c\'est revenir à sa répartition cible.',
    'Deux façons : orienter les nouveaux versements vers ce qui est en retard (rien n\'est vendu, donc pas d\'impôt), ou arbitrer. Dans une assurance-vie, un arbitrage entre supports n\'est pas imposé ; sur un compte-titres, vendre déclenche l\'impôt sur la plus-value.']
@@ -603,15 +608,41 @@ function venteRes(){
       ${x > V + 0.5 ? '<p class="msg">⚠ Le montant dépasse la valeur du contrat : calcul fait sur le contrat entier.</p>' : ''}
       <p class="msg">Prélèvements sociaux comptés sur la part des gains venant des unités de compte (ceux du fonds euros sont déjà prélevés chaque année) : c'est une approximation. Versements faits après le 27/09/2017.</p>`;
   }
-  const mx = Math.max(ctTax || 0, avTax || 0) || 1;
+  /* PEE */
+  let peeHTML = '<p class="msg">Ajoute les fonds de ton PEE pour estimer un retrait.</p>', peeTax = null;
+  const pee = A.rows.filter(r => r.l.compte === 'pee' && r.v != null);
+  if (pee.length){
+    const dispo = pee.filter(r => !r.l.dispo || Date.parse(r.l.dispo) <= Date.now()), bloq = pee.filter(r => !dispo.includes(r));
+    const Vd = dispo.reduce((s, r) => s + r.v, 0), Vb = bloq.reduce((s, r) => s + r.v, 0);
+    const prochain = bloq.map(r => r.l.dispo).sort()[0];
+    const sansVerse = dispo.filter(r => r.cost == null);
+    if (!Vd) peeHTML = `<p class="msg">Rien n'est encore disponible${prochain ? ` : premier déblocage le ${new Date(prochain).toLocaleDateString('fr-FR')}` : ''} (hors cas de déblocage anticipé).</p>`;
+    else if (sansVerse.length) peeHTML = `<p class="msg">Renseigne le « montant versé » de ${sansVerse.map(r => esc(r.l.nom)).join(', ')} (modifie la ligne) pour calculer la part de gains.</p>`;
+    else {
+      const y = Math.min(x, Vd), gains = Math.max(0, dispo.reduce((s, r) => s + r.v - r.cost, 0)), g = y * gains / Vd;
+      peeTax = g * FISC.peePS / 100;
+      peeHTML = `<div class="calc">
+        <div><span>Disponible</span><span>${eurAlways(Vd)}</span></div>
+        ${Vb ? `<div><span>Encore bloqué${prochain ? ` (1er déblocage le ${new Date(prochain).toLocaleDateString('fr-FR')})` : ''}</span><span>${eurAlways(Vb)}</span></div>` : ''}
+        <div><span>Part de gains dans le retrait (${fmt(gains / Vd * 100, 1)} %)</span><b>${eurAlways(g)}</b></div>
+        <div><span>Impôt sur le revenu</span><span>exonéré</span></div>
+        <div><span>Prélèvements sociaux · ${fmt(FISC.peePS, 1)} %</span><span>${eurAlways(peeTax)}</span></div>
+        <div class="tot"><b>Impôts estimés</b><b class="down">${eurAlways(peeTax)}</b></div>
+        <div class="net"><b>Tu reçois net</b><b>${eurAlways(y - peeTax)}</b></div></div>
+        ${x > Vd + 0.5 ? '<p class="msg">⚠ Le montant dépasse la part disponible : calcul fait sur ce qui est disponible.</p>' : ''}`;
+    }
+  }
+  const mx = Math.max(ctTax || 0, avTax || 0, peeTax || 0) || 1;
   return `<div class="card glass"><span class="k">Compte-titres · vente</span>
       ${ct.length ? `<label class="f">Ligne<select id="ctLine">${ct.map(r => `<option value="${LIGNES.indexOf(r.l)}"${LIGNES.indexOf(r.l) === ctLine ? ' selected' : ''}>${esc(r.l.nom || r.l.code)}</option>`).join('')}</select></label>` : ''}
       ${ctHTML}
       <p class="msg">Flat tax ${fmt(FISC.ctIR + FISC.ctPS, 1)} % (règles 2026). Option possible pour le barème progressif, valable pour tous tes revenus de placements de l'année.</p></div>
     <div class="card glass"><span class="k">Assurance-vie · retrait</span>${avHTML}</div>
-    ${ctTax != null && avTax != null ? `<div class="card glass"><span class="k">Pour ${eurAlways(x)} retirés</span><div class="bars">
-      <div><span>Compte-titres</span><i style="width:${(ctTax / mx * 150).toFixed(0)}px"></i><b>${eurAlways(ctTax)}</b></div>
-      <div><span>Assurance-vie</span><i class="av" style="width:${(avTax / mx * 150).toFixed(0)}px"></i><b>${eurAlways(avTax)}</b></div></div></div>` : ''}
+    ${pee.length ? `<div class="card glass"><span class="k">PEE · retrait</span>${peeHTML}</div>` : ''}
+    ${[ctTax, avTax, peeTax].filter(v => v != null).length > 1 ? `<div class="card glass"><span class="k">Pour ${eurAlways(x)} retirés</span><div class="bars">
+      ${ctTax != null ? `<div><span>Compte-titres</span><i style="width:${(ctTax / mx * 150).toFixed(0)}px"></i><b>${eurAlways(ctTax)}</b></div>` : ''}
+      ${avTax != null ? `<div><span>Assurance-vie</span><i class="av" style="width:${(avTax / mx * 150).toFixed(0)}px"></i><b>${eurAlways(avTax)}</b></div>` : ''}
+      ${peeTax != null ? `<div><span>PEE</span><i class="av" style="width:${Math.max(2, peeTax / mx * 150).toFixed(0)}px"></i><b>${eurAlways(peeTax)}</b></div>` : ''}</div></div>` : ''}
     <p class="msg" style="text-align:center">Estimation indicative selon les règles 2026, sans tenir compte de toute ta situation fiscale. Elle ne remplace ni ta déclaration ni l'avis d'un conseiller.</p>`;
 }
 
@@ -634,7 +665,9 @@ function lineSheet(i){
           <label class="f av-only">Montant investi (€)<input name="investi" inputmode="decimal" value="${esc(l.investi ?? '')}"></label></div>
       </div>
       <div class="manuel-only grid2"><label class="f">Valeur (€)<input name="valeur" inputmode="decimal" value="${esc(l.valeur ?? '')}"></label>
-        <label class="f">Au<input name="date" type="date" value="${esc(l.date || new Date().toISOString().slice(0, 10))}"></label></div>
+        <label class="f">Au<input name="date" type="date" value="${esc(l.date || new Date().toISOString().slice(0, 10))}"></label>
+        <label class="f">Montant versé (€)<input name="verse" inputmode="decimal" value="${esc(l.type === 'manuel' ? (l.investi ?? '') : '')}" placeholder="pour les gains"></label></div>
+      <label class="f pee-only">Disponible le (fin du blocage de 5 ans)<input name="dispo" type="date" value="${esc(l.dispo || '')}"><span class="hint">Laisse vide si c'est déjà disponible. Pour des versements d'années différentes, fais une ligne par année.</span></label>
       <div class="grid2"><label class="f">Catégorie<select name="cat">${Object.entries(CATS).map(([k, c]) => `<option value="${k}"${l.cat === k ? ' selected' : ''}>${c.n}</option>`).join('')}</select></label>
         <label class="f">Frais annuels (%)<input name="frais" inputmode="decimal" value="${esc(l.frais ?? '')}" placeholder="optionnel"></label></div>
       <p class="msg" id="lineMsg"></p>
@@ -647,7 +680,10 @@ function syncLineForm(){
   const f = $('#lineForm'); if (!f) return;
   const t = f.type.value, c = f.compte.value;
   f.querySelector('.cote-only').hidden = t !== 'cote'; f.querySelector('.manuel-only').hidden = t !== 'manuel';
-  f.querySelector('.ct-only').hidden = c !== 'ct'; f.querySelector('.av-only').hidden = c !== 'av';
+  f.querySelector('.ct-only').hidden = c !== 'ct'; f.querySelector('.av-only').hidden = c === 'ct'; f.querySelector('.pee-only').hidden = c !== 'pee';
+  const neuf = f.dataset.i === '';
+  if (neuf && c === 'pee' && f.dataset.c !== 'pee'){ f.type.value = 'manuel'; if (f.cat.value === 'monde') f.cat.value = 'monetaire'; f.querySelector('.cote-only').hidden = true; f.querySelector('.manuel-only').hidden = false; }
+  f.dataset.c = c;
   if (t === 'manuel' && c === 'av' && !f.nom.value) f.nom.value = 'Fonds euros';
   if (t === 'manuel' && c === 'av' && f.cat.value === 'monde') f.cat.value = 'fondseuros';
 }
@@ -656,7 +692,8 @@ function saveLine(f){
   const l = {compte:f.compte.value, type:f.type.value, nom:g('nom'), cat:g('cat'), frais:num(g('frais'))};
   if (l.type === 'cote'){ Object.assign(l, {code:g('code').toUpperCase(), qte:num(g('qte'))}); if (l.compte === 'ct') l.pru = num(g('pru')); else l.investi = num(g('investi'));
     if (!l.code || l.qte == null){ $('#lineMsg').textContent = 'Indique au moins le code et la quantité.'; return; } }
-  else { Object.assign(l, {valeur:num(g('valeur')), date:g('date')}); if (l.valeur == null){ $('#lineMsg').textContent = 'Indique la valeur.'; return; } }
+  else { Object.assign(l, {valeur:num(g('valeur')), date:g('date'), investi:num(g('verse'))}); if (l.valeur == null){ $('#lineMsg').textContent = 'Indique la valeur.'; return; } }
+  if (l.compte === 'pee' && g('dispo')) l.dispo = g('dispo');
   if (!l.nom) l.nom = l.code || 'Ligne';
   const i = f.dataset.i === '' ? null : +f.dataset.i;
   if (i == null) LIGNES.push(l); else LIGNES[i] = l;
