@@ -85,6 +85,7 @@ async function f1(L, {get, NOW, prev}){
 }
 
 /* ---------- MotoGP ---------- */
+const MGP_PLACE = {'Jerez de la Frontera':'Jerez', Barcelona:'Barcelone', 'Montmeló':'Barcelone', 'Alcañiz':'Aragón', Cheste:'Valence', Valencia:'Valence', 'Le Mans':'Le Mans', 'Misano Adriatico':'Misano'};
 async function motogp(L, {get, NOW, prev}){
   const diag = {source:'MotoGP', appels:0, erreurs:[]};
   const call = async url => { diag.appels++; try{ return await get(url, 2); }catch(e){ diag.erreurs.push(`${url.replace(MGP, '')} : ${e.message}`); return null; } };
@@ -109,7 +110,8 @@ async function motogp(L, {get, NOW, prev}){
   let catId = prev && prev.catId, round = 0;
   for (const e of evs){
     round++;
-    const iso = ((e.country || {}).iso || '').toUpperCase(), place = (e.circuit && (e.circuit.place || e.circuit.name)) || '';
+    const iso = ((e.country || {}).iso || '').toUpperCase(), raw = (e.circuit && (e.circuit.place || e.circuit.name)) || '';
+    const place = MGP_PLACE[raw] || raw;
     const gp = {id:`mgp-${e.id}`, round, name:per[(e.country || {}).iso] > 1 ? place : countryFR(iso), flag:flagOf(iso), circuit:(e.circuit || {}).name || '', ville:place,
                 start:Date.parse(e.date_start), end:Date.parse(e.date_end) + DAY - 1};
     const was = prevGp.get(gp.id);

@@ -114,11 +114,26 @@ async function discover(f){
   }
   return null;
 }
+let prev = null; try{ prev = JSON.parse(fs.readFileSync(`${OUT}/actus.json`, 'utf8')); }catch{}
+/* Google Actualités limite les appels répétés : une source de secours Google n'est relue qu'une fois par heure,
+   une à la fois ; entre-temps on garde ses articles du passage précédent */
+const googleAt = {...((prev && prev.googleAt) || {})};
+const isG = u => /news\.google\./.test(u);
+let gq = Promise.resolve();
+const getG = url => (gq = gq.catch(() => {}).then(() => new Promise(r => setTimeout(r, 2500))).then(() => get(url)));
+const oldCount = name => [...Object.values((prev && prev.tabs) || {}), ...Object.values((prev && prev.tabsEN) || {})].flatMap(t => t.items || []).filter(i => i.source === name).length;
 const got = await pool(feeds.map(f => async () => {
   let items = [], err = '';
   try{ items = parse(await get(f.url)); if (!items.length) err = 'flux vide ou illisible'; }catch(e){ err = String(e.message || e); }
   for (const alt of (items.length ? [] : f.alt || [])){               // adresses de secours (ex. Google Actualités limité au site)
-    try{ const it = parse(await get(alt)); if (it.length){ state[f.url] = {name:f.name, url:f.url, ok:true, n:it.length, img:it.filter(i => i.img).length, trouve:alt, err:`flux principal : ${err}`}; return [f.url, it]; } }catch{}
+    if (isG(alt) && googleAt[f.url] && NOW - googleAt[f.url] < 55 * 60e3 && oldCount(f.name)){
+      state[f.url] = {name:f.name, url:f.url, ok:true, reprise:true, n:oldCount(f.name), img:0, trouve:alt, err:`flux principal : ${err} ; articles du passage précédent`};
+      return [f.url, []];
+    }
+    try{
+      const it = parse(await (isG(alt) ? getG(alt) : get(alt)));
+      if (it.length){ if (isG(alt)) googleAt[f.url] = NOW; state[f.url] = {name:f.name, url:f.url, ok:true, n:it.length, img:it.filter(i => i.img).length, trouve:alt, err:`flux principal : ${err}`}; return [f.url, it]; }
+    }catch(e){ err += ` ; secours : ${e.message}`; }
   }
   if (!items.length){
     const d = await discover(f);
@@ -129,13 +144,12 @@ const got = await pool(feeds.map(f => async () => {
 }), 6);
 const BY = Object.fromEntries(got);
 
-let prev = null; try{ prev = JSON.parse(fs.readFileSync(`${OUT}/actus.json`, 'utf8')); }catch{}
 function build(SET, prevTabs){
   const tabs = {};
   for (const t of SET){
     let items = t.feeds.flatMap(f => (BY[f.url] || []).slice(0, PER_FEED).map(i => ({...i, source:f.name, color:f.color, date:i.date || NOW})));   // une source ne peut pas noyer les autres
     // flux en panne : on garde ses articles du passage précédent
-    t.feeds.filter(f => !state[f.url].ok).forEach(f => {
+    t.feeds.filter(f => !state[f.url].ok || state[f.url].reprise).forEach(f => {
       const old = ((prevTabs && prevTabs[t.id] && prevTabs[t.id].items) || []).filter(i => i.source === f.name);
       items.push(...old);
     });
@@ -150,7 +164,7 @@ const tabs = build(TABS_FR, prev && prev.tabs), tabsEN = build(TABS_EN, prev && 
 fs.mkdirSync(OUT, {recursive:true});
 Object.values(state).forEach(st => { st.onglets = [...TABS_FR.filter(t => t.feeds.some(f => f.url === st.url)).map(t => t.label),
   ...TABS_EN.filter(t => t.feeds.some(f => f.url === st.url)).map(t => 'International · ' + t.label)]; });
-fs.writeFileSync(`${OUT}/actus.json`, JSON.stringify({v:2, updated:new Date(NOW).toISOString(), tabs, tabsEN, sources:Object.values(state)}));
+fs.writeFileSync(`${OUT}/actus.json`, JSON.stringify({v:2, updated:new Date(NOW).toISOString(), tabs, tabsEN, sources:Object.values(state), googleAt}));
 const ko = Object.values(state).filter(s => !s.ok);
 console.log(`${feeds.length - ko.length}/${feeds.length} flux lus.` + Object.entries(tabs).map(([k, v]) => ` ${k}:${v.items.length}`).join('') + ' | EN' + Object.entries(tabsEN).map(([k, v]) => ` ${k}:${v.items.length}`).join(''));
 ko.forEach(s => console.log(`  ✗ ${s.name} (${s.url}) : ${s.err}`));
