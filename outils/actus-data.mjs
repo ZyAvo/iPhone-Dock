@@ -165,7 +165,19 @@ const tabs = build(TABS_FR, prev && prev.tabs), tabsEN = build(TABS_EN, prev && 
 fs.mkdirSync(OUT, {recursive:true});
 Object.values(state).forEach(st => { st.onglets = [...TABS_FR.filter(t => t.feeds.some(f => f.url === st.url)).map(t => t.label),
   ...TABS_EN.filter(t => t.feeds.some(f => f.url === st.url)).map(t => 'International · ' + t.label)]; });
-fs.writeFileSync(`${OUT}/actus.json`, JSON.stringify({v:2, updated:new Date(NOW).toISOString(), tabs, tabsEN, sources:Object.values(state), googleAt}));
+const UPD = new Date(NOW).toISOString(), SRC = Object.values(state);
+fs.writeFileSync(`${OUT}/actus.json`, JSON.stringify({v:2, updated:UPD, tabs, tabsEN, sources:SRC, googleAt}));   // complet : pour la tâche suivante et l'état
+/* Fichiers légers lus par les pages (une langue à la fois, onglets cachés à part) */
+const autres = new Set(list('TABS_AUTRES', false).map(t => t.id));
+const visibles = Object.fromEntries(Object.entries(tabs).filter(([k]) => !autres.has(k)));
+fs.writeFileSync(`${OUT}/actus-fr.json`, JSON.stringify({v:2, updated:UPD, tabs:visibles, sources:SRC}));
+fs.writeFileSync(`${OUT}/actus-en.json`, JSON.stringify({v:2, updated:UPD, tabsEN, sources:SRC}));
+// « à la une » du widget de l'accueil : l'info la plus reprise, avec une image de préférence
+const score = i => (i.also || []).length * 2 + (i.img ? 1 : 0);
+const top = ((tabs.une || {}).items || []).slice(0, 8).reduce((b, i) => !b || score(i) > score(b) ? i : b, null);
+fs.writeFileSync(`${OUT}/une.json`, JSON.stringify({v:1, updated:UPD, top:top && {source:top.source, color:top.color, title:top.title, date:top.date, img:top.img || '', link:top.link}}));
+for (const id of autres) fs.writeFileSync(`${OUT}/onglet-${id}.json`, JSON.stringify({v:1, updated:UPD,
+  items:((tabs[id] || {}).items || []).slice(0, 15).map(i => ({title:i.title, link:i.link, source:i.source, color:i.color, date:i.date}))}));
 const ko = Object.values(state).filter(s => !s.ok);
 console.log(`${feeds.length - ko.length}/${feeds.length} flux lus.` + Object.entries(tabs).map(([k, v]) => ` ${k}:${v.items.length}`).join('') + ' | EN' + Object.entries(tabsEN).map(([k, v]) => ` ${k}:${v.items.length}`).join(''));
 ko.forEach(s => console.log(`  ✗ ${s.name} (${s.url}) : ${s.err}`));
