@@ -340,6 +340,7 @@ let TABS = LANG === 'en' ? TABS_EN : TABS_FR;
 const ckey = id => `actus:${LANG === 'en' ? 'en:' : ''}${id}`;      // mémoire de secours, par langue
 const preTabs = () => (LANG === 'en' ? PRE.tabsEN : PRE.tabs) || {};
 let current = null, reqId = 0, PRE = null, query = '';
+const autoOn = k => { try{ const r = JSON.parse(localStorage.getItem('rafraichissement')) || {}; return r[k] !== false; }catch{ return true; } };   // réglé dans la page État
 
 /* Articles déjà lus : grisés */
 let LUS = new Set(store.get('actus:lus') || []);
@@ -500,7 +501,7 @@ function render(tab, data){
   if (data.sample){ n.hidden = false; n.textContent = "Aperçu avec des articles d'exemple : les flux en direct ne se chargent pas ici. Sur ta page hébergée, les vrais titres s'affichent."; }
   else if (failed.length){ n.hidden = false; n.textContent = `Pas de réponse pour l'instant : ${failed.join(', ')}. Les autres sources sont affichées.`; }
   else n.hidden = true;
-  $('#stamp').textContent = data.sample ? '' : `Mis à jour à ${new Date(data.at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
+  $('#stamp').textContent = data.sample ? '' : `Mis à jour à ${new Date(data.at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}${autoOn('actus') ? '' : ' · ⚠ auto coupé'}`;
 
   // en « une » : l'info la plus reprise par les autres sites parmi les plus récentes, avec une image de préférence
   let items = data.items || [];
@@ -547,7 +548,7 @@ $('#q').addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(() =
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#searchBox').hidden) closeSearch(); });
 
 $('#refreshBtn').addEventListener('click', () => query ? loadPre(true).then(renderSearch) : select(current, true));
-document.addEventListener('visibilitychange', () => { if (!document.hidden && PRE && Date.now() - PRE.loaded > 10 * 60e3 && !query) select(current); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && autoOn('actus') && PRE && Date.now() - PRE.loaded > 10 * 60e3 && !query) select(current); });   // coupé : seulement avec le bouton ↻
 
 /* Bulle de langue : 🇫🇷 Français / 🇺🇸 International */
 function renderLang(){

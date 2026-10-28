@@ -90,6 +90,13 @@ a{color:inherit;text-decoration:none}
 .wrap{max-width:560px;margin:0 auto;
   padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
 
+/* ---------- Interrupteurs ---------- */
+.sw-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.sw-row small{display:block;color:var(--ink-soft);font-size:.78rem;margin-top:2px}
+.sw{appearance:none;-webkit-appearance:none;flex:none;width:46px;height:28px;border-radius:99px;background:rgba(139,140,137,.45);position:relative;cursor:pointer;transition:background .2s;margin:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.sw:checked{background:#2fa35a}
+.sw:checked::after{transform:translateX(18px)}
 /* ---------- En-tête ---------- */
 header{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--head);
   backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
@@ -197,6 +204,22 @@ function judge(e){
 const chev = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
 const part = (title, j, inner, open) => `<details class="part glass ${j.lvl}"${open ? ' open' : ''}><summary><span class="lamp"></span><span class="t"><b>${title}</b><small>${esc(j.msg)}</small></span>${chev}</summary><div class="body">${inner}</div></details>`;
 
+/* Rafraîchissement automatique sur cet iPhone (les tâches GitHub, elles, continuent de tourner) */
+const AUTO = [
+  {k:'sport',   t:'Sports',        d:'Scores en direct (toutes les 30 s), témoin LIVE de l\'accueil, programme TV'},
+  {k:'actus',   t:'Actus',         d:'Rechargement au retour sur la page Actus et « une » de l\'accueil'},
+  {k:'meteo',   t:'Météo',         d:'Mise à jour toutes les 10 min sur l\'accueil'},
+  {k:'spotify', t:'Spotify',       d:'Suivi du titre en cours (toutes les 3 à 20 s pendant l\'écoute)'}
+];
+const autoGet = () => { try{ return JSON.parse(localStorage.getItem('rafraichissement')) || {}; }catch{ return {}; } };
+function autoHTML(){
+  const r = autoGet(), off = AUTO.filter(a => r[a.k] === false);
+  const rows = AUTO.map(a => `<label class="sw-row"><span><b>${a.t}</b>${r[a.k] === false ? ' <span class="tag warn">⚠ coupé</span>' : ''}<small>${a.d}</small></span>
+    <input type="checkbox" class="sw" data-auto="${a.k}"${r[a.k] === false ? '' : ' checked'} aria-label="Mise à jour automatique : ${a.t}"></label>`).join('');
+  return part('Rafraîchissement automatique (sur cet iPhone)', {lvl:off.length ? 'warn' : 'ok', msg:off.length ? `Coupé : ${off.map(a => a.t).join(', ')}` : 'Tout est actif'},
+    `${rows}<p class="note">Couper une mise à jour économise la batterie et les données mobiles : la page garde ce qu'elle a déjà et ne se rafraîchit plus que quand tu touches ↻ (ou à l'ouverture pour la météo et Spotify). Un ⚠ s'affiche alors à l'endroit concerné. Les tâches GitHub continuent de tourner.</p>`, off.length > 0);
+}
+
 function render(e){
   const j = judge(e);
   const label = {ok:'Tout est à jour', warn:'Quelques points à vérifier', err:'Des données ne se mettent plus à jour'}[j.global];
@@ -230,9 +253,10 @@ function render(e){
       f.calendriers.length ? `<ul class="note">${f.calendriers.map(c => `<li>${esc(c.replace(/^calendriers\//, ''))}</li>`).join('')}</ul>` : '<p class="note">Aucun calendrier déposé.</p>', false);
   }
 
+  h += autoHTML();
   h += `<div class="actions"><a class="btn main" href="https://github.com/ZyAvo/iPhone-Dock/actions" target="_blank" rel="noopener">Voir les tâches GitHub</a>
     <button type="button" class="btn" id="resetBtn">Vider la mémoire de l'appli</button></div>
-    <p class="note" id="resetMsg">« Vider la mémoire » efface les données gardées sur cet appareil (matchs, actus, pages) ; tes réglages (lieu météo, Spotify) sont conservés.</p>`;
+    <p class="note" id="resetMsg">« Vider la mémoire » efface les données gardées sur cet appareil (matchs, actus, pages) ; tes réglages (lieu météo, Spotify, favoris, langue des actus, rafraîchissement) sont conservés.</p>`;
   $('#out').innerHTML = h;
   $('#stamp').textContent = '';
 }
@@ -243,14 +267,22 @@ async function load(){
     if (!r.ok) throw new Error(r.status);
     render(await r.json());
   }catch(err){
-    $('#out').innerHTML = `<div class="sum glass err"><span class="lamp"></span><div><b>Résumé introuvable</b><p>Le fichier etat.json est fait par la tâche GitHub « Publication ». Vérifie qu'elle a bien tourné (Settings → Pages → Source : GitHub Actions).</p></div></div>`;
+    $('#out').innerHTML = `<div class="sum glass err"><span class="lamp"></span><div><b>Résumé introuvable</b><p>Le fichier etat.json est fait par la tâche GitHub « Publication ». Vérifie qu'elle a bien tourné (Settings → Pages → Source : GitHub Actions).</p></div></div>` + autoHTML();
   }finally{ $('#refreshBtn').classList.remove('spin'); }
 }
 $('#refreshBtn').addEventListener('click', load);
+document.addEventListener('change', e => {
+  const c = e.target.closest('[data-auto]'); if (!c) return;
+  const r = autoGet(); if (c.checked) delete r[c.dataset.auto]; else r[c.dataset.auto] = false;
+  try{ localStorage.setItem('rafraichissement', JSON.stringify(r)); }catch{}
+  const d = c.closest('details'), tmp = document.createElement('div'); tmp.innerHTML = autoHTML();
+  const n = tmp.firstElementChild; n.open = true; d.replaceWith(n);
+  const again = n.querySelector(`[data-auto="${c.dataset.auto}"]`); if (again) again.focus();
+});
 document.addEventListener('click', async e => {
   if (!e.target.closest('#resetBtn')) return;
   try{
-    Object.keys(localStorage).filter(k => /^(sport|actus|meteo|icons):/.test(k)).forEach(k => localStorage.removeItem(k));
+    Object.keys(localStorage).filter(k => /^(sport|actus|meteo|icons):/.test(k) && !['sport:favoris', 'actus:langue'].includes(k)).forEach(k => localStorage.removeItem(k));
     if (window.caches) for (const k of await caches.keys()) await caches.delete(k);
     $('#resetMsg').textContent = 'Mémoire vidée : les pages et les données seront rechargées à la prochaine ouverture.';
   }catch{ $('#resetMsg').textContent = 'Impossible de vider la mémoire sur cet appareil.'; }

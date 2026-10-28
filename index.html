@@ -191,6 +191,15 @@ a{color:inherit;text-decoration:none}
 .tile .mono{font-weight:700;font-size:clamp(.8rem,3.6vw,1rem);letter-spacing:-.03em;text-shadow:0 1px 1px rgba(0,0,0,.18)}
 .app-btn .name{font-size:.66rem;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
+/* Tuile « LIVE Sports » : le point indique les directs (gris : aucun · jaune : en cours · vert : une de tes équipes) */
+.live-tile .live-w{display:flex;align-items:center;gap:5px;color:#fff}
+.live-tile b{font-weight:800;font-size:clamp(.78rem,3.5vw,.98rem);letter-spacing:.08em;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.live-dot{width:9px;height:9px;border-radius:50%;background:#aeb4ba;box-shadow:0 0 0 2px rgba(255,255,255,.35);flex:none}
+.live-dot.on{background:#f2c400;box-shadow:0 0 0 2px rgba(255,255,255,.55);animation:livepulse 1.6s ease-in-out infinite}
+.live-dot.fav{background:#2fd16e;box-shadow:0 0 0 2px rgba(255,255,255,.6);animation:livepulse 1.6s ease-in-out infinite}
+.live-dot.paused{background:transparent;box-shadow:inset 0 0 0 1.6px rgba(255,255,255,.75)}
+@keyframes livepulse{50%{transform:scale(1.35);opacity:.75}}
+.auto-off{font-size:.7rem;color:#b86e00}
 .tile.folder{
   background:linear-gradient(160deg, var(--glass), var(--glass-tint));
   box-shadow:var(--shadow);
@@ -397,7 +406,7 @@ const HOME = [
   {label:'Travail',         type:'folder', target:'travail'},
   {label:'Jeux',            type:'folder', target:'jeux'},
   {label:'Médias',          type:'folder', target:'medias'},
-  {label:'Sport',           type:'page', url:'sport.html', icon:'sport', color:'--t-slate'},
+  {label:'Sports',          type:'page', url:'sport.html', live:true, color:'--t-plum'},   // tuile « LIVE » avec témoin de direct
   {label:'Bitwarden',       mono:'Bw', color:'--t-slate', store:'Bitwarden', app:'bitwarden://', web:'https://vault.bitwarden.eu'},
   {label:'Fichiers',        icon:'folder', color:'--t-slate', storeId:'1232058109', app:'shareddocuments://'}
 ];
@@ -466,6 +475,7 @@ async function fetchIcons(){
 const iconAttrs = a => { const k = iconKey(a), u = iconOf(a); return `${k ? ` data-icon="${esc(k)}"` : ''}${u ? ` data-has="1"` : ''}`; };
 
 function tileHTML(a){
+  if (a.live) return `<span class="tile live-tile" style="--c:var(${a.color})"><span class="live-w"><i class="${esc(window.liveCls || 'live-dot')}" id="liveDot"></i><b>LIVE</b></span></span>`;
   if (a.type === 'folder'){
     const minis = FOLDERS[a.target].items.slice(0,4).map(i => { const u = iconOf(i);
       return `<i class="${u ? 'img' : ''}"${iconAttrs(i)} style="--c:var(${i.color})${u ? `;--img:url(&quot;${esc(u)}&quot;)` : ''}"></i>`; }).join('');
@@ -563,6 +573,8 @@ function ago(t){
   if (h < 24) return `il y a ${h} h`;
   return new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
 }
+/* Rafraîchissement automatique réglable dans la page État (sur cet iPhone seulement) */
+const autoOn = k => { try{ const r = JSON.parse(localStorage.getItem('rafraichissement')) || {}; return r[k] !== false; }catch{ return true; } };
 let wImg = '';
 function renderWidget(){
   const w = $('#newsWidget'), img = headline.img || '';
@@ -573,7 +585,7 @@ function renderWidget(){
   $('#wSrc').textContent = headline.source;
   $('#wDot').style.background = (headline.color || '').startsWith('#') ? headline.color : `var(${headline.color || '--t-slate'})`;
   $('#wTitle').textContent = headline.title;
-  $('#wTime').textContent = headline.sample ? '' : ago(headline.date);
+  $('#wTime').textContent = (headline.sample ? '' : ago(headline.date)) + (autoOn('actus') ? '' : ' · ⚠ auto coupé');
 }
 async function loadWidget(){
   try{
@@ -639,15 +651,15 @@ const WX_FR = c => c === 0 ? 'Ciel dégagé' : c <= 2 ? 'Éclaircies' : c === 3 
 function renderWx(w){
   const el = $('#wx');
   if (!w){ el.innerHTML = ''; return; }
-  el.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${wxIcon(w.code, w.day)}</svg><span>${Math.round(w.temp)}°</span>`;
-  el.setAttribute('aria-label', `Météo : ${WX_FR(w.code)}, ${Math.round(w.temp)} degrés. Ouvrir Météo`);
+  el.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${wxIcon(w.code, w.day)}</svg><span>${Math.round(w.temp)}°</span>${autoOn('meteo') ? '' : '<span class="auto-off" title="Mise à jour auto coupée (page État)">⚠</span>'}`;
+  el.setAttribute('aria-label', `Météo : ${WX_FR(w.code)}, ${Math.round(w.temp)} degrés${autoOn('meteo') ? '' : ' (mise à jour auto coupée)'}. Ouvrir Météo`);
   el.title = WX_FR(w.code);
 }
 async function loadWx(force){
   if (place.lat == null){ renderWx(null); return; }
   const key = `${place.lat.toFixed(2)},${place.lon.toFixed(2)}`, c = LS.get('meteo:v1', null);
   if (c && c.key === key) renderWx(c);
-  if (!force && c && c.key === key && Date.now() - c.at < 20 * 60e3) return;
+  if (!force && c && c.key === key && (Date.now() - c.at < 20 * 60e3 || !autoOn('meteo'))) return;   // mise à jour auto coupée : on garde la dernière météo
   try{
     const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,weather_code,is_day&timezone=auto`);
     const j = await r.json(), cur = j.current;
@@ -796,7 +808,8 @@ function spRender(){
     return;
   }
   const t = sp.track || {}, art = t.img ? ` has" style="background-image:url(&quot;${esc(t.img)}&quot;)` : '';
-  const head = sp.kind === 'track' ? (sp.playing ? `En lecture${sp.device ? ' · ' + sp.device : ''}` : `En pause${sp.device ? ' · ' + sp.device : ''}`) : sp.kind === 'recent' ? 'Dernière écoute' : 'Spotify';
+  const head = (sp.kind === 'track' ? (sp.playing ? `En lecture${sp.device ? ' · ' + sp.device : ''}` : `En pause${sp.device ? ' · ' + sp.device : ''}`) : sp.kind === 'recent' ? 'Dernière écoute' : 'Spotify')
+    + (sp.kind !== 'setup' && !autoOn('spotify') ? ' · ⚠ suivi auto coupé' : '');
   const app = `href="spotify://" data-app="${esc(t.uri || 'spotify://')}" data-web="https://open.spotify.com"`;
   el.innerHTML = `<div class="sp-open">
       <a class="sp-art${art}" ${app} aria-label="Ouvrir Spotify">${SPI.note}</a>
@@ -816,7 +829,7 @@ function spTick(){
   bar.style.width = v.toFixed(1) + '%'; bar.parentElement.setAttribute('aria-valuenow', Math.round(v));
   bar.parentElement.title = `${fmtMs(spProgress())} / ${fmtMs(sp.dur)}`;
 }
-setInterval(() => { if (sp.kind === 'track' && sp.playing){ spTick(); if (spProgress() >= sp.dur) spPoll(1000); } }, 1000);
+setInterval(() => { if (sp.kind === 'track' && sp.playing){ spTick(); if (spProgress() >= sp.dur && autoOn('spotify')) spPoll(1000); } }, 1000);
 
 const trackOf = it => it ? {name:it.name, uri:it.uri,
   artist:(it.artists || []).map(a => a.name).join(', ') || (it.show && it.show.name) || '',
@@ -843,7 +856,7 @@ async function spPoll(delay){
     wait = e.retry ? e.retry * 1000 : 30e3;
   }
   spRender();
-  spTimer = setTimeout(() => spPoll(), wait);
+  if (autoOn('spotify')) spTimer = setTimeout(() => spPoll(), wait);   // coupé dans État : une lecture à l'ouverture et après chaque commande
 }
 async function spCommand(what){
   if (spBusy) return; spBusy = true;
@@ -945,8 +958,43 @@ async function loadEtat(){
 }
 loadEtat(); setInterval(() => { if (!document.hidden) loadEtat(); }, 15 * 60e3);
 
+/* ---------- Témoin LIVE Sports (matchs du jour préparés + vérification ESPN des matchs censés être en cours) ---------- */
+const SPORT_FAV = {equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']};
+const favWords = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ')
+  .map(w => ({toulousain:'toulouse', rochelais:'rochelle', paloise:'pau', bayonnais:'bayonne'})[w] || w).filter(w => w.length >= 3 && !['stade', 'olympique', 'club', 'the', 'les'].includes(w));
+function favOf(){ try{ return JSON.parse(localStorage.getItem('sport:favoris')) || SPORT_FAV; }catch{ return SPORT_FAV; } }
+const isFavEv = (e, F) => F.ligues.includes(e.l) || F.equipes.some(n => { const f = favWords(n); return f.length && [e.h, e.a].some(x => { const w = favWords(x); return f.every(t => w.includes(t)); }); });
+async function loadLive(){
+  const dot = $('#liveDot'); if (!dot) return;
+  const auto = autoOn('sport');
+  try{
+    const r = await fetch('donnees/sport/aujourdhui.json', {cache:'no-cache'}); if (!r.ok) throw 0;
+    const j = await r.json(), now = Date.now(), F = favOf();
+    let live = (j.events || []).filter(e => e.s !== 'post' && now >= e.t && now < e.t + e.d * 60e3);
+    if (auto){                                            // confirmation auprès d'ESPN (pas pour F1 / MotoGP : horaires officiels)
+      const leagues = [...new Set(live.filter(e => e.sp && e.sp !== 'racing').map(e => e.sp + '/' + e.l))];
+      const states = {};
+      await Promise.all(leagues.map(async k => { try{
+        const s = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${k}/scoreboard`)).json();
+        (s.events || []).forEach(ev => { states[ev.id] = ((ev.status || {}).type || {}).state; });
+      }catch{} }));
+      live = live.filter(e => !(e.id in states) || states[e.id] === 'in');
+    }
+    const fav = live.filter(e => isFavEv(e, F));
+    dot.className = window.liveCls = 'live-dot' + (!auto ? ' paused' : fav.length ? ' fav' : live.length ? ' on' : '');
+    const btn = dot.closest('.app-btn');
+    if (btn) btn.setAttribute('aria-label', `Sports — ${live.length ? `${live.length} en direct${fav.length ? `, dont ${fav.length} de tes favoris` : ''}` : 'aucun direct'}${auto ? '' : ' (mise à jour auto coupée)'}`);
+  }catch{}
+}
+loadLive();
+setInterval(() => { if (!document.hidden && autoOn('sport')) loadLive(); }, 2 * 60e3);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) loadLive(); });
+
 tick(); setInterval(tick, 15000);
-loadWidget();
+loadWidget(); let widgetAt = Date.now();
+document.addEventListener('visibilitychange', () => {            // retour sur l'accueil : nouvelle « une » au plus tous les quarts d'heure
+  if (!document.hidden && autoOn('actus') && Date.now() - widgetAt > 15 * 60e3){ widgetAt = Date.now(); loadWidget(); }
+});
 showPlace(); loadWx();
 if (place.mode === 'gps' && Date.now() - (place.at || 0) > 30 * 60e3 && navigator.permissions){       // position relue si déjà autorisée
   navigator.permissions.query({name:'geolocation'}).then(p => { if (p.state === 'granted') navigator.geolocation.getCurrentPosition(pos => {
