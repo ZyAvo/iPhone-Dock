@@ -1,0 +1,42 @@
+name: Marchés
+
+# Cours des indices et de tes placements suivis (liste SUIVI dans invest.html) + taux officiels de la BCE.
+# Toutes les 20 min en semaine pendant les bourses européennes et américaines, et une fois la nuit
+# (valeurs liquidatives des fonds d'assurance-vie, publiées une fois par jour).
+# Les données vont sur la branche « donnees », puis la tâche « Publication » met le site à jour.
+on:
+  schedule:
+    - cron: '3,23,43 7-21 * * 1-5'
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'invest.html'
+      - 'outils/marches-data.mjs'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: marches
+  cancel-in-progress: true
+
+jobs:
+  marches:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Reprise des données précédentes
+        run: bash outils/reprendre-donnees.sh
+
+      - name: Lecture des cours
+        run: node outils/marches-data.mjs
+
+      - name: Envoi des données
+        run: bash outils/publier-donnees.sh donnees/marches
