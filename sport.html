@@ -137,6 +137,8 @@ h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:
 @media (hover:hover) and (pointer:fine){ .arr{display:grid} }
 /* Favoris */
 .favbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 2px}
+.fav-bas{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.fav-bas .k{width:100%;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
 .favbar .fv{display:inline-flex;align-items:center;gap:4px;padding:4px 6px 4px 10px;border-radius:999px;font-size:.78rem;font-weight:600;background:var(--accent-soft);color:var(--accent)}
 .favbar .fv button{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:var(--ink-soft);font-size:.95rem}
 .favbar .mini.main{background:var(--accent);color:var(--on-accent)}
@@ -405,7 +407,7 @@ details.rk li em{grid-row:1;grid-column:3;font-style:normal;color:var(--ink-soft
   --sheet:rgba(240,241,243,.95); --sheet-solid:#f0f1f3; --scrim:rgba(28,31,32,.3);
   --t-brick:#c6c7c4; --t-slate:#d8d9d6; --t-olive:#a2999e; --t-plum:#b8b0b4;
   --t-teal:#cfd0cd; --t-ochre:#c9b8b8; --t-char:#9a9497; --t-rose:#e3e4e2;
-  --glyph:#111111;
+  --glyph:#111111; --sport-accent:#6b4f4f;
 }
 :root[data-palette="ardoise"]{
   --base:#f4f4f4;
@@ -419,7 +421,7 @@ details.rk li em{grid-row:1;grid-column:3;font-style:normal;color:var(--ink-soft
   --sheet:rgba(246,246,246,.95); --sheet-solid:#f6f6f6; --scrim:rgba(45,49,66,.3);
   --t-brick:#e0703c; --t-slate:#4f5d75; --t-olive:#2d3142; --t-plum:#3b4256;
   --t-teal:#6b7891; --t-ochre:#ef8354; --t-char:#2d3142; --t-rose:#8a96ab;
-  --glyph:#ffffff;
+  --glyph:#ffffff; --sport-accent:#ef8354;
 }
 @media (prefers-color-scheme: dark){
   :root[data-palette="gris"]:not([data-theme="light"]){
@@ -544,8 +546,8 @@ const GROUPS = [
 ];
 const SPORT_ICONS = {
   star:'<path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>',
-  car:'<path d="M2.5 15.5v-2.4c0-.6.4-1.2 1-1.4l3.6-1.2 2.6-3h5.1l2.8 3.1 2.9.9c.6.2 1 .8 1 1.4v2.6"/><path d="M2.5 15.5h2.6M9.4 15.5h5.2M18.9 15.5h2.6"/><circle cx="7.2" cy="15.8" r="2.1"/><circle cx="16.8" cy="15.8" r="2.1"/><path d="M9.7 10.3h7.2"/>',
-  moto:'<circle cx="5.5" cy="16" r="3"/><circle cx="18.5" cy="16" r="3"/><path d="M5.5 16 9.2 10h4.6l2 3.2H10.6M13.8 10l1.6-3h2.6M18.5 16l-2.7-5.2"/>',
+  car:'<path d="M1.5 9h3.9v1.6H1.5z" fill="currentColor"/><path d="M3.4 10.6v2"/><path d="M3.4 12.6l4.7-1.1h2.4l1-1.7h2.8l1 1.7 7.2 1.9c.4.1.7.5.7.9v.8h-2.3"/><path d="M9.3 15.5h5.6"/><circle cx="6.3" cy="15" r="2.8"/><circle cx="17.7" cy="15.3" r="2.4"/><circle cx="12.6" cy="9.2" r=".9" fill="currentColor"/>',
+  moto:'<circle cx="5" cy="16.6" r="3"/><circle cx="19" cy="16.6" r="3"/><path d="M5 16.6l4.4-2.2"/><path d="M19 16.6l-2.9-7.4"/><path d="M5.2 10.4l4.6 1.6 3.4-2.2 3-.6 2.6-1.6.5 2.2-2.2 3.8-4.4 1.4H9.4z" fill="currentColor"/><path d="M10.6 14.2l1.6 2.2h3"/>',
   all:'<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>',
   foot:'<circle cx="12" cy="12" r="8.5"/><path d="m12 8 3.6 2.6-1.4 4.2H9.8l-1.4-4.2z"/><path d="M12 3.5V8M15.6 10.6l4.1-1.3M14.2 14.8l2.5 3.5M9.8 14.8l-2.5 3.5M8.4 10.6 4.3 9.3"/>',
   rugby:'<ellipse cx="12" cy="12" rx="9.5" ry="5.6" transform="rotate(-40 12 12)"/><path d="M7.6 16.4 16.4 7.6"/><path d="m9.6 12.6 1.8 1.8M11.2 11l1.8 1.8M12.8 9.4l1.8 1.8"/>',
@@ -607,7 +609,7 @@ const LEAGUES = [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ];
-const VERSION = '2026-10-28.2';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-28.3';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -1241,11 +1243,12 @@ function render(){
   if (sample) html += `<div class="notice">Aperçu avec des matchs d'exemple : les données en direct ne se chargent pas ici. Sur ta page hébergée, les vrais matchs, scores et chaînes s'affichent.</div>`;
   else if (failed.size) html += `<div class="notice">Pas de réponse pour l'instant : ${[...failed].map(id => esc(LBY[id].name)).join(', ')}.</div>`;
 
+  let favBar = '';
   if (group === 'fav'){
     const chips = [...FAV.ligues.map(id => LBY[id] ? `<span class="fv">${esc(LBY[id].name)}<button type="button" data-unfavl="${esc(id)}" aria-label="Retirer ${esc(LBY[id].name)} des favoris">×</button></span>` : ''),
                    ...FAV.equipes.map(n => `<span class="fv">${esc(n)}<button type="button" data-unfavt="${esc(n)}" aria-label="Retirer ${esc(n)} des favoris">×</button></span>`)].join('');
-    html += `<div class="favbar">${chips || '<span class="hint">Aucun favori : touche ☆ sous un match, ou dans une compétition.</span>'}
-      <button type="button" class="mini main" data-favcal="1">Calendrier de mes favoris ›</button></div>`;
+    favBar = `<div class="favbar fav-bas"><span class="k">Mes favoris</span>${chips || '<span class="hint">Aucun favori : touche ☆ sous un match, ou dans une compétition.</span>'}
+      <button type="button" class="mini main" data-favcal="1">Calendrier de mes favoris ›</button></div>`;   // affichée tout en bas, après les matchs
   }
   const live = evs.filter(m => m.state === 'in');
   if (live.length) html += `<section class="comp"><div class="comp-head"><h2 class="live-title"><span class="pulse"></span>En direct</h2></div>
@@ -1270,6 +1273,7 @@ function render(){
     ? '<div class="skeleton glass"></div><div class="skeleton glass"></div><div class="skeleton glass"></div>'
     : `<div class="empty">Aucun match ${selDay < 0 ? 'joué' : 'prévu'} ce jour-là${group === 'fav' ? ' pour tes favoris' : group !== 'all' ? ' pour ce sport' : ''}.</div>`;
 
+  html += favBar;
   html += `<p class="foot-note">Scores : ESPN · Chaînes France : droits 2026-27, à confirmer selon le match · v${VERSION}</p>`;
   box.innerHTML = html;
 }

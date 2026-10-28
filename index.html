@@ -219,8 +219,11 @@ a{color:inherit;text-decoration:none}
 .app-btn .name{font-size:.66rem;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
 /* Tuile « LIVE Sports » : le point indique les directs (gris : aucun · jaune : en cours · vert : une de tes équipes) */
-.live-tile .live-w{display:flex;align-items:center;gap:5px;color:var(--glyph, #fff)}
-.live-tile b{font-weight:800;font-size:clamp(.78rem,3.5vw,.98rem);letter-spacing:.08em;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.live-tile .live-w{display:flex;flex-direction:column;align-items:flex-start;gap:0;color:var(--glyph, #fff)}
+.live-row{display:flex;align-items:center;gap:4px}
+.live-tile .live-dot{width:8px;height:8px}
+.live-sub{margin:0 0 0 12px;font-size:clamp(.6rem,2.7vw,.74rem);font-weight:700;font-style:italic;letter-spacing:.02em;color:var(--sport-accent, #a3cef1);line-height:1}
+.live-tile b{font-weight:800;font-size:clamp(.7rem,3.1vw,.86rem);letter-spacing:.05em;text-shadow:0 1px 2px rgba(0,0,0,.25)}
 .live-dot{width:9px;height:9px;border-radius:50%;background:#aeb4ba;box-shadow:0 0 0 2px rgba(255,255,255,.35);flex:none}
 .live-dot.on{background:#f2c400;box-shadow:0 0 0 2px rgba(255,255,255,.55);animation:livepulse 1.6s ease-in-out infinite}
 .live-dot.fav{background:#2fd16e;box-shadow:0 0 0 2px rgba(255,255,255,.6);animation:livepulse 1.6s ease-in-out infinite}
@@ -311,7 +314,7 @@ a{color:inherit;text-decoration:none}
   --sheet:rgba(240,241,243,.95); --sheet-solid:#f0f1f3; --scrim:rgba(28,31,32,.3);
   --t-brick:#c6c7c4; --t-slate:#d8d9d6; --t-olive:#a2999e; --t-plum:#b8b0b4;
   --t-teal:#cfd0cd; --t-ochre:#c9b8b8; --t-char:#9a9497; --t-rose:#e3e4e2;
-  --glyph:#111111;
+  --glyph:#111111; --sport-accent:#6b4f4f;
 }
 :root[data-palette="ardoise"]{
   --base:#f4f4f4;
@@ -325,7 +328,7 @@ a{color:inherit;text-decoration:none}
   --sheet:rgba(246,246,246,.95); --sheet-solid:#f6f6f6; --scrim:rgba(45,49,66,.3);
   --t-brick:#e0703c; --t-slate:#4f5d75; --t-olive:#2d3142; --t-plum:#3b4256;
   --t-teal:#6b7891; --t-ochre:#ef8354; --t-char:#2d3142; --t-rose:#8a96ab;
-  --glyph:#ffffff;
+  --glyph:#ffffff; --sport-accent:#ef8354;
 }
 @media (prefers-color-scheme: dark){
   :root[data-palette="gris"]:not([data-theme="light"]){
@@ -457,6 +460,7 @@ const ICONS = {
   card:'<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19M6 15h4"/>',
   spark:'<path d="M12 3.5c.7 4.4 2.9 6.6 7.3 7.3-4.4.7-6.6 2.9-7.3 7.3-.7-4.4-2.9-6.6-7.3-7.3 4.4-.7 6.6-2.9 7.3-7.3z"/><path d="M18.5 15.5c.25 1.5 1 2.25 2.5 2.5-1.5.25-2.25 1-2.5 2.5-.25-1.5-1-2.25-2.5-2.5 1.5-.25 2.25-1 2.5-2.5z"/>',
   xmark:'<path d="M6 5.5 18 18.5M18 5.5 6 18.5"/>',
+  shield:'<path d="M12 2.8 4.8 5.6v5.6c0 4.6 3 8.3 7.2 9.9 4.2-1.6 7.2-5.3 7.2-9.9V5.6z"/><path d="M12 6v12.2c2.6-1.3 4.4-3.9 4.4-7V7.6z" fill="currentColor"/>',
   network:'<circle cx="12" cy="5" r="2.2"/><circle cx="5" cy="18.5" r="2.2"/><circle cx="19" cy="18.5" r="2.2"/><path d="M11 7 6 16.6M13 7l5 9.6M7.2 18.5h9.6"/>',
   nav:'<path d="M12 3 19.5 20.5 12 16.3 4.5 20.5z"/>',
   folder:'<path d="M3 7.5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 10h18"/>',
@@ -496,13 +500,14 @@ const FOLDERS = {
     {label:'Songs of Conquest', mono:'SC', color:'--t-plum',  store:'Songs of Conquest', app:sc('Songs of Conquest')}
   ]},
   travail:{ title:'Travail', items:[
-    {label:'Outlook', star:true, mono:'O',  color:'--t-slate', store:'Microsoft Outlook', app:'ms-outlook://',     web:'https://outlook.office.com'},
-    {label:'Teams',   star:true, mono:'T',  color:'--t-plum',  store:'Microsoft Teams', app:'msteams://',        web:'https://teams.microsoft.com'},
+    {label:'Outlook', mono:'O',  color:'--t-slate', store:'Microsoft Outlook', app:'ms-outlook://',     web:'https://outlook.office.com'},
+    {label:'Teams',   mono:'T',  color:'--t-plum',  store:'Microsoft Teams', app:'msteams://',        web:'https://teams.microsoft.com'},
     {label:'Word',              mono:'W',  color:'--t-brick', store:'Microsoft Word', app:'ms-word://',        web:'https://www.office.com'},
     {label:'PowerPoint',        mono:'P',  color:'--t-rose',  store:'Microsoft PowerPoint', app:'ms-powerpoint://',  web:'https://www.office.com'},
     {label:'OneNote',           mono:'N',  color:'--t-plum',  store:'Microsoft OneNote', app:'onenote://',        web:'https://www.onenote.com'},
     {label:'Power BI',          mono:'BI', color:'--t-ochre', store:'Microsoft Power BI', app:'mspbi://',          web:'https://app.powerbi.com'},
     {label:'SAP Concur',        mono:'Cc', color:'--t-teal',  store:'SAP Concur', app:sc('SAP Concur')},
+    {label:'Fichiers',          icon:'folder', color:'--t-slate', storeId:'1232058109', app:'shareddocuments://'},
     {label:'Proton Drive',      mono:'PD', color:'--t-char',  store:'Proton Drive', app:'protondrive://',    web:'https://drive.proton.me'},          // à tester
     {label:'Portail Entreprise',mono:'PE', color:'--t-slate', store:'Intune Company Portal', app:'companyportal://'},
     {label:'Authenticator',     mono:'Au', color:'--t-olive', store:'Microsoft Authenticator', app:'msauth://'},                                                 // à tester
@@ -514,11 +519,9 @@ const FOLDERS = {
 const HOME = [
   {label:'Finance',         type:'folder', target:'finance'},
   {label:'Travail',         type:'folder', target:'travail'},
-  {label:'Jeux',            type:'folder', target:'jeux'},
   {label:'Médias',          type:'folder', target:'medias'},
-  {label:'Sports',          type:'page', url:'sport.html', live:true, color:'--t-plum'},   // tuile « LIVE » avec témoin de direct
-  {label:'Bitwarden',       mono:'Bw', color:'--t-slate', store:'Bitwarden', app:'bitwarden://', web:'https://vault.bitwarden.eu'},
-  {label:'Fichiers',        icon:'folder', color:'--t-slate', storeId:'1232058109', app:'shareddocuments://'}
+  {label:'Jeux',            type:'folder', target:'jeux'},
+  {label:'Sports',          type:'page', url:'sport.html', live:true, color:'--t-plum'},   // tuile « LIVE Sports » avec témoin de direct
 ];
 
 /* Bandeau du bas (gauche / droite) : petites icônes en verre, toutes dans le même style
@@ -531,6 +534,7 @@ const QUICK_LEFT = [
 ];
 const QUICK_RIGHT = [
   {label:'Proton VPN', icon:'network', app:'protonvpn://', alt:'Proton VPN'},
+  {label:'Bitwarden',  icon:'shield',  app:'bitwarden://', alt:'Bitwarden', web:'https://vault.bitwarden.eu'},
   {label:'Cartes',     icon:'card',    app:'shoebox://'},                     // Cartes (Wallet) : cartes bancaires, billets…
   {label:'Navigation', icon:'nav',     action:'nav'}                          // choix : Waze (par défaut), Plans, Google Maps
 ];
@@ -589,7 +593,7 @@ async function fetchIcons(){
 const iconAttrs = a => { const k = iconKey(a), u = iconOf(a); return `${k ? ` data-icon="${esc(k)}"` : ''}${u ? ` data-has="1"` : ''}`; };
 
 function tileHTML(a){
-  if (a.live) return `<span class="tile live-tile" style="--c:var(${a.color})"><span class="live-w"><i class="${esc(window.liveCls || 'live-dot')}" id="liveDot"></i><b>LIVE</b></span></span>`;
+  if (a.live) return `<span class="tile live-tile" style="--c:var(${a.color})"><span class="live-w"><span class="live-row"><i class="${esc(window.liveCls || 'live-dot')}" id="liveDot"></i><b>LIVE</b></span><span class="live-sub">Sports</span></span></span>`;
   if (a.type === 'folder'){
     const minis = FOLDERS[a.target].items.slice(0,4).map(i => { const u = iconOf(i);
       return `<i class="${u ? 'img' : ''}"${iconAttrs(i)} style="--c:var(${i.color})${u ? `;--img:url(&quot;${esc(u)}&quot;)` : ''}"></i>`; }).join('');
