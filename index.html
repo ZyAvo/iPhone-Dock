@@ -209,7 +209,8 @@ a{color:inherit;text-decoration:none}
 .etat.ok{--lc:#1e8a4c}.etat.warn{--lc:#e08a12}.etat.err{--lc:#d63c3c}
 .etat:active{opacity:.5}
 
-.quick{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 4px;margin-bottom:12px}
+.quick{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;padding:0 4px;margin-bottom:12px}
+.quick .q-side:last-child{justify-content:flex-end}
 .q-side{display:flex;gap:7px}
 .q{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:var(--ink);position:relative;isolation:isolate}
 .q svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
@@ -227,6 +228,9 @@ a{color:inherit;text-decoration:none}
 .folder-panel h3{font-weight:600;font-size:1.6rem;letter-spacing:-.03em;color:#fff;text-align:center;margin:0 0 16px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
 .folder-box{border-radius:40px;padding:22px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px 16px}
 .folder-box .app-btn{animation:none}
+/* Choix de navigation : Waze mis en avant */
+.folder-box.nav-box .app-btn:first-child .tile{box-shadow:0 0 0 3px var(--accent), 0 10px 22px -10px rgba(0,0,0,.45)}
+.folder-box.nav-box .app-btn:first-child .name{font-weight:700}
 /* ---------- Choix du lieu ---------- */
 .place-panel{width:min(100%,360px);border-radius:32px;padding:20px 16px 16px;animation:pop .28s cubic-bezier(.2,.9,.25,1.15);max-height:100%;overflow:auto}
 .place-panel h3{font-weight:600;font-size:1.15rem;letter-spacing:-.02em;margin:0 4px 12px}
@@ -332,6 +336,10 @@ const ICONS = {
   round:'<path d="M12 3.5a8.5 8.5 0 0 0-7.4 12.7L3.5 20.5l4.4-1.1A8.5 8.5 0 1 0 12 3.5z"/><path d="M8.6 12h.01M12 12h.01M15.4 12h.01"/>',
   duo:'<path d="M3.5 6.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H9l-3.5 2.8V13.5a2 2 0 0 1-2-2z"/><path d="M15.5 8.5h3a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2V20l-3-2.5h-3.5a2 2 0 0 1-2-2v-.5"/>',
   card:'<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19M6 15h4"/>',
+  spark:'<path d="M12 3.5c.7 4.4 2.9 6.6 7.3 7.3-4.4.7-6.6 2.9-7.3 7.3-.7-4.4-2.9-6.6-7.3-7.3 4.4-.7 6.6-2.9 7.3-7.3z"/><path d="M18.5 15.5c.25 1.5 1 2.25 2.5 2.5-1.5.25-2.25 1-2.5 2.5-.25-1.5-1-2.25-2.5-2.5 1.5-.25 2.25-1 2.5-2.5z"/>',
+  xmark:'<path d="M6 5.5 18 18.5M18 5.5 6 18.5"/>',
+  network:'<circle cx="12" cy="5" r="2.2"/><circle cx="5" cy="18.5" r="2.2"/><circle cx="19" cy="18.5" r="2.2"/><path d="M11 7 6 16.6M13 7l5 9.6M7.2 18.5h9.6"/>',
+  nav:'<path d="M12 3 19.5 20.5 12 16.3 4.5 20.5z"/>',
   folder:'<path d="M3 7.5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 10h18"/>',
   camera:'<path d="M4 7.5h3.2L9 5h6l1.8 2.5H20a1.5 1.5 0 0 1 1.5 1.5v9.5A1.5 1.5 0 0 1 20 20H4a1.5 1.5 0 0 1-1.5-1.5V9A1.5 1.5 0 0 1 4 7.5z"/><circle cx="12" cy="13.3" r="3.8"/>',
   gear:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/><path d="M4 12h5M13 12h7"/><circle cx="11" cy="12" r="2"/>',
@@ -357,15 +365,10 @@ const FOLDERS = {
     {label:'Swile',          mono:'Sw', color:'--t-plum',  store:'Swile', app:'swile://',          web:'https://app.swile.co'},            // à tester
     {label:'Esalia',         mono:'Es', color:'--t-teal',  store:'Esalia', app:sc('Esalia')}
   ]},
-  social:{ title:'Réseaux sociaux', items:[
-    {label:'X',        mono:'X',  color:'--t-char',  store:'X', app:'twitter://',  web:'https://x.com'},
-    {label:'LinkedIn', mono:'in', color:'--t-slate', store:'LinkedIn', app:'linkedin://', web:'https://www.linkedin.com'}
-  ]},
   medias:{ title:'Médias', items:[
     {label:'VideoLite',     mono:'VL', color:'--t-plum',  store:'VideoLite', app:'videolite://', alt:'VideoLite'},                                   // à tester
     {label:'Canal+',        mono:'C+', color:'--t-char',  store:'CANAL+', app:'mycanal://', alt:'CANAL+', web:'https://www.canalplus.com'},             // à tester
     {label:'Prime Video',   mono:'PV', color:'--t-slate', store:'Amazon Prime Video', app:'aiv://', web:'https://www.primevideo.com'},
-    {label:'Spotify', star:true, mono:'S', color:'--t-olive', store:'Spotify', app:'spotify://', web:'https://open.spotify.com'},
     {label:'SmartersPlayerLite', mono:'SP', color:'--t-teal', store:'Smarters Player Lite', app:'smartersplayerlite://', alt:'SmartersPlayerLite'}  // à tester
   ]},
   jeux:{ title:'Jeux', items:[
@@ -383,7 +386,8 @@ const FOLDERS = {
     {label:'SAP Concur',        mono:'Cc', color:'--t-teal',  store:'SAP Concur', app:sc('SAP Concur')},
     {label:'Proton Drive',      mono:'PD', color:'--t-char',  store:'Proton Drive', app:'protondrive://',    web:'https://drive.proton.me'},          // à tester
     {label:'Portail Entreprise',mono:'PE', color:'--t-slate', store:'Intune Company Portal', app:'companyportal://'},
-    {label:'Authenticator',     mono:'Au', color:'--t-olive', store:'Microsoft Authenticator', app:'msauth://'}                                                  // à tester
+    {label:'Authenticator',     mono:'Au', color:'--t-olive', store:'Microsoft Authenticator', app:'msauth://'},                                                 // à tester
+    {label:'LinkedIn',          mono:'in', color:'--t-slate', store:'LinkedIn', app:'linkedin://', web:'https://www.linkedin.com'}
   ]}
 };
 
@@ -393,26 +397,29 @@ const HOME = [
   {label:'Travail',         type:'folder', target:'travail'},
   {label:'Jeux',            type:'folder', target:'jeux'},
   {label:'Médias',          type:'folder', target:'medias'},
-  {label:'Réseaux sociaux', type:'folder', target:'social'},
   {label:'Sport',           type:'page', url:'sport.html', icon:'sport', color:'--t-slate'},
   {label:'Bitwarden',       mono:'Bw', color:'--t-slate', store:'Bitwarden', app:'bitwarden://', web:'https://vault.bitwarden.eu'},
-  {label:'Fichiers',        icon:'folder', color:'--t-slate', storeId:'1232058109', app:'shareddocuments://'},
-  {label:'Waze',            mono:'Wz', color:'--t-teal', store:'Waze', app:'waze://', web:'https://www.waze.com/live-map'}
+  {label:'Fichiers',        icon:'folder', color:'--t-slate', storeId:'1232058109', app:'shareddocuments://'}
 ];
 
 /* Bandeau du bas (gauche / droite) : petites icônes en verre, toutes dans le même style
    alt : nom d'un raccourci de l'appli Raccourcis, essayé si l'appli ne s'ouvre pas */
 const QUICK_LEFT = [
-  {label:'Téléphone', icon:'phone',  app:'mobilephone://', alt:'Téléphone'},
+  {label:'Claude',    icon:'spark',  app:'claude://', alt:'Claude', web:'https://claude.ai'},   // si l'appli ne s'ouvre pas : raccourci « Claude »
   {label:'WhatsApp',  icon:'round',  app:'whatsapp://'},
   {label:'Messenger', icon:'duo',    app:'fb-messenger://'},
-  {label:'Messages',  icon:'bubble', app:'sms:'}
+  {label:'X',         icon:'xmark',  app:'twitter://', web:'https://x.com'}
 ];
 const QUICK_RIGHT = [
-  {label:'Appareil photo', icon:'camera', app:sc('Appareil photo')},          // raccourci à créer
-  {label:'Recherche',      icon:'search', url:'https://www.google.fr'},
-  {label:'Cartes',         icon:'card',   app:'shoebox://'},                  // Cartes (Wallet) : cartes bancaires, billets…
-  {label:'Réglages',       icon:'gear',   app:'App-prefs:', alt:'Réglages'}
+  {label:'Proton VPN', icon:'network', app:'protonvpn://', alt:'Proton VPN'},
+  {label:'Cartes',     icon:'card',    app:'shoebox://'},                     // Cartes (Wallet) : cartes bancaires, billets…
+  {label:'Navigation', icon:'nav',     action:'nav'}                          // choix : Waze (par défaut), Plans, Google Maps
+];
+/* Applis proposées par le bouton Navigation (la première est mise en avant) */
+const NAV_APPS = [
+  {label:'Waze',        store:'Waze',        app:'waze://',        web:'https://www.waze.com/live-map'},
+  {label:'Plans',       storeId:'915056765', app:'maps://',        web:'https://maps.apple.com'},
+  {label:'Google Maps', store:'Google Maps', app:'comgooglemaps://', web:'https://maps.google.com'}
 ];
 
 /* Widget « À la une » : reprend le titre chargé par la page Actus, sinon interroge ce flux */
@@ -440,7 +447,7 @@ function jsonp(url){
   });
 }
 async function fetchIcons(){
-  const all = [...HOME, ...QUICK_LEFT, ...QUICK_RIGHT, ...Object.values(FOLDERS).flatMap(f => f.items)].filter(a => iconKey(a) && !(iconKey(a) in ICONS_STORE));
+  const all = [...HOME, ...NAV_APPS, ...QUICK_LEFT, ...QUICK_RIGHT, ...Object.values(FOLDERS).flatMap(f => f.items)].filter(a => iconKey(a) && !(iconKey(a) in ICONS_STORE));
   const todo = [...new Map(all.map(a => [iconKey(a), a])).values()];
   for (const a of todo){
     try{
@@ -503,6 +510,7 @@ document.addEventListener('click', e => {
 });
 const quickHTML = q => {
   const svg = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[q.icon]}</svg>`;
+  if (q.action) return `<button type="button" class="q glass" data-act="${esc(q.action)}" aria-label="${esc(q.label)}" title="${esc(q.label)}" aria-haspopup="dialog">${svg}</button>`;
   if (!q.app) return `<a class="q glass" href="${esc(q.url)}" target="_blank" rel="noopener" aria-label="${esc(q.label)}" title="${esc(q.label)}">${svg}</a>`;
   return `<a class="q glass" href="${esc(q.app)}" data-app="${esc(q.app)}" data-alt="${esc(q.alt || '')}" aria-label="${esc(q.label)}" title="${esc(q.label)}">${svg}</a>`; };
 $('#quickLeft').innerHTML = QUICK_LEFT.map(quickHTML).join('');
@@ -531,7 +539,17 @@ function openFolder(id){
   $('#scrim').hidden = false;
   $('#folderBox a')?.focus();
 }
-function closeFolder(){ $('#scrim').hidden = true; lastFocus?.focus(); }
+/* Bouton Navigation : choix de l'appli, Waze en premier */
+function openNav(){
+  lastFocus = document.activeElement;
+  $('#folderTitle').textContent = 'Navigation';
+  $('#folderBox').innerHTML = NAV_APPS.map((a, i) => appHTML({...a, color:'--t-slate', mono:a.label.slice(0, 2)}, i)).join('');
+  $('#folderBox').classList.add('nav-box');
+  $('#scrim').hidden = false;
+  $('#folderBox a')?.focus();
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-act="nav"]')) openNav(); });
+function closeFolder(){ $('#scrim').hidden = true; $('#folderBox').classList.remove('nav-box'); lastFocus?.focus(); }
 $('#scrim').addEventListener('click', e => { if (!e.target.closest('.folder-box')) closeFolder(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#scrim').hidden) closeFolder(); });
 

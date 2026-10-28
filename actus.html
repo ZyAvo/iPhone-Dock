@@ -111,6 +111,15 @@ h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:
   transition:background .2s ease,color .2s ease}
 .tab[aria-selected="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
 
+/* ---------- Bulle de langue ---------- */
+.lang-wrap{position:relative}
+.icon-btn.lang{font-size:1.15rem;line-height:1}
+.lang-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:20;border-radius:18px;padding:6px;display:flex;flex-direction:column;min-width:190px;
+  background:color-mix(in oklab, var(--base) 94%, transparent);backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6)}
+.lang-menu button{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-weight:500;font-size:.92rem;text-align:left}
+.lang-menu button span{font-size:1.15rem}
+.lang-menu button[aria-checked="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+
 /* ---------- Recherche ---------- */
 .search{display:flex;align-items:center;gap:8px;padding:4px 6px 4px 12px;border-radius:16px}
 .search svg{width:18px;height:18px;flex:none;fill:none;stroke:var(--ink-soft);stroke-width:2;stroke-linecap:round}
@@ -192,6 +201,11 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
     <div class="top">
       <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
       <span style="display:flex;gap:8px">
+        <span class="lang-wrap"><button class="icon-btn glass lang" id="langBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Langue des actus"></button>
+          <span class="lang-menu glass" id="langMenu" role="menu" hidden>
+            <button type="button" role="menuitemradio" data-lang="fr"><span>🇫🇷</span>Français</button>
+            <button type="button" role="menuitemradio" data-lang="en"><span>🇺🇸</span>International</button>
+          </span></span>
         <button class="icon-btn glass" id="searchBtn" type="button" aria-label="Rechercher dans les actus" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></button>
         <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
       </span>
@@ -222,7 +236,7 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
    (facultatif) site:'page du site' et hint:'mot' → sinon, la tâche cherche le bon flux sur cette page
    (la tâche GitHub « Actus » relit cette liste : rien d'autre à modifier)
    ====================================================== */
-const TABS = [
+const TABS_FR = [
   { id:'une', label:'À la une', feeds:[
     {name:'France Info', color:'#f2b705', url:'https://www.francetvinfo.fr/titres.rss'},
     {name:'Le Monde',    color:'#2b2b2b',  url:'https://www.lemonde.fr/rss/une.xml'},
@@ -265,6 +279,45 @@ const TABS = [
     {name:'France 3 Occitanie', color:'#1f5ba8', url:'https://france3-regions.franceinfo.fr/occitanie/rss'}
   ]}
 ];
+/* Mode « International » (bulle 🇺🇸) : mêmes onglets, médias anglophones. Tarn n'existe qu'en français. */
+const TABS_EN = [
+  { id:'une', label:'À la une', feeds:[
+    {name:'BBC News',      color:'#bb1919', url:'https://feeds.bbci.co.uk/news/rss.xml'},
+    {name:'Reuters',       color:'#ff8000', url:'https://news.google.com/rss/search?q=site:reuters.com&hl=en-US&gl=US&ceid=US:en'},
+    {name:'AP',            color:'#e4002b', url:'https://news.google.com/rss/search?q=site:apnews.com&hl=en-US&gl=US&ceid=US:en'},
+    {name:'The Guardian',  color:'#052962', url:'https://www.theguardian.com/international/rss'},
+    {name:'New York Times', color:'#2b2b2b', url:'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml'},
+    {name:'Wall Street Journal', color:'#0274b6', url:'https://feeds.content.dowjones.io/public/rss/RSSWorldNews', alt:['https://news.google.com/rss/search?q=site:wsj.com&hl=en-US&gl=US&ceid=US:en']}
+  ]},
+  { id:'france', label:'France', feeds:[
+    {name:'France 24',     color:'#00a3e0', url:'https://www.france24.com/en/france/rss'},
+    {name:'RFI',           color:'#e5004d', url:'https://www.rfi.fr/en/france/rss', alt:['https://news.google.com/rss/search?q=site:rfi.fr/en&hl=en-US&gl=US&ceid=US:en']},
+    {name:'The Local',     color:'#e2001a', url:'https://www.thelocal.fr/feeds/rss.php', site:'https://www.thelocal.fr/', alt:['https://news.google.com/rss/search?q=site:thelocal.fr&hl=en-US&gl=US&ceid=US:en']}
+  ]},
+  { id:'monde', label:'Monde', feeds:[
+    {name:'BBC News',      color:'#bb1919', url:'https://feeds.bbci.co.uk/news/world/rss.xml'},
+    {name:'The Guardian',  color:'#052962', url:'https://www.theguardian.com/world/rss'},
+    {name:'New York Times', color:'#2b2b2b', url:'https://rss.nytimes.com/services/xml/rss/nyt/World.xml'},
+    {name:'The Telegraph', color:'#1c3f94', url:'https://www.telegraph.co.uk/world-news/rss.xml', alt:['https://news.google.com/rss/search?q=site:telegraph.co.uk&hl=en-US&gl=US&ceid=US:en']},
+    {name:'Al Jazeera',    color:'#d39c1f', url:'https://www.aljazeera.com/xml/rss/all.xml'}
+  ]},
+  { id:'eco', label:'Éco', feeds:[
+    {name:'Financial Times', color:'#990f3d', url:'https://www.ft.com/rss/home', alt:['https://news.google.com/rss/search?q=site:ft.com&hl=en-US&gl=US&ceid=US:en']},
+    {name:'The Economist', color:'#e3120b', url:'https://www.economist.com/finance-and-economics/rss.xml', alt:['https://news.google.com/rss/search?q=site:economist.com&hl=en-US&gl=US&ceid=US:en']},
+    {name:'Wall Street Journal', color:'#0274b6', url:'https://feeds.content.dowjones.io/public/rss/RSSMarketsMain', alt:['https://news.google.com/rss/search?q=site:wsj.com&hl=en-US&gl=US&ceid=US:en']},
+    {name:'BBC News',      color:'#bb1919', url:'https://feeds.bbci.co.uk/news/business/rss.xml'}
+  ]},
+  { id:'sport', label:'Sport', feeds:[
+    {name:'BBC Sport',     color:'#e8b400', url:'https://feeds.bbci.co.uk/sport/rss.xml'},
+    {name:'The Guardian',  color:'#052962', url:'https://www.theguardian.com/uk/sport/rss'},
+    {name:'ESPN',          color:'#cc0000', url:'https://www.espn.com/espn/rss/news'}
+  ]},
+  { id:'tech', label:'Tech', feeds:[
+    {name:'The Verge',     color:'#5200ff', url:'https://www.theverge.com/rss/index.xml'},
+    {name:'Ars Technica',  color:'#ff4e00', url:'https://feeds.arstechnica.com/arstechnica/index'},
+    {name:'BBC News',      color:'#bb1919', url:'https://feeds.bbci.co.uk/news/technology/rss.xml'}
+  ]}
+];
 const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';   // secours si les actus préparées manquent
 const PRE_URL = 'donnees/actus/actus.json';
 const PRE_MAX = 3 * 3600e3;    // au-delà, les actus préparées sont jugées trop vieilles
@@ -279,7 +332,12 @@ const store = {
   set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
 };
 const col = c => !c ? 'var(--t-slate)' : c.startsWith('--') ? `var(${c})` : c;     // couleur du média (#rrggbb) ou couleur du thème
-const COLOR = Object.fromEntries(TABS.flatMap(t => t.feeds.map(f => [f.name, f.color])));
+const COLOR = Object.fromEntries([...TABS_FR, ...TABS_EN].flatMap(t => t.feeds.map(f => [f.name, f.color])));
+/* Langue : 🇫🇷 (par défaut) ou 🇺🇸 International ; le choix reste actif d'une ouverture à l'autre */
+let LANG = store.get('actus:langue') === 'en' ? 'en' : 'fr';
+let TABS = LANG === 'en' ? TABS_EN : TABS_FR;
+const ckey = id => `actus:${LANG === 'en' ? 'en:' : ''}${id}`;      // mémoire de secours, par langue
+const preTabs = () => (LANG === 'en' ? PRE.tabsEN : PRE.tabs) || {};
 let current = null, reqId = 0, PRE = null, query = '';
 
 /* Articles déjà lus : grisés */
@@ -365,7 +423,7 @@ async function fetchFeed(f){
   } finally { clearTimeout(t); }
 }
 async function loadDirect(tab, force, id){
-  const cached = store.get('actus:' + tab.id);
+  const cached = store.get(ckey(tab.id));
   if (cached) render(tab, cached);
   if (cached && !force && Date.now() - cached.at < CACHE_MIN * 60000) return;
   busy(true);
@@ -378,8 +436,8 @@ async function loadDirect(tab, force, id){
   const seen = new Set();
   items = items.sort((a,b) => b.date - a.date).filter(i => !seen.has(i.link) && seen.add(i.link)).slice(0, MAX_ITEMS);
   const data = {at:Date.now(), items, failed};
-  store.set('actus:' + tab.id, data);
-  if (tab.id === 'une') store.set('actus:top', {...items[0], color:COLOR[items[0].source]});
+  store.set(ckey(tab.id), data);
+  if (tab.id === 'une' && LANG === 'fr') store.set('actus:top', {...items[0], color:COLOR[items[0].source]});
   render(tab, data);
 }
 const busy = on => { $('#feed').classList.toggle('loading', on); $('#refreshBtn').classList.toggle('spin', on); };
@@ -396,7 +454,7 @@ async function load(tab, force){
 }
 function preTab(tab){
   const st = Object.fromEntries((PRE.sources || []).map(s => [s.url, s]));
-  return {at:PRE.at, items:((PRE.tabs[tab.id] || {}).items) || [], failed:tab.feeds.filter(f => st[f.url] && !st[f.url].ok).map(f => f.name)};
+  return {at:PRE.at, items:((preTabs()[tab.id] || {}).items) || [], failed:tab.feeds.filter(f => st[f.url] && !st[f.url].ok).map(f => f.name)};
 }
 
 function sample(tab){
@@ -460,8 +518,8 @@ function render(tab, data){
 const fold = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 function renderSearch(){
   const words = fold(query).split(/\s+/).filter(Boolean);
-  const pool = PRE ? TABS.flatMap(t => ((PRE.tabs[t.id] || {}).items || []).map(i => ({...i, tab:t.label})))
-                   : TABS.flatMap(t => ((store.get('actus:' + t.id) || {}).items || []).map(i => ({...i, tab:t.label})));
+  const pool = PRE ? TABS.flatMap(t => ((preTabs()[t.id] || {}).items || []).map(i => ({...i, tab:t.label})))
+                   : TABS.flatMap(t => ((store.get(ckey(t.id)) || {}).items || []).map(i => ({...i, tab:t.label})));
   const seen = new Set();
   const hits = pool.filter(i => { const h = fold(i.title + ' ' + i.desc); return words.every(w => h.includes(w)); })
     .filter(i => !seen.has(i.link) && seen.add(i.link)).sort((a, b) => b.date - a.date).slice(0, 60);
@@ -489,6 +547,27 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#searc
 
 $('#refreshBtn').addEventListener('click', () => query ? loadPre(true).then(renderSearch) : select(current, true));
 document.addEventListener('visibilitychange', () => { if (!document.hidden && PRE && Date.now() - PRE.loaded > 10 * 60e3 && !query) select(current); });
+
+/* Bulle de langue : 🇫🇷 Français / 🇺🇸 International */
+function renderLang(){
+  $('#langBtn').textContent = LANG === 'en' ? '🇺🇸' : '🇫🇷';
+  $('#langBtn').setAttribute('aria-label', `Actus : ${LANG === 'en' ? 'International' : 'Français'} — changer`);
+  document.querySelectorAll('#langMenu [data-lang]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.lang === LANG)));
+}
+function toggleLangMenu(open){ $('#langMenu').hidden = !open; $('#langBtn').setAttribute('aria-expanded', String(open)); if (open) $(`#langMenu [data-lang="${LANG}"]`).focus(); }
+$('#langBtn').addEventListener('click', e => { e.stopPropagation(); toggleLangMenu($('#langMenu').hidden); });
+$('#langMenu').addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]'); if (!b) return;
+  toggleLangMenu(false);
+  if (b.dataset.lang === LANG) return;
+  LANG = b.dataset.lang; store.set('actus:langue', LANG); TABS = LANG === 'en' ? TABS_EN : TABS_FR;
+  renderLang(); closeSearch(); reqId++;
+  $('#feed').innerHTML = ''; current = null;
+  select(TABS.some(t => t.id === store.get('actus:tab')) ? store.get('actus:tab') : 'une');
+});
+document.addEventListener('click', e => { if (!$('#langMenu').hidden && !e.target.closest('.lang-wrap')) toggleLangMenu(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#langMenu').hidden){ toggleLangMenu(false); $('#langBtn').focus(); } });
+renderLang();
 
 /* Démarrage : onglet de l'adresse (#sport…), sinon le dernier consulté */
 const start = location.hash.slice(1) || store.get('actus:tab') || 'une';

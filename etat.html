@@ -204,10 +204,10 @@ function render(e){
 
   if (e.sport){
     const rows = e.sport.ligues.map(l => {
-      const st = l.erreur ? `<span class="tag err">erreur</span>` : l.pause ? `<span class="tag none">en pause</span>` : l.joursEnEchec ? `<span class="tag warn">${l.joursEnEchec} j. non lus</span>` : `<span class="tag ok">ok</span>`;
+      const st = l.erreur ? `<span class="tag err" title="${esc(l.erreur)}">erreur</span>` : l.pause ? `<span class="tag none">en pause</span>` : l.joursEnEchec ? `<span class="tag warn">${l.joursEnEchec} j. non lus</span>` : l.avert ? `<span class="tag warn">${esc(l.avert)}</span>` : `<span class="tag ok">ok</span>`;
       return `<tr><td>${esc(l.nom)}</td><td class="n">${l.pause ? '—' : esc(l.matchs ?? '?')}</td><td>${esc(l.classement)}</td><td>${st}</td></tr>`;
     }).join('');
-    h += part('Matchs et classements', j.sport, `<table class="rows"><thead><tr><th>Compétition</th><th>Matchs</th><th>Classement</th><th>État</th></tr></thead><tbody>${rows}</tbody></table>
+    h += part('Matchs et classements', j.sport, `<table class="rows"><thead><tr><th>Compétition</th><th>Matchs / séances</th><th>Classement</th><th>État</th></tr></thead><tbody>${rows}</tbody></table>
       <p class="note">« en pause » : tournoi sans match prévu dans les 45 jours. Version de la page Sport : ${esc(e.sport.version || '?')}.</p>`, j.sport.lvl !== 'ok');
   } else h += part('Matchs et classements', j.sport, '<p class="note">La tâche « Programme TV sport » n\'a encore rien publié.</p>', true);
 

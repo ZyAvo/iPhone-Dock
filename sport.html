@@ -307,6 +307,41 @@ body.locked{overflow:hidden}
 .cal-nav button:disabled{opacity:.25}
 .cal-nav button{height:36px;border-radius:12px;font-size:1.3rem;color:var(--accent)}
 .more-links{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+/* ---------- F1 / MotoGP : une ligne par séance ---------- */
+.race{border-radius:22px;overflow:hidden}
+.race.is-live{background:linear-gradient(160deg, var(--live-soft), var(--glass-tint) 70%)}
+.rrow{display:grid;grid-template-columns:62px 1fr;gap:12px;align-items:center;width:100%;padding:12px 14px 8px}
+.ses{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ses b{font-size:.95rem;font-weight:600}
+.ses small{font-size:.76rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.podium{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:.8rem;color:var(--ink-soft)}
+.podium b{color:var(--ink);font-family:var(--f-num);margin-right:3px}
+.race .tv{align-items:center;padding-bottom:8px}
+.race .tv .mini{padding:3px 9px}
+details.rk{padding:0 14px 8px 88px;font-size:.82rem}
+details.rk summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:.76rem;list-style:none}
+details.rk summary::-webkit-details-marker{display:none}
+details.rk ol{list-style:none;margin:6px 0 2px;padding:0;display:flex;flex-direction:column;gap:5px}
+details.rk li{display:grid;grid-template-columns:1.6em minmax(0,1fr) auto;gap:0 8px;align-items:baseline}
+details.rk li b{font-family:var(--f-num);color:var(--ink-soft)}
+details.rk li small{grid-column:2;color:var(--ink-faint);font-size:.7rem}
+details.rk li em{grid-row:1;grid-column:3;font-style:normal;color:var(--ink-soft);font-family:var(--f-num);font-size:.76rem}
+.race .more-links{padding:0 14px 12px 88px;margin-top:0}
+.gplist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.gp{border-radius:18px;overflow:hidden}
+.gp.past{opacity:.72}
+.gp.cur{box-shadow:0 0 0 2px var(--accent), var(--shadow)}
+.gp summary{display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;list-style:none}
+.gp summary::-webkit-details-marker{display:none}
+.gpn{font-family:var(--f-num);font-size:.78rem;font-weight:700;color:var(--ink-soft);min-width:1.6em}
+.gpt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.gpt b{font-size:.95rem}
+.gpt small{font-size:.74rem;color:var(--ink-soft)}
+.gpses{list-style:none;margin:0;padding:0 14px 6px 50px;display:flex;flex-direction:column;gap:5px;font-size:.84rem}
+.gpses li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 10px}
+.gpses time{font-family:var(--f-num);color:var(--ink-soft);text-transform:capitalize}
+.gpses em{grid-column:1 / -1;font-style:normal;font-size:.74rem;color:var(--ink-soft)}
+.gp .hint{padding:0 14px 10px 50px;margin:0}
 .mini{padding:6px 11px;border-radius:999px;font-size:.76rem;font-weight:600;color:var(--accent);background:var(--accent-soft)}
 #sheetBody > .more-links{justify-content:center}
 .cal-views{margin-bottom:-4px}
@@ -399,9 +434,13 @@ const GROUPS = [
   {id:'rugby',  label:'Rugby',   icon:'rugby'},
   {id:'basket', label:'Basket',  icon:'basket'},
   {id:'nfl',    label:'Foot US', icon:'nfl'},
-  {id:'hockey', label:'Hockey',  icon:'hockey'}
+  {id:'hockey', label:'Hockey',  icon:'hockey'},
+  {id:'f1',     label:'F1',      icon:'car'},
+  {id:'motogp', label:'MotoGP',  icon:'moto'}
 ];
 const SPORT_ICONS = {
+  car:'<path d="M2.5 15.5v-2.4c0-.6.4-1.2 1-1.4l3.6-1.2 2.6-3h5.1l2.8 3.1 2.9.9c.6.2 1 .8 1 1.4v2.6"/><path d="M2.5 15.5h2.6M9.4 15.5h5.2M18.9 15.5h2.6"/><circle cx="7.2" cy="15.8" r="2.1"/><circle cx="16.8" cy="15.8" r="2.1"/><path d="M9.7 10.3h7.2"/>',
+  moto:'<circle cx="5.5" cy="16" r="3"/><circle cx="18.5" cy="16" r="3"/><path d="M5.5 16 9.2 10h4.6l2 3.2H10.6M13.8 10l1.6-3h2.6M18.5 16l-2.7-5.2"/>',
   all:'<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>',
   foot:'<circle cx="12" cy="12" r="8.5"/><path d="m12 8 3.6 2.6-1.4 4.2H9.8l-1.4-4.2z"/><path d="M12 3.5V8M15.6 10.6l4.1-1.3M14.2 14.8l2.5 3.5M9.8 14.8l-2.5 3.5M8.4 10.6 4.3 9.3"/>',
   rugby:'<ellipse cx="12" cy="12" rx="9.5" ry="5.6" transform="rotate(-40 12 12)"/><path d="M7.6 16.4 16.4 7.6"/><path d="m9.6 12.6 1.8 1.8M11.2 11l1.8 1.8M12.8 9.4l1.8 1.8"/>',
@@ -418,7 +457,8 @@ const REGIONS = [
   {id:'rfr',   label:'Rugby · France'},
   {id:'reu',   label:'Rugby · Europe'},
   {id:'rintl', label:'Rugby · International'},
-  {id:'us',    label:'Sports US'}
+  {id:'us',    label:'Sports US'},
+  {id:'moto',  label:'Sports mécaniques'}
 ];
 const LEAGUES = [
   {id:'fra.1',               region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Ligue 1',             tv:['Ligue 1+'], rounds:true, of:'fr.1'},
@@ -458,9 +498,11 @@ const LEAGUES = [
   {id:'289234',              region:'rintl', flag:'🌍', sport:'rugby', group:'rugby', name:'Tests internationaux', tv:['TF1'], tvTeam:'France', seasonal:true},
   {id:'nba',                 region:'us',  flag:'🇺🇸', sport:'basketball', group:'basket', name:'NBA', tv:['beIN Sports','Prime Video'], partial:true},
   {id:'nfl',                 region:'us',  flag:'🇺🇸', sport:'football',   group:'nfl',    name:'NFL', tv:['beIN Sports'], partial:true, rounds:true},
-  {id:'nhl',                 region:'us',  flag:'🇺🇸', sport:'hockey',     group:'hockey', name:'NHL', tv:['beIN Sports','DAZN'], partial:true}
+  {id:'nhl',                 region:'us',  flag:'🇺🇸', sport:'hockey',     group:'hockey', name:'NHL', tv:['beIN Sports','DAZN'], partial:true},
+  {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
+  {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ];
-const VERSION = '2026-10-27.10';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-28.1';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -481,8 +523,7 @@ const MAXOFF = (7 - new Date().getDay()) % 7 + 7;   // dimanche de la semaine pr
 const OFFSETS = Array.from({length:MAXOFF + 4}, (_, i) => i - 3);
 
 let selDay = 0, shownDay = null;
-let group = store.get('sport:group') || 'all';
-if (!GROUPS.some(g => g.id === group)) group = 'all';
+let group = 'all';                                   // à chaque ouverture : tous les sports, jour même
 let DATA = {};                  // league id -> {at, events:[…]}
 let sample = false, failed = new Set(), open = new Set();
 
@@ -628,6 +669,7 @@ const isIdle = L => { const t = store.get(idleKey(L)); return !!(L.seasonal && t
 /* Les fichiers préparés sont allégés (valeurs vides retirées, logos de foot implicites) : on les complète ici */
 function expand(m){
   const L = LBY[m.league];
+  if (!m.home) return m;                                  // séance F1 / MotoGP
   [m.home, m.away].forEach(t => {
     if (t.full == null) t.full = t.name;
     if (t.logo == null) t.logo = L && L.sport === 'soccer' && t.id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${t.id}.png` : '';
@@ -679,6 +721,7 @@ async function preLeague(L){
 const preCovers = (pre, s, e) => pre && pre.events && pre.events.length && (!pre.range || (s.getTime() >= pre.range.start - 864e5 && e.getTime() <= pre.range.end + 864e5));
 
 async function loadLeague(L, force){
+  if (L.sport === 'racing') return loadRacing(L, force);
   if (PRE.ok && !force){                              // données préparées : seuls les matchs du jour sont relus sur ESPN
     const d = DATA[L.id]; if (!d || PRE.idle[L.id]) return;
     const today = ymd(dayAt(0));
@@ -715,7 +758,7 @@ async function loadAll(force = false){
   let pending = 0;
   await pool(order.map(L => async () => { await loadLeague(L, force); if (++pending % 3 === 0) render(); }), 5);
   $('#refreshBtn').classList.remove('spin');
-  if (!Object.values(DATA).some(d => d.events.length) && LEAGUES.filter(L => !L.seasonal).every(L => failed.has(L.id))) useSample();
+  if (!Object.values(DATA).some(d => d.events.length) && LEAGUES.filter(L => !L.seasonal && L.sport !== 'racing').every(L => failed.has(L.id))) useSample();
   render();
 }
 
@@ -727,7 +770,17 @@ setInterval(async () => {
   await pool(due.map(L => () => loadLeague(L)), 4);
   render();
 }, 30000);
-document.addEventListener('visibilitychange', () => { if (document.hidden || sample) return; if (PRE.ok && Date.now() - PRE.at > 2 * 3600e3) PRE.tried = false; loadAll(); });
+/* Retour sur la page après plus de 20 min (ou le lendemain) : on revient à « Tout » et au jour même */
+let hiddenAt = 0, openDay = new Date().toDateString();
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden){ hiddenAt = Date.now(); return; }
+  if ((hiddenAt && Date.now() - hiddenAt > 20 * 60e3) || openDay !== new Date().toDateString()){
+    openDay = new Date().toDateString(); selDay = 0; shownDay = null; group = 'all'; renderFilters(); window.scrollTo({top:0}); render();
+  }
+  if (sample) return;
+  if (PRE.ok && Date.now() - PRE.at > 2 * 3600e3) PRE.tried = false; loadAll();
+});
+window.addEventListener('pageshow', e => { if (e.persisted){ selDay = 0; shownDay = null; group = 'all'; renderFilters(); render(); } });
 
 /* ---------- Programme TV (tv.json, mis à jour par la tâche GitHub) ---------- */
 let TV = null;
@@ -965,7 +1018,94 @@ function matchHTML(m, showComp){
     </button>${tvHTML(m)}${moreHTML(m)}</li>`;
 }
 
+/* ---------- F1 / MotoGP ---------- */
+const RACE_RES = {f1:['Q', 'S', 'R'], motogp:['Q2', 'SPR', 'RAC']};
+const RACE_LIVE = {f1:'https://www.formula1.com/en/timing/f1-live', motogp:'https://www.motogp.com/en/live-timing'};
+const raceState = (m, now = Date.now()) => now < m.t ? 'pre' : now < m.t + (m.dur || 60) * 60e3 ? 'in' : 'post';
+function refreshRaceStates(){
+  LEAGUES.forEach(L => { if (L.sport === 'racing') ((DATA[L.id] || {}).events || []).forEach(m => { m.state = raceState(m); }); });
+}
+/* Pendant une séance (ou juste après, tant que le résultat manque) : classement relu toutes les minutes */
+async function loadRacing(L, force){
+  const d = DATA[L.id]; if (!d || sample) return;
+  refreshRaceStates();
+  const now = Date.now();
+  const need = d.events.filter(m => m.state === 'in' || (m.state === 'post' && !m.top && RACE_RES[L.id].includes(m.ses) && now - m.t - m.dur * 60e3 < 3 * 3600e3));
+  if (!need.length || (!force && now - (d.liveAt || 0) < 55e3)) return;
+  d.liveAt = now;
+  try{
+    if (L.id === 'f1'){
+      const j = await getJSON(`${API}/racing/f1/scoreboard`);
+      const comps = (j.events || []).flatMap(e => e.competitions || []);
+      need.forEach(m => {
+        const c = comps.reduce((b, x) => { const dt = Math.abs(Date.parse(x.date) - m.t); return dt < 3 * 3600e3 && (!b || dt < b.dt) ? {x, dt} : b; }, null);
+        const rows = c ? (c.x.competitors || []).filter(r => r.order).sort((a, b) => a.order - b.order).slice(0, 10) : [];
+        if (rows.length) m.top = rows.map(r => ({pos:r.order, name:(r.athlete || {}).shortName || (r.athlete || {}).displayName || '?', team:'', info:''}));
+      });
+    } else if (L.id === 'motogp'){
+      await Promise.all(need.filter(m => m.sid).map(async m => {
+        const c = await getJSON(`https://api.motogp.pulselive.com/motogp/v1/results/session/${encodeURIComponent(m.sid)}/classification?test=false`);
+        const rows = ((c || {}).classification || []).filter(x => x.position).slice(0, 10);
+        if (rows.length) m.top = rows.map(x => ({pos:+x.position, name:(x.rider || {}).full_name || '?', team:(x.team || {}).name || '', info:x.time || (x.gap && x.gap.first ? '+' + x.gap.first : '')}));
+      }));
+    }
+  }catch{}
+}
+/* Chaîne d'une séance : programme TV qui parle de F1 (ou MotoGP) et de la bonne séance, à la bonne heure */
+const RACE_KEY = {f1:t => / formule 1 | f1 /.test(t) && !/ formule [23] | f[23] /.test(t), motogp:t => / motogp | moto gp /.test(t) && !/ moto ?[23] /.test(t)};
+const SES_RE = {
+  FP1:t => / (essais libres|libres|el|fp) ?1 /.test(t), FP2:t => / (essais libres|libres|el|fp) ?2 /.test(t), FP3:t => / (essais libres|libres|el|fp) ?3 /.test(t),
+  SQ:t => / sprint /.test(t) && / qualif| shootout /.test(t), S:t => / sprint /.test(t) && !/ qualif| shootout /.test(t),
+  Q:t => / qualif/.test(t) && !/ sprint /.test(t), R:t => / course /.test(t) || (/ grand prix /.test(t) && !/ qualif| essais| libres| sprint /.test(t)),
+  PR:t => / practice | essais /.test(t) && !/ libres /.test(t), Q1:t => / qualif\S* ?1 | q1 /.test(t), Q2:t => / qualif\S* ?2 | q2 /.test(t),
+  SPR:t => / sprint /.test(t), WUP:t => / warm/.test(t), RAC:t => / course /.test(t) || (/ grand prix /.test(t) && !/ qualif| essais| libres| sprint /.test(t))
+};
+function tvForRace(m){
+  if (!TV) return null;
+  const key = RACE_KEY[m.league], ses = SES_RE[m.ses];
+  const near = TV.filter(p => key(p.txt) && p.s >= m.t - 60 * 60e3 && p.s <= m.t + 15 * 60e3 && p.e >= m.t + 15 * 60e3);
+  const exact = ses ? near.filter(p => ses(p.txt)) : [];
+  const names = [...new Set((exact.length ? exact : near).map(p => p.c))].sort((a, b) => GENERIC.test(a) - GENERIC.test(b));
+  return names.length ? names.slice(0, 2) : null;
+}
+function sessionHTML(m, showComp){
+  const L = LBY[m.league], st = m.state, top = m.top || [];
+  const status = st === 'in' ? `<span class="st live"><span><span class="pulse"></span>En cours</span></span>`
+               : st === 'post' ? `<span class="st post">Terminé<small>${hhmm(m.t)}</small></span>` : `<span class="st">${hhmm(m.t)}</span>`;
+  const podium = top.length ? `<span class="podium">${top.slice(0, 3).map(r => `<span><b>${r.pos}</b>${esc(r.name)}</span>`).join('')}</span>` : '';
+  const ch = st !== 'post' ? tvForRace(m) : null;
+  const tv = ch ? `<span class="pill fr exact" title="D'après le programme TV"><b>FR</b>${esc(ch.join(' · '))}</span>`
+           : L.tv && st !== 'post' ? `<span class="pill fr"><b>FR</b>${esc(L.tv.join(' · '))}</span>` : '';
+  const live = st === 'in' ? `<a class="mini" href="${RACE_LIVE[L.id]}" target="_blank" rel="noopener">Chrono en direct ›</a>` : '';
+  const more = top.length ? `<details class="rk"><summary>${st === 'in' ? 'Classement provisoire' : 'Classement'} › ${top.length} premiers</summary><ol>${top.map(r =>
+      `<li><b>${r.pos}</b><span>${esc(r.name)}</span>${r.info ? `<em>${esc(r.info)}</em>` : ''}${r.team ? `<small>${esc(r.team)}</small>` : ''}</li>`).join('')}</ol></details>` : '';
+  return `<li class="race glass${st === 'in' ? ' is-live' : st === 'post' ? ' is-post' : ''}" data-id="${esc(m.id)}">
+    ${showComp ? `<div class="ctag">${compBadge(L)}<span>${esc(L.name)} · ${esc(m.gp.flag)} ${esc(m.gp.name)}</span></div>` : ''}
+    <div class="rrow">${status}<span class="ses"><b>${esc(m.label)}</b>${podium || `<small>${esc(m.gp.flag)} ${esc(m.gp.name)} · ${esc(m.gp.circuit)}</small>`}</span></div>
+    ${tv || live ? `<div class="tv">${tv}${live}</div>` : ''}${more}
+    <div class="more-links"><button type="button" class="mini" data-open="table" data-cl="${esc(L.id)}">Classement</button>
+      <button type="button" class="mini" data-open="cal" data-cl="${esc(L.id)}" data-t="${m.t}">Calendrier</button></div></li>`;
+}
+const itemHTML = (m, showComp) => LBY[m.league].sport === 'racing' ? sessionHTML(m, showComp) : matchHTML(m, showComp);
+function raceCalHTML(L, c){
+  if (c.events === null || !c.gps) return `<div class="skeleton glass"></div><div class="skeleton glass"></div>`;
+  if (!c.gps.length) return `<div class="empty">Le calendrier n'est pas disponible pour l'instant.</div>`;
+  const now = Date.now(), by = {};
+  (c.events || []).forEach(m => { (by[m.gp.id] = by[m.gp.id] || []).push(m); });
+  const next = c.gps.find(g => g.end >= now - 6 * 3600e3);
+  return `<ol class="gplist">${c.gps.map(g => {
+    const ses = (by[g.id] || []).sort((a, b) => a.t - b.t), race = ses.find(m => m.ses === 'R' || m.ses === 'RAC'), win = race && race.top && race.top[0];
+    const past = g.end < now - 6 * 3600e3, cur = g === next;
+    const days = `${fmtShort(new Date(g.start))} – ${fmtShort(new Date(g.end))}`;
+    return `<li class="gp glass${cur ? ' cur' : ''}${past ? ' past' : ''}"${cur ? ' id="gpCur"' : ''}><details${cur ? ' open' : ''}>
+      <summary><span class="gpn">${g.round}</span><span class="gpt"><b>${g.flag} ${esc(g.name)}</b><small>${days}${win ? ` · vainqueur : ${esc(win.name)}` : cur ? ' · prochain Grand Prix' : ''}</small></span></summary>
+      ${ses.length ? `<ul class="gpses">${ses.map(m => `<li><span>${esc(m.label)}</span><time>${new Date(m.t).toLocaleDateString('fr-FR', {weekday:'short'})} ${hhmm(m.t)}</time>${m.top && m.top[0] ? `<em>1. ${esc(m.top[0].name)}</em>` : ''}</li>`).join('')}</ul>`
+                   : `<p class="hint">Horaires des séances pas encore publiés.</p>`}
+      <p class="hint">${esc(g.circuit)}</p></details></li>`; }).join('')}</ol>`;
+}
+
 function render(){
+  refreshRaceStates();
   renderDays();
   const evs = eventsOfDay(selDay).sort((a,b) => a.t - b.t);
   const box = $('#content'); let html = '';
@@ -975,12 +1115,18 @@ function render(){
 
   const live = evs.filter(m => m.state === 'in');
   if (live.length) html += `<section class="comp"><div class="comp-head"><h2 class="live-title"><span class="pulse"></span>En direct</h2></div>
-      <ul class="list">${live.map(m => matchHTML(m, true)).join('')}</ul></section>`;
+      <ul class="list">${live.map(m => itemHTML(m, true)).join('')}</ul></section>`;
 
   const rest = evs.filter(m => m.state !== 'in');
   LEAGUES.forEach(L => {
     const ms = rest.filter(m => m.league === L.id);
     if (!ms.length) return;
+    if (L.sport === 'racing'){
+      const gp = ms[0].gp;
+      html += `<section class="comp"><div class="comp-head"><h2><button type="button" data-comp="${esc(L.id)}" aria-label="Classement et calendrier ${esc(L.name)}">${compBadge(L)}<span>${esc(L.name)}</span></button></h2><span class="sp">${esc(gp.flag)} ${esc(gp.name)}</span></div>
+        <ul class="list">${ms.map(m => sessionHTML(m)).join('')}</ul></section>`;
+      return;
+    }
     html += `<section class="comp"><div class="comp-head"><h2><button type="button" data-comp="${esc(L.id)}" aria-label="Classement et calendrier ${esc(L.name)}">${compBadge(L)}<span>${esc(L.name)}</span></button></h2><span class="sp">${ms.length} match${ms.length > 1 ? 's' : ''}</span></div>
       <ul class="list">${ms.map(m => matchHTML(m)).join('')}</ul></section>`;
   });
@@ -998,7 +1144,7 @@ function render(){
 $('#days').addEventListener('click', e => { const b = e.target.closest('.day'); if (!b) return; selDay = +b.dataset.o; window.scrollTo({top:0}); render(); ensureDay(selDay); });
 $('#filters').addEventListener('click', e => {
   const b = e.target.closest('.chip'); if (!b) return;
-  group = b.dataset.g; store.set('sport:group', group); renderFilters(); render();
+  group = b.dataset.g; renderFilters(); render();
 });
 function matchClick(e, extra = []){
   const op = e.target.closest('[data-open]');
@@ -1240,7 +1386,8 @@ const COLS = {
   rugby:     [[['gamesPlayed'],'J'],[['wins'],'G'],[['ties','draws'],'N'],[['losses'],'P'],[['pointDifferential','pointsDifference','differential'],'Diff'],[['bonusPoints','totalBonusPoints','bonus'],'Bonus'],[['points'],'Pts']],
   basketball:[[['wins'],'V'],[['losses'],'D'],[['winPercent'],'%'],[['gamesBehind'],'Écart'],[['streak'],'Série']],
   football:  [[['wins'],'V'],[['losses'],'D'],[['ties'],'N'],[['winPercent'],'%'],[['streak'],'Série']],
-  hockey:    [[['gamesPlayed'],'MJ'],[['wins'],'V'],[['losses'],'D'],[['otLosses'],'DP'],[['points'],'Pts']]
+  hockey:    [[['gamesPlayed'],'MJ'],[['wins'],'V'],[['losses'],'D'],[['otLosses'],'DP'],[['points'],'Pts']],
+  racing:    [[['team'],'Écurie'],[['wins'],'V'],[['points'],'Pts']]
 };
 const MOIS = d => { const t = d.toLocaleDateString('fr-FR',{month:'long', year:'numeric'}); return t.charAt(0).toUpperCase() + t.slice(1); };
 let csheet = null;   // {mode:'list'|'comp', L, fromList, tab, table, cal, focus}
@@ -1340,15 +1487,18 @@ function tableHTML(L, data){
   const one = data.tables.length === 1;
   const zone = n => n && n.text ? zoneOf(n) : null;
   const html = data.tables.map(t => {
+    // F1 / MotoGP : colonnes propres à chaque tableau (pas d'« Écurie » dans le classement des écuries)
+    const tc = L.sport === 'racing' ? cols.filter(([n]) => t.entries.some(e => { const x = statOf(e, n); return x && x.v !== ''; })) : cols;
+    const head = L.sport === 'racing' ? (t.title === 'Écuries' ? 'Écurie' : 'Pilote') : 'Équipe';
     const rows = t.entries.map((e, i) => {
       const z = zone(e.note); if (z) notes.set(z.label, z.color);
       const rk = statOf(e, ['rank', 'playoffSeed']);
       return `<tr${z ? ` style="--nc:${esc(z.color)}" title="${esc(z.label)}"` : ''} class="${z ? 'noted' : ''}">
         <th class="pl" scope="row"><span class="tc"><span class="rk">${esc(rk ? rk.v : i + 1)}</span>${e.logo ? `<img class="tlg" src="${esc(e.logo)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<span class="tn">${esc(e.name)}</span></span></th>
-        ${cols.map(([n], k) => { const s = statOf(e, n); return `<td class="${k === cols.length - 1 ? 'key' : ''}">${esc(s ? s.v : '')}</td>`; }).join('')}</tr>`;
+        ${tc.map(([n], k) => { const s = statOf(e, n); return `<td class="${k === tc.length - 1 ? 'key' : ''}">${esc(s ? s.v : '')}</td>`; }).join('')}</tr>`;
     }).join('');
     return `${one ? '' : `<h3 class="bx-h">${esc(GROUP_FR[t.title] || t.title)}</h3>`}
-      <div class="tbl-wrap"><table class="bx-tbl st-tbl"><thead><tr><th class="pl">Équipe</th>${cols.map(([, l]) => `<th>${esc(l)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+      <div class="tbl-wrap"><table class="bx-tbl st-tbl"><thead><tr><th class="pl">${head}</th>${tc.map(([, l]) => `<th>${esc(l)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
   }).join('');
   const legend = notes.size ? `<ul class="legend">${[...notes].map(([t, c]) => `<li><i style="background:${esc(c)}"></i>${esc(t)}</li>`).join('')}</ul>` : '';
   return `${data.season ? `<p class="hint">Saison ${esc(data.season)}</p>` : ''}${data.note ? `<p class="hint">${esc(data.note)}</p>` : ''}${html}${legend}`;
@@ -1726,6 +1876,14 @@ function showRound(c, all){
 
 async function loadCal(){
   const cs = csheet, c = cs.cal, L = cs.L;
+  if (L.sport === 'racing'){
+    c.events = null; renderCsheet();
+    const pre = await preLeague(L);
+    c.gps = (pre && pre.gps) || []; c.events = (pre && pre.events) || [];
+    c.events.forEach(m => { m.state = raceState(m); });
+    if (csheet === cs){ renderCsheet(); requestAnimationFrame(() => { const g = document.getElementById('gpCur'); if (g) g.scrollIntoView({block:'center'}); }); }
+    return;
+  }
   if (c.mode === 'round') return loadRounds();
   if (!c.start && c.at){ const d = new Date(c.at); c.start = c.mode === 'month' ? monthOf(d) : mondayOf(d); }
   if (!c.start) c.start = c.mode === 'month' ? monthOf(dayAt(0)) : mondayOf(dayAt(0));
@@ -1753,6 +1911,7 @@ const roundName = (L, n) => L.id === 'nfl' ? `Semaine ${n}` : `${n}${n === 1 ? '
 const fmtShort = d => d.toLocaleDateString('fr-FR', {day:'numeric', month:'short'});
 function isoWeek(d){ const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = x.getUTCDay() || 7; x.setUTCDate(x.getUTCDate() + 4 - day); const y0 = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); return Math.ceil(((x - y0) / 864e5 + 1) / 7); }
 function calHTML(L, c){
+  if (L.sport === 'racing') return raceCalHTML(L, c);
   const views = c.mode === 'round' ? [['round', L.id === 'nfl' ? 'Par semaine NFL' : 'Par journée'], ['week', 'Par semaine']] : [['week', 'Par semaine'], ['month', 'Par mois']];
   let h = `<div class="filters cal-views">${views.map(([v, l]) => `<button type="button" class="chip" data-view="${v}" aria-pressed="${c.view === v}">${l}</button>`).join('')}</div>`;
   let label, sub = '', first = false, last = false;
