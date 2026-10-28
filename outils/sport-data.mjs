@@ -37,6 +37,7 @@ const {LEAGUES, applyRefs, parseCalendar, norm, logosOf, tableFrom, summaryEvent
 
 /* ---------- Fichiers plus légers : on retire ce que la page sait reconstituer (voir expand() dans sport.html) ---------- */
 const SPORT_OF = Object.fromEntries(LEAGUES.map(L => [L.id, L.sport]));
+const NAME_OF = Object.fromEntries(LEAGUES.map(L => [L.id, L.name]));
 const LOGO = (sport, id) => sport === 'soccer' && id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${id}.png` : null;
 function slimSide(t, sport){
   const o = {...t};
@@ -321,6 +322,6 @@ write(`${OUT}/index.json`, index);
 // Petit fichier pour le témoin « LIVE Sports » de l'accueil : matchs et séances d'hier soir à demain
 const DUREE = {soccer:115, rugby:110, basketball:150, football:200, hockey:165};
 write(`${OUT}/aujourdhui.json`, {v:1, updated:index.updated, events:upcoming.filter(m => m.t >= NOW - 8 * 3600e3 && m.t <= NOW + 30 * 3600e3).sort((a, b) => a.t - b.t).map(m => m.home
-  ? {id:m.id, l:m.league, sp:SPORT_OF[m.league], t:m.t, d:DUREE[SPORT_OF[m.league]] || 120, s:m.state, h:m.home.full || m.home.name, a:m.away.full || m.away.name}
-  : {id:m.id, l:m.league, t:m.t, d:m.dur || 60, s:m.state, h:m.gp ? m.gp.name : '', a:m.label || ''})});
+  ? {id:m.id, l:m.league, ln:NAME_OF[m.league], sp:SPORT_OF[m.league], t:m.t, d:DUREE[SPORT_OF[m.league]] || 120, s:m.state, h:m.home.full || m.home.name, a:m.away.full || m.away.name}
+  : {id:m.id, l:m.league, ln:NAME_OF[m.league], t:m.t, d:m.dur || 60, s:m.state, h:m.gp ? m.gp.name : '', a:m.label || ''})});
 console.log(`Terminé : ${calls} appels, ${fails} échecs, ${upcoming.length} matchs dans jours.json`);
