@@ -6,6 +6,7 @@
 //   donnees/sport/index.json     → état de chaque compétition (à jour, en pause…)
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {racing} from './sport-course.mjs';
 
 const PAGE = process.env.SPORT_PAGE || 'sport.html';
 const OUT = process.env.SPORT_OUT || 'donnees/sport';
@@ -46,6 +47,7 @@ function slimSide(t, sport){
   return o;
 }
 function slim(m){
+  if (!m.home) return m;                                   // séances F1 / MotoGP : déjà compactes
   const sport = SPORT_OF[m.league], o = {...m, home:slimSide(m.home, sport), away:slimSide(m.away, sport)};
   o.details = (m.details || []).map(d => Object.fromEntries(Object.entries(d).filter(([, v]) => v !== false && v !== null && v !== '' && v !== undefined)));
   if (!o.details.length) delete o.details;
@@ -277,6 +279,20 @@ const index = {updated:new Date(NOW).toISOString(), leagues:{}};
 const upcoming = [];
 for (const L of LEAGUES){
   const t0 = Date.now(), file = `${OUT}/${slug(L.id)}.json`, prev = read(file), S = seasonOf(L);
+  if (L.sport === 'racing'){                              // F1, MotoGP : séances, résultats et classements (outils/sport-course.mjs)
+    try{
+      const r = await racing(L, {get, NOW, prev});
+      write(file, {v:1, id:L.id, updated:index.updated, season:r.season, diag:r.diag, gps:r.gps, catId:r.catId, table:r.table, events:r.events});
+      index.leagues[L.id] = {count:r.events.length, gps:r.gps.length, table:r.table ? r.table.src : false, diag:{appels:r.diag.appels, erreurs:r.diag.erreurs.length}, file:`${slug(L.id)}.json`};
+      r.events.filter(m => m.t >= NOW - 4 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
+      console.log(`${L.name} : ${r.gps.length} Grands Prix, ${r.events.length} séances, ${Math.round((Date.now() - t0) / 1000)} s`, r.diag.erreurs.slice(0, 3).join(' | '));
+    }catch(e){
+      index.leagues[L.id] = {error:String(e.message || e)};
+      if (prev && prev.events) prev.events.filter(m => m.t >= NOW - 4 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
+      console.log(`${L.name} : ERREUR ${e.message}`);
+    }
+    continue;
+  }
   try{
     const r = await eventsFor(L, S, prev);
     if (r.idle){

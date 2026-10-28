@@ -12,9 +12,14 @@ const MAX_AGE = 72 * H, MAX_ITEMS = 45, PER_FEED = 25;
 
 /* ---------- Onglets et flux : lus dans actus.html ---------- */
 const page = fs.readFileSync(PAGE, 'utf8');
-const a = page.indexOf('const TABS = ['), b = page.indexOf('\n];', a);
-if (a < 0 || b < 0) throw new Error('Liste TABS introuvable dans ' + PAGE);
-const TABS = vm.runInNewContext(page.slice(a + 'const TABS = '.length, b + 2));
+function list(name, required){
+  const a = page.indexOf(`const ${name} = [`), b = page.indexOf('\n];', a);
+  if (a < 0 || b < 0){ if (required) throw new Error(`Liste ${name} introuvable dans ${PAGE}`); return []; }
+  return vm.runInNewContext(page.slice(a + `const ${name} = `.length, b + 2));
+}
+const TABS_FR = list('TABS_FR', false).length ? list('TABS_FR') : list('TABS', true);   // français (ancien nom : TABS)
+const TABS_EN = list('TABS_EN', false);                                                  // International (anglais)
+const TABS = [...TABS_FR, ...TABS_EN];
 
 /* ---------- Lecture XML (RSS 2.0, RSS 1.0, Atom) ---------- */
 const ENT = {amp:'&', lt:'<', gt:'>', quot:'"', apos:"'", nbsp:' ', laquo:'«', raquo:'»', rsquo:'’', lsquo:'‘', ldquo:'“', rdquo:'”', hellip:'…', ndash:'–', mdash:'—', eacute:'é', egrave:'è', agrave:'à', ccedil:'ç', ecirc:'ê', ocirc:'ô', icirc:'î', ucirc:'û'};
@@ -125,23 +130,28 @@ const got = await pool(feeds.map(f => async () => {
 const BY = Object.fromEntries(got);
 
 let prev = null; try{ prev = JSON.parse(fs.readFileSync(`${OUT}/actus.json`, 'utf8')); }catch{}
-const tabs = {};
-for (const t of TABS){
-  let items = t.feeds.flatMap(f => (BY[f.url] || []).slice(0, PER_FEED).map(i => ({...i, source:f.name, color:f.color, date:i.date || NOW})));   // une source ne peut pas noyer les autres
-  // flux en panne : on garde ses articles du passage précédent
-  t.feeds.filter(f => !state[f.url].ok).forEach(f => {
-    const old = ((prev && prev.tabs && prev.tabs[t.id] && prev.tabs[t.id].items) || []).filter(i => i.source === f.name);
-    items.push(...old);
-  });
-  const seen = new Set();
-  items = items.filter(i => NOW - i.date < MAX_AGE && i.date < NOW + H).sort((x, y) => y.date - x.date)
-    .filter(i => { const k = i.link.replace(/#.*$/, '').replace(/([?&])(utm_[a-z]+|xtor|at_[a-z]+|origin)=[^&]*/gi, '$1').replace(/[?&]+$/, ''); if (seen.has(k)) return false; seen.add(k); return true; });
-  tabs[t.id] = {items:cluster(items).slice(0, MAX_ITEMS)};
+function build(SET, prevTabs){
+  const tabs = {};
+  for (const t of SET){
+    let items = t.feeds.flatMap(f => (BY[f.url] || []).slice(0, PER_FEED).map(i => ({...i, source:f.name, color:f.color, date:i.date || NOW})));   // une source ne peut pas noyer les autres
+    // flux en panne : on garde ses articles du passage précédent
+    t.feeds.filter(f => !state[f.url].ok).forEach(f => {
+      const old = ((prevTabs && prevTabs[t.id] && prevTabs[t.id].items) || []).filter(i => i.source === f.name);
+      items.push(...old);
+    });
+    const seen = new Set();
+    items = items.filter(i => NOW - i.date < MAX_AGE && i.date < NOW + H).sort((x, y) => y.date - x.date)
+      .filter(i => { const k = i.link.replace(/#.*$/, '').replace(/([?&])(utm_[a-z]+|xtor|at_[a-z]+|origin)=[^&]*/gi, '$1').replace(/[?&]+$/, ''); if (seen.has(k)) return false; seen.add(k); return true; });
+    tabs[t.id] = {items:cluster(items).slice(0, MAX_ITEMS)};
+  }
+  return tabs;
 }
+const tabs = build(TABS_FR, prev && prev.tabs), tabsEN = build(TABS_EN, prev && prev.tabsEN);
 fs.mkdirSync(OUT, {recursive:true});
-Object.values(state).forEach(st => { st.onglets = TABS.filter(t => t.feeds.some(f => f.url === st.url)).map(t => t.label); });
-fs.writeFileSync(`${OUT}/actus.json`, JSON.stringify({v:1, updated:new Date(NOW).toISOString(), tabs, sources:Object.values(state)}));
+Object.values(state).forEach(st => { st.onglets = [...TABS_FR.filter(t => t.feeds.some(f => f.url === st.url)).map(t => t.label),
+  ...TABS_EN.filter(t => t.feeds.some(f => f.url === st.url)).map(t => 'International · ' + t.label)]; });
+fs.writeFileSync(`${OUT}/actus.json`, JSON.stringify({v:2, updated:new Date(NOW).toISOString(), tabs, tabsEN, sources:Object.values(state)}));
 const ko = Object.values(state).filter(s => !s.ok);
-console.log(`${feeds.length - ko.length}/${feeds.length} flux lus.` + Object.entries(tabs).map(([k, v]) => ` ${k}:${v.items.length}`).join(''));
+console.log(`${feeds.length - ko.length}/${feeds.length} flux lus.` + Object.entries(tabs).map(([k, v]) => ` ${k}:${v.items.length}`).join('') + ' | EN' + Object.entries(tabsEN).map(([k, v]) => ` ${k}:${v.items.length}`).join(''));
 ko.forEach(s => console.log(`  ✗ ${s.name} (${s.url}) : ${s.err}`));
 Object.values(state).filter(s => s.trouve).forEach(s => console.log(`  ↻ ${s.name} : flux trouvé à ${s.trouve}`));

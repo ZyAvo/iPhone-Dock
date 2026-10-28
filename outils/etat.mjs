@@ -21,7 +21,8 @@ const sport = idx && {
   updated:idx.updated, version:VERSION,
   ligues:Object.entries(idx.leagues || {}).map(([id, v]) => ({
     id, nom:NAME[id] || id, pause:!!v.idle, erreur:v.error || '', matchs:v.count ?? null,
-    classement:v.table === false ? 'absent' : v.table === 'calc' ? 'recalculé' : v.table ? 'ESPN' : 'absent',
+    classement:v.table === false || !v.table ? 'absent' : v.table === 'calc' ? 'recalculé' : typeof v.table === 'string' && v.table !== 'espn' ? v.table : 'ESPN',
+    avert:v.diag && v.diag.erreurs ? `${v.diag.erreurs} requête${v.diag.erreurs > 1 ? 's' : ''} en échec` : '',
     journees:v.rounds && v.rounds.ref != null ? `${v.rounds.ref} d'après ton calendrier` : '',
     joursEnEchec:(v.diag && v.diag.failed) || 0
   })).sort((x, y) => ORDER(x.id) - ORDER(y.id))
