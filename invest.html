@@ -407,7 +407,10 @@ function analyse(){
   lourdes.forEach(r => rules.push({lvl:'warn', court:`${r.l.nom} pèse ${fmt(r.v / total * 100)} % du total`, t:`<b>${esc(r.l.nom)}</b> pèse ${fmt(r.v / total * 100)} % du total (limite : ${fmt(maxL)} %)`}));
   if (total > 0 && !lourdes.length) rules.push({lvl:'ok', t:`Aucune ligne au-dessus de ${fmt(maxL)} % du total (hors fonds euros)`});
   rows.filter(r => r.manuel && r.l.date && TODAY - Date.parse(r.l.date) / DAY > 400).forEach(r => rules.push({lvl:'warn', court:`${r.l.nom} : valeur à mettre à jour`, t:`<b>${esc(r.l.nom)}</b> : valeur saisie le ${new Date(r.l.date).toLocaleDateString('fr-FR')}, à mettre à jour avec ton relevé`}));
-  rows.filter(r => r.absent).forEach(r => rules.push({lvl:'warn', court:`${r.l.nom} : cours non suivi`, t:`<b>${esc(r.l.nom)}</b> : pas de cours pour « ${esc(r.l.code)} ». Ajoute-le à la liste SUIVI d'invest.html (le cours arrive au passage suivant de la tâche « Marchés »).`}));
+  const suivi = code => [...SUIVI, ...INDICES].some(x => [x.isin, x.code].filter(Boolean).map(v => v.toUpperCase()).includes(String(code || '').toUpperCase()));
+  rows.filter(r => r.absent).forEach(r => rules.push(suivi(r.l.code)
+    ? {lvl:'info', ic:'…', court:'', t:`<b>${esc(r.l.nom)}</b> : cours pas encore reçu. Il arrive au prochain passage réussi de la tâche « Marchés » ; en attendant la ligne n'est pas comptée.`}
+    : {lvl:'warn', court:`${r.l.nom} : cours non suivi`, t:`<b>${esc(r.l.nom)}</b> : « ${esc(r.l.code)} » n'est pas dans la liste SUIVI d'invest.html. Ajoute-le (le cours arrivera au passage suivant de la tâche « Marchés »).`}));
   rows.filter(r => r.devise).forEach(r => rules.push({lvl:'warn', court:`${r.l.nom} : devise non gérée`, t:`<b>${esc(r.l.nom)}</b> est coté en ${esc(r.devise)} : conversion non gérée, ligne non comptée.`}));
   const fees = ok.filter(r => num(r.l.frais) != null);
   if (fees.length){ const e = fees.reduce((s, r) => s + r.v * num(r.l.frais) / 100, 0), base = fees.reduce((s, r) => s + r.v, 0);
@@ -472,7 +475,7 @@ function portefHTML(){
     const rs = A.rows.filter(r => r.l.compte === c); if (!rs.length) return '';
     return `<div class="group-h"><span class="k">${COMPTES[c]}</span><span class="k">${eur(A.env[c] || 0)}</span></div>
       <div class="lines glass">${rs.map(r => { const i = LIGNES.indexOf(r.l), dj = r.prev ? r.v / r.prev - 1 : null, pv = r.cost ? r.v / r.cost - 1 : null;
-        const sub = r.manuel ? `Saisie manuelle${r.l.date ? ' · ' + new Date(r.l.date).toLocaleDateString('fr-FR') : ''}` : r.absent ? `${esc(r.l.code)} · cours non suivi` : `${esc(r.l.code)} · ${masked() ? '••' : fmt(num(r.l.qte), num(r.l.qte) % 1 ? 3 : 0)} part${num(r.l.qte) > 1 ? 's' : ''}${r.c && r.c.ancien ? ' · cours ancien' : ''}`;
+        const sub = r.manuel ? `Saisie manuelle${r.l.date ? ' · ' + new Date(r.l.date).toLocaleDateString('fr-FR') : ''}` : r.absent ? `${esc(r.l.code)} · en attente du cours` : `${esc(r.l.code)} · ${masked() ? '••' : fmt(num(r.l.qte), num(r.l.qte) % 1 ? 3 : 0)} part${num(r.l.qte) > 1 ? 's' : ''}${r.c && r.c.ancien ? ' · cours ancien' : ''}`;
         return `<button class="line" type="button" data-edit="${i}"><span class="t"><b>${esc(r.l.nom || r.l.code)}</b><small>${sub}</small></span>
           <span class="v">${r.manuel ? `<b>${eur(r.v)}</b>` : `<b class="${cls(dj)}">${pct(dj, 2)}</b><span class="${cls(pv)}">${pv == null ? eur(r.v) : pct(pv)}</span>`}</span></button>`; }).join('')}</div>`;
   };
