@@ -299,7 +299,10 @@ const INDICES = [
   {id:'eurusd',      code:'EURUSD=X',  nom:'EUR / USD', accueil:true, change:true}
 ];
 const SUIVI = [
-  // exemple : {isin:'IE00B4L5Y983'},   ou si l'ISIN n'est pas reconnu : {isin:'IE00B4L5Y983', code:'EUNL.DE'}
+  {isin:'IE00B4L5Y983', code:'EUNL.DE', nom:'iShares Core MSCI World (Acc)'},        // cours Xetra en euros
+  {isin:'LU1681045370', code:'AEEM.PA', nom:'Amundi MSCI Emerging Markets (Acc)'},   // Euronext Paris
+  {isin:'LU1681048804', code:'500.PA',  nom:'Amundi S&P 500 (Acc)'},                 // Euronext Paris
+  // pour en ajouter : {isin:'…'}  (ajoute code:'SYMBOLE' si l'ISIN n'est pas reconnu)
 ];
 /* Repères mis à jour à la main */
 const LIVRET_A = {taux:1.7, depuis:'2026-08-01'};
