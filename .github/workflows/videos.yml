@@ -1,0 +1,43 @@
+name: Vidéos
+
+# Page Vidéos : catalogue des plateformes (une fois par jour, données TMDB) et dernières vidéos YouTube (toutes les 3 h).
+# Réglage nécessaire une fois : Settings → Secrets and variables → Actions → New repository secret
+#   nom : TMDB_TOKEN   valeur : ton « API Read Access Token » TMDB (themoviedb.org → Paramètres → API).
+on:
+  schedule:
+    - cron: '41 */3 * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'videos.html'
+      - 'outils/videos-data.mjs'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: videos
+  cancel-in-progress: true
+
+jobs:
+  videos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Reprise des données précédentes
+        run: bash outils/reprendre-donnees.sh
+
+      - name: Catalogue et vidéos
+        env:
+          TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
+          FORCER: ${{ github.event_name != 'schedule' && '1' || '' }}
+        run: node outils/videos-data.mjs
+
+      - name: Envoi des données
+        run: bash outils/publier-donnees.sh donnees/videos

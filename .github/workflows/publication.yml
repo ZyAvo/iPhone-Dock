@@ -10,7 +10,7 @@ on:
     branches: [main]
   workflow_dispatch:
   workflow_run:
-    workflows: ["Programme TV sport", "Actus", "Marchés"]
+    workflows: ["Programme TV sport", "Actus", "Marchés", "Vidéos"]
     types: [completed]
 
 permissions:
