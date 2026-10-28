@@ -44,8 +44,16 @@ const actus = aj && {
   onglets:Object.fromEntries(Object.entries(aj.tabs || {}).map(([k, v]) => [k, (v.items || []).length]))
 };
 
+const mj = read('donnees/marches/marches.json');
+const marches = mj && {
+  updated:mj.updated,
+  series:Object.entries(mj.cours || {}).map(([k, c]) => ({cle:k, nom:c.n || k, symbole:c.s, ancien:!!c.ancien, au:c.at ? new Date(c.at).toISOString() : null})),
+  taux:Object.values(mj.taux || {}).map(t => ({nom:t.nom, per:t.per, ancien:!!t.ancien})),
+  erreurs:((mj.diag && mj.diag.ko) || []).slice(0, 12)
+};
+
 const fj = read('fichiers.json');
 const fichiers = fj && {calendriers:fj.calendriers || [], logos:(fj.logos || []).length};
 
-fs.writeFileSync('etat.json', JSON.stringify({genere:new Date().toISOString(), sport, tv, actus, fichiers}));
-console.log('etat.json écrit', JSON.stringify({sport:!!sport, tv:!!tv, actus:!!actus, fichiers:!!fichiers}));
+fs.writeFileSync('etat.json', JSON.stringify({genere:new Date().toISOString(), sport, tv, actus, marches, fichiers}));
+console.log('etat.json écrit', JSON.stringify({sport:!!sport, tv:!!tv, actus:!!actus, marches:!!marches, fichiers:!!fichiers}));

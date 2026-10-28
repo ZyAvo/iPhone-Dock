@@ -17,7 +17,8 @@ function list(name, required){
   if (a < 0 || b < 0){ if (required) throw new Error(`Liste ${name} introuvable dans ${PAGE}`); return []; }
   return vm.runInNewContext(page.slice(a + `const ${name} = `.length, b + 2));
 }
-const TABS_FR = list('TABS_FR', false).length ? list('TABS_FR') : list('TABS', true);   // français (ancien nom : TABS)
+const TABS_FR = [...(list('TABS_FR', false).length ? list('TABS_FR') : list('TABS', true)),   // français (ancien nom : TABS)
+  ...list('TABS_AUTRES', false)];                                                         // onglets lus par d'autres pages (ex. Marchés → Investissements)
 const TABS_EN = list('TABS_EN', false);                                                  // International (anglais)
 const TABS = [...TABS_FR, ...TABS_EN];
 
