@@ -7,7 +7,7 @@ name: Marchés
 on:
   schedule:
     - cron: '3,23,43 7-21 * * 1-5'
-    - cron: '17 5 * * *'
+    - cron: '17 5 * * 2-6'          # valeurs liquidatives des fonds de la veille (rien de neuf le dimanche et le lundi matin)
   workflow_dispatch:
   push:
     paths:
