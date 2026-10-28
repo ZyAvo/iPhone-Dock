@@ -904,7 +904,7 @@ const tokens = t => [...new Set([t.full, t.name, t.abbr].flatMap(x => normTxt(x)
 async function loadTV(){
   if (sample) return;
   try{
-    const r = await fetch('tv.json', {cache:'no-store'});
+    const r = await fetch('tv.json', {cache:'no-cache'});   // le serveur répond « inchangé » (rien à télécharger) tant que le programme n'a pas bougé
     if (r.status === 404){ TV_META = 'missing'; renderHealth(); return; }
     if (!r.ok) return;
     const j = await r.json();

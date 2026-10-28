@@ -862,8 +862,9 @@ async function load(force){
     if (r.ok){ M = await r.json(); LS.set('invest:marches', M); }
   }catch{}
   try{
-    const r = await fetch('donnees/actus/actus.json', {cache:'no-cache'});
-    if (r.ok){ const j = await r.json(), it = ((j.tabs || {}).marches || {}).items || []; LS.set('invest:lire', {items:it.slice(0, 15).map(i => ({title:i.title, link:i.link, source:i.source, color:i.color, date:i.date}))}); }
+    let r = await fetch('donnees/actus/onglet-marches.json', {cache:'no-cache'});        // 8 Ko au lieu de tout le fichier des actus
+    if (r.status === 404) r = await fetch('donnees/actus/actus.json', {cache:'no-cache'});
+    if (r.ok){ const j = await r.json(), it = j.items || ((j.tabs || {}).marches || {}).items || []; LS.set('invest:lire', {items:it.slice(0, 15).map(i => ({title:i.title, link:i.link, source:i.source, color:i.color, date:i.date}))}); }
   }catch{}
   loadedAt = Date.now();
   $('#refreshBtn').classList.remove('spin');

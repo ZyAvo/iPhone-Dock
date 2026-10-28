@@ -484,14 +484,16 @@ $('main').addEventListener('touchend', e => {
 
 /* ---------- Actus préparées par la tâche GitHub (rapide) ---------- */
 async function loadPre(force){
-  if (PRE && !force && Date.now() - PRE.loaded < 5 * 60e3) return PRE;
+  if (PRE && PRE.lang === LANG && !force && Date.now() - PRE.loaded < 5 * 60e3) return PRE;
   try{
-    const r = await fetch(PRE_URL, {cache:'no-cache'});
+    // une langue à la fois (actus-fr.json / actus-en.json) ; ancien fichier complet en secours
+    let r = await fetch(`donnees/actus/actus-${LANG}.json`, {cache:'no-cache'});
+    if (r.status === 404) r = await fetch(PRE_URL, {cache:'no-cache'});
     if (!r.ok) return null;
     const j = await r.json();
     if (Date.now() - Date.parse(j.updated) > PRE_MAX) return null;
-    PRE = {...j, loaded:Date.now(), at:Date.parse(j.updated)};
-    const top = (((j.tabs || {}).une || {}).items || [])[0];
+    PRE = {...j, lang:LANG, loaded:Date.now(), at:Date.parse(j.updated)};
+    const top = LANG === 'fr' && (((j.tabs || {}).une || {}).items || [])[0];
     if (top) store.set('actus:top', {...top, color:COLOR[top.source] || '--t-slate'});
     return PRE;
   }catch{ return null; }
