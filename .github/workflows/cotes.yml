@@ -1,0 +1,48 @@
+# mon-ecran-version: d2ab441c
+name: Cotes
+
+# Cotes 1 / N / 2 des sites français (The Odds API), pour la page Sport.
+# Réglage nécessaire une fois : Settings → Secrets and variables → Actions → New repository secret
+#   nom : ODDS_API_KEY   valeur : ta clé de the-odds-api.com (offre gratuite : 500 crédits par mois)
+# La tâche passe toutes les 10 min mais ne dépense un crédit que quand un relevé est prévu
+# (matin, 15 min avant le coup d'envoi, mi-temps) ; elle ne republie le site que s'il y a du nouveau.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'outils/cotes-data.mjs'
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: cotes
+  cancel-in-progress: false
+
+jobs:
+  cotes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Dernières données
+        run: bash outils/reprendre-donnees.sh
+      - name: Relevés prévus
+        id: cotes
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: node outils/cotes-data.mjs
+      - name: Publier les données
+        if: steps.cotes.outputs.change == '1'
+        run: bash outils/publier-donnees.sh donnees/cotes
+      - name: Mettre le site à jour
+        if: steps.cotes.outputs.change == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run publication.yml --ref "${GITHUB_REF_NAME}"
