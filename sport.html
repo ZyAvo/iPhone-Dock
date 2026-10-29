@@ -654,7 +654,7 @@ const LEAGUES = [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ];
-const VERSION = '2026-10-29.3';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-29.4';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -1206,8 +1206,12 @@ function soccerEvents(j, m){
   const ath = {};
   (j.rosters || []).forEach(r => { const sd = r.homeAway || byId[String((r.team || {}).id)] || byName((r.team || {}).displayName); if (!sd) return;
     (r.roster || []).forEach(p => { const a = p.athlete || {}; if (a.id) ath['#' + a.id] = sd; if (a.displayName) ath[teamKey(a.displayName)] = sd; }); });
-  const out = [];
-  // 1) actions structurées
+  const athSide = a => (a && (ath['#' + a.id] || ath[teamKey(a.displayName)])) || '';
+  const MISS = /(penalty|pénalty|shoot.?out|tir au but).{0,24}(miss|sav|manqu|arrêt|raté|stopp)|(missed|saved) penalty/i;
+  const hasSO = m.home.so != null && m.home.so !== '' && m.away.so != null && m.away.so !== '';
+
+  // 1) actions structurées (keyEvents…)
+  const S = [];
   [j.keyEvents, j.scoringPlays, hc.details].filter(Array.isArray).flat().forEach(p => {
     if (!p) return;
     const tt = `${(p.type && [p.type.text, p.type.type, p.type.name].filter(Boolean).join(' ')) || ''}`.toLowerCase();
@@ -1218,33 +1222,79 @@ function soccerEvents(j, m){
     if (!kind) return;
     const a = ((p.participants || [])[0] || {}).athlete || (p.athletesInvolved || [])[0] || {};
     const t = p.team || {};
-    const side = byId[String(t.id)] || byName(t.displayName || t.name) || ath['#' + a.id] || ath[teamKey(a.displayName)] || '';
-    out.push({kind, min:(p.clock && p.clock.displayValue) || '', who:a.displayName || a.shortName || '', side,
+    S.push({kind, min:(p.clock && p.clock.displayValue) || '', who:a.displayName || a.shortName || '',
+      side:byId[String(t.id)] || byName(t.displayName || t.name) || athSide(a),
       og:/own goal/.test(tt) || !!p.ownGoal, pen:kind === 'goal' && (/penalty/.test(tt) || !!p.penaltyKick), so:!!p.shootout});
   });
-  // 2) commentaires (complément : souvent seule source des tirs au but)
-  const com = (j.commentary || []).slice().sort((x, y) => (+x.sequence || 0) - (+y.sequence || 0));
-  com.forEach(c => {
-    const pl = c.play || {}, txt = String(c.text || pl.text || '').trim();
+
+  // 2) commentaires et actions de jeu (dans l'ordre du match) : seule source fiable des tirs au but
+  const com = (j.commentary || []).length ? j.commentary.map((c, i) => ({c, pl:c.play || {}, i})) : (j.plays || []).map((pl, i) => ({c:{}, pl, i}));
+  const lines = com
+    .map(x => ({...x, seq:+(x.c.sequence ?? x.pl.sequence ?? x.pl.sequenceNumber) || null}))
+    .sort((a, b) => (a.seq != null && b.seq != null ? a.seq - b.seq : 0) || a.i - b.i);
+  const C = [];
+  lines.forEach((x, n) => {
+    const {c, pl} = x;
+    const txts = [c.text, pl.text, pl.shortText, c.shortText].filter(Boolean).map(String);
+    const tt = [(pl.type || {}).text, (c.type || {}).text].filter(Boolean).join(' ');
+    const all = `${tt} ${txts.join(' ')}`;
     const min = (c.time && c.time.displayValue) || (pl.clock && pl.clock.displayValue) || '';
-    let kind = '', who = '', side = '', og = false, so = false;
+    let kind = '', who = '', side = '', og = false, so = false, o;
     const pick = () => {                                   // « Prénom Nom (Équipe) »
-      for (const x of txt.matchAll(/([A-ZÀ-Ý][^.()!,;]*?)\s*\(([^)]+)\)/g)){ const sd = byName(x[2]); if (sd){ who = x[1].replace(/^.*\b(?:by|to)\s+/i, '').trim(); side = sd; return; } } };
-    let o;
-    if (/^goal!/i.test(txt)){ kind = 'goal'; pick(); so = /\d+\s*\(\d+\)/.test(txt.split(/\.\s/)[0]); }
-    else if ((o = txt.match(/^own goal by ([^,]+),\s*([^.]+)\./i))){ kind = 'goal'; og = true; who = o[1].trim(); const sd = byName(o[2]); side = sd === 'home' ? 'away' : sd === 'away' ? 'home' : ''; }
-    else if (/^penalty (missed|saved)!/i.test(txt)){ kind = 'penmiss'; pick(); }
-    else if (/second yellow card to|is shown the red card/i.test(txt)){ kind = 'red'; pick(); }
+      for (const t of txts) for (const y of t.matchAll(/([A-ZÀ-Ý][^.()!,;]*?)\s*\(([^)]+)\)/g)){ const sd = byName(y[2]); if (sd){ who = y[1].replace(/^.*\b(?:by|to)\s+/i, '').trim(); side = sd; return; } } };
+    const goalTxt = txts.find(t => /^goal!/i.test(t.trim()));
+    if (goalTxt){ kind = 'goal'; pick(); so = /\d+\s*\(\d+\)/.test(goalTxt.split(/\.\s/)[0]); }
+    else if ((o = all.match(/own goal by ([^,]+),\s*([^.]+)\./i))){ kind = 'goal'; og = true; who = o[1].trim(); const sd = byName(o[2]); side = sd === 'home' ? 'away' : sd === 'away' ? 'home' : ''; }
+    else if (MISS.test(all) && !/penalty (conceded|area|box)\b(?![^.]*\b(miss|sav))/i.test(all)){ kind = 'penmiss'; pick(); }
+    else if (/second yellow card to|is shown the red card/i.test(all) || /red.?card/i.test(tt)){ kind = 'red'; pick(); }
     if (!kind) return;
-    if (!side) side = ath[teamKey(who)] || '';
-    out.push({kind, min, who, side, og, so, pen:kind === 'goal' && /penalty/i.test(txt), com:true});
+    const a = ((pl.participants || [])[0] || {}).athlete || (pl.athletesInvolved || [])[0] || null;
+    if (!who && a) who = a.displayName || a.shortName || '';
+    if (!who){ const t = txts.find(t => /!/.test(t)) || txts[0] || '';        // « Penalty saved! Prénom Nom fails… » sans équipe entre parenthèses
+      const y = t.match(/!\s*(?:bad penalty by\s+)?((?:[A-ZÀ-Ý][\w'’.-]*(?:\s+(?:de|da|di|do|dos|del|van|von|der|den|le|la|el|al|ter|mac))*\s*){1,4})/i);
+      if (y) who = y[1].replace(/\b(?:fails|right|left|header|is|shot|converts|misses|hits)\b.*$/i, '').trim(); }
+    if (!side) side = byId[String((pl.team || {}).id)] || byName((pl.team || {}).displayName) || athSide(a) || ath[teamKey(who)] || '';
+    C.push({kind, min, who, side, og, so, pen:kind === 'goal' && /penalty/i.test(all), n});
   });
-  // doublons (même type, même minute, même nom de famille) : on garde la version structurée
-  const seen = new Set(), evs = [];
-  out.forEach(d => { if (!d.side) return;
-    const key = `${d.kind}|${Math.floor(minVal(d.min))}|${teamKey(d.who).split(' ').pop() || d.side}`;
-    if (seen.has(key)) return; seen.add(key); evs.push(d); });
-  return {evs:markShootout(evs, m), diag:evs.length ? '' : 'aucun but ni carton rouge reconnu'};
+
+  // 3) tirs au but lus dans les commentaires : buts « 1(4) » + penaltys manqués qui les entourent
+  let SO = [];
+  if (hasSO){
+    const first = C.findIndex(d => d.so);
+    if (first >= 0){
+      let k = first; while (k > 0 && C[k - 1].kind === 'penmiss' && minVal(C[k - 1].min) >= 90) k--;   // tirs manqués avant le premier tir réussi
+      SO = C.slice(k).filter(d => d.so || d.kind === 'penmiss').map(d => ({...d, so:true}));
+    }
+  }
+  // camp manquant pendant la séance : les tirs alternent
+  SO.forEach((d, i) => { if (d.side) return; const p = SO[i - 1], q = SO[i + 1];
+    d.side = p && p.side ? (p.side === 'home' ? 'away' : 'home') : q && q.side ? (q.side === 'home' ? 'away' : 'home') : ''; });
+
+  // 4) temps de jeu : actions structurées + commentaires, sans doublons
+  const soMin = SO.length ? Math.min(...SO.map(d => minVal(d.min))) : Infinity;
+  const regC = C.filter(d => !SO.some(s => s.n === d.n) && !d.so);
+  const regS = SO.length ? S.filter(d => !d.so && !(minVal(d.min) >= soMin && d.kind !== 'red' && !String(d.min).includes('+'))) : S;
+  const seen = new Map(), reg = [];
+  [...regS.map(d => ({...d})), ...regC].forEach(d => {
+    if (!d.side && !(hasSO && !SO.length && d.kind === 'penmiss' && minVal(d.min) >= 90)) return;   // camp inconnu : seulement un possible tir au but, complété plus bas
+    const key = `${d.kind}|${Math.floor(minVal(d.min))}|${teamKey(d.who).split(' ').pop() || d.side || d.n}`;
+    const o = seen.get(key); if (o){ if (o.n == null && d.n != null) o.n = d.n; return; }     // ordre du match repris du commentaire
+    seen.set(key, d); reg.push(d); });
+  let evs;
+  if (SO.length){
+    // au-delà du score du temps de jeu, un but structuré restant est un tir au but déjà lu : on l'écarte
+    const left = {home:+m.home.score || 0, away:+m.away.score || 0};
+    const sorted = reg.sort((a, b) => minVal(a.min) - minVal(b.min));
+    evs = [...sorted.filter(d => d.kind !== 'goal' || (left[d.side] > 0 && left[d.side]-- >= 0)), ...SO.filter(d => d.side).map((d, i) => ({...d, ord:i}))];
+  } else {
+    evs = markShootout(reg, m);
+    const so = evs.filter(d => d.so);
+    so.forEach((d, i) => { if (d.side) return; const p = so[i - 1], q = so[i + 1];
+      d.side = p && p.side ? (p.side === 'home' ? 'away' : 'home') : q && q.side ? (q.side === 'home' ? 'away' : 'home') : ''; });
+    evs = evs.filter(d => d.side);
+  }
+  evs = evs.map(({n, ...d}) => d);
+  return {evs, diag:evs.length ? '' : 'aucun but ni carton rouge reconnu'};
 }
 /* Repère les tirs au but : au-delà du score du temps réglementaire, les buts sont des tirs au but ;
    les penaltys manqués collés à eux en fin de liste aussi. Résultat : temps de jeu trié, puis tirs au but. */
@@ -1260,8 +1310,10 @@ function markShootout(list, m){
       if (d.so) continue;
       if (d.kind === 'penmiss' && minVal(d.min) >= 90) d.so = true; else break; }
   }
-  const sorted = [...reg.filter(d => !d.so), ...evs.filter(d => d.so).sort((a, b) => minVal(a.min) - minVal(b.min) || a.i - b.i)];
-  return sorted.map(({i, ...d}) => d);
+  const byN = evs.filter(d => d.so).every(d => d.n != null);
+  const ordOf = d => d.ord != null ? d.ord : byN ? d.n : 1e4 + minVal(d.min) * 10 + d.i / 1e3;
+  const sorted = [...reg.filter(d => !d.so), ...evs.filter(d => d.so).sort((a, b) => ordOf(a) - ordOf(b))];
+  return sorted.map(({i, ...d}, k) => d.so ? {...d, ord:d.ord != null ? d.ord : k} : d);
 }
 async function loadFull(m, li){
   const cur = FULL[m.id];
