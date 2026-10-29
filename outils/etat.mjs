@@ -17,6 +17,12 @@ const NAME = Object.fromEntries(LEAGUES.map(L => [L.id, L.name]));
 const ORDER = id => { const i = LEAGUES.findIndex(L => L.id === id); return i < 0 ? 999 : i; };
 
 const idx = read('donnees/sport/index.json');
+/* Logos des compétitions : le tien (logos/competitions/<nom>.png) ou celui d'ESPN */
+const slugify = x => String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const fjLogos = (read('fichiers.json') || {}).logos || [];
+const mesLogos = new Set(fjLogos.filter(f => f.startsWith('logos/competitions/')).map(f => slugify(f.split('/').pop().replace(/\.[a-z0-9]+$/i, ''))));
+const logoDe = id => { const nom = NAME[id] || id, f = read(`donnees/sport/${slugify(id)}.json`);
+  return {fichier:`logos/competitions/${slugify(nom)}.png`, perso:mesLogos.has(slugify(nom)) || mesLogos.has(slugify(id)), espn:!!(f && f.logo)}; };
 const sport = idx && {
   updated:idx.updated, version:VERSION,
   ligues:Object.entries(idx.leagues || {}).map(([id, v]) => ({
@@ -24,7 +30,8 @@ const sport = idx && {
     classement:v.table === false || !v.table ? 'absent' : v.table === 'calc' ? 'recalculé' : typeof v.table === 'string' && v.table !== 'espn' ? v.table : 'ESPN',
     avert:v.diag && v.diag.erreurs ? `${v.diag.erreurs} requête${v.diag.erreurs > 1 ? 's' : ''} en échec` : '',
     journees:v.rounds && v.rounds.ref != null ? `${v.rounds.ref} d'après ton calendrier` : '',
-    joursEnEchec:(v.diag && v.diag.failed) || 0
+    joursEnEchec:(v.diag && v.diag.failed) || 0,
+    logo:logoDe(id)
   })).sort((x, y) => ORDER(x.id) - ORDER(y.id))
 };
 
