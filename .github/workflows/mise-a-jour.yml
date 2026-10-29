@@ -1,0 +1,78 @@
+# mon-ecran-version: 56e186e1
+# Mise à jour en un seul fichier : dépose « mise-a-jour-….zip » à la racine du dépôt (Add file → Upload files).
+# Cette tâche le décompresse, applique la liste de fichiers à retirer (lot.json), supprime le zip, enregistre
+# le tout puis relance la publication. Les fichiers de .github/workflows ne peuvent pas être modifiés par une
+# tâche GitHub : s'ils ont changé, le résumé de la tâche (et la page État) dit lesquels déposer à la main.
+name: Mise à jour
+
+on:
+  push:
+    paths: ['mise-a-jour*.zip', 'lot.json']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: mise-a-jour
+  cancel-in-progress: false
+
+jobs:
+  maj:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Décompresser et appliquer
+        id: appli
+        run: |
+          set -e
+          git config user.name "mon-ecran"
+          git config user.email "mon-ecran@users.noreply.github.com"
+          z=$(ls -t mise-a-jour*.zip 2>/dev/null | head -1 || true)
+          manuels=""; lot="?"
+          if [ -n "$z" ]; then
+            tmp=$(mktemp -d); unzip -q -o "$z" -d "$tmp"
+            # zip fait à partir d'un dossier : on descend dans ce dossier
+            if [ ! -f "$tmp/lot.json" ] && [ "$(ls -A "$tmp" | wc -l)" -eq 1 ] && [ -d "$tmp/$(ls -A "$tmp")" ]; then tmp="$tmp/$(ls -A "$tmp")"; fi
+            if [ -d "$tmp/.github" ]; then
+              for f in $(cd "$tmp" && find .github -type f); do cmp -s "$tmp/$f" "$f" || manuels="$manuels $f"; done
+              rm -rf "$tmp/.github"
+            fi
+            cp -a "$tmp/." .
+            git rm -q --cached -- mise-a-jour*.zip 2>/dev/null || true
+            rm -f mise-a-jour*.zip
+          fi
+          if [ -f lot.json ]; then
+            lot=$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync("lot.json","utf8")).lot||"?")}catch{console.log("?")}')
+            node -e 'try{(JSON.parse(require("fs").readFileSync("lot.json","utf8")).supprimer||[]).forEach(f=>console.log(f))}catch{}' | while read -r f; do
+              [ -n "$f" ] && git rm -r -q --ignore-unmatch -- "$f" && rm -rf -- "$f"
+            done
+          fi
+          git add -A
+          if git diff --cached --quiet; then echo "Rien de nouveau à enregistrer."; echo "change=0" >> "$GITHUB_OUTPUT"
+          else git commit -q -m "Mise à jour $lot" && git push -q && echo "change=1" >> "$GITHUB_OUTPUT"; fi
+          {
+            echo "## Mise à jour $lot"
+            git show --stat --format="" HEAD 2>/dev/null | tail -40 | sed 's/^/    /'
+            if [ -n "$manuels" ]; then
+              echo; echo "### À déposer à la main (Add file → Upload files, dans le bon dossier)"
+              for f in $manuels; do echo "- \`$f\`"; done
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # un enregistrement fait par une tâche ne relance pas les autres tâches : on les lance nous-mêmes
+      - name: Relancer la publication et les tâches concernées
+        if: steps.appli.outputs.change == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ch=$(git diff --name-only HEAD~1 HEAD || true)
+          lance(){ gh workflow run "$1" --ref "${GITHUB_REF_NAME}" && echo "Lancé : $1"; }
+          echo "$ch" | grep -qE '^(actus\.html|outils/actus-data\.mjs)$' && lance actus.yml || true
+          echo "$ch" | grep -qE '^(invest\.html|outils/marches-data\.mjs|outils/yahoo\.py)$' && lance marches.yml || true
+          echo "$ch" | grep -qE '^(videos\.html|outils/videos-data\.mjs|chaines\.txt)$' && lance videos.yml || true
+          echo "$ch" | grep -qE '^(sport\.html|outils/sport-[a-z]+\.mjs|outils/tv-tri\.mjs|logos/|calendriers/)' && lance programme-tv.yml || true
+          lance publication.yml

@@ -1,3 +1,4 @@
+# mon-ecran-version: 666cb3de
 name: Actus
 
 # Toutes les 15 minutes : télécharge les flux RSS de la page Actus et prépare donnees/actus/actus.json
