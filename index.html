@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="88070b28">
+<meta name="mon-ecran-version" content="c17bf210">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -330,7 +330,7 @@ html:not(.desk) .app-btn.live-app{display:none}
 .tile.img{backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 8px 18px -10px rgba(0,0,0,.45)}
 .tile.img > *,.tile.img::before{display:none}
 
-.spacer{flex:1}
+.spacer{flex:1;min-height:14px}          /* au moins un peu d'air entre le dernier bloc et la barre du bas */
 /* Témoin « État des données » : un simple rond au milieu du bandeau du bas (vert, orange, rouge) */
 .etat{flex:none;width:28px;height:34px;display:grid;place-items:center;border-radius:10px}
 .etat i{width:8px;height:8px;border-radius:50%;background:var(--lc, #8b8c89);opacity:.85;box-shadow:0 0 0 3px color-mix(in oklab, var(--lc, #8b8c89) 20%, transparent)}
