@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="c2bc27ca">
+<meta name="mon-ecran-version" content="84c21c0c">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -160,6 +160,9 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .sv-form input,.sv-pin{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;max-width:220px}
 #sauvZone .actions{margin-top:8px}
 #syZone .actions{margin-top:8px}
+.ct-jauge{position:relative;height:10px;border-radius:99px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden;margin:4px 0 8px}
+.ct-jauge i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:99px}
+.ct-jauge span{position:absolute;top:0;bottom:0;width:2px;background:#e08a12}
 .sy-row{display:flex;gap:8px;align-items:center}
 .sy-row input{flex:1;max-width:none!important;font:13px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace!important}
 #syForm label input[name=jeton]{max-width:none}
@@ -405,21 +408,42 @@ function render(e){
       f.calendriers.length ? `<ul class="note">${f.calendriers.map(c => `<li>${esc(c.replace(/^calendriers\//, ''))}</li>`).join('')}</ul>` : '<p class="note">Aucun calendrier déposé.</p>', false);
   }
 
-  h += themeHTML() + autoHTML() + syncHTML() + sauvHTML();
+  h += cotesPart() + themeHTML() + autoHTML() + syncHTML() + sauvHTML();
   h += `<div class="actions"><a class="btn main" href="https://github.com/ZyAvo/iPhone-Dock/actions" target="_blank" rel="noopener">Voir les tâches GitHub</a>
     <button type="button" class="btn" id="resetBtn">Vider la mémoire de l'appli</button></div>
     <p class="note" id="resetMsg">« Vider la mémoire » efface les données gardées sur cet appareil (matchs, actus, pages) ; tes réglages (lieu météo, Spotify, favoris, langue des actus, placements, rafraîchissement) sont conservés.</p>`;
   $('#out').innerHTML = h;
   $('#stamp').textContent = '';
 }
+/* ---------- Cotes des matchs (tâche « Cotes », The Odds API) : compteur de crédits et clé pour l'actualisation à la main ---------- */
+let COTES = null;
+function cotesPart(){
+  const C = COTES, q = C && C.quota, cle = (() => { try{ return JSON.parse(localStorage.getItem('cotes:cle')) || ''; }catch{ return ''; } })();
+  const lq = (() => { try{ return JSON.parse(localStorage.getItem('cotes:quota')); }catch{ return null; } })();
+  const Q = q && lq ? (lq.at > q.at ? lq : q) : q || lq;
+  const lvl = !C ? 'none' : C.erreur ? 'warn' : Q && Q.restants <= 40 ? 'warn' : 'ok';
+  const msg = !C ? 'Pas encore lancées' : C.erreur ? `⚠ ${C.erreur}` : Q ? `${Q.utilises} crédit${Q.utilises > 1 ? 's' : ''} utilisé${Q.utilises > 1 ? 's' : ''} · ${Q.restants} restant${Q.restants > 1 ? 's' : ''}` : 'Aucun relevé pour l\'instant';
+  const pct = Q && Q.total ? Math.min(100, Math.round(Q.utilises / Q.total * 100)) : 0;
+  return part('Cotes des matchs', {lvl, msg}, `
+    ${Q ? `<div class="ct-jauge" role="img" aria-label="${pct} % des crédits utilisés"><i style="width:${pct}%"></i><span style="left:${100 - 120 / (Q.total || 500) * 100}%" title="mi-temps coupée"></span><span style="left:${100 - 40 / (Q.total || 500) * 100}%" title="relevés automatiques coupés"></span></div>
+      <p class="note">${Q.restants} crédits restants sur ${Q.total}. Sous <b>120</b> : plus de relevé à la mi-temps. Sous <b>40</b> : plus de relevé automatique (gardés pour l'actualisation à la main). Sous <b>5</b> : tout est bloqué jusqu'au renouvellement mensuel.</p>` : ''}
+    <p class="note">Relevés automatiques : le matin, 15 min avant chaque coup d'envoi et à la mi-temps, pour la Ligue 1, la Premier League, la Liga, la Serie A, la Bundesliga et les 3 coupes d'Europe. Une demande = 1 crédit.</p>
+    ${C && C.journal && C.journal.length ? `<p class="note"><b>Derniers relevés</b></p>${C.journal.slice(-6).reverse().map(l => `<div class="mono">${esc(l)}</div>`).join('')}` : ''}
+    <form class="sv-form" id="ctForm"><label class="note">Ta clé The Odds API (pour le bouton ↻ des matchs, gardée sur cet appareil)<input name="cle" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(cle)}" placeholder="clé de the-odds-api.com"></label>
+      <div class="actions"><button class="btn" type="submit">Enregistrer la clé</button></div><p class="note sv-msg" aria-live="polite"></p></form>
+    <p class="note">Mise en place : crée une clé gratuite sur <a href="https://the-odds-api.com" target="_blank" rel="noopener">the-odds-api.com</a>, puis sur GitHub : Settings → Secrets and variables → Actions → New repository secret, nom <b>ODDS_API_KEY</b>.</p>`, false);
+}
+document.addEventListener('submit', e => { if (e.target.id !== 'ctForm') return; e.preventDefault();
+  try{ localStorage.setItem('cotes:cle', JSON.stringify(e.target.cle.value.trim())); e.target.querySelector('.sv-msg').textContent = 'Clé enregistrée ✓'; }catch{} });
 async function load(){
   $('#refreshBtn').classList.add('spin');
+  try{ const r = await fetch('donnees/cotes/cotes.json', {cache:'no-cache'}); COTES = r.ok ? await r.json() : null; }catch{ COTES = null; }
   try{
     const r = await fetch('etat.json', {cache:'no-cache'});
     if (!r.ok) throw new Error(r.status);
     render(await r.json());
   }catch(err){
-    $('#out').innerHTML = `<div class="sum glass err"><span class="lamp"></span><div><b>Résumé introuvable</b><p>Le fichier etat.json est fait par la tâche GitHub « Publication ». Vérifie qu'elle a bien tourné (Settings → Pages → Source : GitHub Actions).</p></div></div>` + themeHTML() + autoHTML() + syncHTML() + sauvHTML();
+    $('#out').innerHTML = `<div class="sum glass err"><span class="lamp"></span><div><b>Résumé introuvable</b><p>Le fichier etat.json est fait par la tâche GitHub « Publication ». Vérifie qu'elle a bien tourné (Settings → Pages → Source : GitHub Actions).</p></div></div>` + cotesPart() + themeHTML() + autoHTML() + syncHTML() + sauvHTML();
   }finally{ $('#refreshBtn').classList.remove('spin'); }
 }
 $('#refreshBtn').addEventListener('click', load);
@@ -444,7 +468,7 @@ document.addEventListener('click', e => {
   document.querySelectorAll('[data-pal]').forEach(x => x.setAttribute('aria-checked', x.dataset.pal === v));
 });
 /* ---------- Sauvegarde : tes réglages et données personnelles dans un code à garder (Notes…), chiffré avec ton code ---------- */
-const REGLAGES = ['synchro:cfg', 'synchro:etat', 'invest:lignes', 'invest:reglages', 'invest:pin', 'invest:perimetre', 'invest:widget-per', 'invest:versements', 'coffre:chiffre', 'coffre:items',
+const REGLAGES = ['cotes:cle', 'synchro:cfg', 'synchro:etat', 'invest:lignes', 'invest:reglages', 'invest:pin', 'invest:perimetre', 'invest:widget-per', 'invest:versements', 'coffre:chiffre', 'coffre:items',
   'sport:favoris', 'sport:reduites', 'actus:langue', 'videos:abos', 'videos:liste', 'videos:vus', 'videos:yt-chaine',
   'lieu:favoris', 'lieu:actuel', 'palette', 'mode', 'rafraichissement', 'spotify:client'];
 const B64 = {de:u => { let t = ''; for (let i = 0; i < u.length; i += 8192) t += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(t); }, vers:s => Uint8Array.from(atob(s), c => c.charCodeAt(0))};

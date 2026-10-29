@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="586b5579">
+<meta name="mon-ecran-version" content="335f1fba">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -240,6 +240,23 @@ section.comp{display:flex;flex-direction:column;gap:8px}
 .ev2.home{grid-column:1;justify-content:flex-end;text-align:right}
 .ev2.away{grid-column:2;flex-direction:row-reverse;justify-content:flex-end}
 .ev2 .who{min-width:0;overflow-wrap:anywhere}
+.cotes{margin:10px 0 4px;padding:10px 12px;border-radius:16px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line);display:flex;flex-direction:column;gap:6px}
+.ct-h{display:flex;align-items:center;gap:8px}
+.ct-h b{font-size:.82rem;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft)}
+.ct-sous{font-size:.7rem;color:var(--ink-faint)}
+.ct-maj{margin-left:auto;width:30px;height:30px;border-radius:50%;color:var(--accent);font-size:1rem;display:grid;place-items:center}
+.ct-maj:disabled{opacity:.35}
+.ct-maj.spin{animation:spin .8s linear infinite}
+.ct-t{width:100%;border-collapse:collapse;font-size:.82rem;font-variant-numeric:tabular-nums;table-layout:fixed}
+.ct-t th,.ct-t td{padding:4px 2px;text-align:center;border-top:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ct-t thead th{border-top:0;font-size:.7rem;color:var(--ink-soft);font-weight:600}
+.ct-t tbody th{text-align:left;font-weight:500;color:var(--ink-soft);font-size:.76rem}
+.ct-t thead th:first-child,.ct-t tbody th{width:31%}
+.ct-t td.best{color:var(--accent);font-weight:700}
+.ct-evo{display:flex;flex-direction:column;gap:2px;font-size:.74rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.ct-evo b{color:var(--ink);font-weight:600}
+.ct-evo small{font-size:.64rem;color:var(--ink-faint)}
+.ct-pied{font-size:.7rem;color:var(--ink-faint)}
 .tline-note{grid-column:1/-1;justify-self:center;position:relative;z-index:1;margin-top:4px;padding:0 8px;background:var(--sheet-solid);border-radius:6px;font-size:.7rem;color:var(--ink-faint);text-align:center}
 .tline-so{grid-column:1/-1;justify-self:center;position:relative;z-index:1;margin:8px 0 3px;padding:3px 11px;border-radius:99px;background:var(--sheet-solid);border:1px solid var(--line);font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap;font-variant-numeric:tabular-nums}
 .ev2 .who small{color:var(--ink-soft);font-size:.72rem}
@@ -656,7 +673,7 @@ const LEAGUES = [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ];
-const VERSION = '2026-10-29.9';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-29.10';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -1191,9 +1208,72 @@ function moreHTML(m){
   const none = m.state === 'pre' ? 'Le match n’a pas commencé.' : loading ? 'Chargement du détail…' : (L.sport === 'soccer' ? 'Aucun but ni carton rouge.' : rugby ? 'Pas de détail disponible pour ce match.' : 'Pas de détail disponible pour ce sport.');
   const diag = !evs && full && full.diag ? `<span class="diag">Infos reçues d'ESPN : ${esc(full.diag)}. <a href="${esc(full.url)}" target="_blank" rel="noopener">Voir la fiche brute</a></span>` : '';
   return `<div class="more" ${open.has(m.id) ? '' : 'hidden'}>${tally}${evs || `<span class="none">${none}</span>`}${diag}
-    ${compLinks(m)}${favLinks(m)}
+    ${cotesHTML(m)}${compLinks(m)}${favLinks(m)}
     ${m.link ? `<a class="src" href="${esc(m.link)}" target="_blank" rel="noopener">Voir le match sur ESPN</a>` : ''}</div>`;
 }
+/* ---------- Cotes 1 / N / 2 des sites français (tâche GitHub « Cotes », The Odds API, 500 crédits par mois) ---------- */
+const COTES_LG = ['fra.1', 'eng.1', 'esp.1', 'ita.1', 'ger.1', 'uefa.champions', 'uefa.europa', 'uefa.europa.conf'];
+const SITES = {winamax_fr:'Winamax', betclic_fr:'Betclic', unibet_fr:'Unibet', pmu_fr:'PMU', netbet_fr:'NetBet'};
+const PHASES = {matin:'le matin', avant:'15 min avant', 'mi-temps':'à la mi-temps', manuel:'à la main'};
+const MANUEL_MIN = 5;                                   // plus d'actualisation à la main sous 5 crédits restants
+let COTES = null, cotesAt = 0;
+const cotesQuota = () => { const a = COTES && COTES.quota, b = store.get('cotes:quota'); return a && b ? (b.at > a.at ? b : a) : a || b || null; };
+async function loadCotes(force){
+  if (sample || (!force && Date.now() - cotesAt < 5 * 60e3)) return;
+  cotesAt = Date.now();
+  try{ const r = await fetch('donnees/cotes/cotes.json', {cache:'no-cache'}); if (r.ok){ COTES = await r.json(); majOuverts(); } }catch{}
+}
+function majOuverts(){
+  document.querySelectorAll('li.match').forEach(li => { if (!open.has(li.dataset.id)) return;
+    const m = Object.values(DATA).flatMap(d => d.events).find(x => String(x.id) === li.dataset.id); const mo = li.querySelector('.more');
+    if (m && mo && COTES_LG.includes(m.league)) mo.outerHTML = moreHTML(m); });
+}
+const cote = v => v == null ? '—' : Number(v).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2});
+function cotesHTML(m){
+  if (!COTES_LG.includes(m.league) || m.state === 'post') return '';
+  const srv = COTES && COTES.matchs && COTES.matchs[m.id], man = (store.get('cotes:manuel') || {})[m.id];
+  const dernier = man && (!srv || !srv.dernier || man.at > srv.dernier.at) ? {...man, phase:'manuel'} : srv && srv.dernier ? {...srv.dernier, phase:(srv.releves || []).slice(-1)[0]?.phase} : null;
+  const q = cotesQuota(), bloque = q && q.restants <= MANUEL_MIN, cle = !!store.get('cotes:cle');
+  const btn = `<button type="button" class="ct-maj" data-cotes-maj="${esc(m.id)}"${bloque || !cle ? ' disabled' : ''} aria-label="Actualiser les cotes (1 crédit)" title="${!cle ? 'Ajoute ta clé dans la page État' : bloque ? 'Plus assez de crédits' : 'Actualiser (1 crédit)'}">↻</button>`;
+  const pied = `<span class="ct-pied">${dernier ? `Relevé ${new Date(dernier.at).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}${dernier.phase ? ' · ' + (PHASES[dernier.phase] || dernier.phase) : ''}` : 'Premier relevé le matin du match'}${q ? ` · ${q.restants} crédit${q.restants > 1 ? 's' : ''} restant${q.restants > 1 ? 's' : ''}` : ''}${bloque ? ' · actualisation bloquée' : ''}</span>`;
+  if (!dernier) return `<div class="cotes"><div class="ct-h"><b>Cotes</b>${btn}</div>${pied}</div>`;
+  const sites = Object.entries(dernier.sites || {}).filter(([k]) => SITES[k]);
+  const best = k => Math.max(...sites.map(([, o]) => o[k] || 0));
+  const B = {h:best('h'), d:best('d'), a:best('a')};
+  const cell = (o, k) => `<td class="${o[k] && o[k] === B[k] ? 'best' : ''}">${cote(o[k])}</td>`;
+  const evo = (srv && srv.releves || []).filter(r => r.sites && Object.keys(r.sites).length);
+  const bestOf = (r, k) => Math.max(...Object.values(r.sites).map(o => o[k] || 0));
+  return `<div class="cotes"><div class="ct-h"><b>Cotes</b><span class="ct-sous">meilleure en couleur</span>${btn}</div>
+    <table class="ct-t"><thead><tr><th></th><th>${esc(m.home.name)}</th><th>Nul</th><th>${esc(m.away.name)}</th></tr></thead>
+    <tbody>${sites.map(([k, o]) => `<tr><th>${SITES[k]}</th>${cell(o, 'h')}${cell(o, 'd')}${cell(o, 'a')}</tr>`).join('')}</tbody></table>
+    ${evo.length > 1 ? `<div class="ct-evo">${['h', 'd', 'a'].map(k => `<span><b>${k === 'h' ? esc(m.home.name) : k === 'a' ? esc(m.away.name) : 'Nul'}</b> ${evo.map(r => `${cote(bestOf(r, k))} <small>${PHASES[r.phase] || r.phase}</small>`).join(' → ')}</span>`).join('')}</div>` : ''}
+    ${pied}</div>`;
+}
+/* actualisation à la main : appel direct à The Odds API avec ta clé (gardée sur cet appareil, réglée dans État) */
+const motsEq = s => teamKey(s).split(' ').filter(w => w.length >= 3 && !['fc', 'cf', 'afc', 'club', 'calcio', 'football', 'olympique', 'stade', 'real', 'and', 'the', 'ssc'].includes(w)).map(w => ({psg:'paris', utd:'united', man:'manchester', spurs:'tottenham', wolves:'wolverhampton', nottm:'nottingham', inter:'internazionale', gladbach:'monchengladbach', atleti:'atletico'})[w] || w);
+const procheEq = (a, b) => { const A = motsEq(a), B = motsEq(b); return A.some(w => B.some(x => x === w || (w.length > 4 && x.length > 4 && (x.startsWith(w) || w.startsWith(x))))); };
+async function cotesMain(m, btn){
+  const cle = store.get('cotes:cle'), sk = COTES && COTES.cles && COTES.cles[m.league];
+  if (!cle || !sk){ btn.title = !cle ? 'Ajoute ta clé dans la page État' : 'Compétition pas encore reconnue'; return; }
+  const q = cotesQuota(); if (q && q.restants <= MANUEL_MIN) return;
+  btn.disabled = true; btn.classList.add('spin');
+  try{
+    const u = `https://api.the-odds-api.com/v4/sports/${encodeURIComponent(sk)}/odds?apiKey=${encodeURIComponent(cle)}&bookmakers=${Object.keys(SITES).join(',')}&markets=h2h&oddsFormat=decimal&dateFormat=unix`;
+    const r = await fetch(u, {cache:'no-store'});
+    const rest = r.headers.get('x-requests-remaining'), used = r.headers.get('x-requests-used');
+    store.set('cotes:quota', rest != null ? {restants:+rest, utilises:+used, total:+rest + +used, at:Date.now()} : q ? {...q, restants:q.restants - 1, utilises:(q.utilises || 0) + 1, at:Date.now()} : null);
+    if (!r.ok) throw new Error(r.status);
+    const evs = await r.json();
+    const e = evs.find(x => Math.abs(x.commence_time * 1000 - m.t) < 3 * 3600e3 && ((procheEq(x.home_team, m.home.full || m.home.name) && procheEq(x.away_team, m.away.full || m.away.name)) || (procheEq(x.home_team, m.away.full || m.away.name) && procheEq(x.away_team, m.home.full || m.home.name))));
+    if (e){ const inv = !procheEq(e.home_team, m.home.full || m.home.name), sites = {};
+      (e.bookmakers || []).forEach(b => { const mk = (b.markets || []).find(x => x.key === 'h2h'); if (!mk) return; const o = n => (mk.outcomes.find(x => x.name === n) || {}).price;
+        const h = o(e.home_team), a = o(e.away_team), d = o('Draw'); if (h && a) sites[b.key] = inv ? {h:a, d, a:h} : {h, d, a}; });
+      const man = store.get('cotes:manuel') || {}; Object.keys(man).forEach(k => { if (man[k].at < Date.now() - 3 * 864e5) delete man[k]; });
+      man[m.id] = {at:Date.now(), sites}; store.set('cotes:manuel', man); }
+  }catch{}
+  majOuverts();
+}
+
 /* Détail complet d'un match de rugby (essais, transformations, pénalités, cartons) via la fiche ESPN */
 const FULL = {};
 function summaryEvents(j){
@@ -1590,12 +1670,14 @@ function matchClick(e, extra = []){
   open.has(id) ? open.delete(id) : open.add(id);
   row.setAttribute('aria-expanded', open.has(id));
   li.querySelector('.more').hidden = !open.has(id);
+  if (m && open.has(id) && COTES_LG.includes(m.league)) loadCotes();
   if (m && open.has(id) && ['rugby', 'soccer'].includes(LBY[m.league].sport) && m.state !== 'pre'){
     if (!FULL[m.id]) li.querySelector('.more').outerHTML = moreHTML(m);
     loadFull(m, li);
   }
 }
 $('#content').addEventListener('click', e => {
+  const cm = e.target.closest('[data-cotes-maj]'); if (cm){ const m = Object.values(DATA).flatMap(d => d.events).find(x => String(x.id) === cm.dataset.cotesMaj); if (m) cotesMain(m, cm); return; }
   const ft = e.target.closest('[data-favt]'); if (ft){ toggleTeamFav(ft.dataset.favt); render(); return; }
   const ut = e.target.closest('[data-unfavt]'); if (ut){ toggleTeamFav(ut.dataset.unfavt); render(); return; }
   const ul = e.target.closest('[data-unfavl]'); if (ul){ toggleLeagueFav(ul.dataset.unfavl); render(); return; }
@@ -2578,6 +2660,9 @@ function useSample(){
     M('270559', at(MAXOFF - 1,21,5), 'pre', T('Toulouse','ST'), T('Castres','CO'))
   ];
   list.forEach(m => (DATA[m.league] ||= {at:Date.now(), events:[]}).events.push(m));
+  { const mc = list.find(x => x.league === 'uefa.champions' && x.state === 'pre'), now = Date.now();      // exemple de cotes
+    const S = (h, d, a2) => ({winamax_fr:{h, d, a:a2}, betclic_fr:{h:h - .05, d:d + .1, a:a2 + .05}, unibet_fr:{h:h + .03, d:d - .05, a:a2 - .1}, pmu_fr:{h:h - .1, d, a:a2 + .15}});
+    if (mc) COTES = {quota:{restants:312, utilises:188, total:500, at:now}, cles:{}, matchs:{[mc.id]:{t:mc.t, releves:[{phase:'matin', at:now - 5 * 3600e3, sites:S(2.9, 3.6, 2.35)}, {phase:'avant', at:now - 600e3, sites:S(2.75, 3.55, 2.5)}], dernier:{at:now - 600e3, sites:S(2.75, 3.55, 2.5)}}}}; }
 }
 
 /* ---------- Démarrage ---------- */
