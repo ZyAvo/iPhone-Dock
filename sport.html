@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="048041e8">
+<meta name="mon-ecran-version" content="8db5c77c">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -673,7 +673,7 @@ const LEAGUES = [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ];
-const VERSION = '2026-10-29.14';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-29.15';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -1421,19 +1421,22 @@ function soccerEvents(j, m){
   SO.forEach((d, i) => { if (d.side) return; const p = SO[i - 1], q = SO[i + 1];
     d.side = p && p.side ? (p.side === 'home' ? 'away' : 'home') : q && q.side ? (q.side === 'home' ? 'away' : 'home') : ''; });
 
-  // 4) temps de jeu : actions structurées + commentaires, sans doublons
+  // 4) temps de jeu : la fiche du match seulement (les noms y diffèrent souvent de ceux des commentaires : « Pepe Tejero Gómez » / « Pepe Tejero »).
+  //    Les commentaires ne servent que pour les tirs au but, ou si la fiche n'a aucune action.
   const soMin = SO.length ? Math.min(...SO.map(d => minVal(d.min))) : Infinity;
   const last = w => teamKey(w).split(' ').pop();
+  const ficheVide = !S.length;
   const regC = C.filter(d => !SO.some(s => s.n != null && s.n === d.n) && !d.so
+    && (ficheVide || (hasSO && !SO.length && d.kind === 'penmiss' && minVal(d.min) >= 90))
     && !(fromTable && minVal(d.min) >= 90 && !String(d.min).includes('+') && (d.kind === 'penmiss' || d.cand) && SO.some(s => last(s.who) === last(d.who))));
   const regS = SO.length ? S.filter(d => !d.so && !(minVal(d.min) >= soMin && d.kind !== 'red' && !String(d.min).includes('+'))) : S;
   const reg = [];
   [...regS.map(d => ({...d})), ...regC].forEach(d => {
     if (!d.side && !(hasSO && !SO.length && d.kind === 'penmiss' && minVal(d.min) >= 90)) return;   // camp inconnu : seulement un possible tir au but, complété plus bas
     // même action vue deux fois (fiche et commentaire) : même type, même minute, même camp, nom proche (Gross / Groß, M. Kovacic / Mateo Kovacic)
-    const nom = teamKey(d.who).split(' ').pop() || '', mn = Math.floor(minVal(d.min));
+    const mots = w => teamKey(w).split(' ').filter(x => x.length >= 3), nom = mots(d.who), mn = Math.floor(minVal(d.min));
     const o = reg.find(x => x.kind === d.kind && Math.floor(minVal(x.min)) === mn && x.side === d.side && d.side
-      && (() => { const n2 = teamKey(x.who).split(' ').pop() || ''; return !nom || !n2 || nom === n2 || nom.slice(0, 4) === n2.slice(0, 4); })());
+      && (() => { const n2 = mots(x.who); return !nom.length || !n2.length || nom.some(a => n2.some(b => a === b || (a.length > 4 && b.length > 4 && a.slice(0, 5) === b.slice(0, 5)))); })());
     if (o){ if (o.n == null && d.n != null) o.n = d.n; return; }     // ordre du match repris du commentaire
     reg.push(d); });
   let evs;
