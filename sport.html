@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="5d34469b">
+<meta name="mon-ecran-version" content="048041e8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -673,7 +673,7 @@ const LEAGUES = [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ];
-const VERSION = '2026-10-29.13';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-29.14';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -1277,12 +1277,20 @@ async function cotesMain(m, btn){
     store.set('cotes:quota', rest != null ? {restants:+rest, utilises:+used, total:+rest + +used, at:Date.now()} : q ? {...q, restants:q.restants - 1, utilises:(q.utilises || 0) + 1, at:Date.now()} : null);
     if (!r.ok) throw new Error(r.status);
     const evs = await r.json();
-    const e = evs.find(x => Math.abs(x.commence_time * 1000 - m.t) < 3 * 3600e3 && ((procheEq(x.home_team, m.home.full || m.home.name) && procheEq(x.away_team, m.away.full || m.away.name)) || (procheEq(x.home_team, m.away.full || m.away.name) && procheEq(x.away_team, m.home.full || m.home.name))));
-    if (e){ const inv = !procheEq(e.home_team, m.home.full || m.home.name), sites = {};
-      (e.bookmakers || []).forEach(b => { const mk = (b.markets || []).find(x => x.key === 'h2h'); if (!mk) return; const o = n => (mk.outcomes.find(x => x.name === n) || {}).price;
+    // la réponse contient toute la compétition : on range les cotes de chacun de ses matchs, pas seulement celui touché
+    const man = store.get('cotes:manuel') || {}; Object.keys(man).forEach(k => { if (man[k].at < Date.now() - 3 * 864e5) delete man[k]; });
+    const tous = (DATA[m.league] && DATA[m.league].events || []).filter(x => x.home && x.away && x.state !== 'post');
+    let n = 0;
+    for (const x of tous){
+      const e = evs.find(v => Math.abs(v.commence_time * 1000 - x.t) < 3 * 3600e3 && ((procheEq(v.home_team, x.home.full || x.home.name) && procheEq(v.away_team, x.away.full || x.away.name)) || (procheEq(v.home_team, x.away.full || x.away.name) && procheEq(v.away_team, x.home.full || x.home.name))));
+      if (!e) continue;
+      const inv = !procheEq(e.home_team, x.home.full || x.home.name), sites = {};
+      (e.bookmakers || []).forEach(b => { const mk = (b.markets || []).find(y => y.key === 'h2h'); if (!mk) return; const o = nm => (mk.outcomes.find(y => y.name === nm) || {}).price;
         const h = o(e.home_team), a = o(e.away_team), d = o('Draw'); if (h && a) sites[b.key] = inv ? {h:a, d, a:h} : {h, d, a}; });
-      const man = store.get('cotes:manuel') || {}; Object.keys(man).forEach(k => { if (man[k].at < Date.now() - 3 * 864e5) delete man[k]; });
-      man[m.id] = {at:Date.now(), sites}; store.set('cotes:manuel', man); }
+      if (Object.keys(sites).length){ man[x.id] = {at:Date.now(), sites}; n++; }
+    }
+    store.set('cotes:manuel', man);
+    btn.title = `${n} match${n > 1 ? 's' : ''} de la compétition mis à jour`;
     cotesCache = null;
   }catch{}
   majOuverts();
