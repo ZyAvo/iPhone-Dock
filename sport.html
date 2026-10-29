@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<meta name="mon-ecran-version" content="586b5579">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -655,7 +656,7 @@ const LEAGUES = [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ];
-const VERSION = '2026-10-29.8';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-29.9';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -793,6 +794,7 @@ function mergeLive(base, fresh){
 const ghost = m => m.state === 'pre' && /SCHEDULED/.test(m.code || '') && m.t < Date.now() - 1.5 * 864e5;
 
 async function ensureDay(off){
+  if (off < -3 && PRE.ok && !PRE.passe) loadPasse();
   if ((off <= 3 && off >= -4) || sample) return;
   const rk = store.get('sport:norange') || {}, key = ymd(dayAt(off));
   const todo = LEAGUES.filter(L => rk[L.id] && DATA[L.id] && !(DATA[L.id].extra || []).includes(key));
@@ -856,13 +858,26 @@ async function loadPre(){
     LEAGUES.forEach(L => {
       if (PRE.idle[L.id]){ delete DATA[L.id]; return; }
       const lg = (j.leagues || {})[L.id] || {}, old = DATA[L.id];
-      const evs = (j.events || []).filter(m => m.league === L.id).map(expand);
+      const evs = [...(j.events || []), ...(PRE.passe || [])].filter((m, i, a) => m.league === L.id && a.findIndex(x => x.id === m.id) === i).map(expand);
       DATA[L.id] = {at:Date.now(), day:ymd(dayAt(0)), events:old && old.liveAt ? mergeLive(evs, old.events.filter(m => m.state !== 'pre')) : evs,
                     logo:lg.logo || '', logoDark:lg.logoDark || '', pre:true, liveAt:old && old.liveAt};
     });
     PRE.ok = true; failed.clear();
+    if (!PRE.passe) setTimeout(loadPasse, 1200);       // les jours J-4 à J-10 juste après l'affichage
     return true;
   }catch{ return false; }
+}
+/* Matchs de J-11 à J-4 (fichier à part pour une ouverture plus rapide), ajoutés aux compétitions déjà chargées */
+async function loadPasse(){
+  if (PRE.passe || PRE.passeEnCours || sample) return; PRE.passeEnCours = true;
+  try{
+    const r = await fetch('donnees/sport/passe.json', {cache:'no-cache'}); if (!r.ok) return;
+    const j = await r.json(); PRE.passe = (j.events || []).map(m => ({...m}));
+    LEAGUES.forEach(L => { const d = DATA[L.id]; if (!d || !d.events) return;
+      const ids = new Set(d.events.map(m => m.id));
+      PRE.passe.filter(m => m.league === L.id && !ids.has(m.id)).forEach(m => d.events.push(expand({...m}))); });
+    render();
+  }catch{}finally{ PRE.passeEnCours = false; }
 }
 async function preLeague(L){
   if (!PRE.ok) return null;
@@ -942,7 +957,13 @@ window.addEventListener('pageshow', e => { if (e.persisted){ shownDay = null; re
 
 /* ---------- Programme TV (tv.json, mis à jour par la tâche GitHub) ---------- */
 let TV = null;
-const normTxt = s => ' ' + String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+/* Nettoyage des noms (une seule règle partout) : minuscules, sans accents, et les lettres que la décomposition
+   ne simplifie pas (ß → ss, ø → o, æ → ae…) : « Groß » = « Gross », « Bodø/Glimt » = « Bodo/Glimt » */
+const LETTRES = {'ß':'ss', 'æ':'ae', 'œ':'oe', 'ø':'o', 'ł':'l', 'đ':'d', 'ð':'d', 'þ':'th', 'ı':'i', 'ħ':'h'};
+const plain = s => String(s || '').toLowerCase().replace(/[ßæœøłđðþıħ]/g, c => LETTRES[c]).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const teamKey = s => plain(s).replace(/[^a-z0-9]+/g, ' ').trim();
+const minVal = s => { const a = String(s || '').match(/(\d+)(?:\D{0,3}\+\s*(\d+))?/); return a ? +a[1] + (a[2] ? +a[2] / 100 : 0) : 999; };
+const normTxt = s => ' ' + teamKey(s) + ' ';
 const STOP = new Set(['fc','cf','ac','as','sc','rc','ss','sv','afc','club','de','la','le','les','du','des','the','and','olympique','stade','sporting','racing','football','rugby','calcio','ogc','losc','u21']);
 const ALIAS = {cologne:'koln', munich:'munchen', nuremberg:'nurnberg', utd:'united', spurs:'tottenham', wolves:'wolverhampton',
   paloise:'pau', bayonnais:'bayonne', rochelais:'rochelle', toulousain:'toulouse', brestois:'brest', lyonnais:'lyon', montois:'mont', briviste:'brive', castrais:'castres',
@@ -1177,32 +1198,44 @@ function moreHTML(m){
 const FULL = {};
 function summaryEvents(j){
   const hc = (((j.header || {}).competitions) || [])[0] || {};
-  const pools = [j.keyEvents, j.scoringPlays, hc.details, (j.commentary || []).map(c => c.play || c).filter(Boolean), j.plays];
-  const raw = pools.filter(p => Array.isArray(p) && p.length).flat();
+  const struct = [j.keyEvents, j.scoringPlays, hc.details].filter(p => Array.isArray(p) && p.length).flat();
+  const autres = [(j.commentary || []).map(c => c.play || c).filter(Boolean), j.plays].filter(p => Array.isArray(p) && p.length).flat();
   const diag = Object.keys(j).map(k => Array.isArray(j[k]) ? `${k} (${j[k].length})` : k).concat(hc.details ? [`header.details (${hc.details.length})`] : []).join(', ');
-  // ESPN n'utilise pas toujours les mêmes numéros d'équipe dans la fiche et dans la liste des matchs : on retient le camp
-  const sideOf = {};
-  (hc.competitors || []).forEach(x => { [x.id, x.team && x.team.id].filter(Boolean).forEach(id => { sideOf[String(id)] = x.homeAway; }); });
-  const seen = new Set(), evs = [];
-  raw.forEach(p => {
-    const txt = `${(p.type && (p.type.text || p.type.name)) || ''} ${p.text || ''}`;
-    const kind = classify(txt, p.scoringPlay, p); if (!kind) return;
-    const who = ((p.participants || [])[0] || {}).athlete?.displayName || ((p.athletesInvolved || [])[0] || {}).displayName || '';
-    const d = {kind, min:(p.clock && p.clock.displayValue) || '', team:p.team && String(p.team.id), who,
-      pen:kind === 'goal' && (/penalty|pénalty/i.test(txt) || !!p.penaltyKick), og:/own goal|contre son camp/i.test(txt) || !!p.ownGoal,
-      so:!!p.shootout || /shoot.?out|tirs? au but/i.test(txt)};
-    if (d.team && sideOf[d.team]) d.side = sideOf[d.team];
-    const key = `${d.kind}|${d.min}|${d.team}|${d.who}`; if (seen.has(key)) return; seen.add(key);
-    evs.push(d);
-  });
+  // camp : numéro d'équipe de la fiche (ESPN n'utilise pas toujours ceux de la liste des matchs), sinon nom d'équipe, sinon effectif
+  const sideOf = {}, names = {home:[], away:[]}, ath = {};
+  (hc.competitors || []).forEach(x => { const sd = x.homeAway, t = x.team || {}; [x.id, t.id].filter(Boolean).forEach(id => { sideOf[String(id)] = sd; });
+    if (names[sd]) names[sd].push(t.displayName, t.shortDisplayName, t.name, t.location, t.abbreviation); });
+  const byName = n => { const k = teamKey(n); if (!k) return '';
+    const hit = ['home', 'away'].filter(sd => names[sd].some(x => { const y = teamKey(x); return y && (y === k || (y.length > 3 && k.length > 3 && (y.includes(k) || k.includes(y)))); }));
+    return hit.length === 1 ? hit[0] : ''; };
+  (j.rosters || []).forEach(r => { const sd = r.homeAway || sideOf[String((r.team || {}).id)]; if (!sd) return;
+    (r.roster || []).forEach(p => { const a = p.athlete || {}; if (a.id) ath['#' + a.id] = sd; if (a.displayName) ath[teamKey(a.displayName)] = sd; }); });
+  const lire = pool => { const evs = [];
+    pool.forEach(p => {
+      const txt = `${(p.type && (p.type.text || p.type.name)) || ''} ${p.text || ''}`;
+      const kind = classify(txt, p.scoringPlay, p); if (!kind) return;
+      const a = ((p.participants || [])[0] || {}).athlete || (p.athletesInvolved || [])[0] || {};
+      const who = a.displayName || a.shortName || '';
+      const d = {kind, min:(p.clock && p.clock.displayValue) || '', team:p.team && p.team.id != null ? String(p.team.id) : undefined, who,
+        pen:kind === 'goal' && (/penalty|pénalty/i.test(txt) || !!p.penaltyKick), og:/own goal|contre son camp/i.test(txt) || !!p.ownGoal,
+        so:!!p.shootout || /shoot.?out|tirs? au but/i.test(txt)};
+      const sd = (d.team && sideOf[d.team]) || byName((p.team || {}).displayName) || ath['#' + a.id] || ath[teamKey(who)] || '';
+      if (sd) d.side = sd;
+      // même action lue deux fois (nom écrit autrement, numéro d'équipe absent) : on la garde une fois
+      const nom = teamKey(who).split(' ').pop() || '', mn = Math.floor(minVal(d.min));
+      if (evs.some(x => x.kind === d.kind && Math.floor(minVal(x.min)) === mn && (x.side || '') === (d.side || '')
+        && (() => { const n2 = teamKey(x.who).split(' ').pop() || ''; return !nom || !n2 || nom === n2 || nom.slice(0, 4) === n2.slice(0, 4); })())) return;
+      evs.push(d);
+    });
+    return evs.some(d => d.side) ? evs.filter(d => d.side) : evs;      // camp inconnu : écarté dès que les autres actions ont un camp
+  };
+  // les actions structurées d'abord ; les commentaires seulement si elles manquent
+  let evs = lire(struct); if (!evs.length) evs = lire(autres);
   return {evs, diag};
 }
 /* Foot : seulement les actions structurées d'ESPN (buts, penaltys manqués, cartons rouges) ;
    dans les commentaires, on ne lit que les lignes « Goal! », « Own Goal by », « Penalty missed/saved! » et les rouges.
    Le camp vient du numéro d'équipe, sinon du nom d'équipe ou de l'effectif ; sans camp sûr, l'action est écartée. */
-const minVal = s => { const a = String(s || '').match(/(\d+)(?:\D{0,3}\+\s*(\d+))?/); return a ? +a[1] + (a[2] ? +a[2] / 100 : 0) : 999; };
-const LETTRES = {'ß':'ss', 'æ':'ae', 'œ':'oe', 'ø':'o', 'ł':'l', 'đ':'d', 'ð':'d', 'þ':'th', 'ı':'i', 'ħ':'h'};   // lettres que la décomposition ne simplifie pas (Groß = Gross)
-const teamKey = s => String(s || '').toLowerCase().replace(/[ßæœøłđðþıħ]/g, c => LETTRES[c]).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 function soccerEvents(j, m){
   const hc = (((j.header || {}).competitions) || [])[0] || {};
   const byId = {[String(m.home.id)]:'home', [String(m.away.id)]:'away'}, names = {home:[m.home.full, m.home.name, m.home.abbr], away:[m.away.full, m.away.name, m.away.abbr]};
@@ -2050,7 +2083,7 @@ async function officialRounds(L, evs){
   }catch{ REFMEMO['of:' + L.id] = {at:Date.now(), v:[]}; return 0; }
 }
 /* ---------- Tes fichiers : logos et calendriers (index fichiers.json fait par la tâche GitHub) ---------- */
-const slug = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const slug = s => plain(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const seasonOf = L => { const y = seasonBounds(L)[0].getFullYear(); return `${y}-${String(y + 1).slice(2)}`; };
 const COUNTRY = L => ({fr:'france', rfr:'france', en:'angleterre', us:'etats-unis', intl:'selections', rintl:'selections'})[L.region]
   || ({'esp.1':'espagne', 'ita.1':'italie', 'ger.1':'allemagne'})[L.id] || null;

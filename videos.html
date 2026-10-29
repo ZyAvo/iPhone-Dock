@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<meta name="mon-ecran-version" content="5df972a6">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vidéos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -322,6 +323,8 @@ html.desk .ytplay:empty::after{content:"Choisis une vidéo dans la liste";margin
 .yt-open.muted{color:var(--ink-soft);font-weight:400}
 .yt-ch{color:var(--accent);font-weight:500}
 .more-yt{align-self:center}
+.yt-add{margin-left:auto}
+.etapes{margin:4px 0 8px;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:.9rem;line-height:1.4}
 .chan h2{margin:0;font-size:1.05rem}
 .chan a{font-size:.8rem;color:var(--accent);font-weight:500}
 .vlist{border-radius:22px;overflow:hidden}
@@ -373,14 +376,23 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } },
             set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }};
-const fold = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const fold = s => String(s || '').toLowerCase().replace(/[ßæœøłđðþıħ]/g, c => ({'ß':'ss', 'æ':'ae', 'œ':'oe', 'ø':'o', 'ł':'l', 'đ':'d', 'ð':'d', 'þ':'th', 'ı':'i', 'ħ':'h'})[c]).normalize('NFD').replace(/[̀-ͯ]/g, '');
 const IMG = (p, w = 'w342') => p ? `https://image.tmdb.org/t/p/${w}${p}` : '';
 const ago = t => { const m = Math.round((Date.now() - t) / 60000); if (m < 60) return `il y a ${Math.max(1, m)} min`; const h = Math.round(m / 60); if (h < 48) return `il y a ${h} h`; const d = Math.round(h / 24); return d < 30 ? `il y a ${d} j` : new Date(t).toLocaleDateString('fr-FR', {day:'numeric', month:'short', year:'numeric'}); };
 const TABS = [{id:'films', nom:'Films et séries'}, {id:'youtube', nom:'YouTube'}];
 const PBY = Object.fromEntries(PLATEFORMES.map(p => [p.id, p]));
 let ABOS = new Set(LS.get('videos:abos', PLATEFORMES.filter(p => p.abo).map(p => p.id)));
 let tab = TABS.some(t => t.id === LS.get('videos:onglet', '')) ? LS.get('videos:onglet') : TABS[0].id;
-let CAT = null, RES = null, YT = null, loadedAt = 0;
+let CAT = null, RES = {}, YT = null, loadedAt = 0;
+/* Résumés : 16 petits fichiers (même règle que outils/videos-data.mjs) ; l'ancien gros fichier en secours */
+const RES_LU = {};
+const bucket = k => { let h = 0; for (const ch of String(k)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return (h % 16).toString(16); };
+function resumeDe(k, done){
+  const b = bucket(k); if (RES_LU[b]) return;
+  RES_LU[b] = fetch(`donnees/videos/resumes/${b}.json`, {cache:'no-cache'})
+    .then(r => r.ok ? r.json() : fetch('donnees/videos/resumes.json', {cache:'no-cache'}).then(r2 => r2.ok ? r2.json() : {}))
+    .then(j => { Object.assign(RES, j || {}); done(); }).catch(() => { delete RES_LU[b]; });
+}
 let F = {type:'tout', tri:'pop', genre:'', q:'', vus:false, plat:'abos'}, shown = 60;
 const arrivee = x => Object.entries(x.arr || {}).filter(([p, d]) => d && ABOS.has(p)).map(([, d]) => d).sort().pop() || null;   // arrivée la plus récente sur un de tes abonnements
 let YTCH = LS.get('videos:yt-chaine', 'toutes'), ytShown = 40;     // chaîne choisie (« toutes » par défaut) et nombre de vidéos affichées
@@ -450,8 +462,8 @@ function posterHTML(x){
 }
 function ficheSheet(k){
   const x = CAT.titres.find(t => t.k === k); if (!x) return;
-  if (!RES) fetch('donnees/videos/resumes.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : {}).then(j => { RES = j || {}; const el = $('#resume'); if (el && RES[k]) el.textContent = RES[k]; }).catch(() => { RES = {}; });
-  const resume = (RES && RES[k]) || x.resume || '';
+  if (!RES[k]) resumeDe(k, () => { const el = $('#resume'); if (el && RES[k]) el.textContent = RES[k]; });
+  const resume = RES[k] || x.resume || '';
   const pls = x.p.map(id => PBY[id]).filter(Boolean).sort((a, b) => ABOS.has(b.id) - ABOS.has(a.id));
   openSheet(`<div class="fiche-top"><span class="poster">${x.affiche ? `<img src="${IMG(x.affiche)}" alt="" onerror="this.remove()">` : ''}</span>
       <div><h2 id="sheetTitle">${esc(x.titre)}</h2>
@@ -488,7 +500,8 @@ function ytHTML(){
   const bar = `<div class="yt-bar"><select class="chip sel yt-sel" id="ytChaine" aria-label="Chaîne">
       <option value="toutes"${!one ? ' selected' : ''}>Toutes les chaînes (${CH.length})</option>
       ${[...CH].sort((x, y) => String(x.nom).localeCompare(String(y.nom), 'fr')).map(c => `<option value="${esc(c.id)}"${one === c ? ' selected' : ''}>${esc(c.nom)}</option>`).join('')}</select>
-    ${one ? `<a class="yt-open" href="https://www.youtube.com/channel/${esc(one.id)}" target="_blank" rel="noopener">Ouvrir la chaîne ›</a>` : '<span class="yt-open muted">Les plus récentes d’abord</span>'}</div>`;
+    ${one ? `<a class="yt-open" href="https://www.youtube.com/channel/${esc(one.id)}" target="_blank" rel="noopener">Ouvrir la chaîne ›</a>` : '<span class="yt-open muted">Les plus récentes d’abord</span>'}
+    <button class="chip yt-add" type="button" data-act="yt-add" aria-label="Ajouter une chaîne">＋ Chaîne</button></div>`;
   const errs = CH.filter(c => c.erreur && !c.videos.length);
   const items = liste.map(v => { const seen = YTVUS.has(v.id), neu = !seen && v.date && Date.now() - v.date < 48 * 3600e3;
       return `<button class="v${seen ? ' seen' : ''}" type="button" data-yt="${esc(v.id)}"><span class="th"><img src="https://i.ytimg.com/vi/${esc(v.id)}/mqdefault.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">${neu ? '<span class="bd">Nouveau</span>' : v.short ? '<span class="bd">Short</span>' : ''}${seen ? '<span class="vu"></span>' : ''}</span>
@@ -499,6 +512,23 @@ function ytHTML(){
     ${(one ? one.ancien : CH.some(c => c.ancien)) ? '<p class="credit">YouTube ne répond pas : dernière liste connue.</p>' : ''}
     ${!one && errs.length ? `<p class="credit">Sans vidéos pour l'instant : ${errs.map(c => esc(c.nom)).join(', ')}.</p>` : ''}
     <p class="credit">Lecture avec le lecteur officiel de YouTube. Certaines vidéos ne se lisent que sur YouTube : utilise alors « YouTube » ou « Ouvrir avec… ».</p></div></div>`;
+}
+
+/* Ajouter une chaîne : une ligne dans chaines.txt (à la racine du dépôt GitHub), lue par la tâche « Vidéos » */
+const DEPOT = 'https://github.com/ZyAvo/iPhone-Dock';
+function ytAddSheet(){
+  const existe = YT && YT.fichierChaines;
+  const url = existe ? `${DEPOT}/edit/main/chaines.txt` : `${DEPOT}/new/main?filename=chaines.txt&value=${encodeURIComponent('# Une chaîne YouTube par ligne : son lien (https://www.youtube.com/@nom), @nom ou identifiant UC…\n# Facultatif : | nom à afficher\n')}`;
+  const ajout = (YT && YT.chaines || []).filter(c => c.fichier);
+  openSheet(`<h2 id="sheetTitle">Ajouter une chaîne</h2>
+    <ol class="etapes">
+      <li>Sur YouTube, ouvre la chaîne puis <b>Partager → Copier le lien</b>.</li>
+      <li>Touche le bouton ci-dessous : le fichier <b>chaines.txt</b> s'ouvre sur GitHub${existe ? '' : ' (il sera créé)'}.</li>
+      <li>Colle le lien sur une nouvelle ligne, puis <b>Commit changes</b>.</li>
+    </ol>
+    <p class="credit">La chaîne apparaît ici quelques minutes plus tard, après le passage de la tâche « Vidéos ».</p>
+    <div class="row-btns"><a class="btn main" href="${esc(url)}" target="_blank" rel="noopener">Ouvrir chaines.txt sur GitHub</a><button class="btn" type="button" data-act="close">Fermer</button></div>
+    ${ajout.length ? `<p class="credit">Déjà ajoutées par toi : ${ajout.map(c => esc(c.nom)).join(', ')}.</p>` : ''}`);
 }
 
 /* ========== Fenêtre ========== */
@@ -519,6 +549,7 @@ document.addEventListener('click', e => {
   if (a === 'close') closeSheet();
   else if (a === 'more'){ shown += 60; render(); }
   else if (a === 'more-yt'){ ytShown += 40; render(); }
+  else if (a === 'yt-add') ytAddSheet();
   else if (a === 'abos') abosSheet();
   else if (a === 'abos-ok'){ ABOS = new Set([...document.querySelectorAll('[data-abo]:checked')].map(c => c.dataset.abo)); LS.set('videos:abos', [...ABOS]); closeSheet(); render(); }
   else if (a === 'ouvrir'){                 // l'appli ne sait pas recevoir un titre : on le copie, puis on l'ouvre
@@ -547,9 +578,7 @@ async function load(){
   $('#refreshBtn').classList.add('spin');
   await Promise.all([
     (async () => { try{
-      let r = await fetch('donnees/videos/catalogue.json', {cache:'no-cache'});
-      if (r.status === 404){ r = await fetch('donnees/videos/catalogue-prime.json', {cache:'no-cache'});           // ancien format (Prime seul)
-        if (r.ok){ const o = await r.json(); CAT = {...o, plateformes:{prime:{nom:'Prime Video', n:o.titres.length}}, titres:o.titres.map(x => ({...x, p:['prime'], arr:{prime:x.vu || null}}))}; return; } }
+      const r = await fetch('donnees/videos/catalogue.json', {cache:'no-cache'});
       CAT = r.ok ? await r.json() : {titres:[], erreur:'La tâche « Vidéos » n\'a pas encore tourné.'};
     }catch{ CAT = CAT || {titres:[], erreur:'Pas de réseau.'}; } })(),
     (async () => { try{ const r = await fetch('donnees/videos/youtube.json', {cache:'no-cache'}); YT = r.ok ? await r.json() : {chaines:CHAINES_YT.map(c => ({...c, videos:[], erreur:'La tâche « Vidéos » n\'a pas encore tourné.'}))}; }catch{ YT = YT || {chaines:[]}; } })()

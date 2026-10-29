@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<meta name="mon-ecran-version" content="efcdad39">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Investissements</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -199,6 +200,14 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .line .v{text-align:right;font-size:.84rem;font-variant-numeric:tabular-nums;white-space:nowrap}
 .line .v b{display:block}
 .line .v b small{font-size:.74rem;font-weight:500}
+.pf-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:.9rem}
+.pf-row:first-of-type{border-top:0}
+.pf-row small{display:block;font-size:.76rem;color:var(--ink-soft);margin-top:2px}
+.pf-v{text-align:right;white-space:nowrap}
+.pf-v b{font-size:1.05rem;font-variant-numeric:tabular-nums}
+.pf-v.muted{color:var(--ink-soft);font-size:.8rem}
+.vers-l .line{min-height:48px;padding:8px 12px}
+.vdel{width:32px;height:32px;border-radius:50%;color:var(--ink-soft);flex:none}
 .perim{align-self:stretch;display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:18px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
 .perim button{padding:7px 0;border-radius:14px;font-size:.86rem;font-weight:500;color:var(--ink);min-height:36px;opacity:.75}
 .perim button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:600;opacity:1}
@@ -448,6 +457,8 @@ const CATS = {
 const COMPTES = {ct:'Compte-titres', av:'Assurance-vie', pee:'PEE'};
 
 let LIGNES = LS.get('invest:lignes', []);
+let VERS = LS.get('invest:versements', []);          // versements et retraits par compte : {compte, date:'AAAA-MM-JJ', montant (retrait < 0)}
+const saveV = () => LS.set('invest:versements', VERS);
 let REG = Object.assign({situation:'seul', avOuverture:'', avVerse:null, gainsAnnee:{an:YEAR, v:0}, mvReport:0, cible:{}, tolerance:5, maxLigne:25, verrou:false}, LS.get('invest:reglages', {}));
 if (!REG.gainsAnnee || REG.gainsAnnee.an !== YEAR) REG.gainsAnnee = {an:YEAR, v:0};
 let M = LS.get('invest:marches', null), A = null, loadedAt = 0;
@@ -532,6 +543,49 @@ function analyse(){
   const envDay = {}; ok.forEach(r => { envDay[r.l.compte] = (envDay[r.l.compte] || 0) + r.v - (r.prev ?? r.v); });
   return {rows, total, prevTot, day:prevTot > 0 ? total / prevTot - 1 : null, pv, cats, env, envDay, rules,
     sel:{total:sT, day:sP > 0 ? sT / sP - 1 : null, dayEur:sT - sP, pv:sC.length ? sC.reduce((s, r) => s + r.v - r.cost, 0) / sC.reduce((s, r) => s + r.cost, 0) : null, n:sel.length}};
+}
+
+/* ---------- Performance réelle : rendement annualisé tenant compte des dates de versement (TRI / XIRR) ---------- */
+function tri(flux, valeur){             // flux : [{t (ms), m (versement +, retrait −)}] ; valeur actuelle
+  if (!flux.length || !(valeur > 0)) return null;
+  const t0 = Math.min(...flux.map(x => x.t)), ans = t => (t - t0) / (365.25 * DAY);
+  const npv = r => flux.reduce((s, x) => s - x.m / Math.pow(1 + r, ans(x.t)), 0) + valeur / Math.pow(1 + r, ans(Date.now()));
+  if (ans(Date.now()) < 30 / 365) return null;                 // moins d'un mois : pas significatif
+  let lo = -0.99, hi = 10, flo = npv(lo), fhi = npv(hi);
+  if (!isFinite(flo) || !isFinite(fhi) || flo * fhi > 0) return null;
+  for (let i = 0; i < 200; i++){ const mid = (lo + hi) / 2, f = npv(mid); if (Math.abs(f) < 1e-6) return mid; if (f * flo > 0){ lo = mid; flo = f; } else hi = mid; }
+  return (lo + hi) / 2;
+}
+function perfHTML(){
+  const comptes = Object.keys(COMPTES).filter(c => dansPerim({compte:c}) && (A.env[c] || VERS.some(v => v.compte === c)));
+  if (!comptes.length) return '';
+  const ligne = (nom, cs) => {
+    const fl = VERS.filter(v => cs.includes(v.compte)).map(v => ({t:Date.parse(v.date), m:+v.montant})).filter(x => isFinite(x.t) && isFinite(x.m));
+    const val = cs.reduce((s, c) => s + (A.env[c] || 0), 0), verse = fl.reduce((s, x) => s + x.m, 0), r = tri(fl, val);
+    if (!fl.length) return `<div class="pf-row"><span>${nom}</span><span class="pf-v muted">pas de versement noté</span></div>`;
+    return `<div class="pf-row"><span>${nom}<small>versé ${eur(verse)} · gain <b class="${cls(val - verse)}">${masked() ? '•• €' : (val - verse >= 0 ? '+' : '−') + fmt(Math.abs(val - verse)) + ' €'}</b></small></span>
+      <span class="pf-v"><b class="${cls(r)}">${r == null ? '—' : pct(r, 1)}</b><small>par an</small></span></div>`;
+  };
+  return `<div class="card glass"><span class="k">Performance réelle</span>
+    ${comptes.map(c => ligne(COMPTES[c], [c])).join('')}
+    ${(() => { const avec = comptes.filter(c => VERS.some(v => v.compte === c)); return avec.length > 1 ? ligne(avec.length < comptes.length ? 'Ensemble <small>(comptes avec versements)</small>' : 'Ensemble', avec) : ''; })()}
+    <p class="msg">Rendement annualisé qui tient compte de la date de chaque versement (« TRI »), contrairement à la plus-value calculée sur le prix de revient.</p>
+    <button class="btn" type="button" data-act="versements">${VERS.length ? 'Gérer mes versements' : 'Noter mes versements'}</button></div>`;
+}
+function versSheet(add){
+  const tri2 = VERS.map((v, i) => ({...v, i})).sort((a, b) => b.date.localeCompare(a.date));
+  openSheet(`<h2 id="sheetTitle">Mes versements</h2>
+    <p class="msg">Note chaque versement (et retrait) avec sa date. Ils restent uniquement sur cet iPhone.</p>
+    <form id="versForm" style="display:flex;flex-direction:column;gap:10px">
+      ${radio('compte', (add && add.compte) || 'ct', Object.entries(COMPTES))}
+      ${radio('sens', 'plus', [['plus', 'Versement'], ['moins', 'Retrait']])}
+      <div class="grid2"><label class="f">Date<input name="date" type="date" value="${new Date().toISOString().slice(0, 10)}"></label>
+        <label class="f">Montant (€)<input name="montant" inputmode="decimal" autocomplete="off"></label></div>
+      <p class="msg" id="versMsg"></p>
+      <button class="btn main" type="submit">Ajouter</button></form>
+    ${tri2.length ? `<div class="lines glass vers-l">${tri2.map(v => `<div class="line"><span class="t"><b>${esc(COMPTES[v.compte] || v.compte)}</b><small>${new Date(v.date).toLocaleDateString('fr-FR', {day:'numeric', month:'short', year:'numeric'})}</small></span>
+      <span class="v"><b class="${v.montant < 0 ? 'down' : ''}">${v.montant < 0 ? '−' : '+'}${fmt(Math.abs(v.montant), 2)} €</b></span><button type="button" class="vdel" data-vdel="${v.i}" aria-label="Supprimer">✕</button></div>`).join('')}</div>` : ''}
+    <div class="row-btns"><button class="btn" type="button" data-act="close">Fermer</button></div>`);
 }
 
 /* Courbe de la valeur totale (quantités actuelles appliquées aux cours passés) */
@@ -620,6 +674,7 @@ function portefHTML(){
       <div class="env">${Object.keys(COMPTES).filter(c => A.env[c]).map(c => `<div>${COMPTES[c]}<b>${fmt((A.env[c] || 0) / A.total * 100)} %</b></div>`).join('')}</div></div>` : ''}
     <div class="card glass"><span class="k">Mes règles</span>${A.rules.map(r => `<div class="rule ${r.lvl}"><span class="ic">${r.ic || (r.lvl === 'warn' ? '⚠' : r.lvl === 'ok' ? '✓' : 'i')}</span><span>${r.t}</span></div>`).join('')}</div>
     ${group('ct')}${group('av')}${group('pee')}
+    ${perfHTML()}
     <p class="msg">À droite : variation du jour, puis gain depuis ton prix de revient. Cours différés d'environ 15 à 30 min.</p>
     <div class="actions"><button class="btn main" type="button" data-act="add">Ajouter une ligne</button><button class="btn" type="button" data-act="transfer">Transférer</button></div>`;
 }
@@ -860,7 +915,7 @@ function saveSettings(f){
 }
 const b64 = s => btoa(unescape(encodeURIComponent(s))), unb64 = s => decodeURIComponent(escape(atob(s.trim())));
 function transferSheet(){
-  const code = LIGNES.length ? b64(JSON.stringify({l:LIGNES, r:REG})) : '';
+  const code = LIGNES.length ? b64(JSON.stringify({l:LIGNES, r:REG, v:VERS})) : '';
   openSheet(`<h2 id="sheetTitle">Transférer</h2>
     ${code ? `<p class="msg">Ce code contient tes lignes et réglages. Colle-le sur l'autre appareil (Mon Écran → Investissements → Transférer). Ne le partage pas.</p>
       <textarea readonly aria-label="Code de transfert">${esc(code)}</textarea><button class="btn main" type="button" data-act="copy">Copier le code</button><hr style="border:0;border-top:1px solid var(--line);width:100%">` : ''}
@@ -963,17 +1018,19 @@ if (REG.verrou && !pinRec()){ REG.verrou = false; saveR(); }      // code effac�
 
 /* ========== Évènements ========== */
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-tab],[data-per],[data-perim],[data-act],[data-edit],[data-k]');
+  const t = e.target.closest('[data-tab],[data-per],[data-perim],[data-vdel],[data-act],[data-edit],[data-k]');
   if (e.target === $('#sheetBg')){ closeSheet(); return; }
   if (!t) return;
   if (t.dataset.tab){ tab = t.dataset.tab; LS.set('invest:onglet', tab); render(); window.scrollTo({top:0}); return; }
   if (t.dataset.per){ per = +t.dataset.per; render(); return; }
+  if (t.dataset.vdel != null){ if (bloque()) return; VERS.splice(+t.dataset.vdel, 1); saveV(); versSheet(); render(); return; }
   if (t.dataset.perim){ PERIM = t.dataset.perim; LS.set('invest:perimetre', PERIM); render(); return; }
   if (t.dataset.edit != null){ const i = +t.dataset.edit; if (masked()) askUnlock(() => lineSheet(i)); else lineSheet(i); return; }
   const a = t.dataset.act;
   if (a === 'add') siOuvert(() => lineSheet(null));
   else if (a === 'settings') siOuvert(settingsSheet);
   else if (a === 'transfer') siOuvert(transferSheet);
+  else if (a === 'versements') siOuvert(() => versSheet());
   else if (a === 'close') closeSheet();
   else if (a === 'unlock') askUnlock();
   else if (a === 'pin-on') setupFlow();
@@ -981,14 +1038,18 @@ document.addEventListener('click', e => {
   else if (a === 'pin-change') askPin('Modifier le code', 'Entre ton code actuel.', () => choosePin(async p => { await changePin(p); closeSheet(); toastMsg('Code modifié'); }));
   else if (a === 'pin-forgot') recoverFlow();
   else if (a === 'pin-reset') resetFlow();
-  else if (a === 'pin-reset-ok'){ LIGNES = []; saveL(); try{ localStorage.removeItem(PIN_KEY); localStorage.removeItem(TRY_KEY); }catch{} REG.verrou = false; saveR(); setOuvert(false); closeSheet(); render(); toastMsg('Code et lignes effacés'); }
+  else if (a === 'pin-reset-ok'){ LIGNES = []; saveL(); VERS = []; saveV(); try{ localStorage.removeItem(PIN_KEY); localStorage.removeItem(TRY_KEY); }catch{} REG.verrou = false; saveR(); setOuvert(false); closeSheet(); render(); toastMsg('Code et lignes effacés'); }
   else if (a === 'pin-noted'){ const f = PAD.apres; PAD.apres = null; f && f(); }
   else if (t.dataset.k != null) padKey(t.dataset.k);
   else if (a === 'del'){ if (bloque()){ closeSheet(); return; } const i = +$('#lineForm').dataset.i; LIGNES.splice(i, 1); saveL(); closeSheet(); render(); }
   else if (a === 'copy'){ const ta = $('#sheet textarea'); ta.select(); (navigator.clipboard ? navigator.clipboard.writeText(ta.value) : Promise.reject()).then(() => { t.textContent = 'Copié ✓'; }).catch(() => { try{ document.execCommand('copy'); t.textContent = 'Copié ✓'; }catch{} }); }
-  else if (a === 'import'){ try{ const j = JSON.parse(unb64($('#codeIn').value)); if (!Array.isArray(j.l)) throw 0; LIGNES = j.l; REG = Object.assign(REG, j.r || {}); if (!pinRec()) REG.verrou = false; saveL(); saveR(); closeSheet(); render(); }catch{ $('#trMsg').textContent = 'Code invalide.'; } }
+  else if (a === 'import'){ try{ const j = JSON.parse(unb64($('#codeIn').value)); if (!Array.isArray(j.l)) throw 0; LIGNES = j.l; REG = Object.assign(REG, j.r || {}); if (Array.isArray(j.v)){ VERS = j.v; saveV(); } if (!pinRec()) REG.verrou = false; saveL(); saveR(); closeSheet(); render(); }catch{ $('#trMsg').textContent = 'Code invalide.'; } }
 });
-document.addEventListener('submit', e => { e.preventDefault(); if (e.target.id === 'lineForm') saveLine(e.target); else if (e.target.id === 'setForm') saveSettings(e.target); });
+document.addEventListener('submit', e => { e.preventDefault(); if (e.target.id === 'lineForm') saveLine(e.target); else if (e.target.id === 'setForm') saveSettings(e.target);
+  else if (e.target.id === 'versForm'){ const f = e.target; if (bloque()){ closeSheet(); return; }
+    const m = num(f.montant.value), d = f.date.value;
+    if (!(m > 0) || !d){ $('#versMsg').textContent = 'Indique une date et un montant.'; return; }
+    VERS.push({compte:f.compte.value, date:d, montant:f.sens.value === 'moins' ? -m : m}); saveV(); versSheet({compte:f.compte.value}); render(); } });
 document.addEventListener('change', e => {
   if (e.target.closest('#lineForm')) syncLineForm();
   if (e.target.name === 'sit'){ if (bloque()){ render(); return; } REG.situation = e.target.value; saveR(); render(); }

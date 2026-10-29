@@ -1,0 +1,34 @@
+{
+ "lot": "v11",
+ "date": "2026-10-29T15:53:09+00:00",
+ "fichiers": {
+  ".github/workflows/actus.yml": "666cb3de",
+  ".github/workflows/marches.yml": "26b68d91",
+  ".github/workflows/mise-a-jour.yml": "56e186e1",
+  ".github/workflows/programme-tv.yml": "8cc151d3",
+  ".github/workflows/publication.yml": "eee978e2",
+  ".github/workflows/videos.yml": "1faae103",
+  "actus.html": "fd33d4e6",
+  "cachee.html": "62782ce7",
+  "etat.html": "f68ea7c0",
+  "index.html": "d46261f7",
+  "invest.html": "efcdad39",
+  "outils/actus-data.mjs": "77082673",
+  "outils/etat.mjs": "4efddaea",
+  "outils/marches-data.mjs": "d70dd09f",
+  "outils/publier-donnees.sh": "4834693d",
+  "outils/reprendre-donnees.sh": "33373c10",
+  "outils/sport-course.mjs": "f0ac3670",
+  "outils/sport-data.mjs": "03fefd81",
+  "outils/tv-tri.mjs": "46c15f05",
+  "outils/videos-data.mjs": "b4fa660a",
+  "outils/yahoo.py": "103be76d",
+  "sport.html": "586b5579",
+  "sw.js": "90c86c5c",
+  "videos.html": "5df972a6"
+ },
+ "supprimer": [
+  "tv.json",
+  "donnees"
+ ]
+}

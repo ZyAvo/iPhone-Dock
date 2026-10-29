@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<meta name="mon-ecran-version" content="d46261f7">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -199,6 +200,14 @@ html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);tra
 .d-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;padding:9px 16px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:.84rem;font-weight:600;box-shadow:0 10px 26px -10px rgba(0,0,0,.5)}
 
 /* Widget Investissements (pleine largeur, montants masqués par défaut) */
+.w-proch{margin-top:16px;border-radius:22px;padding:10px 14px;display:flex;flex-direction:column;gap:5px}
+.w-proch .pr-h{font-size:.66rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+.pr-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:baseline;font-size:.86rem}
+.pr-t{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;color:var(--accent);min-width:5.6em}
+.pr-t.live{color:#d6343c}
+.pr-m{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-tv{font-size:.72rem;color:var(--ink-soft);white-space:nowrap}
+html.desk .w-proch{display:none!important}
 .w-inv{margin-top:14px;border-radius:28px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;position:relative}
 .w-inv > a.inv-link::after{content:"";position:absolute;inset:0;border-radius:inherit;z-index:1}
 .inv-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -383,7 +392,7 @@ html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);tra
   --sheet:rgba(240,241,243,.95); --sheet-solid:#f0f1f3; --scrim:rgba(28,31,32,.3);
   --t-brick:#c6c7c4; --t-slate:#d8d9d6; --t-olive:#a2999e; --t-plum:#b8b0b4;
   --t-teal:#cfd0cd; --t-ochre:#c9b8b8; --t-char:#9a9497; --t-rose:#e3e4e2;
-  --glyph:#111111; --sport-accent:#6b4f4f;
+  --glyph:#111111; --sport-accent:#4a2e2e;
 }
 :root[data-palette="ardoise"]{
   --base:#f4f4f4;
@@ -478,6 +487,7 @@ html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);tra
     <section class="w-inv glass" id="inv" aria-label="Investissements"></section>
     <section class="w-spot glass" id="spot" aria-label="Spotify"></section>
     <div class="grid" id="grid"></div>
+    <a class="w-proch glass" id="prochains" href="sport.html" hidden aria-label="Tes prochains matchs"></a>
     <div class="spacer"></div>
     <div class="quick" aria-label="Accès rapides"><div class="q-side" id="quickLeft"></div><a class="etat" id="etatBtn" href="etat.html" aria-label="État des données" title="État des données"><i></i></a><div class="q-side" id="quickRight"></div></div>
   </section>
@@ -1213,6 +1223,7 @@ function invCalc(){
 function invIdxVar(c, k){
   const q = invQuote(c); if (!q) return null;
   if (k === 'jour') return q.prev ? q.px / q.prev - 1 : null;
+  const ref = k === 'mois' ? q.m0 : q.y0; if (ref) return q.px / ref - 1;          // préparé par la tâche « Marchés »
   const R = invRefs(), s = invSer(q), d = R[k];
   if (!s.length || s[0][0] > d) return null; const v0 = invAt2(s, d); return v0 ? q.px / v0 - 1 : null;
 }
@@ -1245,8 +1256,12 @@ function renderInv(){
       <div class="inv-r">${idx}</div></div>`;
 }
 async function loadInv(){
-  invM = LS.get('invest:marches', null); renderInv();
-  try{ const r = await fetch('donnees/marches/marches.json', {cache:'no-cache'}); if (r.ok){ invM = await r.json(); LS.set('invest:marches', invM); } }catch{}
+  invM = LS.get('invest:widget', null) || LS.get('invest:marches', null); renderInv();
+  try{                                     // petit fichier dédié au widget ; l'ancien fichier complet en secours
+    let r = await fetch('donnees/marches/widget.json', {cache:'no-cache'});
+    if (!r.ok) r = await fetch('donnees/marches/marches.json', {cache:'no-cache'});
+    if (r.ok){ invM = await r.json(); LS.set('invest:widget', invM); }
+  }catch{}
   invAt = Date.now(); renderInv();
 }
 /* Glisser à gauche / à droite dans le widget : jour → mois → année */
@@ -1300,7 +1315,7 @@ async function pinMini(ok){
     msg.textContent = t.jusqu > Date.now() ? 'Trop d\'essais : attends 30 s.' : `Code incorrect (essai ${t.n}/5).`; inp.value = ''; inp.focus();
   });
 }
-/* Page cachée : appui de 3 s sur l'heure → code (celui d'Investissements) → coffre */
+/* Page cachée : appui de 3 s sur l'heure → coffre, qui demande le code (celui d'Investissements) */
 (() => {
   const c = $('#clock'); if (!c) return;
   // Sur iPhone, un appui long sur un lien ouvre l'aperçu du lien et interrompt le geste : on prend la main sur le toucher
@@ -1325,7 +1340,7 @@ async function pinMini(ok){
 })();
 function ouvrirCoffre(){
   if (!LS.get('invest:pin', null)){ toast('Crée d’abord un code dans Investissements ⚙︎'); return; }
-  pinMini(() => { try{ sessionStorage.setItem('coffre:ok', String(Date.now())); }catch{} location.href = 'cachee.html'; });
+  location.href = 'cachee.html';          // le coffre demande lui-même le code (il en a besoin pour se déchiffrer)
 }
 loadInv();
 setInterval(() => { if (!document.hidden && autoOn('marches') && Date.now() - invAt > 15 * 60e3) loadInv(); }, 60e3);
@@ -1350,7 +1365,7 @@ async function loadDeskNews(){
     if (!it.length) throw 0;
     const [h, ...rest] = it, ext = 'target="_blank" rel="noopener"';
     el.innerHTML = `<div class="d-head"><span class="w-label">À la une</span><a href="actus.html">Toutes les actus ›</a></div>
-      <a class="dn-hero" href="${esc(h.link)}" ${ext}>${h.img ? `<img src="${esc(h.img)}" alt="" onerror="this.remove()">` : ''}<span><span class="dn-src"><i style="background:${esc(colD(h.color))}"></i>${esc(h.source)} · ${agoD(h.date)}</span><b>${esc(h.title)}</b>${h.desc ? `<p>${esc(h.desc)}</p>` : ''}</span></a>
+      <a class="dn-hero" href="${esc(h.link)}" ${ext}>${h.img ? `<img src="${esc(String(h.img || '').replace(/^http:\/\//i, 'https://'))}" alt="" onerror="this.remove()">` : ''}<span><span class="dn-src"><i style="background:${esc(colD(h.color))}"></i>${esc(h.source)} · ${agoD(h.date)}</span><b>${esc(h.title)}</b>${h.desc ? `<p>${esc(h.desc)}</p>` : ''}</span></a>
       <div class="dn-list">${rest.map(i => `<a class="dn-it" href="${esc(i.link)}" ${ext}><span class="dn-src"><i style="background:${esc(colD(i.color))}"></i>${esc(i.source)} · ${agoD(i.date)}</span><b>${esc(i.title)}</b></a>`).join('')}</div>`;
   }catch{ el.innerHTML = '<div class="d-head"><span class="w-label">À la une</span><a href="actus.html">Actus ›</a></div><p class="d-empty">Les actus arrivent…</p>'; }
 }
@@ -1375,7 +1390,7 @@ setInterval(() => { if (DESK() && !document.hidden && autoOn('actus') && Date.no
 
 /* ---------- Témoin LIVE Sports (matchs du jour préparés + vérification ESPN des matchs censés être en cours) ---------- */
 const SPORT_FAV = {equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']};
-const favWords = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ')
+const favWords = t => String(t || '').toLowerCase().replace(/[ßæœøłđðþıħ]/g, c => ({'ß':'ss', 'æ':'ae', 'œ':'oe', 'ø':'o', 'ł':'l', 'đ':'d', 'ð':'d', 'þ':'th', 'ı':'i', 'ħ':'h'})[c]).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ')
   .map(w => ({toulousain:'toulouse', rochelais:'rochelle', paloise:'pau', bayonnais:'bayonne'})[w] || w).filter(w => w.length >= 3 && !['stade', 'olympique', 'club', 'the', 'les'].includes(w));
 function favOf(){ try{ return JSON.parse(localStorage.getItem('sport:favoris')) || SPORT_FAV; }catch{ return SPORT_FAV; } }
 const isFavEv = (e, F) => F.ligues.includes(e.l) || F.equipes.some(n => { const f = favWords(n); return f.length && [e.h, e.a].some(x => { const w = favWords(x); return f.every(t => w.includes(t)); }); });
@@ -1402,6 +1417,28 @@ async function loadLive(){
     if (btn) btn.setAttribute('aria-label', `Sports — ${live.length ? `${live.length} en direct${fav.length ? `, dont ${fav.length} de tes favoris` : ''}` : 'aucun direct'}${auto ? '' : ' (mise à jour auto coupée)'}`);
   }catch{}
 }
+/* Prochains matchs de tes favoris (8 jours), sous les applis */
+let PROCH = null;
+const quand = t => { const d = new Date(t), j = Math.round((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 864e5);
+  const h = d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  const jour = j === 0 ? 'Auj.' : j === 1 ? 'Dem.' : (w => w[0].toUpperCase() + w.slice(1))(d.toLocaleDateString('fr-FR', {weekday:'short'}).replace('.', '')) + '.';
+  return jour + ' ' + h; };
+function renderProchains(){
+  const el = $('#prochains'); if (!el || !PROCH) return;
+  const F = favOf(), now = Date.now();
+  const list = PROCH.filter(e => e.s !== 'post' && e.t + (e.d || 120) * 60e3 > now && isFavEv(e, F)).sort((a, b) => a.t - b.t).slice(0, 2);
+  el.hidden = !list.length; if (!list.length) return;
+  el.innerHTML = `<span class="pr-h">Tes prochains matchs</span>` + list.map(e => {
+    const live = now >= e.t, titre = e.sp === 'racing' ? `${e.ln} · ${e.a}${e.h ? ' · ' + e.h : ''}` : `${e.hc || e.h} – ${e.ac || e.a}`;
+    return `<span class="pr-row"><span class="pr-t${live ? ' live' : ''}">${live ? 'En cours' : quand(e.t)}</span><span class="pr-m">${esc(titre)}</span>${e.tv ? `<span class="pr-tv">${esc(e.tv)}</span>` : ''}</span>`; }).join('');
+}
+async function loadProchains(){
+  try{ const r = await fetch('donnees/sport/prochains.json', {cache:'no-cache'}); if (r.ok) PROCH = (await r.json()).events || []; }catch{}
+  renderProchains();
+}
+loadProchains();
+setInterval(() => { if (!document.hidden) renderProchains(); }, 60e3);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) loadProchains(); });
 loadLive();
 setInterval(() => { if (!document.hidden && autoOn('sport')) loadLive(); }, 2 * 60e3);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) loadLive(); });

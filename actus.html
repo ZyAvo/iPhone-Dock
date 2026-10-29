@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<meta name="mon-ecran-version" content="fd33d4e6">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Actus</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -588,7 +589,7 @@ function ago(t){
 }
 function itemHTML(i, kind, extra = ''){
   const ext = i.link && i.link !== '#' ? ' target="_blank" rel="noopener"' : '';
-  const img = i.img ? `<img class="${kind === 'list' ? 'thumb' : 'cover'}" src="${esc(i.img)}" alt="" loading="lazy" onerror="this.remove()">` : '';
+  const img = i.img ? `<img class="${kind === 'list' ? 'thumb' : 'cover'}" src="${esc(String(i.img || '').replace(/^http:\/\//i, 'https://'))}" alt="" loading="lazy" onerror="this.remove()">` : '';
   const also = (i.also || []).length ? `<div class="also"><span>Aussi :</span>${i.also.map(x =>
     `<a href="${esc(x.link)}"${ext} data-link="${esc(x.link)}">${esc(x.source)}</a>`).join('')}</div>` : '';
   const desc = i.desc && (kind === 'hero' || (kind === 'list' && !i.img)) ? `<p>${esc(i.desc)}</p>` : '';
@@ -625,7 +626,7 @@ function render(tab, data){
 }
 
 /* ---------- Recherche par mot-clé, dans tous les onglets ---------- */
-const fold = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const fold = t => String(t || '').toLowerCase().replace(/[ßæœøłđðþıħ]/g, c => ({'ß':'ss', 'æ':'ae', 'œ':'oe', 'ø':'o', 'ł':'l', 'đ':'d', 'ð':'d', 'þ':'th', 'ı':'i', 'ħ':'h'})[c]).normalize('NFD').replace(/[̀-ͯ]/g, '');
 function renderSearch(){
   const words = fold(query).split(/\s+/).filter(Boolean);
   const pool = PRE ? TABS.flatMap(t => ((preTabs()[t.id] || {}).items || []).map(i => ({...i, tab:t.label})))

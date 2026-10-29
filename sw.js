@@ -1,3 +1,4 @@
+// mon-ecran-version: 90c86c5c
 /* Mon Écran — mise en mémoire sur l'iPhone pour un démarrage instantané, même sans réseau.
    - Pages (accueil, actus, sport, état) : dernière version si le réseau répond en moins de 1,5 s,
      sinon la version en mémoire tout de suite, mise à jour en arrière-plan (la page se recharge seule

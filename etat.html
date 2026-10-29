@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<meta name="mon-ecran-version" content="f68ea7c0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -154,6 +155,10 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .actions{display:flex;flex-wrap:wrap;gap:8px}
 .btn{padding:10px 14px;border-radius:14px;font-weight:600;font-size:.86rem;background:var(--card);border:1px solid var(--line);color:var(--ink)}
 .btn.main{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.sv-code{width:100%;font:12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:10px;word-break:break-all}
+.sv-form label,.sv-pinl{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.sv-form input,.sv-pin{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;max-width:220px}
+#sauvZone .actions{margin-top:8px}
 /* ---------- Toucher visible et fondu entre les pages ---------- */
 @view-transition{navigation:auto}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
@@ -376,13 +381,24 @@ function render(e){
       <p class="note">« ancien » : la source n'a pas répondu, le dernier cours connu est gardé.</p>`, j.marches.lvl !== 'ok');
   }
 
+  if (e.pages){
+    const P = e.pages, mine = (document.querySelector('meta[name="mon-ecran-version"]') || {}).content || '';
+    const vieux = P.liste.filter(x => x.v !== x.attendu), wf = vieux.filter(x => x.f.startsWith('.github/'));
+    const lvl = vieux.length ? 'warn' : 'ok';
+    const rows = [...vieux, ...P.liste.filter(x => !vieux.includes(x))].map(x => `<tr><td class="mono">${esc(x.f)}</td><td>${x.v === x.attendu ? '<span class="tag ok">à jour</span>' : x.v === undefined ? '<span class="tag warn">absent</span>' : `<span class="tag warn">${esc(x.v || 'ancien')}</span>`}</td></tr>`).join('');
+    h += part('Pages et scripts', {lvl, msg:vieux.length ? `${vieux.length} fichier${vieux.length > 1 ? 's' : ''} pas à jour (lot ${P.lot})` : `Lot ${P.lot} complet`},
+      `<table class="rows"><thead><tr><th>Fichier</th><th>Version</th></tr></thead><tbody>${rows}</tbody></table>
+      ${wf.length ? `<p class="note"><b>À déposer à la main</b> (une tâche GitHub ne peut pas les modifier) : ${wf.map(x => esc(x.f)).join(', ')}.</p>` : ''}
+      <p class="note">Lot ${esc(P.lot)}${P.date ? ` du ${new Date(P.date).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}` : ''}. Cette page sur ton iPhone : ${esc(mine || '?')}${mine && mine !== P.lot ? ' (ancienne : tire vers le bas pour recharger)' : ''}.</p>`, vieux.length > 0);
+  }
+
   if (e.fichiers){
     const f = e.fichiers;
     h += part('Tes calendriers et logos', {lvl:'ok', msg:`${f.calendriers.length} calendrier${f.calendriers.length > 1 ? 's' : ''} · ${f.logos} logo${f.logos > 1 ? 's' : ''}`},
       f.calendriers.length ? `<ul class="note">${f.calendriers.map(c => `<li>${esc(c.replace(/^calendriers\//, ''))}</li>`).join('')}</ul>` : '<p class="note">Aucun calendrier déposé.</p>', false);
   }
 
-  h += themeHTML() + autoHTML();
+  h += themeHTML() + autoHTML() + sauvHTML();
   h += `<div class="actions"><a class="btn main" href="https://github.com/ZyAvo/iPhone-Dock/actions" target="_blank" rel="noopener">Voir les tâches GitHub</a>
     <button type="button" class="btn" id="resetBtn">Vider la mémoire de l'appli</button></div>
     <p class="note" id="resetMsg">« Vider la mémoire » efface les données gardées sur cet appareil (matchs, actus, pages) ; tes réglages (lieu météo, Spotify, favoris, langue des actus, placements, rafraîchissement) sont conservés.</p>`;
@@ -396,7 +412,7 @@ async function load(){
     if (!r.ok) throw new Error(r.status);
     render(await r.json());
   }catch(err){
-    $('#out').innerHTML = `<div class="sum glass err"><span class="lamp"></span><div><b>Résumé introuvable</b><p>Le fichier etat.json est fait par la tâche GitHub « Publication ». Vérifie qu'elle a bien tourné (Settings → Pages → Source : GitHub Actions).</p></div></div>` + themeHTML() + autoHTML();
+    $('#out').innerHTML = `<div class="sum glass err"><span class="lamp"></span><div><b>Résumé introuvable</b><p>Le fichier etat.json est fait par la tâche GitHub « Publication ». Vérifie qu'elle a bien tourné (Settings → Pages → Source : GitHub Actions).</p></div></div>` + themeHTML() + autoHTML() + sauvHTML();
   }finally{ $('#refreshBtn').classList.remove('spin'); }
 }
 $('#refreshBtn').addEventListener('click', load);
@@ -420,10 +436,74 @@ document.addEventListener('click', e => {
   if (v === 'bleu') delete document.documentElement.dataset.palette; else document.documentElement.dataset.palette = v;
   document.querySelectorAll('[data-pal]').forEach(x => x.setAttribute('aria-checked', x.dataset.pal === v));
 });
+/* ---------- Sauvegarde : tes réglages et données personnelles dans un code à garder (Notes…), chiffré avec ton code ---------- */
+const REGLAGES = ['invest:lignes', 'invest:reglages', 'invest:pin', 'invest:perimetre', 'invest:widget-per', 'invest:versements', 'coffre:chiffre', 'coffre:items',
+  'sport:favoris', 'sport:reduites', 'actus:langue', 'videos:abos', 'videos:liste', 'videos:vus', 'videos:yt-chaine',
+  'lieu:favoris', 'lieu:actuel', 'palette', 'mode', 'rafraichissement', 'spotify:client'];
+const B64 = {de:u => { let t = ''; for (let i = 0; i < u.length; i += 8192) t += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(t); }, vers:s => Uint8Array.from(atob(s), c => c.charCodeAt(0))};
+async function cleDe(pin, sel){
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt:sel, iterations:150000, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt', 'decrypt']);
+}
+const pinOk = async pin => { const r = (() => { try{ return JSON.parse(localStorage.getItem('invest:pin')); }catch{ return null; } })(); if (!r) return false;
+  const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(r.sel + pin)))].map(x => x.toString(16).padStart(2, '0')).join(''); return h === r.h; };
+const aUnCode = () => { try{ return !!JSON.parse(localStorage.getItem('invest:pin')); }catch{ return false; } };
+async function creerSauvegarde(pin){
+  const d = {}; REGLAGES.forEach(k => { const v = localStorage.getItem(k); if (v != null) d[k] = v; });
+  const txt = new TextEncoder().encode(JSON.stringify({v:1, at:new Date().toISOString(), d}));
+  if (!pin) return 'MONECRAN0.' + B64.de(txt);
+  const sel = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, await cleDe(pin, sel), txt));
+  return 'MONECRAN1.' + B64.de(new Uint8Array([...sel, ...iv, ...ct]));
+}
+async function lireSauvegarde(code, pin){
+  code = code.replace(/\s+/g, '');
+  if (code.startsWith('MONECRAN0.')) return JSON.parse(new TextDecoder().decode(B64.vers(code.slice(10))));
+  if (!code.startsWith('MONECRAN1.')) throw new Error('code');
+  const b = B64.vers(code.slice(10)), sel = b.slice(0, 16), iv = b.slice(16, 28), ct = b.slice(28);
+  return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM', iv}, await cleDe(pin, sel), ct)));
+}
+function sauvHTML(){
+  return part('Sauvegarde de tes réglages', {lvl:'ok', msg:'Placements, coffre, favoris, thème… dans un code à garder'}, `<div id="sauv">
+    <p class="note">Si la mémoire de Safari est effacée ou si tu changes d'iPhone, ce code remet tout en place : placements, versements, coffre, favoris sport, abonnements vidéo, lieux météo, thème et réglages. ${aUnCode() ? 'Il est <b>chiffré avec ton code</b> : garde-le dans tes Notes, il faudra ton code pour le relire.' : '<b>Attention</b> : sans code créé dans Investissements, la sauvegarde n\'est pas chiffrée (tes montants y sont lisibles).'}</p>
+    <div class="actions"><button type="button" class="btn main" data-sv="creer">Créer un code de sauvegarde</button><button type="button" class="btn" data-sv="restaurer">Restaurer</button></div>
+    <div id="sauvZone"></div></div>`, false);
+}
+const sauvPin = (titre, ok) => { $('#sauvZone').innerHTML = `<form class="sv-form" id="svPin"><label class="note">${titre}<input type="password" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="Code"></label>
+  <div class="actions"><button class="btn main" type="submit">Continuer</button></div><p class="note sv-msg" aria-live="polite"></p></form>`;
+  const f = $('#svPin'); f.querySelector('input').focus();
+  f.addEventListener('submit', async e => { e.preventDefault(); const p = f.querySelector('input').value;
+    if (!(await pinOk(p))){ f.querySelector('.sv-msg').textContent = 'Code incorrect.'; return; } ok(p); }); };
+const montrerCode = code => { $('#sauvZone').innerHTML = `<textarea class="sv-code" readonly rows="5" aria-label="Code de sauvegarde">${esc(code)}</textarea>
+  <div class="actions"><button type="button" class="btn main" data-sv="copier">Copier</button>${navigator.share ? '<button type="button" class="btn" data-sv="partager">Partager…</button>' : ''}</div>
+  <p class="note">Colle-le dans une note. Refais une sauvegarde après de gros changements.</p>`; };
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-sv]'); if (!b) return;
+  const a = b.dataset.sv;
+  if (a === 'creer'){ if (aUnCode()) sauvPin('Ton code (celui d\'Investissements)', async p => montrerCode(await creerSauvegarde(p))); else montrerCode(await creerSauvegarde(null)); }
+  else if (a === 'copier'){ const t = $('.sv-code'); t.select(); (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(() => { b.textContent = 'Copié ✓'; }).catch(() => { try{ document.execCommand('copy'); b.textContent = 'Copié ✓'; }catch{} }); }
+  else if (a === 'partager') navigator.share({title:'Sauvegarde Mon Écran', text:$('.sv-code').value}).catch(() => {});
+  else if (a === 'restaurer'){
+    $('#sauvZone').innerHTML = `<textarea class="sv-code" rows="4" placeholder="Colle ici ton code MONECRAN…" aria-label="Code de sauvegarde"></textarea>
+      <label class="note sv-pinl" hidden>Le code avec lequel la sauvegarde a été faite<input type="password" inputmode="numeric" maxlength="6" autocomplete="off" class="sv-pin"></label>
+      <div class="actions"><button type="button" class="btn main" data-sv="lire">Lire la sauvegarde</button></div><p class="note sv-msg" aria-live="polite"></p>`;
+    $('.sv-code').addEventListener('input', e2 => { $('.sv-pinl').hidden = !/^\s*MONECRAN1\./.test(e2.target.value); }); }
+  else if (a === 'lire'){
+    const msg = $('.sv-msg');
+    try{ const j = await lireSauvegarde($('.sv-code').value, $('.sv-pin').value); const n = Object.keys(j.d || {}).length;
+      $('#sauvZone').innerHTML = `<p class="note">Sauvegarde du ${new Date(j.at).toLocaleString('fr-FR', {day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'})} : ${n} réglage${n > 1 ? 's' : ''}. Ils <b>remplacent</b> ceux de cet appareil.</p>
+        <div class="actions"><button type="button" class="btn main" data-sv="appliquer">Remplacer et recharger</button></div>`;
+      window.__sauv = j; }
+    catch(err){ msg.textContent = /code/.test(err.message) ? 'Ce n\'est pas un code de sauvegarde Mon Écran.' : 'Impossible de lire : code incorrect ou sauvegarde abîmée.'; } }
+  else if (a === 'appliquer'){ const j = window.__sauv; if (!j) return;
+    Object.entries(j.d || {}).forEach(([k, v]) => { try{ localStorage.setItem(k, v); }catch{} });
+    try{ sessionStorage.clear(); }catch{}
+    location.reload(); }
+});
 document.addEventListener('click', async e => {
   if (!e.target.closest('#resetBtn')) return;
   try{
-    Object.keys(localStorage).filter(k => /^(sport|actus|meteo|icons|invest):/.test(k) && !['sport:favoris', 'actus:langue', 'invest:lignes', 'invest:reglages'].includes(k)).forEach(k => localStorage.removeItem(k));
+    Object.keys(localStorage).filter(k => /^(sport|actus|meteo|icons|invest):/.test(k) && !REGLAGES.includes(k)).forEach(k => localStorage.removeItem(k));
     if (window.caches) for (const k of await caches.keys()) await caches.delete(k);
     $('#resetMsg').textContent = 'Mémoire vidée : les pages et les données seront rechargées à la prochaine ouverture.';
   }catch{ $('#resetMsg').textContent = 'Impossible de vider la mémoire sur cet appareil.'; }
