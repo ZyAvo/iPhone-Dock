@@ -655,13 +655,14 @@ const LEAGUES = [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ];
-const VERSION = '2026-10-29.6';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-29.8';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
 /* ====================================================== */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const escImg = u => esc(String(u ?? '').replace(/^http:\/\//i, 'https://'));   // ESPN donne parfois des logos en http:// : bloqués sur une page https
 const store = {
   get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch{ return null; } },
   set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
@@ -1087,11 +1088,11 @@ function compBadge(L){
   let logo = '';
   const own = FILES && FILES !== 'missing' && (FILES.comps[slug(L.name)] || FILES.comps[slug(L.id)]);                 // tes logos : logos/competitions/<nom>.png
   const ownDark = own && (FILES.comps[slug(L.name) + '-sombre'] || FILES.comps[slug(L.id) + '-sombre']);
-  if (own){ const img = `<img class="clogo" src="${esc(own)}" alt="" loading="lazy" onerror="(this.closest('picture')||this).remove()">`;
+  if (own){ const img = `<img class="clogo" src="${escImg(own)}" alt="" loading="lazy" onerror="(this.closest('picture')||this).remove()">`;
     logo = ownDark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${esc(ownDark)}">${img}</picture>` : img; }
   else if (d.logo){
-    const img = `<img class="clogo" src="${esc(d.logo)}" alt="" loading="lazy" onerror="(this.closest('picture')||this).remove()">`;
-    logo = d.logoDark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${esc(d.logoDark)}">${img}</picture>` : img;
+    const img = `<img class="clogo" src="${escImg(d.logo)}" alt="" loading="lazy" onerror="(this.closest('picture')||this).remove()">`;
+    logo = d.logoDark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${escImg(d.logoDark)}">${img}</picture>` : img;
   }
   return `${L.flag ? `<span class="flag" aria-hidden="true">${L.flag}</span>` : ''}${logo}`;
 }
@@ -1102,7 +1103,7 @@ function teamHTML(m, t, other){
   const yellows = LBY[m.league].sport === 'rugby' ? evs.filter(d => d.kind === 'yellow' && d.team && d.team === t.id).length : 0;
   const draw = m.state === 'post' && !m.home.win && !m.away.win;
   const src = badgeFor(m, t) || t.logo;
-  const logo = src ? `<img class="lg" src="${esc(src)}" alt="" loading="lazy" onerror="this.outerHTML='<span class=&quot;lg-ph&quot;>${esc((t.abbr || t.name).slice(0,3))}</span>'">`
+  const logo = src ? `<img class="lg" src="${escImg(src)}" alt="" loading="lazy" onerror="this.outerHTML='<span class=&quot;lg-ph&quot;>${esc((t.abbr || t.name).slice(0,3))}</span>'">`
                       : `<span class="lg-ph">${esc((t.abbr || t.name).slice(0,3))}</span>`;
   const score = m.state === 'pre' ? '' : `${esc(t.score)}${t.so != null && m.state === 'post' && t.so !== '' ? `<span class="so">(${esc(t.so)})</span>` : ''}`;
   return `<span class="team${t.win ? ' win' : ''}${draw ? ' draw' : ''}">${logo}<span class="nm">${esc(t.name)}</span>
@@ -1200,7 +1201,8 @@ function summaryEvents(j){
    dans les commentaires, on ne lit que les lignes « Goal! », « Own Goal by », « Penalty missed/saved! » et les rouges.
    Le camp vient du numéro d'équipe, sinon du nom d'équipe ou de l'effectif ; sans camp sûr, l'action est écartée. */
 const minVal = s => { const a = String(s || '').match(/(\d+)(?:\D{0,3}\+\s*(\d+))?/); return a ? +a[1] + (a[2] ? +a[2] / 100 : 0) : 999; };
-const teamKey = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const LETTRES = {'ß':'ss', 'æ':'ae', 'œ':'oe', 'ø':'o', 'ł':'l', 'đ':'d', 'ð':'d', 'þ':'th', 'ı':'i', 'ħ':'h'};   // lettres que la décomposition ne simplifie pas (Groß = Gross)
+const teamKey = s => String(s || '').toLowerCase().replace(/[ßæœøłđðþıħ]/g, c => LETTRES[c]).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 function soccerEvents(j, m){
   const hc = (((j.header || {}).competitions) || [])[0] || {};
   const byId = {[String(m.home.id)]:'home', [String(m.away.id)]:'away'}, names = {home:[m.home.full, m.home.name, m.home.abbr], away:[m.away.full, m.away.name, m.away.abbr]};
@@ -1290,12 +1292,15 @@ function soccerEvents(j, m){
   const regC = C.filter(d => !SO.some(s => s.n != null && s.n === d.n) && !d.so
     && !(fromTable && minVal(d.min) >= 90 && !String(d.min).includes('+') && (d.kind === 'penmiss' || d.cand) && SO.some(s => last(s.who) === last(d.who))));
   const regS = SO.length ? S.filter(d => !d.so && !(minVal(d.min) >= soMin && d.kind !== 'red' && !String(d.min).includes('+'))) : S;
-  const seen = new Map(), reg = [];
+  const reg = [];
   [...regS.map(d => ({...d})), ...regC].forEach(d => {
     if (!d.side && !(hasSO && !SO.length && d.kind === 'penmiss' && minVal(d.min) >= 90)) return;   // camp inconnu : seulement un possible tir au but, complété plus bas
-    const key = `${d.kind}|${Math.floor(minVal(d.min))}|${teamKey(d.who).split(' ').pop() || d.side || d.n}`;
-    const o = seen.get(key); if (o){ if (o.n == null && d.n != null) o.n = d.n; return; }     // ordre du match repris du commentaire
-    seen.set(key, d); reg.push(d); });
+    // même action vue deux fois (fiche et commentaire) : même type, même minute, même camp, nom proche (Gross / Groß, M. Kovacic / Mateo Kovacic)
+    const nom = teamKey(d.who).split(' ').pop() || '', mn = Math.floor(minVal(d.min));
+    const o = reg.find(x => x.kind === d.kind && Math.floor(minVal(x.min)) === mn && x.side === d.side && d.side
+      && (() => { const n2 = teamKey(x.who).split(' ').pop() || ''; return !nom || !n2 || nom === n2 || nom.slice(0, 4) === n2.slice(0, 4); })());
+    if (o){ if (o.n == null && d.n != null) o.n = d.n; return; }     // ordre du match repris du commentaire
+    reg.push(d); });
   let evs;
   if (SO.length){
     // au-delà du score du temps de jeu, un but structuré restant est un tir au but déjà lu : on l'écarte
@@ -1661,7 +1666,7 @@ function periodLabels(sport, n){
   return Array.from({length:n}, (_, i) => i < reg ? String(i + 1) : (sport === 'hockey' && i > reg ? 'TAB' : (n - reg > 1 ? `Pr${i - reg + 1}` : 'Pr')));
 }
 function teamLogo(t, cls){
-  return t.logo ? `<img class="${cls}" src="${esc(t.logo)}" alt="" onerror="this.outerHTML='<span class=&quot;${cls} ph&quot;>${esc((t.abbr || t.name).slice(0,3))}</span>'">`
+  return t.logo ? `<img class="${cls}" src="${escImg(t.logo)}" alt="" onerror="this.outerHTML='<span class=&quot;${cls} ph&quot;>${esc((t.abbr || t.name).slice(0,3))}</span>'">`
                 : `<span class="${cls} ph">${esc((t.abbr || t.name).slice(0,3))}</span>`;
 }
 
@@ -1923,7 +1928,7 @@ function tableHTML(L, data){
       const z = zone(e.note); if (z) notes.set(z.label, z.color);
       const rk = statOf(e, ['rank', 'playoffSeed']);
       return `<tr${z ? ` style="--nc:${esc(z.color)}" title="${esc(z.label)}"` : ''} class="${z ? 'noted' : ''}">
-        <th class="pl" scope="row"><span class="tc"><span class="rk">${esc(rk ? rk.v : i + 1)}</span>${e.logo ? `<img class="tlg" src="${esc(e.logo)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<span class="tn">${esc(e.name)}</span></span></th>
+        <th class="pl" scope="row"><span class="tc"><span class="rk">${esc(rk ? rk.v : i + 1)}</span>${e.logo ? `<img class="tlg" src="${escImg(e.logo)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<span class="tn">${esc(e.name)}</span></span></th>
         ${tc.map(([n], k) => { const s = statOf(e, n); return `<td class="${k === tc.length - 1 ? 'key' : ''}">${esc(s ? s.v : '')}</td>`; }).join('')}</tr>`;
     }).join('');
     return `${one ? '' : `<h3 class="bx-h">${esc(GROUP_FR[t.title] || t.title)}</h3>`}
