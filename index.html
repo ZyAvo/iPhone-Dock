@@ -105,7 +105,7 @@ a{color:inherit;text-decoration:none}
 .widgets{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .w{aspect-ratio:1;max-width:100%;border-radius:32px;padding:16px;display:flex;flex-direction:column;min-width:0;overflow:hidden}
 .w-label{font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
-.w-clock .time{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;transition:opacity .4s, transform .4s}
+.w-clock .time{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:opacity .4s, transform .4s}
 .w-clock .time.appui{opacity:.55;transform:scale(.97)}
 .w-clock .time{font-weight:200;font-size:clamp(2.9rem,15vw,3.8rem);line-height:.95;letter-spacing:-.045em;font-variant-numeric:tabular-nums;margin-top:auto;padding-right:.035em}
 .w-clock .day{font-weight:600;font-size:.92rem;margin-top:8px;text-transform:capitalize;text-align:center}
@@ -1303,14 +1303,24 @@ async function pinMini(ok){
 /* Page cachée : appui de 3 s sur l'heure → code (celui d'Investissements) → coffre */
 (() => {
   const c = $('#clock'); if (!c) return;
-  let t = null, t2 = null, fired = false, sx = 0, sy = 0;
-  const stop = () => { clearTimeout(t); clearTimeout(t2); c.classList.remove('appui'); };
-  c.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse' && e.button !== 0) return; fired = false; sx = e.clientX; sy = e.clientY;
+  // Sur iPhone, un appui long sur un lien ouvre l'aperçu du lien et interrompt le geste : on prend la main sur le toucher
+  // (l'appui court ouvre toujours l'Horloge).
+  let t = null, t2 = null, fired = false, moved = false, sx = 0, sy = 0, enCours = false;
+  const stop = () => { clearTimeout(t); clearTimeout(t2); c.classList.remove('appui'); enCours = false; };
+  const debut = (x, y) => { fired = false; moved = false; sx = x; sy = y; enCours = true;
     t2 = setTimeout(() => c.classList.add('appui'), 1500);                   // petit signe à mi-chemin
-    t = setTimeout(() => { fired = true; stop(); try{ navigator.vibrate && navigator.vibrate(15); }catch{} ouvrirCoffre(); }, 3000); });
-  c.addEventListener('pointermove', e => { if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) > 12) stop(); });
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => c.addEventListener(ev, stop));
+    t = setTimeout(() => { fired = true; stop(); try{ navigator.vibrate && navigator.vibrate(15); }catch{} ouvrirCoffre(); }, 3000); };
+  const bouge = (x, y) => { if (enCours && Math.abs(x - sx) + Math.abs(y - sy) > 12){ moved = true; stop(); } };
+  c.addEventListener('touchstart', e => { e.preventDefault(); const p = e.touches[0]; debut(p.clientX, p.clientY); }, {passive:false});
+  c.addEventListener('touchmove', e => { const p = e.touches[0]; bouge(p.clientX, p.clientY); }, {passive:true});
+  c.addEventListener('touchend', e => { e.preventDefault(); const court = enCours && !fired && !moved; stop();
+    if (court) c.click(); }, {passive:false});                              // appui court : comportement normal du lien
+  c.addEventListener('touchcancel', stop);
+  c.addEventListener('mousedown', e => { if (e.button === 0) debut(e.clientX, e.clientY); });   // ordinateur
+  c.addEventListener('mousemove', e => bouge(e.clientX, e.clientY));
+  ['mouseup', 'mouseleave'].forEach(ev => c.addEventListener(ev, () => { if (enCours) stop(); }));
   c.addEventListener('contextmenu', e => e.preventDefault());
+  c.addEventListener('dragstart', e => e.preventDefault());
   window.addEventListener('click', e => { if (fired && e.target.closest('#clock')){ e.preventDefault(); e.stopImmediatePropagation(); fired = false; } }, true);
 })();
 function ouvrirCoffre(){
