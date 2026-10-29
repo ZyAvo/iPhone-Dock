@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="80afa288">
+<meta name="mon-ecran-version" content="88070b28">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -200,14 +200,25 @@ html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);tra
 .d-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;padding:9px 16px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:.84rem;font-weight:600;box-shadow:0 10px 26px -10px rgba(0,0,0,.5)}
 
 /* Widget Investissements (pleine largeur, montants masqués par défaut) */
-.w-proch{margin-top:16px;border-radius:22px;padding:10px 14px;display:flex;flex-direction:column;gap:5px}
-.w-proch .pr-h{font-size:.66rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+.w-sport{margin-top:14px;border-radius:24px;padding:10px 14px 11px;display:flex;flex-direction:column;gap:6px}
+.sb-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sb-brand{display:flex;align-items:center;gap:6px}
+.sb-brand b{font-weight:800;font-size:.86rem;letter-spacing:.05em}
+.sb-sub{font-size:.8rem;font-weight:700;font-style:italic;color:var(--accent)}
+.sb-etat{font-size:.72rem;color:var(--ink-soft)}
+.sb-etat.on{color:var(--ink);font-weight:600}
+.sb-rows{display:flex;flex-direction:column;gap:4px}
+.sb-vide{font-size:.82rem;color:var(--ink-soft)}
 .pr-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:baseline;font-size:.86rem}
 .pr-t{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;color:var(--accent);min-width:5.6em}
 .pr-t.live{color:#d6343c}
 .pr-m{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pr-tv{font-size:.72rem;color:var(--ink-soft);white-space:nowrap}
-html.desk .w-proch{display:none!important}
+.pr-sc{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+html.desk .w-sport{display:none!important}
+.w-sport .live-dot{box-shadow:0 0 0 2px color-mix(in oklab, var(--ink) 14%, transparent)}
+.w-sport .live-dot.paused{background:transparent;box-shadow:inset 0 0 0 1.6px var(--ink-soft)}
+html:not(.desk) .app-btn.live-app{display:none}
 .w-inv{margin-top:14px;border-radius:28px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;position:relative}
 .w-inv > a.inv-link::after{content:"";position:absolute;inset:0;border-radius:inherit;z-index:1}
 .inv-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -488,7 +499,10 @@ html.desk .w-proch{display:none!important}
     <section class="w-inv glass" id="inv" aria-label="Investissements"></section>
     <section class="w-spot glass" id="spot" aria-label="Spotify"></section>
     <div class="grid" id="grid"></div>
-    <a class="w-proch glass" id="prochains" href="sport.html" hidden aria-label="Tes prochains matchs"></a>
+    <a class="w-sport glass" id="sportBand" href="sport.html" aria-label="Sports">
+      <span class="sb-top"><span class="sb-brand"><i class="live-dot" data-livedot></i><b>LIVE</b><span class="sb-sub">Sports</span></span><span class="sb-etat" id="sbEtat"></span></span>
+      <span class="sb-rows" id="sbRows"><span class="sb-vide">Chargement…</span></span>
+    </a>
     <div class="spacer"></div>
     <div class="quick" aria-label="Accès rapides"><div class="q-side" id="quickLeft"></div><a class="etat" id="etatBtn" href="etat.html" aria-label="État des données" title="État des données"><i></i></a><div class="q-side" id="quickRight"></div></div>
   </section>
@@ -604,8 +618,8 @@ const HOME = [
   {label:'Travail',         type:'folder', target:'travail'},
   {label:'Médias',          type:'folder', target:'medias'},
   {label:'Jeux',            type:'folder', target:'jeux'},
-  {label:'Sports',          type:'page', url:'sport.html', live:true, color:'--t-plum'},   // tuile « LIVE Sports » avec témoin de direct
-  {label:'Vidéos',          type:'page', url:'videos.html', icon:'play', color:'--t-brick'},   // essai : Prime Video + YouTube
+  {label:'Vidéos',          type:'page', url:'videos.html', icon:'play', color:'--t-brick'},   // Prime Video, Netflix… + YouTube
+  {label:'Sports',          type:'page', url:'sport.html', live:true, color:'--t-plum'},   // tuile « LIVE Sports » : sur ordinateur seulement (sur iPhone, le bandeau Sports la remplace)
 ];
 
 /* Bandeau du bas (gauche / droite) : petites icônes en verre, toutes dans le même style
@@ -677,7 +691,7 @@ async function fetchIcons(){
 const iconAttrs = a => { const k = iconKey(a), u = iconOf(a); return `${k ? ` data-icon="${esc(k)}"` : ''}${u ? ` data-has="1"` : ''}`; };
 
 function tileHTML(a){
-  if (a.live) return `<span class="tile live-tile" style="--c:var(${a.color})"><span class="live-w"><span class="live-row"><i class="${esc(window.liveCls || 'live-dot')}" id="liveDot"></i><b>LIVE</b></span><span class="live-sub">Sports</span></span></span>`;
+  if (a.live) return `<span class="tile live-tile" style="--c:var(${a.color})"><span class="live-w"><span class="live-row"><i class="${esc(window.liveCls || 'live-dot')}" data-livedot></i><b>LIVE</b></span><span class="live-sub">Sports</span></span></span>`;
   if (a.type === 'folder'){
     const minis = FOLDERS[a.target].items.slice(0,4).map(i => { const u = iconOf(i);
       return `<i class="${u ? 'img' : ''}"${iconAttrs(i)} style="--c:var(${i.color})${u ? `;--img:url(&quot;${esc(u)}&quot;)` : ''}"></i>`; }).join('');
@@ -691,7 +705,7 @@ function appHTML(a, idx = 0){
   const body = `${tileHTML(a)}<span class="name">${esc(a.label)}</span>`;
   const delay = `style="animation-delay:${idx * 35}ms"`;
   if (a.app) return `<a class="app-btn" ${delay} href="${esc(a.app)}" data-app="${esc(a.app)}" data-alt="${esc(a.alt || '')}" data-web="${esc(a.web || '')}" aria-label="${esc(a.label)}">${body}</a>`;
-  if (a.type === 'page') return `<a class="app-btn" ${delay} href="${esc(a.url)}" aria-label="${esc(a.label)}">${body}</a>`;
+  if (a.type === 'page') return `<a class="app-btn${a.live ? ' live-app' : ''}" ${delay} href="${esc(a.url)}" aria-label="${esc(a.label)}">${body}</a>`;
   if (!a.type || a.type === 'link') return `<a class="app-btn" ${delay} href="${esc(a.url)}" target="_blank" rel="noopener" aria-label="${esc(a.label)}">${body}</a>`;
   return `<button type="button" class="app-btn" ${delay} data-type="${a.type}" data-target="${a.target}" aria-label="${esc(a.label)}">${body}</button>`;
 }
@@ -1400,8 +1414,8 @@ const favWords = t => String(t || '').toLowerCase().replace(/[ßæœøłđðþı
 function favOf(){ try{ return JSON.parse(localStorage.getItem('sport:favoris')) || SPORT_FAV; }catch{ return SPORT_FAV; } }
 const isFavEv = (e, F) => F.ligues.includes(e.l) || F.equipes.some(n => { const f = favWords(n); return f.length && [e.h, e.a].some(x => { const w = favWords(x); return f.every(t => w.includes(t)); }); });
 async function loadLive(){
-  const dot = $('#liveDot'); if (!dot) return;
-  const auto = autoOn('sport');
+  const dots = document.querySelectorAll('[data-livedot]'); if (!dots.length) return;
+  const auto = autoOn('sport'); const scores = {};
   try{
     const r = await fetch('donnees/sport/aujourdhui.json', {cache:'no-cache'}); if (!r.ok) throw 0;
     const j = await r.json(), now = Date.now(), F = favOf();
@@ -1411,35 +1425,45 @@ async function loadLive(){
       const states = {};
       await Promise.all(leagues.map(async k => { try{
         const s = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${k}/scoreboard`)).json();
-        (s.events || []).forEach(ev => { states[ev.id] = ((ev.status || {}).type || {}).state; });
+        (s.events || []).forEach(ev => { states[ev.id] = ((ev.status || {}).type || {}).state;
+          const cs = ((ev.competitions || [])[0] || {}).competitors || [], h = cs.find(c => c.homeAway === 'home'), a = cs.find(c => c.homeAway === 'away');
+          if (h && a && h.score != null && a.score != null) scores[ev.id] = `${h.score}–${a.score}`; });
       }catch{} }));
       live = live.filter(e => !(e.id in states) || states[e.id] === 'in');
     }
     const fav = live.filter(e => isFavEv(e, F));
     renderDeskSport(j.events || [], live, F);
-    dot.className = window.liveCls = 'live-dot' + (!auto ? ' paused' : fav.length ? ' fav' : live.length ? ' on' : '');
-    const btn = dot.closest('.app-btn');
-    if (btn) btn.setAttribute('aria-label', `Sports — ${live.length ? `${live.length} en direct${fav.length ? `, dont ${fav.length} de tes favoris` : ''}` : 'aucun direct'}${auto ? '' : ' (mise à jour auto coupée)'}`);
+    window.liveCls = 'live-dot' + (!auto ? ' paused' : fav.length ? ' fav' : live.length ? ' on' : '');
+    const lab = `Sports — ${live.length ? `${live.length} en direct${fav.length ? `, dont ${fav.length} de tes favoris` : ''}` : 'aucun direct'}${auto ? '' : ' (mise à jour auto coupée)'}`;
+    dots.forEach(dot => { dot.className = window.liveCls; const btn = dot.closest('.app-btn, .w-sport'); if (btn) btn.setAttribute('aria-label', lab); });
+    LIVE_NOW = {ids:new Set(live.map(e => e.id)), n:live.length, nFav:fav.length, scores, auto}; renderBand();
   }catch{}
 }
-/* Prochains matchs de tes favoris (8 jours), sous les applis */
-let PROCH = null;
+/* Bandeau Sports (iPhone) : témoin de direct + tes favoris en cours puis à venir (8 jours) */
+let PROCH = null, LIVE_NOW = {ids:new Set(), n:0, nFav:0, scores:{}, auto:true};
 const quand = t => { const d = new Date(t), j = Math.round((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 864e5);
   const h = d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
   const jour = j === 0 ? 'Auj.' : j === 1 ? 'Dem.' : (w => w[0].toUpperCase() + w.slice(1))(d.toLocaleDateString('fr-FR', {weekday:'short'}).replace('.', '')) + '.';
   return jour + ' ' + h; };
-function renderProchains(){
-  const el = $('#prochains'); if (!el || !PROCH) return;
+function renderBand(){
+  const rows = $('#sbRows'), etat = $('#sbEtat'); if (!rows) return;
+  const L = LIVE_NOW;
+  etat.textContent = (L.n ? `${L.n} en direct${L.nFav ? ` · ${L.nFav} favori${L.nFav > 1 ? 's' : ''}` : ''}` : 'aucun direct') + (L.auto ? '' : ' · auto coupé');
+  etat.classList.toggle('on', !!L.n);
+  if (!PROCH){ return; }
   const F = favOf(), now = Date.now();
-  const list = PROCH.filter(e => e.s !== 'post' && e.t + (e.d || 120) * 60e3 > now && isFavEv(e, F)).sort((a, b) => a.t - b.t).slice(0, 2);
-  el.hidden = !list.length; if (!list.length) return;
-  el.innerHTML = `<span class="pr-h">Tes prochains matchs</span>` + list.map(e => {
-    const live = now >= e.t, titre = e.sp === 'racing' ? `${e.ln} · ${e.a}${e.h ? ' · ' + e.h : ''}` : `${e.hc || e.h} – ${e.ac || e.a}`;
-    return `<span class="pr-row"><span class="pr-t${live ? ' live' : ''}">${live ? 'En cours' : quand(e.t)}</span><span class="pr-m">${esc(titre)}</span>${e.tv ? `<span class="pr-tv">${esc(e.tv)}</span>` : ''}</span>`; }).join('');
+  const list = PROCH.filter(e => e.s !== 'post' && e.t + (e.d || 120) * 60e3 > now && isFavEv(e, F))
+    .sort((a, b) => (L.ids.has(b.id) - L.ids.has(a.id)) || a.t - b.t).slice(0, 2);
+  rows.innerHTML = list.length ? list.map(e => {
+    const live = L.ids.has(e.id) || now >= e.t, sc = L.scores[e.id];
+    const titre = e.sp === 'racing' ? `${e.ln} · ${e.a}${e.h ? ' · ' + e.h : ''}` : `${e.hc || e.h} – ${e.ac || e.a}`;
+    return `<span class="pr-row"><span class="pr-t${live ? ' live' : ''}">${live ? 'En cours' : quand(e.t)}</span><span class="pr-m">${esc(titre)}</span>${sc ? `<span class="pr-sc">${esc(sc)}</span>` : e.tv ? `<span class="pr-tv">${esc(e.tv)}</span>` : ''}</span>`; }).join('')
+    : '<span class="sb-vide">Aucun match de tes favoris dans les 8 jours</span>';
 }
+const renderProchains = renderBand;
 async function loadProchains(){
-  try{ const r = await fetch('donnees/sport/prochains.json', {cache:'no-cache'}); if (r.ok) PROCH = (await r.json()).events || []; }catch{}
-  renderProchains();
+  try{ const r = await fetch('donnees/sport/prochains.json', {cache:'no-cache'}); PROCH = r.ok ? (await r.json()).events || [] : (PROCH || []); }catch{ PROCH = PROCH || []; }
+  renderBand();
 }
 loadProchains();
 setInterval(() => { if (!document.hidden) renderProchains(); }, 60e3);

@@ -1,6 +1,6 @@
 {
- "lot": "v12",
- "date": "2026-10-29T16:30:35+00:00",
+ "lot": "v13",
+ "date": "2026-10-29T16:43:57+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/marches.yml": "26b68d91",
@@ -11,7 +11,7 @@
   "actus.html": "fd33d4e6",
   "cachee.html": "cda39371",
   "etat.html": "c2bc27ca",
-  "index.html": "80afa288",
+  "index.html": "88070b28",
   "invest.html": "7f5b2b87",
   "outils/actus-data.mjs": "77082673",
   "outils/etat.mjs": "4efddaea",
