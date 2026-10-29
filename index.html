@@ -105,16 +105,19 @@ a{color:inherit;text-decoration:none}
 .widgets{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .w{aspect-ratio:1;max-width:100%;border-radius:32px;padding:16px;display:flex;flex-direction:column;min-width:0;overflow:hidden}
 .w-label{font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
-.w-clock .time{font-weight:200;font-size:clamp(2.9rem,15vw,3.8rem);line-height:.95;letter-spacing:-.045em;font-variant-numeric:tabular-nums;margin-top:auto}
-.w-clock .day{font-weight:600;font-size:.92rem;margin-top:8px;text-transform:capitalize}
+.w-clock .time{font-weight:200;font-size:clamp(2.9rem,15vw,3.8rem);line-height:.95;letter-spacing:-.045em;font-variant-numeric:tabular-nums;margin-top:auto;padding-right:.035em}
+.w-clock .day{font-weight:600;font-size:.92rem;margin-top:8px;text-transform:capitalize;text-align:center}
+.w-clock .time,.w-clock .day{align-self:center!important}
 .w-clock a{color:inherit;text-decoration:none;display:block;align-self:flex-start;border-radius:10px}
 .w-clock a:active{opacity:.6}
 .w-clock .place{font-size:.78rem;color:var(--ink-soft);margin-top:2px;display:flex;align-items:center;gap:3px;align-self:flex-start;border-radius:8px;max-width:100%}
 .w-clock .place span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .w-clock .place svg{width:11px;height:11px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .w-clock .place:active{opacity:.6}
-.w-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
-.w-clock .wx{display:flex;align-self:auto;align-items:center;gap:4px;margin:-6px -6px 0 0;padding:2px 4px;border-radius:12px;font-size:.92rem;font-weight:500;font-variant-numeric:tabular-nums}
+.w-top{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}
+.w-clock .wx{display:flex;align-self:auto;align-items:center;gap:4px;margin:-6px 0 0;padding:2px 4px;border-radius:12px;font-size:.92rem;font-weight:500;font-variant-numeric:tabular-nums}
+.wx-more{margin-top:-6px;font-size:.72rem;line-height:1.25;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+.wx-more b{font-weight:600;color:var(--ink)}
 .wx svg{width:30px;height:30px;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .wx .sun{stroke:#e9a23b;fill:rgba(233,162,59,.18)}
 .wx .moon{stroke:#8fa8c4;fill:rgba(143,168,196,.18)}
@@ -206,6 +209,7 @@ html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);tra
 .inv-tot{display:flex;align-items:center;gap:6px;font-weight:600;font-size:1.25rem;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
 .inv-tot.masq{letter-spacing:.06em}
 .inv-eye{position:relative;z-index:2;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--accent);flex:none}
+.inv-eye.ouvert{color:#1e7a46}
 .inv-eye svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .inv-day{font-size:.82rem;font-weight:600;font-variant-numeric:tabular-nums}
 .inv-spark{width:100%;height:30px;display:block;margin-top:auto}
@@ -218,6 +222,12 @@ html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);tra
 .inv-alert{min-width:0;font-size:.68rem;font-weight:600;padding:3px 9px;border-radius:999px;background:rgba(224,138,18,.16);color:#8a5200;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 :root[data-theme="dark"] .inv-alert{color:#f0b04a}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .inv-alert{color:#f0b04a} }
+.pin-scrim{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:rgba(8,18,31,.35)}
+.pin-mini{width:min(300px,86vw);padding:18px;border-radius:24px;display:flex;flex-direction:column;gap:10px;position:relative}
+.pin-mini h3{margin:0;font-size:1.05rem}
+.pin-mini input{min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--card);padding:0 12px;font:inherit;font-size:20px;letter-spacing:.3em;text-align:center;color:var(--ink)}
+.pin-row{display:flex;gap:8px;justify-content:flex-end;align-items:center}
+.pin-row .sp-go{width:auto;margin:0;padding:10px 20px}
 .inv-empty{font-size:.84rem;color:var(--ink-soft);align-self:center}
 .w-spot{margin-top:14px;border-radius:28px;padding:10px 10px 10px 10px;display:flex;align-items:center;gap:12px;min-height:78px}
 .sp-open{flex:1;min-width:0;display:flex;align-items:center;gap:12px;border-radius:16px}
@@ -436,8 +446,8 @@ html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);tra
     <div class="widgets">
       <div class="w w-clock glass">
         <div class="w-top">
-          <span class="w-label">Aujourd'hui</span>
           <a class="wx" id="wx" href="weather://" data-app="weather://" aria-label="Ouvrir Météo"></a>
+          <span class="wx-more" id="wxMore"></span>
         </div>
         <a class="time" id="clock" href="shortcuts://run-shortcut?name=Horloge" data-app="shortcuts://run-shortcut?name=Horloge" aria-label="Ouvrir Horloge">--:--</a>
         <a class="day" id="day" href="calshow://" data-app="calshow://" data-alt="Calendrier" aria-label="Ouvrir Calendrier"></a>
@@ -834,16 +844,19 @@ function renderWx(w){
   el.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${wxIcon(w.code, w.day)}</svg><span>${Math.round(w.temp)}°</span>${autoOn('meteo') ? '' : '<span class="auto-off" title="Mise à jour auto coupée (page État)">⚠</span>'}`;
   el.setAttribute('aria-label', `Météo : ${WX_FR(w.code)}, ${Math.round(w.temp)} degrés${autoOn('meteo') ? '' : ' (mise à jour auto coupée)'}. Ouvrir Météo`);
   el.title = WX_FR(w.code);
+  const more = $('#wxMore');
+  if (more) more.innerHTML = w.max != null ? `max <b>${Math.round(w.max)}°</b>${w.pluie != null ? ` · pluie <b>${Math.round(w.pluie)} %</b>` : ''}` : '';
 }
 async function loadWx(force){
   if (place.lat == null){ renderWx(null); return; }
   const key = `${place.lat.toFixed(2)},${place.lon.toFixed(2)}`, c = LS.get('meteo:v1', null);
   if (c && c.key === key) renderWx(c);
-  if (!force && c && c.key === key && (Date.now() - c.at < 20 * 60e3 || !autoOn('meteo'))) return;   // mise à jour auto coupée : on garde la dernière météo
+  if (!force && c && c.key === key && c.max !== undefined && (Date.now() - c.at < 20 * 60e3 || !autoOn('meteo'))) return;   // mise à jour auto coupée : on garde la dernière météo
   try{
-    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,weather_code,is_day&timezone=auto`);
-    const j = await r.json(), cur = j.current;
-    const w = {key, at:Date.now(), code:cur.weather_code, temp:cur.temperature_2m, day:!!cur.is_day};
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,precipitation_probability_max&forecast_days=1&timezone=auto`);
+    const j = await r.json(), cur = j.current, d = j.daily || {};
+    const w = {key, at:Date.now(), code:cur.weather_code, temp:cur.temperature_2m, day:!!cur.is_day,
+      max:(d.temperature_2m_max || [])[0] ?? null, pluie:(d.precipitation_probability_max || [])[0] ?? null};   // maximum du jour et risque de pluie
     LS.set('meteo:v1', w); renderWx(w);
   }catch{}
 }
@@ -1171,8 +1184,9 @@ function invOpen(){
 }
 function renderInv(){
   const el = $('#inv'); if (!el) return;
-  const R = invCalc(), reg = LS.get('invest:reglages', {}), discret = reg.discret !== false, res = LS.get('invest:resume', {});
-  const hide = discret && !invShow, auto = autoOn('marches');
+  const R = invCalc(), reg = LS.get('invest:reglages', {}), discret = reg.verrou === true && !!LS.get('invest:pin', null), res = LS.get('invest:resume', {});
+  const ouv = (() => { try{ return sessionStorage.getItem('invest:ouvert') === '1'; }catch{ return false; } })();
+  const hide = discret && !ouv, auto = autoOn('marches');
   let spark = '';
   if (R && R.spark.length > 1){ const v = R.spark, lo = Math.min(...v), hi = Math.max(...v), sp = hi - lo || 1;
     const d = v.map((x, i) => (i ? 'L' : 'M') + (i / (v.length - 1) * 160).toFixed(1) + ' ' + (27 - (x - lo) / sp * 24).toFixed(1)).join(' ');
@@ -1182,7 +1196,7 @@ function renderInv(){
   el.innerHTML = `<a class="inv-link" href="invest.html" aria-label="Ouvrir Investissements${R ? ` — ${invPct(R.day)} aujourd'hui` : ''}"></a>
     <div class="inv-top"><span class="mk" title="${invOpen() ? 'Bourse ouverte' : 'Bourse fermée'}"><i class="${invOpen() ? 'on' : ''}"></i><span class="w-label">Investissements${auto ? '' : ' · ⚠ auto coupé'}</span></span>
       ${res.alerte ? `<span class="inv-alert">⚠ ${esc(res.alerte)}${res.n > 1 ? ` (+${res.n - 1})` : ''}</span>` : `<span class="mk">${invOpen() ? 'Bourse ouverte' : 'Bourse fermée'}</span>`}</div>
-    <div class="inv-body"><div class="inv-l">${R ? `<span class="inv-tot${hide ? ' masq' : ''}">${hide ? '•••• €' : Math.round(R.tot).toLocaleString('fr-FR') + ' €'}${discret ? `<button type="button" class="inv-eye" id="invEye" aria-label="${hide ? 'Afficher' : 'Masquer'} le montant"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>` : ''}</span>
+    <div class="inv-body"><div class="inv-l">${R ? `<span class="inv-tot${hide ? ' masq' : ''}">${hide ? '•••• €' : Math.round(R.tot).toLocaleString('fr-FR') + ' €'}${discret ? `<button type="button" class="inv-eye${ouv ? ' ouvert' : ''}" id="invEye" aria-label="${hide ? 'Déverrouiller avec le code' : 'Verrouiller'}"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/>${hide ? '<path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>' : '<path d="M8 10.5V8a4 4 0 0 1 7.6-1.7"/>'}<path d="M12 14.5v2.5"/></svg></button>` : ''}</span>
       <span class="inv-day ${invCls(R.day)}">${invPct(R.day)} aujourd'hui</span>${spark}` : '<span class="inv-empty">Ajoute tes placements ›</span>'}</div>
       <div class="inv-r">${idx}</div></div>`;
 }
@@ -1193,9 +1207,32 @@ async function loadInv(){
 }
 document.addEventListener('click', e => {
   if (!e.target.closest('#invEye')) return;
-  e.preventDefault(); invShow = !invShow; renderInv(); clearTimeout(invShowT);
-  if (invShow) invShowT = setTimeout(() => { invShow = false; renderInv(); }, 8000);      // le montant se masque tout seul après 8 s
+  e.preventDefault();
+  const set = v => { try{ v ? sessionStorage.setItem('invest:ouvert', '1') : sessionStorage.removeItem('invest:ouvert'); }catch{} };
+  if ((() => { try{ return sessionStorage.getItem('invest:ouvert') === '1'; }catch{ return false; } })()){ set(false); renderInv(); return; }
+  pinMini(() => { set(true); renderInv(); });          // ouvert jusqu'à la fermeture de l'appli (comme la page Investissements)
 });
+/* Code des montants (le même que la page Investissements) */
+async function pinMini(ok){
+  const r = LS.get('invest:pin', null); if (!r){ ok(); return; }
+  const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(x => x.toString(16).padStart(2, '0')).join('');
+  const box = document.createElement('div'); box.className = 'scrim pin-scrim';
+  box.innerHTML = `<form class="place-panel glass pin-mini" role="dialog" aria-modal="true" aria-label="Code des montants"><h3>Déverrouiller</h3>
+    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="Code" placeholder="Code">
+    <p class="pl-msg" aria-live="polite"></p><div class="pin-row"><button type="button" class="sp-mini" data-x>Annuler</button><button type="submit" class="sp-go">OK</button></div></form>`;
+  document.body.appendChild(box);
+  const f = box.querySelector('form'), inp = f.querySelector('input'), msg = f.querySelector('.pl-msg'); inp.focus();
+  const close = () => box.remove();
+  box.addEventListener('click', e => { if (e.target === box || e.target.closest('[data-x]')) close(); });
+  f.addEventListener('submit', async e => {
+    e.preventDefault();
+    const t = LS.get('invest:pin-essais', {n:0, jusqu:0});
+    if (t.jusqu > Date.now()){ msg.textContent = `Trop d'essais : réessaie dans ${Math.ceil((t.jusqu - Date.now()) / 1000)} s.`; return; }
+    if (await sha(r.sel + inp.value) === r.h){ LS.set('invest:pin-essais', {n:0, jusqu:0}); close(); ok(); return; }
+    t.n++; if (t.n >= 5){ t.n = 0; t.jusqu = Date.now() + 30e3; } LS.set('invest:pin-essais', t);
+    msg.textContent = t.jusqu > Date.now() ? 'Trop d\'essais : attends 30 s.' : `Code incorrect (essai ${t.n}/5).`; inp.value = ''; inp.focus();
+  });
+}
 loadInv();
 setInterval(() => { if (!document.hidden && autoOn('marches') && Date.now() - invAt > 15 * 60e3) loadInv(); }, 60e3);
 document.addEventListener('visibilitychange', () => { if (!document.hidden){ if (autoOn('marches') && Date.now() - invAt > 10 * 60e3) loadInv(); else renderInv(); } });

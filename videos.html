@@ -257,6 +257,16 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent;font-weight:600}
 .chip.sel{padding:0 8px;appearance:none;-webkit-appearance:none;font:inherit;font-size:.82rem;font-weight:500}
 .count{font-size:.78rem;color:var(--ink-soft)}
+.pl{display:inline-grid;place-items:center;min-width:20px;height:16px;padding:0 4px;border-radius:5px;background:var(--pc);color:#fff;font-style:normal;font-size:.58rem;font-weight:800;letter-spacing:.02em;margin-right:5px;vertical-align:1px}
+.chip .pl{margin-right:6px}
+.poster .pls{position:absolute;left:6px;bottom:6px;display:flex;gap:3px}
+.poster .pls .pl{margin:0;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.pl.off{opacity:.55}
+.dispo{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:8px 10px;padding:8px 0;border-top:1px solid var(--line)}
+.dispo b{font-size:.9rem}
+.dispo small{grid-column:2;grid-row:2;font-size:.72rem;color:var(--ink-soft);margin-top:-6px}
+.dispo .btn{min-height:38px;padding:6px 12px;font-size:.82rem}
+.dispo .lien{font-size:.78rem;color:var(--accent);font-weight:600}
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px}
 @media (min-width:700px){ .grid{grid-template-columns:repeat(5,minmax(0,1fr))} }
 .tit{display:flex;flex-direction:column;gap:5px;text-align:left;min-width:0}
@@ -337,10 +347,17 @@ html.desk .ytplay:empty::after{content:"Choisis une vidéo dans la liste";margin
    PLATEFORMES : tmdb = nom de la plateforme chez TMDB ; app = ouverture de l'appli iPhone ; web = recherche sur le site (le titre est ajouté au bout).
    CHAINES_YT  : chaînes YouTube suivies (identifiant « UC… » de la chaîne). */
 const PLATEFORMES = [
-  {id:'prime', nom:'Prime Video', tmdb:'amazon prime video', app:'aiv://', web:'https://www.primevideo.com/search/ref=atv_nb_sr?phrase='}
+  {id:'netflix', nom:'Netflix',     court:'N',     coul:'#e50914', abo:true, tmdb:'^netflix',             app:'nflx://',       web:'https://www.netflix.com/search?q='},
+  {id:'prime',   nom:'Prime Video', court:'prime', coul:'#1a98ff', abo:true, tmdb:'^amazon prime video',  app:'aiv://',        web:'https://www.primevideo.com/search/ref=atv_nb_sr?phrase='},
+  {id:'disney',  nom:'Disney+',     court:'D+',    coul:'#113ccf',           tmdb:'^disney ?(plus|\\+)',  app:'disneyplus://', web:'https://www.disneyplus.com/search?q='},
+  {id:'hbo',     nom:'HBO Max',     court:'HBO',   coul:'#5b2bd1',           tmdb:'^(hbo )?max$|^hbo max', app:'hbomax://',     web:'https://play.hbomax.com/search?q='},
+  {id:'apple',   nom:'Apple TV',    court:'tv',    coul:'#1d1d1f',           tmdb:'^apple tv',            app:'videos://',     web:'https://tv.apple.com/fr/search?term='},
+  {id:'canal',   nom:'Canal+',      court:'C+',    coul:'#111111',           tmdb:'^canal ?(\\+|plus)',   app:'mycanal://',    web:'https://www.canalplus.com/recherche/?q='},
+  {id:'ocs',     nom:'OCS',         court:'OCS',   coul:'#f26522',           tmdb:'^ocs',                 app:'mycanal://',    web:'https://www.canalplus.com/recherche/?q='}
 ];
 const CHAINES_YT = [
-  {id:'UCFKDEp9si4RmHFWJW1vYsMA', nom:'EthosLab'}
+  {id:'UCFKDEp9si4RmHFWJW1vYsMA', nom:'EthosLab'},
+  {id:'UCTdicWbtwYfLyZ7S1M9XuIQ', nom:'Oliech'}
 ];
 
 /* ========== Outils ========== */
@@ -351,11 +368,13 @@ const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); retur
 const fold = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const IMG = (p, w = 'w342') => p ? `https://image.tmdb.org/t/p/${w}${p}` : '';
 const ago = t => { const m = Math.round((Date.now() - t) / 60000); if (m < 60) return `il y a ${Math.max(1, m)} min`; const h = Math.round(m / 60); if (h < 48) return `il y a ${h} h`; const d = Math.round(h / 24); return d < 30 ? `il y a ${d} j` : new Date(t).toLocaleDateString('fr-FR', {day:'numeric', month:'short', year:'numeric'}); };
-const TABS = [...PLATEFORMES.map(p => ({id:p.id, nom:p.nom})), {id:'youtube', nom:'YouTube'}];
-
+const TABS = [{id:'films', nom:'Films et séries'}, {id:'youtube', nom:'YouTube'}];
+const PBY = Object.fromEntries(PLATEFORMES.map(p => [p.id, p]));
+let ABOS = new Set(LS.get('videos:abos', PLATEFORMES.filter(p => p.abo).map(p => p.id)));
 let tab = TABS.some(t => t.id === LS.get('videos:onglet', '')) ? LS.get('videos:onglet') : TABS[0].id;
-let CAT = {}, YT = null, loadedAt = 0;
-let F = {type:'tout', tri:'pop', genre:'', q:'', vus:false}, shown = 60;
+let CAT = null, RES = null, YT = null, loadedAt = 0;
+let F = {type:'tout', tri:'pop', genre:'', q:'', vus:false, plat:'abos'}, shown = 60;
+const arrivee = x => Object.entries(x.arr || {}).filter(([p, d]) => d && ABOS.has(p)).map(([, d]) => d).sort().pop() || null;   // arrivée la plus récente sur un de tes abonnements
 let LISTE = new Set(LS.get('videos:liste', [])), VUS = new Set(LS.get('videos:vus', [])), YTVUS = new Set(LS.get('videos:yt-vus', []));
 const saveSets = () => { LS.set('videos:liste', [...LISTE]); LS.set('videos:vus', [...VUS]); LS.set('videos:yt-vus', [...YTVUS].slice(-400)); };
 let playing = null;
@@ -363,26 +382,27 @@ let playing = null;
 /* ========== Rendu ========== */
 function render(){
   $('#tabs').innerHTML = TABS.map(t => `<button class="tab" role="tab" type="button" data-tab="${t.id}" aria-selected="${t.id === tab}">${esc(t.nom)}</button>`).join('');
-  $('#out').innerHTML = tab === 'youtube' ? ytHTML() : catHTML(PLATEFORMES.find(p => p.id === tab));
-  const d = tab === 'youtube' ? YT : CAT[tab];
+  $('#out').innerHTML = tab === 'youtube' ? ytHTML() : catHTML();
+  const d = tab === 'youtube' ? YT : CAT;
   $('#stamp').textContent = d && d.updated ? `à jour ${ago(Date.parse(d.updated))}` : '';
 }
 
 /* ---------- Bibliothèque d'une plateforme ---------- */
 function filtrer(C){
   const q = fold(F.q).trim(), mois = Date.now() - 30 * 864e5, auj = new Date().toISOString().slice(0, 10);
-  let l = C.titres.filter(x => (F.type === 'tout' || x.t === F.type) && (!F.genre || (x.genres || []).includes(F.genre)));
+  const plat = x => F.plat === 'toutes' ? true : F.plat === 'abos' ? x.p.some(p => ABOS.has(p)) : x.p.includes(F.plat);
+  let l = C.titres.filter(x => plat(x) && (F.type === 'tout' || x.t === F.type) && (!F.genre || (x.genres || []).includes(F.genre)));
   if (q) l = l.filter(x => fold(x.titre + ' ' + (x.orig || '')).includes(q));
   if (F.tri === 'liste') l = l.filter(x => LISTE.has(x.k));
   else if (!F.vus) l = l.filter(x => !VUS.has(x.k));
-  if (F.tri === 'nouveau') l = l.filter(x => x.vu && Date.parse(x.vu) >= mois).sort((a, b) => a.vu < b.vu ? 1 : -1);
+  if (F.tri === 'nouveau') l = l.filter(x => arrivee(x) && Date.parse(arrivee(x)) >= mois).sort((a, b) => arrivee(a) < arrivee(b) ? 1 : -1);
   else if (F.tri === 'recent') l = l.filter(x => x.sortie && x.sortie <= auj).sort((a, b) => a.sortie < b.sortie ? 1 : -1);
   else if (F.tri === 'note') l = l.filter(x => x.note && x.votes >= 100).sort((a, b) => b.note - a.note);
   else l = l.sort((a, b) => a.rang - b.rang);
   return l;
 }
-function catHTML(P){
-  const C = CAT[P.id];
+function catHTML(){
+  const C = CAT, P = {nom:'tes plateformes'};
   if (!C) return '<div class="msgbox glass">Chargement du catalogue…</div>';
   if (!C.titres.length) return `<div class="msgbox glass"><b>Catalogue ${esc(P.nom)} pas encore prêt</b>
     ${/clé/i.test(C.erreur || '') ? `<span>Il faut une clé gratuite TMDB (la base de films qui sait ce qui est sur ${esc(P.nom)} en France) :</span>
@@ -391,42 +411,59 @@ function catHTML(P){
       <li>Sur GitHub : Settings → Secrets and variables → Actions → New repository secret, nom <b>TMDB_TOKEN</b>, colle le jeton.</li>
       <li>Actions → « Vidéos » → Run workflow.</li></ol>` : `<span>${esc(C.erreur || 'La tâche « Vidéos » n\'a pas encore tourné.')}</span>`}</div>`;
   const genres = [...new Set(C.titres.flatMap(x => x.genres || []))].sort((a, b) => a.localeCompare(b, 'fr'));
-  const l = filtrer(C), nNew = C.titres.filter(x => x.vu && Date.parse(x.vu) >= Date.now() - 30 * 864e5).length;
+  const l = filtrer(C), nNew = C.titres.filter(x => arrivee(x) && Date.parse(arrivee(x)) >= Date.now() - 30 * 864e5).length;
+  const pchip = (v, t, extra = '') => `<button class="chip" type="button" data-f="plat" data-v="${v}" aria-pressed="${F.plat === v}"${extra}>${t}</button>`;
+  const dispo = PLATEFORMES.filter(p => (C.plateformes || {})[p.id] && C.plateformes[p.id].n);
   const chip = (k, v, t) => `<button class="chip" type="button" data-f="${k}" data-v="${v}" aria-pressed="${F[k] === v}">${t}</button>`;
-  return `<label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="Chercher un film, une série" value="${esc(F.q)}" autocomplete="off" aria-label="Chercher dans ${esc(P.nom)}"></label>
+  return `<label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="Chercher un film, une série" value="${esc(F.q)}" autocomplete="off" aria-label="Chercher un film ou une série"></label>
+    <div class="chips" role="group" aria-label="Plateformes">${pchip('abos', 'Mes abonnements')}${dispo.map(p => pchip(p.id, `<i class="pl" style="--pc:${p.coul}">${esc(p.court)}</i>${esc(p.nom)}`)).join('')}${pchip('toutes', 'Toutes')}
+      <button class="chip" type="button" data-act="abos" aria-label="Choisir mes abonnements">⚙︎</button></div>
     <div class="chips" role="group" aria-label="Type">${chip('type', 'tout', 'Tout')}${chip('type', 'film', 'Films')}${chip('type', 'serie', 'Séries')}
       <select class="chip sel" id="genre" aria-label="Genre"><option value="">Tous genres</option>${genres.map(g => `<option${F.genre === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select></div>
     <div class="chips" role="group" aria-label="Tri">${chip('tri', 'pop', 'Populaires')}${chip('tri', 'recent', 'Sorties récentes')}${chip('tri', 'note', 'Mieux notés')}${nNew ? chip('tri', 'nouveau', `Nouveaux (${nNew})`) : ''}${chip('tri', 'liste', `Ma liste${LISTE.size ? ` (${LISTE.size})` : ''}`)}</div>
     <div id="res" style="display:flex;flex-direction:column;gap:12px">${catRes(P, l)}</div>
-    <p class="credit">Catalogue ${esc(P.nom)} en France, mis à jour chaque nuit. Données : TMDB (ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB) · disponibilités : JustWatch.</p>`;
+    <p class="credit">Catalogues en France, mis à jour chaque nuit. Données : TMDB (ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB) · disponibilités : JustWatch.</p>`;
 }
-function catRes(P, l = filtrer(CAT[P.id])){
+function catRes(P, l = filtrer(CAT)){
   return `<span class="count">${l.length} titre${l.length > 1 ? 's' : ''}${!F.vus && F.tri !== 'liste' && VUS.size ? ` · <button type="button" class="chip" data-f="vus" data-v="1" style="min-height:28px;padding:3px 10px">afficher les déjà vus</button>` : ''}</span>
     ${l.length ? `<div class="grid">${l.slice(0, shown).map(posterHTML).join('')}</div>` : `<div class="msgbox glass">${F.tri === 'liste' ? 'Ta liste est vide : ouvre un titre et touche « Ma liste ».' : 'Aucun titre ne correspond.'}</div>`}
     ${l.length > shown ? `<button class="btn more" type="button" data-act="more">Afficher plus (${l.length - shown} restants)</button>` : ''}`;
 }
 function posterHTML(x){
-  const neu = x.vu && Date.parse(x.vu) >= Date.now() - 14 * 864e5;
+  const a = arrivee(x), neu = a && Date.parse(a) >= Date.now() - 14 * 864e5;
+  const pls = x.p.map(id => PBY[id]).filter(Boolean).sort((a, b) => ABOS.has(b.id) - ABOS.has(a.id)).slice(0, 3);
   return `<button class="tit" type="button" data-titre="${esc(x.k)}" aria-label="${esc(x.titre)}${x.an ? ', ' + x.an : ''}">
     <span class="poster">${x.affiche ? `<img src="${IMG(x.affiche, 'w185')}" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : `<span class="noimg">${esc(x.titre)}</span>`}
       ${neu ? '<span class="bd">Nouveau</span>' : ''}${LISTE.has(x.k) ? '<span class="mk" aria-hidden="true">＋</span>' : VUS.has(x.k) ? '<span class="mk" aria-hidden="true">✓</span>' : ''}
-      ${x.note ? `<span class="nt">★ ${x.note.toLocaleString('fr-FR')}</span>` : ''}</span>
+      ${x.note ? `<span class="nt">★ ${x.note.toLocaleString('fr-FR')}</span>` : ''}
+      <span class="pls">${pls.map(p => `<i class="pl${ABOS.has(p.id) ? '' : ' off'}" style="--pc:${p.coul}" title="${esc(p.nom)}">${esc(p.court)}</i>`).join('')}</span></span>
     <b>${esc(x.titre)}</b><small>${x.t === 'film' ? 'Film' : 'Série'}${x.an ? ' · ' + x.an : ''}</small></button>`;
 }
 function ficheSheet(k){
-  const P = PLATEFORMES.find(p => p.id === tab), x = CAT[tab].titres.find(t => t.k === k); if (!x) return;
+  const x = CAT.titres.find(t => t.k === k); if (!x) return;
+  if (!RES) fetch('donnees/videos/resumes.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : {}).then(j => { RES = j || {}; const el = $('#resume'); if (el && RES[k]) el.textContent = RES[k]; }).catch(() => { RES = {}; });
+  const resume = (RES && RES[k]) || x.resume || '';
+  const pls = x.p.map(id => PBY[id]).filter(Boolean).sort((a, b) => ABOS.has(b.id) - ABOS.has(a.id));
   openSheet(`<div class="fiche-top"><span class="poster">${x.affiche ? `<img src="${IMG(x.affiche)}" alt="" onerror="this.remove()">` : ''}</span>
       <div><h2 id="sheetTitle">${esc(x.titre)}</h2>
       <div class="meta">${x.orig ? esc(x.orig) + '<br>' : ''}${x.t === 'film' ? 'Film' : 'Série'}${x.an ? ' · ' + x.an : ''}${x.genres && x.genres.length ? '<br>' + x.genres.map(esc).join(', ') : ''}
         ${x.note ? `<br>★ ${x.note.toLocaleString('fr-FR')}/10 <small>(${x.votes.toLocaleString('fr-FR')} votes)</small>` : ''}</div></div></div>
-    ${x.resume ? `<p class="resume">${esc(x.resume)}</p>` : ''}
-    <button class="btn main wide" type="button" data-act="ouvrir" data-k="${esc(k)}">Ouvrir dans l'appli ${esc(P.nom)}</button>
-    <p class="credit" id="ouvMsg" style="margin:-4px 0 0">Le titre est copié : colle-le dans la recherche de l'appli.</p>
-    <a class="credit" href="${esc(P.web + encodeURIComponent(x.titre))}" target="_blank" rel="noopener">Chercher sur le site ${esc(P.nom)} ›</a>
+    <p class="resume" id="resume">${esc(resume || (RES ? '' : '…'))}</p>
+    <span class="k">Disponible sur</span>
+    ${pls.map(P => `<div class="dispo"><i class="pl" style="--pc:${P.coul}">${esc(P.court)}</i><b>${esc(P.nom)}</b>${ABOS.has(P.id) ? '' : '<small>pas dans tes abonnements</small>'}
+      <button class="btn${ABOS.has(P.id) ? ' main' : ''}" type="button" data-act="ouvrir" data-k="${esc(k)}" data-p="${P.id}">Ouvrir l'appli</button>
+      <a class="lien" href="${esc(P.web + encodeURIComponent(x.titre))}" target="_blank" rel="noopener" aria-label="Chercher sur le site ${esc(P.nom)}">site ›</a></div>`).join('')}
+    <p class="credit" id="ouvMsg" style="margin:-4px 0 0">« Ouvrir l'appli » copie le titre : colle-le dans la recherche de l'appli.</p>
     <div class="row-btns"><button class="btn${LISTE.has(k) ? ' on' : ''}" type="button" data-act="liste" data-k="${esc(k)}" aria-pressed="${LISTE.has(k)}">${LISTE.has(k) ? '✓ Dans ma liste' : '＋ Ma liste'}</button>
       <button class="btn${VUS.has(k) ? ' on' : ''}" type="button" data-act="vu" data-k="${esc(k)}" aria-pressed="${VUS.has(k)}">${VUS.has(k) ? '✓ Déjà vu' : 'Déjà vu'}</button></div>
     <a class="credit" href="https://www.themoviedb.org/${x.t === 'film' ? 'movie' : 'tv'}/${esc(x.k.slice(1))}?language=fr" target="_blank" rel="noopener">Fiche complète sur TMDB ›</a>
     <button class="btn" type="button" data-act="close">Fermer</button>`);
+}
+
+function abosSheet(){
+  openSheet(`<h2 id="sheetTitle">Mes abonnements</h2><p class="msg">Ils sont mis en avant et forment le filtre « Mes abonnements ».</p>
+    ${PLATEFORMES.map(p => `<label class="sw-row"><span><i class="pl" style="--pc:${p.coul}">${esc(p.court)}</i> <b>${esc(p.nom)}</b></span><input type="checkbox" class="sw" data-abo="${p.id}"${ABOS.has(p.id) ? ' checked' : ''}></label>`).join('')}
+    <div class="row-btns"><button class="btn main" type="button" data-act="abos-ok">Enregistrer</button><button class="btn" type="button" data-act="close">Annuler</button></div>`);
 }
 
 /* ---------- YouTube ---------- */
@@ -459,8 +496,10 @@ document.addEventListener('click', e => {
   const a = t.dataset.act;
   if (a === 'close') closeSheet();
   else if (a === 'more'){ shown += 60; render(); }
+  else if (a === 'abos') abosSheet();
+  else if (a === 'abos-ok'){ ABOS = new Set([...document.querySelectorAll('[data-abo]:checked')].map(c => c.dataset.abo)); LS.set('videos:abos', [...ABOS]); closeSheet(); render(); }
   else if (a === 'ouvrir'){                 // l'appli ne sait pas recevoir un titre : on le copie, puis on l'ouvre
-    const P = PLATEFORMES.find(p => p.id === tab), x = CAT[tab].titres.find(y => y.k === t.dataset.k);
+    const P = PBY[t.dataset.p], x = CAT.titres.find(y => y.k === t.dataset.k);
     const go = () => { window.location.href = P.app; };
     const msg = $('#ouvMsg');
     (navigator.clipboard ? navigator.clipboard.writeText(x.titre) : Promise.reject()).then(() => { if (msg) msg.textContent = `« ${x.titre} » copié : colle-le dans la recherche de l'appli.`; })
@@ -474,7 +513,7 @@ document.addEventListener('click', e => {
   else if (a === 'liste' || a === 'vu'){ const S = a === 'liste' ? LISTE : VUS, k = t.dataset.k; S.has(k) ? S.delete(k) : S.add(k); saveSets(); ficheSheet(k); render(); }
 });
 let qt = null;
-document.addEventListener('input', e => { if (e.target.id === 'q'){ clearTimeout(qt); qt = setTimeout(() => { F.q = e.target.value; shown = 60; const P = PLATEFORMES.find(p => p.id === tab); if (P && $('#res')) $('#res').innerHTML = catRes(P); }, 250); } });
+document.addEventListener('input', e => { if (e.target.id === 'q'){ clearTimeout(qt); qt = setTimeout(() => { F.q = e.target.value; shown = 60; if ($('#res')) $('#res').innerHTML = catRes(); }, 250); } });
 document.addEventListener('change', e => { if (e.target.id === 'genre'){ F.genre = e.target.value; shown = 60; render(); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheetBg').hidden) closeSheet(); });
 $('#refreshBtn').addEventListener('click', () => load());
@@ -483,7 +522,12 @@ $('#refreshBtn').addEventListener('click', () => load());
 async function load(){
   $('#refreshBtn').classList.add('spin');
   await Promise.all([
-    ...PLATEFORMES.map(async P => { try{ const r = await fetch(`donnees/videos/catalogue-${P.id}.json`, {cache:'no-cache'}); CAT[P.id] = r.ok ? await r.json() : {titres:[], erreur:'La tâche « Vidéos » n\'a pas encore tourné.'}; }catch{ CAT[P.id] = CAT[P.id] || {titres:[], erreur:'Pas de réseau.'}; } }),
+    (async () => { try{
+      let r = await fetch('donnees/videos/catalogue.json', {cache:'no-cache'});
+      if (r.status === 404){ r = await fetch('donnees/videos/catalogue-prime.json', {cache:'no-cache'});           // ancien format (Prime seul)
+        if (r.ok){ const o = await r.json(); CAT = {...o, plateformes:{prime:{nom:'Prime Video', n:o.titres.length}}, titres:o.titres.map(x => ({...x, p:['prime'], arr:{prime:x.vu || null}}))}; return; } }
+      CAT = r.ok ? await r.json() : {titres:[], erreur:'La tâche « Vidéos » n\'a pas encore tourné.'};
+    }catch{ CAT = CAT || {titres:[], erreur:'Pas de réseau.'}; } })(),
     (async () => { try{ const r = await fetch('donnees/videos/youtube.json', {cache:'no-cache'}); YT = r.ok ? await r.json() : {chaines:CHAINES_YT.map(c => ({...c, videos:[], erreur:'La tâche « Vidéos » n\'a pas encore tourné.'}))}; }catch{ YT = YT || {chaines:[]}; } })()
   ]);
   loadedAt = Date.now(); $('#refreshBtn').classList.remove('spin'); render();

@@ -347,6 +347,14 @@ function render(e){
       <p class="note">« en pause » : tournoi sans match prévu dans les 45 jours. Version de la page Sport : ${esc(e.sport.version || '?')}.</p>`, j.sport.lvl !== 'ok');
   } else h += part('Matchs et classements', j.sport, '<p class="note">La tâche « Programme TV sport » n\'a encore rien publié.</p>', true);
 
+  if (e.sport && e.sport.ligues.some(l => l.logo)){
+    const L = e.sport.ligues.filter(l => l.logo), manq = L.filter(l => !l.logo.perso && !l.logo.espn);
+    const rows = [...manq, ...L.filter(l => !manq.includes(l))].map(l => `<tr><td>${esc(l.nom)}</td><td>${l.logo.perso ? '<span class="tag ok">le tien</span>' : l.logo.espn ? '<span class="tag none">ESPN</span>' : '<span class="tag warn">aucun</span>'}</td><td class="mono">${esc(l.logo.fichier)}</td></tr>`).join('');
+    h += part('Logos des compétitions', {lvl:manq.length ? 'warn' : 'ok', msg:manq.length ? `${manq.length} sans logo` : 'Toutes ont un logo'},
+      `<table class="rows"><thead><tr><th>Compétition</th><th>Logo</th><th>Ton fichier (nom exact)</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="note">Pour mettre ton logo : dépose une image carrée (PNG, SVG ou WebP, fond transparent si possible) dans le dossier <b>logos/competitions/</b> du dépôt, avec le nom indiqué (l'extension peut être .svg ou .webp). Il remplace celui d'ESPN. Version pour le mode sombre : même nom suivi de <b>-sombre</b> (ex. <span class="mono">ligue-1-sombre.png</span>).</p>`, manq.length > 0);
+  }
+
   if (e.tv){
     const rows = e.tv.chaines.map(c => `<tr><td>${esc(c.nom)}</td><td class="n">${c.n}</td><td>${c.jusqu ? new Date(c.jusqu).toLocaleDateString('fr-FR', {weekday:'short', day:'numeric'}) : ''}</td><td>${esc(c.source)}</td></tr>`).join('');
     h += part('Programme TV', j.tv, `<table class="rows"><thead><tr><th>Chaîne</th><th>Prog.</th><th>Jusqu'au</th><th>Source</th></tr></thead><tbody>${rows}</tbody></table>

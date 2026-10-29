@@ -259,6 +259,15 @@ label.f{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--i
 .sheet textarea{min-height:90px;border-radius:12px;border:1px solid var(--line);background:var(--card);padding:10px;font:12px/1.4 ui-monospace, Menlo, monospace;color:var(--ink);width:100%}
 .msg{font-size:.8rem;color:var(--ink-soft);margin:0}
 .btn.danger{color:var(--down)}
+#eyeBtn.ouvert{color:var(--up)}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin:4px 0 6px}
+.pin-dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink-soft)}
+.pin-dots i.on{background:var(--ink);border-color:var(--ink)}
+.pad{display:grid;grid-template-columns:repeat(3,72px);gap:12px;justify-content:center}
+.pad button{height:64px;border-radius:50%;background:var(--card);border:1px solid var(--line);font-size:1.45rem;font-weight:500;color:var(--ink)}
+.pad button:active{background:var(--accent);color:var(--on-accent)}
+.pad .pad-ok{font-size:1rem;font-weight:700;background:var(--accent);color:var(--on-accent);border-color:transparent}
+.secours{font:600 1.35rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;letter-spacing:.08em;text-align:center;padding:16px;border-radius:14px;background:var(--card);border:1px dashed var(--line)}
 /* Écran d'ordinateur : portefeuille et marchés côte à côte, simulations en 2 colonnes */
 html.desk .wrap{max-width:1180px}
 html.desk .tab[data-tab="marches"]{display:none}
@@ -356,7 +365,7 @@ html.desk .sheet{border-radius:28px;max-height:84vh}
     <div class="top">
       <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
       <div class="tool-row">
-        <button class="icon-btn glass" id="eyeBtn" type="button" aria-label="Afficher les montants" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button class="icon-btn glass" id="eyeBtn" type="button" aria-label="Déverrouiller" aria-pressed="false"><svg viewBox="0 0 24 24" id="lockIc"></svg></button>
         <button class="icon-btn glass" id="setBtn" type="button" aria-label="Réglages"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
         <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
       </div>
@@ -435,15 +444,20 @@ const CATS = {
 const COMPTES = {ct:'Compte-titres', av:'Assurance-vie', pee:'PEE'};
 
 let LIGNES = LS.get('invest:lignes', []);
-let REG = Object.assign({situation:'seul', avOuverture:'', avVerse:null, gainsAnnee:{an:YEAR, v:0}, mvReport:0, cible:{}, tolerance:5, maxLigne:25, discret:true}, LS.get('invest:reglages', {}));
+let REG = Object.assign({situation:'seul', avOuverture:'', avVerse:null, gainsAnnee:{an:YEAR, v:0}, mvReport:0, cible:{}, tolerance:5, maxLigne:25, verrou:false}, LS.get('invest:reglages', {}));
 if (!REG.gainsAnnee || REG.gainsAnnee.an !== YEAR) REG.gainsAnnee = {an:YEAR, v:0};
 let M = LS.get('invest:marches', null), A = null, loadedAt = 0;
-let tab = 'portef', per = 30, reveal = false, montant = null, ctLine = null;
+let tab = 'portef', per = 30, montant = null, ctLine = null;
+/* Cadenas : ouvert jusqu'à la fermeture de l'appli, ou jusqu'à ce qu'on le referme (partagé avec le widget de l'accueil) */
+const ouvert = () => { try{ return sessionStorage.getItem('invest:ouvert') === '1'; }catch{ return false; } };
+const setOuvert = v => { try{ v ? sessionStorage.setItem('invest:ouvert', '1') : sessionStorage.removeItem('invest:ouvert'); }catch{} };
+const LOCK_IC = {ferme:'<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2.5"/>', ouvert:'<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 7.6-1.7"/><path d="M12 14.5v2.5"/>'};
 const saveL = () => LS.set('invest:lignes', LIGNES), saveR = () => LS.set('invest:reglages', REG);
 
 const num = v => { if (v == null || v === '') return null; const n = parseFloat(String(v).replace(/\s| |€/g, '').replace(',', '.')); return isFinite(n) ? n : null; };
 const fmt = (v, d = 0) => v == null || !isFinite(v) ? '—' : v.toLocaleString('fr-FR', {minimumFractionDigits:d, maximumFractionDigits:d});
-const masked = () => REG.discret && !reveal;
+const masked = () => verrouActif() && !ouvert();          // fermé : montants masqués et rien n'est modifiable
+const bloque = () => masked();
 const eur = (v, d = 0) => masked() ? '•••• €' : `${fmt(v, d)} €`;
 const eurAlways = (v, d = 0) => `${fmt(v, d)} €`;
 const pct = (x, d = 1) => x == null || !isFinite(x) ? '—' : (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x * 100).toLocaleString('fr-FR', {minimumFractionDigits:d, maximumFractionDigits:d}) + ' %';
@@ -536,8 +550,11 @@ function donut(parts){
 /* ========== Rendu ========== */
 function render(){
   document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
-  $('#eyeBtn').hidden = !REG.discret || tab === 'vente';
-  $('#eyeBtn').setAttribute('aria-pressed', reveal);
+  $('#eyeBtn').hidden = !verrouActif();
+  $('#eyeBtn').setAttribute('aria-pressed', ouvert());
+  $('#eyeBtn').setAttribute('aria-label', ouvert() ? 'Verrouiller (masquer et bloquer les modifications)' : 'Déverrouiller avec le code');
+  $('#eyeBtn').classList.toggle('ouvert', ouvert());
+  $('#lockIc').innerHTML = ouvert() ? LOCK_IC.ouvert : LOCK_IC.ferme;
   A = analyse();
   const w = A.rules.filter(r => r.lvl === 'warn'); LS.set('invest:resume', {alerte:w.length ? w[0].court : '', n:w.length});
   const desk = document.documentElement.classList.contains('desk');
@@ -646,6 +663,7 @@ const FICHES = [
 
 /* ---------- Si je vends ---------- */
 function venteHTML(){
+  if (masked()) return `<div class="card glass empty"><b>Montants verrouillés</b><p>Entre ton code pour estimer une vente ou un retrait.</p><button class="btn main" type="button" data-act="unlock">Déverrouiller</button></div>`;
   const ct = A.rows.filter(r => r.l.compte === 'ct' && r.v != null), av = A.rows.filter(r => r.l.compte === 'av' && r.v != null);
   if (montant == null) montant = 5000;
   if (ctLine == null || !ct.some(r => LIGNES.indexOf(r.l) === ctLine)) ctLine = ct.length ? LIGNES.indexOf(ct[0].l) : null;
@@ -782,6 +800,7 @@ function syncLineForm(){
   if (t === 'manuel' && c === 'av' && f.cat.value === 'monde') f.cat.value = 'fondseuros';
 }
 function saveLine(f){
+  if (bloque()){ closeSheet(); askUnlock(); return; }
   const g = n => f[n] ? f[n].value.trim() : '';
   const l = {compte:f.compte.value, type:f.type.value, nom:g('nom'), cat:g('cat'), frais:num(g('frais'))};
   if (l.type === 'cote'){ Object.assign(l, {code:g('code').toUpperCase(), qte:num(g('qte'))}); if (l.compte === 'ct') l.pru = num(g('pru')); else l.investi = num(g('investi'));
@@ -797,7 +816,8 @@ function settingsSheet(){
   const sum = Object.values(REG.cible || {}).reduce((s, v) => s + (num(v) || 0), 0);
   openSheet(`<h2 id="sheetTitle">Réglages</h2>
     <form id="setForm" style="display:flex;flex-direction:column;gap:12px">
-      <label class="sw-row" style="border:0;padding:0"><span><b>Mode discret</b><small>Montants masqués par défaut (l'œil les affiche)</small></span><input type="checkbox" class="sw" name="discret"${REG.discret ? ' checked' : ''}></label>
+      <div class="card" style="padding:12px 14px;background:var(--card);border:1px solid var(--line)"><span><b>Verrouiller les montants par un code</b><br><small class="msg">${verrouActif() ? 'Activé : l\'œil demande ton code.' : 'Désactivé : les montants sont toujours visibles.'}</small></span>
+        <div class="row-btns">${verrouActif() ? '<button class="btn" type="button" data-act="pin-change">Modifier le code</button><button class="btn" type="button" data-act="pin-off">Désactiver</button>' : '<button class="btn main" type="button" data-act="pin-on">Activer le verrouillage</button>'}</div></div>
       <span class="k">Répartition cible (%)</span>
       <div class="grid2">${Object.entries(CATS).map(([k, c]) => `<label class="f">${c.n}<input name="c_${k}" inputmode="decimal" value="${esc((REG.cible || {})[k] ?? '')}"></label>`).join('')}</div>
       <p class="msg" id="sumMsg">Total : ${fmt(sum)} %</p>
@@ -814,8 +834,8 @@ function settingsSheet(){
     </form>`);
 }
 function saveSettings(f){
+  if (bloque()){ closeSheet(); askUnlock(); return; }
   const g = n => f[n] ? f[n].value.trim() : '';
-  REG.discret = f.discret.checked; reveal = false;
   REG.cible = {}; Object.keys(CATS).forEach(k => { const v = num(g('c_' + k)); if (v) REG.cible[k] = v; });
   REG.tolerance = num(g('tolerance')) ?? 5; REG.maxLigne = num(g('maxLigne')) ?? 25;
   REG.situation = f.situation.value; REG.avOuverture = g('avOuverture'); REG.avVerse = num(g('avVerse'));
@@ -834,27 +854,127 @@ function transferSheet(){
     <div class="row-btns"><button class="btn main" type="button" data-act="import">Importer</button><button class="btn" type="button" data-act="close">Fermer</button></div>`);
 }
 
+/* ========== Verrouillage des montants par un code ==========
+   Le code n'est jamais gardé en clair : seulement une empreinte (SHA-256 avec un sel). Un code de secours,
+   donné une seule fois à la création, permet d'en choisir un nouveau. C'est un écran de confidentialité, pas un coffre-fort. */
+const PIN_KEY = 'invest:pin', TRY_KEY = 'invest:pin-essais';
+const hex = b => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+const sha = async t => hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)));
+const rnd = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return a; };
+const pinRec = () => LS.get(PIN_KEY, null);
+function verrouActif(){ return !!(REG.verrou && pinRec()); }
+const normCode = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const genSecours = () => { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; return [...rnd(12)].map(x => A[x % 32]).join('').match(/.{4}/g).join('-'); };
+async function savePin(pin, secours){ const sel = hex(rnd(16)); LS.set(PIN_KEY, {sel, h:await sha(sel + pin), s:await sha(sel + 'S' + normCode(secours)), n:pin.length}); }
+async function changePin(pin){ const r = pinRec(); r.h = await sha(r.sel + pin); r.n = pin.length; LS.set(PIN_KEY, r); }
+const pinOk = async pin => { const r = pinRec(); return !!r && await sha(r.sel + pin) === r.h; };
+const secoursOk = async c => { const r = pinRec(); return !!r && !!r.s && await sha(r.sel + 'S' + normCode(c)) === r.s; };
+const attente = () => { const t = LS.get(TRY_KEY, {n:0, jusqu:0}); return t.jusqu > Date.now() ? Math.ceil((t.jusqu - Date.now()) / 1000) : 0; };
+function echec(){ const t = LS.get(TRY_KEY, {n:0, jusqu:0}); t.n++; if (t.n >= 5){ t.n = 0; t.jusqu = Date.now() + 30e3; } LS.set(TRY_KEY, t); return t; }
+let PAD = {val:'', len:null, ok:null, apres:null};
+function padHTML(titre, sous, len, liens = ''){
+  return `<h2 id="sheetTitle">${titre}</h2><p class="msg" id="pinMsg" style="text-align:center">${sous}</p>
+    <div class="pin-dots" id="pinDots" aria-hidden="true">${'<i></i>'.repeat(len || 6)}</div>
+    <div class="pad" role="group" aria-label="Pavé numérique">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-k="${n}">${n}</button>`).join('')}
+      ${len ? '<span aria-hidden="true"></span>' : '<button type="button" data-k="ok" class="pad-ok" aria-label="Valider">OK</button>'}<button type="button" data-k="0">0</button><button type="button" data-k="del" aria-label="Effacer">⌫</button></div>
+    ${liens}<button class="btn" type="button" data-act="close">Annuler</button>`;
+}
+function padOpen(titre, sous, len, ok, liens){ PAD = {val:'', len, ok, apres:null}; openSheet(padHTML(titre, sous, len, liens)); padShow(); }
+function padShow(){ const d = $('#pinDots'); if (!d) return; [...d.children].forEach((i, k) => i.classList.toggle('on', k < PAD.val.length)); }
+async function padKey(k){
+  if (!$('#pinDots')) return;
+  const w = attente(); if (w){ $('#pinMsg').textContent = `Trop d'essais : réessaie dans ${w} s.`; return; }
+  if (k === 'del') PAD.val = PAD.val.slice(0, -1);
+  else if (k === 'ok'){ if (PAD.val.length < 4){ $('#pinMsg').textContent = 'Le code fait 4 à 6 chiffres.'; return; } const v = PAD.val; PAD.val = ''; padShow(); await PAD.ok(v); return; }
+  else if (PAD.val.length < (PAD.len || 6)) PAD.val += k;
+  padShow();
+  if (PAD.len && PAD.val.length === PAD.len){ const v = PAD.val; PAD.val = ''; setTimeout(padShow, 120); await PAD.ok(v); }
+}
+document.addEventListener('keydown', e => { if (!$('#pinDots') || $('#sheetBg').hidden) return;
+  if (/^[0-9]$/.test(e.key)){ e.preventDefault(); padKey(e.key); } else if (e.key === 'Backspace'){ e.preventDefault(); padKey('del'); } else if (e.key === 'Enter'){ e.preventDefault(); padKey('ok'); } });
+/* Demande le code actuel, puis fait « ensuite » */
+function askPin(titre, sous, ensuite){
+  const r = pinRec(); if (!r){ ensuite(); return; }
+  padOpen(titre, sous, r.n, async v => {
+    if (await pinOk(v)){ LS.set(TRY_KEY, {n:0, jusqu:0}); ensuite(); return; }
+    const t = echec(); $('#pinMsg').textContent = t.jusqu > Date.now() ? 'Trop d\'essais : attends 30 s.' : `Code incorrect (essai ${t.n}/5).`;
+  }, '<button class="btn" type="button" data-act="pin-forgot" style="min-height:36px">Code oublié ?</button>');
+}
+function askUnlock(apres){ askPin('Déverrouiller', 'Entre ton code pour voir et modifier tes placements.', () => { setOuvert(true); closeSheet(); render(); if (apres) apres(); }); }
+const siOuvert = f => bloque() ? askUnlock(f) : f();        // toute modification demande d'abord le code
+/* Choisir un code (deux fois), puis « fin(code) » */
+function choosePin(fin){
+  padOpen('Nouveau code', 'Choisis 4 à 6 chiffres, puis touche OK.', null, async a => {
+    padOpen('Confirme le code', 'Tape le même code, puis OK.', null, async b => {
+      if (a !== b){ choosePin(fin); $('#pinMsg').textContent = 'Les deux codes ne correspondent pas : recommence.'; return; }
+      await fin(a);
+    });
+  });
+}
+function showSecours(code, fin){
+  openSheet(`<h2 id="sheetTitle">Ton code de secours</h2>
+    <p class="msg">Garde-le en lieu sûr (par exemple dans Bitwarden). Il sert à choisir un nouveau code si tu oublies le tien. Il ne sera plus affiché.</p>
+    <div class="secours" aria-label="Code de secours">${code}</div>
+    <div class="row-btns"><button class="btn" type="button" data-act="copy-secours" data-v="${code}">Copier</button><button class="btn main" type="button" data-act="pin-noted">C'est noté</button></div>`);
+  PAD.apres = fin;
+}
+function setupFlow(){
+  choosePin(async pin => { const sc = genSecours(); showSecours(sc, async () => { await savePin(pin, sc); REG.verrou = true; saveR(); setOuvert(false); LS.set(TRY_KEY, {n:0, jusqu:0}); closeSheet(); render(); toastMsg('Verrouillage activé'); }); });
+}
+function recoverFlow(){
+  openSheet(`<h2 id="sheetTitle">Code oublié</h2>
+    <p class="msg">Entre ton code de secours (donné quand tu as créé le code).</p>
+    <label class="f">Code de secours<input id="secIn" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX"></label>
+    <p class="msg" id="secMsg"></p>
+    <div class="row-btns"><button class="btn main" type="button" id="secGo">Valider</button><button class="btn" type="button" data-act="close">Annuler</button></div>
+    <button class="btn danger" type="button" data-act="pin-reset" style="min-height:36px">Je n'ai plus le code de secours</button>`);
+  $('#secGo').addEventListener('click', async () => {
+    const w = attente(); if (w){ $('#secMsg').textContent = `Trop d'essais : réessaie dans ${w} s.`; return; }
+    if (!(await secoursOk($('#secIn').value))){ const t = echec(); $('#secMsg').textContent = t.jusqu > Date.now() ? 'Trop d\'essais : attends 30 s.' : 'Code de secours incorrect.'; return; }
+    LS.set(TRY_KEY, {n:0, jusqu:0});
+    choosePin(async pin => { const sc = genSecours(); showSecours(sc, async () => { await savePin(pin, sc); setOuvert(false); closeSheet(); render(); toastMsg('Nouveau code enregistré'); }); });
+  });
+}
+function resetFlow(){
+  openSheet(`<h2 id="sheetTitle">Réinitialiser</h2>
+    <p class="msg">Sans code ni code de secours, la seule solution est d'effacer le code <b>et tes lignes de placement</b> de cet appareil. Tu pourras les recopier ensuite (code de transfert d'un autre appareil, ou à la main). Tes réglages (cible, fiscalité) sont gardés.</p>
+    <div class="row-btns"><button class="btn danger" type="button" data-act="pin-reset-ok">Tout effacer</button><button class="btn" type="button" data-act="close">Annuler</button></div>`);
+}
+function toastMsg(t){ let d = document.querySelector('.maj-toast.pin'); if (!d){ d = document.createElement('div'); d.className = 'maj-toast pin'; d.setAttribute('role', 'status'); document.body.appendChild(d); } d.textContent = t; setTimeout(() => d.remove(), 2200); }
+document.addEventListener('click', e => { const b = e.target.closest('[data-act="copy-secours"]'); if (!b) return;
+  (navigator.clipboard ? navigator.clipboard.writeText(b.dataset.v) : Promise.reject()).then(() => { b.textContent = 'Copié ✓'; }).catch(() => {}); });
+if (REG.verrou && !pinRec()){ REG.verrou = false; saveR(); }      // code effacé (mémoire vidée) : pas de verrou sans code
+
 /* ========== Évènements ========== */
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-tab],[data-per],[data-act],[data-edit]');
+  const t = e.target.closest('[data-tab],[data-per],[data-act],[data-edit],[data-k]');
   if (e.target === $('#sheetBg')){ closeSheet(); return; }
   if (!t) return;
   if (t.dataset.tab){ tab = t.dataset.tab; LS.set('invest:onglet', tab); render(); window.scrollTo({top:0}); return; }
   if (t.dataset.per){ per = +t.dataset.per; render(); return; }
-  if (t.dataset.edit != null){ lineSheet(+t.dataset.edit); return; }
+  if (t.dataset.edit != null){ const i = +t.dataset.edit; if (masked()) askUnlock(() => lineSheet(i)); else lineSheet(i); return; }
   const a = t.dataset.act;
-  if (a === 'add') lineSheet(null);
-  else if (a === 'settings') settingsSheet();
-  else if (a === 'transfer') transferSheet();
+  if (a === 'add') siOuvert(() => lineSheet(null));
+  else if (a === 'settings') siOuvert(settingsSheet);
+  else if (a === 'transfer') siOuvert(transferSheet);
   else if (a === 'close') closeSheet();
-  else if (a === 'del'){ const i = +$('#lineForm').dataset.i; LIGNES.splice(i, 1); saveL(); closeSheet(); render(); }
+  else if (a === 'unlock') askUnlock();
+  else if (a === 'pin-on') setupFlow();
+  else if (a === 'pin-off') askPin('Désactiver le verrouillage', 'Entre ton code actuel.', () => { LS.set(PIN_KEY, null); try{ localStorage.removeItem(PIN_KEY); }catch{} REG.verrou = false; saveR(); setOuvert(false); closeSheet(); render(); });
+  else if (a === 'pin-change') askPin('Modifier le code', 'Entre ton code actuel.', () => choosePin(async p => { await changePin(p); closeSheet(); toastMsg('Code modifié'); }));
+  else if (a === 'pin-forgot') recoverFlow();
+  else if (a === 'pin-reset') resetFlow();
+  else if (a === 'pin-reset-ok'){ LIGNES = []; saveL(); try{ localStorage.removeItem(PIN_KEY); localStorage.removeItem(TRY_KEY); }catch{} REG.verrou = false; saveR(); setOuvert(false); closeSheet(); render(); toastMsg('Code et lignes effacés'); }
+  else if (a === 'pin-noted'){ const f = PAD.apres; PAD.apres = null; f && f(); }
+  else if (t.dataset.k != null) padKey(t.dataset.k);
+  else if (a === 'del'){ if (bloque()){ closeSheet(); return; } const i = +$('#lineForm').dataset.i; LIGNES.splice(i, 1); saveL(); closeSheet(); render(); }
   else if (a === 'copy'){ const ta = $('#sheet textarea'); ta.select(); (navigator.clipboard ? navigator.clipboard.writeText(ta.value) : Promise.reject()).then(() => { t.textContent = 'Copié ✓'; }).catch(() => { try{ document.execCommand('copy'); t.textContent = 'Copié ✓'; }catch{} }); }
-  else if (a === 'import'){ try{ const j = JSON.parse(unb64($('#codeIn').value)); if (!Array.isArray(j.l)) throw 0; LIGNES = j.l; REG = Object.assign(REG, j.r || {}); saveL(); saveR(); closeSheet(); render(); }catch{ $('#trMsg').textContent = 'Code invalide.'; } }
+  else if (a === 'import'){ try{ const j = JSON.parse(unb64($('#codeIn').value)); if (!Array.isArray(j.l)) throw 0; LIGNES = j.l; REG = Object.assign(REG, j.r || {}); if (!pinRec()) REG.verrou = false; saveL(); saveR(); closeSheet(); render(); }catch{ $('#trMsg').textContent = 'Code invalide.'; } }
 });
 document.addEventListener('submit', e => { e.preventDefault(); if (e.target.id === 'lineForm') saveLine(e.target); else if (e.target.id === 'setForm') saveSettings(e.target); });
 document.addEventListener('change', e => {
   if (e.target.closest('#lineForm')) syncLineForm();
-  if (e.target.name === 'sit'){ REG.situation = e.target.value; saveR(); render(); }
+  if (e.target.name === 'sit'){ if (bloque()){ render(); return; } REG.situation = e.target.value; saveR(); render(); }
   if (e.target.id === 'ctLine'){ ctLine = +e.target.value; $('#venteRes').innerHTML = venteRes(); }
 });
 let mt = null;
@@ -863,8 +983,8 @@ document.addEventListener('input', e => {
   if (e.target.closest('#setForm') && /^c_/.test(e.target.name)){ const f = e.target.form; $('#sumMsg').textContent = `Total : ${fmt(Object.keys(CATS).reduce((s, k) => s + (num(f['c_' + k].value) || 0), 0))} %`; }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheetBg').hidden) closeSheet(); });
-$('#eyeBtn').addEventListener('click', () => { reveal = !reveal; render(); });
-$('#setBtn').addEventListener('click', settingsSheet);
+$('#eyeBtn').addEventListener('click', () => { if (ouvert()){ setOuvert(false); render(); toastMsg('Verrouillé'); } else askUnlock(); });
+$('#setBtn').addEventListener('click', () => siOuvert(settingsSheet));
 $('#refreshBtn').addEventListener('click', () => load(true));
 
 /* ========== Chargement ========== */

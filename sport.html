@@ -157,7 +157,15 @@ h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:
 main .wrap{padding-block:14px 48px;display:flex;flex-direction:column;gap:18px}
 .notice{font-size:.8rem;line-height:1.45;color:var(--ink-soft);background:var(--card);border:1px dashed var(--line);border-radius:18px;padding:10px 12px}
 section.comp{display:flex;flex-direction:column;gap:8px}
-.comp-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 4px}
+.comp-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 0 0 4px}
+.comp-head h2{flex:1}
+.fold{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--ink-soft);margin:-6px 0}
+.fold svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s ease}
+.fold[aria-expanded="false"] svg{transform:rotate(-90deg)}
+.fold:hover{background:var(--accent-soft)}
+.comp.folded .comp-head{opacity:.75}
+.sp-live{color:var(--live);font-weight:600;display:inline-flex;align-items:center;gap:5px}
+.reset-f{margin-left:auto;padding:6px 12px;border-radius:999px;font-size:.76rem;font-weight:600;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
 .comp-head h2{margin:0;font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);display:flex;align-items:center;gap:8px;min-width:0}
 .flag{font-size:1rem;line-height:1;letter-spacing:0;flex:none}
 .clogo{width:20px;height:20px;object-fit:contain;display:block;flex:none}
@@ -496,6 +504,7 @@ details.rk li em{grid-row:1;grid-column:3;font-style:normal;color:var(--ink-soft
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span>
     </div>
     <div class="title-row"><h1>Sport</h1><span class="live-count" id="liveCount" hidden><span class="pulse"></span><span id="liveN"></span></span>
+      <button type="button" class="reset-f" id="resetF" hidden>Supprimer les filtres</button>
       <a class="auto-off" id="autoOff" href="etat.html" hidden title="Rafraîchissement automatique coupé dans État des données">⚠ Mise à jour auto coupée</a></div>
     <div class="navrow"><button type="button" class="arr" data-arr="day" data-d="-1" aria-label="Jour précédent">‹</button>
       <nav class="days glass" id="days" role="tablist" aria-label="Jours"></nav>
@@ -618,7 +627,7 @@ const LEAGUES = [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ];
-const VERSION = '2026-10-28.3';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-29.1';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -639,7 +648,7 @@ const MAXOFF = (7 - new Date().getDay()) % 7 + 7;   // dimanche de la semaine pr
 const OFFSETS = Array.from({length:MAXOFF + 4}, (_, i) => i - 3);
 
 let selDay = 0, shownDay = null;
-let group = 'all';                                   // à chaque ouverture : tous les sports, jour même
+let group = 'all';                                   // repris de la dernière visite (voir restoreEtat)
 let DATA = {};                  // league id -> {at, events:[…]}
 let sample = false, failed = new Set(), open = new Set();
 
@@ -889,18 +898,16 @@ setInterval(async () => {
   await pool(due.map(L => () => loadLeague(L)), 4);
   render();
 }, 30000);
-/* Retour sur la page après plus de 20 min (ou le lendemain) : on revient à « Tout » et au jour même */
-let hiddenAt = 0, openDay = new Date().toDateString();
+/* Retour sur la page : on garde le dernier état (sport, jour, compétitions réduites) ; « Supprimer les filtres » revient au départ */
+let openDay = new Date().toDateString();
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden){ hiddenAt = Date.now(); return; }
-  if ((hiddenAt && Date.now() - hiddenAt > 20 * 60e3) || openDay !== new Date().toDateString()){
-    openDay = new Date().toDateString(); selDay = 0; shownDay = null; group = 'all'; renderFilters(); window.scrollTo({top:0}); render();
-  }
+  if (document.hidden) return;
+  if (openDay !== new Date().toDateString()){ openDay = new Date().toDateString(); shownDay = null; render(); }   // « aujourd'hui » suit le jour qui change
   showAutoOff();
   if (sample || !autoOn('sport')) return;
   if (PRE.ok && Date.now() - PRE.at > 2 * 3600e3) PRE.tried = false; loadAll();
 });
-window.addEventListener('pageshow', e => { if (e.persisted){ selDay = 0; shownDay = null; group = 'all'; renderFilters(); render(); } });
+window.addEventListener('pageshow', e => { if (e.persisted){ shownDay = null; renderFilters(); render(); } });
 
 /* ---------- Programme TV (tv.json, mis à jour par la tâche GitHub) ---------- */
 let TV = null;
@@ -1046,8 +1053,10 @@ function renderFilters(){
 function compBadge(L){
   const d = DATA[L.id] || {};
   let logo = '';
-  const own = FILES && FILES !== 'missing' && FILES.comps[slug(L.name)];
-  if (own) logo = `<img class="clogo" src="${esc(own)}" alt="" loading="lazy" onerror="this.remove()">`;
+  const own = FILES && FILES !== 'missing' && (FILES.comps[slug(L.name)] || FILES.comps[slug(L.id)]);                 // tes logos : logos/competitions/<nom>.png
+  const ownDark = own && (FILES.comps[slug(L.name) + '-sombre'] || FILES.comps[slug(L.id) + '-sombre']);
+  if (own){ const img = `<img class="clogo" src="${esc(own)}" alt="" loading="lazy" onerror="(this.closest('picture')||this).remove()">`;
+    logo = ownDark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${esc(ownDark)}">${img}</picture>` : img; }
   else if (d.logo){
     const img = `<img class="clogo" src="${esc(d.logo)}" alt="" loading="lazy" onerror="(this.closest('picture')||this).remove()">`;
     logo = d.logoDark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${esc(d.logoDark)}">${img}</picture>` : img;
@@ -1259,22 +1268,17 @@ function render(){
     favBar = `<div class="favbar fav-bas"><span class="k">Mes favoris</span>${chips || '<span class="hint">Aucun favori : touche ☆ sous un match, ou dans une compétition.</span>'}
       <button type="button" class="mini main" data-favcal="1">Calendrier de mes favoris ›</button></div>`;   // affichée tout en bas, après les matchs
   }
-  const live = evs.filter(m => m.state === 'in');
-  if (live.length) html += `<section class="comp"><div class="comp-head"><h2 class="live-title"><span class="pulse"></span>En direct</h2></div>
-      <ul class="list">${live.map(m => itemHTML(m, true)).join('')}</ul></section>`;
-
-  const rest = evs.filter(m => m.state !== 'in');
+  /* Une section par compétition, dans l'ordre habituel ; dedans, l'ordre de l'heure : terminés (scores), en cours, à venir */
+  const folded = foldedOf(selDay);
   LEAGUES.forEach(L => {
-    const ms = rest.filter(m => m.league === L.id);
+    const ms = evs.filter(m => m.league === L.id);
     if (!ms.length) return;
-    if (L.sport === 'racing'){
-      const gp = ms[0].gp;
-      html += `<section class="comp"><div class="comp-head"><h2><button type="button" data-comp="${esc(L.id)}" aria-label="Classement et calendrier ${esc(L.name)}">${compBadge(L)}<span>${esc(L.name)}</span></button></h2><span class="sp">${esc(gp.flag)} ${esc(gp.name)}</span></div>
-        <ul class="list">${ms.map(m => sessionHTML(m)).join('')}</ul></section>`;
-      return;
-    }
-    html += `<section class="comp"><div class="comp-head"><h2><button type="button" data-comp="${esc(L.id)}" aria-label="Classement et calendrier ${esc(L.name)}">${compBadge(L)}<span>${esc(L.name)}</span></button></h2><span class="sp">${ms.length} match${ms.length > 1 ? 's' : ''}</span></div>
-      <ul class="list">${ms.map(m => matchHTML(m)).join('')}</ul></section>`;
+    const nLive = ms.filter(m => m.state === 'in').length, ferme = folded.includes(L.id), racing = L.sport === 'racing';
+    const info = racing ? `${esc(ms[0].gp.flag)} ${esc(ms[0].gp.name)}` : `${ms.length} match${ms.length > 1 ? 's' : ''}`;
+    html += `<section class="comp${ferme ? ' folded' : ''}"><div class="comp-head"><h2><button type="button" data-comp="${esc(L.id)}" aria-label="Classement et calendrier ${esc(L.name)}">${compBadge(L)}<span>${esc(L.name)}</span></button></h2>
+      <span class="sp">${nLive ? `<span class="sp-live"><span class="pulse"></span>${nLive} en direct</span> · ` : ''}${info}</span>
+      <button type="button" class="fold" data-fold="${esc(L.id)}" aria-expanded="${!ferme}" aria-label="${ferme ? 'Déplier' : 'Réduire'} ${esc(L.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+      ${ferme ? '' : `<ul class="list">${ms.map(m => racing ? sessionHTML(m) : matchHTML(m)).join('')}</ul>`}</section>`;
   });
 
   const loading = $('#refreshBtn').classList.contains('spin');
@@ -1286,14 +1290,41 @@ function render(){
   html += `<p class="kbd-help">Clavier : ← → pour changer de jour · Maj + ← → pour changer de sport · Échap pour fermer</p>`;
   html += `<p class="foot-note">Scores : ESPN · Chaînes France : droits 2026-27, à confirmer selon le match · v${VERSION}</p>`;
   box.innerHTML = html;
+  updateReset();
+  if (RESTORE_Y != null && evs.length){ const y = RESTORE_Y; RESTORE_Y = null; requestAnimationFrame(() => window.scrollTo(0, y)); }
 }
 
+/* ---------- Mémoire de la page : sport, jour, compétitions réduites (par jour) et position ---------- */
+const ETAT_KEY = 'sport:etat', FOLD_KEY = 'sport:reduites';
+let FOLD = store.get(FOLD_KEY) || {}, RESTORE_Y = null;
+(() => { const lim = ymd(dayAt(-20)); Object.keys(FOLD).forEach(k => { if (k < lim || !FOLD[k].length) delete FOLD[k]; }); })();
+const foldedOf = off => FOLD[ymd(dayAt(off))] || [];
+function toggleFold(id){
+  const k = ymd(dayAt(selDay)), l = new Set(FOLD[k] || []);
+  l.has(id) ? l.delete(id) : l.add(id);
+  if (l.size) FOLD[k] = [...l]; else delete FOLD[k];
+  store.set(FOLD_KEY, FOLD); render(); saveEtat();
+}
+function saveEtat(){ store.set(ETAT_KEY, {group, jour:selDay === 0 ? 'auj' : ymd(dayAt(selDay)), y:Math.round(window.scrollY)}); }
+function restoreEtat(){
+  const e = store.get(ETAT_KEY); if (!e) return;
+  if (GROUPS.some(g => g.id === e.group)) group = e.group;
+  if (e.jour && e.jour !== 'auj'){ const o = OFFSETS.find(o => ymd(dayAt(o)) === e.jour); if (o != null) selDay = o; }
+  RESTORE_Y = e.y || null;
+}
+const isDefault = () => group === 'all' && selDay === 0 && !foldedOf(selDay).length;
+function updateReset(){ const b = $('#resetF'); if (b) b.hidden = isDefault(); }
+function resetFilters(){ group = 'all'; selDay = 0; shownDay = null; FOLD = {}; store.set(FOLD_KEY, FOLD); renderFilters(); window.scrollTo({top:0}); render(); ensureDay(0); saveEtat(); }
+window.addEventListener('pagehide', saveEtat);
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveEtat(); });
+
 /* ---------- Interactions ---------- */
-$('#days').addEventListener('click', e => { const b = e.target.closest('.day'); if (!b) return; selDay = +b.dataset.o; window.scrollTo({top:0}); render(); ensureDay(selDay); });
+$('#days').addEventListener('click', e => { const b = e.target.closest('.day'); if (!b) return; selDay = +b.dataset.o; window.scrollTo({top:0}); render(); ensureDay(selDay); saveEtat(); });
 $('#filters').addEventListener('click', e => {
   const b = e.target.closest('.chip'); if (!b) return;
-  group = b.dataset.g; renderFilters(); render();
+  group = b.dataset.g; renderFilters(); render(); saveEtat();
 });
+$('#resetF').addEventListener('click', resetFilters);
 function matchClick(e, extra = []){
   const op = e.target.closest('[data-open]');
   if (op){ openComp(LBY[op.dataset.cl], false, op.dataset.open, +op.dataset.t || null); return; }
@@ -1314,15 +1345,16 @@ $('#content').addEventListener('click', e => {
   const ut = e.target.closest('[data-unfavt]'); if (ut){ toggleTeamFav(ut.dataset.unfavt); render(); return; }
   const ul = e.target.closest('[data-unfavl]'); if (ul){ toggleLeagueFav(ul.dataset.unfavl); render(); return; }
   if (e.target.closest('[data-favcal]')){ openFavCal(); return; }
+  const fo = e.target.closest('[data-fold]'); if (fo){ toggleFold(fo.dataset.fold); return; }
   matchClick(e);
 });
 /* Flèches ‹ › (ordinateur) */
 document.addEventListener('click', e => {
   const a = e.target.closest('[data-arr]'); if (!a) return;
   const d = +a.dataset.d;
-  if (a.dataset.arr === 'day'){ const n = selDay + d; if (n >= -3 && n <= MAXOFF){ selDay = n; render(); ensureDay(n); } return; }
+  if (a.dataset.arr === 'day'){ const n = selDay + d; if (n >= -3 && n <= MAXOFF){ selDay = n; render(); ensureDay(n); saveEtat(); } return; }
   const i = GROUPS.findIndex(g => g.id === group); group = GROUPS[(i + d + GROUPS.length) % GROUPS.length].id;
-  renderFilters(); render(); document.querySelector(`#filters [data-g="${group}"]`)?.scrollIntoView({inline:'nearest', block:'nearest'});
+  renderFilters(); render(); saveEtat(); document.querySelector(`#filters [data-g="${group}"]`)?.scrollIntoView({inline:'nearest', block:'nearest'});
 });
 $('#refreshBtn').addEventListener('click', () => { if (sample) return; PRE.tried = false; PRE.ok = false; PRE.files = {}; loadAll(false); });
 
@@ -1332,7 +1364,7 @@ $('main').addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = 
 $('main').addEventListener('touchend', e => {
   if (sx === null) return;
   const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
-  if (Math.abs(dx) > 70 && Math.abs(dy) < 40){ const n = selDay + (dx < 0 ? 1 : -1); if (n >= -3 && n <= MAXOFF){ selDay = n; render(); ensureDay(n); } }
+  if (Math.abs(dx) > 70 && Math.abs(dy) < 40){ const n = selDay + (dx < 0 ? 1 : -1); if (n >= -3 && n <= MAXOFF){ selDay = n; render(); ensureDay(n); saveEtat(); } }
 }, {passive:true});
 
 /* ---------- Feuille de match (sports US) ---------- */
@@ -2290,6 +2322,7 @@ function useSample(){
 }
 
 /* ---------- Démarrage ---------- */
+restoreEtat();
 renderFilters(); showAutoOff();
 LEAGUES.forEach(L => { const c = store.get(CACHE + L.id); if (c && c.day === ymd(dayAt(0))) DATA[L.id] = c; });
 render();
