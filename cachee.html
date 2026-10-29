@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Coffre</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
+<style>
+/* Layout : page cachée (coffre) — en-tête en verre, liens en grille d'icônes, notes en cartes */
+:root{
+  --base:#e7ecef;
+  --blob-1:rgba(163,206,241,.95); --blob-2:rgba(96,150,186,.55); --blob-3:rgba(39,76,119,.35);
+  --ink:#10233a; --ink-soft:#56636f;
+  --glass:rgba(255,255,255,.22); --glass-tint:rgba(163,206,241,.10);
+  --rim-1:rgba(255,255,255,.95); --rim-2:rgba(255,255,255,.12); --rim-3:rgba(255,255,255,.6);
+  --spec:rgba(255,255,255,.55);
+  --shadow:0 14px 34px -16px rgba(39,76,119,.45);
+  --head:rgba(231,236,239,.72);
+  --card:rgba(255,255,255,.6); --line:rgba(39,76,119,.12);
+  --accent:#274c77; --on-accent:#e7ecef;
+  --t-brick:#274c77; --t-slate:#6096ba; --t-olive:#3d6b97; --t-plum:#1b3656;
+  --t-teal:#4c86b0; --t-ochre:#8b8c89; --t-char:#2f3e50; --t-rose:#7fb0d8;
+  --f-ui:"Geist", -apple-system, "SF Pro Text", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --base:#08121f;
+  --blob-1:rgba(39,76,119,.85); --blob-2:rgba(96,150,186,.45); --blob-3:rgba(163,206,241,.22);
+  --ink:#e7ecef; --ink-soft:#a7b6c4;
+  --glass:rgba(231,236,239,.07); --glass-tint:rgba(163,206,241,.06);
+  --rim-1:rgba(231,236,239,.55); --rim-2:rgba(231,236,239,.04); --rim-3:rgba(163,206,241,.35);
+  --spec:rgba(231,236,239,.16);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(8,18,31,.66);
+  --card:rgba(231,236,239,.06); --line:rgba(231,236,239,.1); --accent:#a3cef1; --on-accent:#08121f;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --base:#08121f;
+  --blob-1:rgba(39,76,119,.85); --blob-2:rgba(96,150,186,.45); --blob-3:rgba(163,206,241,.22);
+  --ink:#e7ecef; --ink-soft:#a7b6c4;
+  --glass:rgba(231,236,239,.07); --glass-tint:rgba(163,206,241,.06);
+  --rim-1:rgba(231,236,239,.55); --rim-2:rgba(231,236,239,.04); --rim-3:rgba(163,206,241,.35);
+  --spec:rgba(231,236,239,.16);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(8,18,31,.66);
+  --card:rgba(231,236,239,.06); --line:rgba(231,236,239,.1); --accent:#a3cef1; --on-accent:#08121f;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;font-family:var(--f-ui);color:var(--ink);
+  background-color:var(--base);
+  background-image:
+    radial-gradient(60% 45% at 10% 8%, var(--blob-1), transparent 70%),
+    radial-gradient(55% 45% at 95% 35%, var(--blob-2), transparent 70%),
+    radial-gradient(70% 50% at 30% 100%, var(--blob-3), transparent 70%);
+  background-attachment:fixed;
+  -webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--head);
+  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px)}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:12px}
+
+/* verre */
+.glass{position:relative;isolation:isolate;background:linear-gradient(160deg, var(--glass), var(--glass-tint));box-shadow:var(--shadow);
+  backdrop-filter:blur(30px) saturate(1.8) brightness(1.05);-webkit-backdrop-filter:blur(30px) saturate(1.8) brightness(1.05)}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  background:radial-gradient(120% 70% at 15% 0%, var(--spec), transparent 55%)}
+.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+  background:linear-gradient(145deg, var(--rim-1), var(--rim-2) 35%, var(--rim-2) 65%, var(--rim-3));
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+
+.wrap{max-width:560px;margin:0 auto;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+
+html.desk .wrap{max-width:860px}
+/* ---------- Choix du thème ---------- */
+.themes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:4px}
+.th{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:16px;background:var(--card);border:2px solid transparent;text-align:left;min-height:44px}
+.th[aria-checked="true"]{border-color:var(--accent)}
+.themes .th b{font-size:.88rem;letter-spacing:0}
+.th small{font-size:.72rem;color:var(--ink-soft)}
+.pal{display:flex;height:24px;border-radius:8px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)}
+.pal i{flex:1}
+/* ---------- Interrupteurs ---------- */
+.sw-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.sw-row small{display:block;color:var(--ink-soft);font-size:.78rem;margin-top:2px}
+.sw{appearance:none;-webkit-appearance:none;flex:none;width:46px;height:28px;border-radius:99px;background:rgba(139,140,137,.45);position:relative;cursor:pointer;transition:background .2s;margin:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.sw:checked{background:#2fa35a}
+.sw:checked::after{transform:translateX(18px)}
+/* ---------- En-tête ---------- */
+header{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--head);
+  backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
+  border-bottom:1px solid var(--line)}
+header .wrap{padding-block:10px 12px;display:flex;flex-direction:column;gap:10px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.back{display:flex;align-items:center;gap:2px;color:var(--accent);font-weight:500;font-size:1rem;padding-block:6px}
+.back svg,.icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn{color:var(--accent);width:38px;height:38px;display:grid;place-items:center;border-radius:50%}
+.icon-btn.spin svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.title-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:1}
+.stamp{font-size:.74rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.tabs{display:flex;gap:4px;padding:4px;border-radius:18px;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;scroll-snap-align:center;padding:8px 14px;border-radius:14px;font-size:.85rem;font-weight:500;color:var(--ink-soft);white-space:nowrap;
+  transition:background .2s ease,color .2s ease}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+
+/* ---------- État ---------- */
+main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
+.sum{border-radius:24px;padding:16px 18px;display:flex;align-items:center;gap:14px}
+.sum b{font-size:1.1rem;letter-spacing:-.01em}
+.sum p{margin:2px 0 0;font-size:.82rem;color:var(--ink-soft)}
+.lamp{width:14px;height:14px;border-radius:50%;flex:none;background:var(--lc);box-shadow:0 0 0 4px color-mix(in oklab, var(--lc) 22%, transparent)}
+.ok{--lc:#1e8a4c}.warn{--lc:#e08a12}.err{--lc:#d63c3c}.none{--lc:#8b8c89}
+.part{border-radius:24px;overflow:hidden}
+.part > summary{list-style:none;display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.part > summary::-webkit-details-marker{display:none}
+.part > summary .t{flex:1;min-width:0}
+.part > summary b{display:block;font-size:1rem}
+.part > summary small{display:block;font-size:.8rem;color:var(--ink-soft);margin-top:2px}
+.part > summary .chev{width:18px;height:18px;fill:none;stroke:var(--ink-soft);stroke-width:2;transition:transform .2s ease}
+.part[open] > summary .chev{transform:rotate(90deg)}
+.body{padding:0 16px 14px;font-size:.84rem}
+.rows{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.rows th,.rows td{text-align:left;padding:6px 4px;border-top:1px solid var(--line);vertical-align:top}
+.rows th{font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;border-top:0}
+.rows td.n{text-align:right;white-space:nowrap}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:600;background:color-mix(in oklab, var(--lc) 16%, transparent);color:color-mix(in oklab, var(--lc) 80%, var(--ink))}
+.note{color:var(--ink-soft);font-size:.8rem;margin:8px 0 0;line-height:1.45}
+.mono{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;font-size:.72rem;overflow-wrap:anywhere;color:var(--ink-soft)}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{padding:10px 14px;border-radius:14px;font-weight:600;font-size:.86rem;background:var(--card);border:1px solid var(--line);color:var(--ink)}
+.btn.main{background:var(--accent);color:var(--on-accent);border-color:transparent}
+/* ---------- Toucher visible et fondu entre les pages ---------- */
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
+.tap-dot{position:fixed;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;pointer-events:none;z-index:9999;
+  background:radial-gradient(circle, color-mix(in oklab, var(--accent) 45%, transparent), color-mix(in oklab, var(--accent) 22%, transparent) 55%, rgba(255,255,255,.15) 72%);
+  box-shadow:0 0 0 2.5px rgba(255,255,255,.9), 0 0 0 4px color-mix(in oklab, var(--accent) 45%, transparent), 0 4px 16px rgba(0,0,0,.22);animation:tapdot .6s ease-out forwards}
+.maj-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:9998;
+  padding:10px 16px;border-radius:999px;background:var(--accent, #274c77);color:var(--on-accent, #e7ecef);font:600 .85rem/1.2 var(--f-ui, system-ui);box-shadow:0 10px 26px -10px rgba(0,0,0,.5);
+  animation:majin .3s ease-out}
+@keyframes majin{from{opacity:0;transform:translate(-50%, 10px)}}
+@keyframes tapdot{from{transform:scale(.55);opacity:1}to{transform:scale(1.45);opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+/* ==PALETTES== Thèmes de couleurs (choix dans la page État, gardé sur l'appareil). « Bleu » = valeurs ci-dessus. */
+:root[data-palette="gris"]{
+  --base:#eef0f2;
+  --blob-1:rgba(198,199,196,.9); --blob-2:rgba(162,153,158,.45); --blob-3:rgba(132,106,106,.28);
+  --ink:#1c1f20; --ink-soft:#5b5557; --ink-faint:#8f8a8c;
+  --glass:rgba(255,255,255,.28); --glass-tint:rgba(198,199,196,.12);
+  --shadow:0 14px 34px -16px rgba(53,59,60,.42);
+  --head:rgba(238,240,242,.74); --panel:#eef0f2;
+  --card:rgba(255,255,255,.62); --line:rgba(53,59,60,.13);
+  --accent:#353b3c; --on-accent:#eef0f2; --accent-soft:rgba(53,59,60,.09);
+  --sheet:rgba(240,241,243,.95); --sheet-solid:#f0f1f3; --scrim:rgba(28,31,32,.3);
+  --t-brick:#c6c7c4; --t-slate:#d8d9d6; --t-olive:#a2999e; --t-plum:#b8b0b4;
+  --t-teal:#cfd0cd; --t-ochre:#c9b8b8; --t-char:#9a9497; --t-rose:#e3e4e2;
+  --glyph:#111111; --sport-accent:#6b4f4f;
+}
+:root[data-palette="ardoise"]{
+  --base:#f4f4f4;
+  --blob-1:rgba(191,192,192,.85); --blob-2:rgba(79,93,117,.32); --blob-3:rgba(239,131,84,.24);
+  --ink:#2d3142; --ink-soft:#5d6273; --ink-faint:#8e93a0;
+  --glass:rgba(255,255,255,.3); --glass-tint:rgba(191,192,192,.12);
+  --shadow:0 14px 34px -16px rgba(45,49,66,.42);
+  --head:rgba(244,244,244,.76); --panel:#f4f4f4;
+  --card:rgba(255,255,255,.66); --line:rgba(45,49,66,.12);
+  --accent:#2d3142; --on-accent:#ffffff; --accent-soft:rgba(45,49,66,.08);
+  --sheet:rgba(246,246,246,.95); --sheet-solid:#f6f6f6; --scrim:rgba(45,49,66,.3);
+  --t-brick:#e0703c; --t-slate:#4f5d75; --t-olive:#2d3142; --t-plum:#3b4256;
+  --t-teal:#6b7891; --t-ochre:#ef8354; --t-char:#2d3142; --t-rose:#8a96ab;
+  --glyph:#ffffff; --sport-accent:#ef8354;
+}
+@media (prefers-color-scheme: dark){
+  :root[data-palette="gris"]:not([data-theme="light"]){
+    --base:#1b1e1f;
+    --blob-1:rgba(53,59,60,.9); --blob-2:rgba(132,106,106,.38); --blob-3:rgba(162,153,158,.2);
+    --ink:#eef0f2; --ink-soft:#b5b0b2; --ink-faint:#8f8a8c;
+    --glass:rgba(238,240,242,.07); --glass-tint:rgba(198,199,196,.05);
+    --rim-1:rgba(238,240,242,.5); --rim-2:rgba(238,240,242,.04); --rim-3:rgba(198,199,196,.3); --spec:rgba(238,240,242,.14);
+    --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+    --head:rgba(27,30,31,.7); --panel:#1b1e1f;
+    --card:rgba(238,240,242,.06); --line:rgba(238,240,242,.1);
+    --accent:#c6c7c4; --on-accent:#1b1e1f; --accent-soft:rgba(198,199,196,.12);
+    --sheet:rgba(30,33,34,.95); --sheet-solid:#1e2122; --scrim:rgba(0,0,0,.45);
+  }
+  :root[data-palette="ardoise"]:not([data-theme="light"]){
+    --base:#1f2230;
+    --blob-1:rgba(45,49,66,.95); --blob-2:rgba(79,93,117,.5); --blob-3:rgba(239,131,84,.2);
+    --ink:#f4f4f4; --ink-soft:#bfc0c0; --ink-faint:#8e93a0;
+    --glass:rgba(255,255,255,.07); --glass-tint:rgba(191,192,192,.05);
+    --rim-1:rgba(255,255,255,.5); --rim-2:rgba(255,255,255,.04); --rim-3:rgba(239,131,84,.3); --spec:rgba(255,255,255,.14);
+    --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+    --head:rgba(31,34,48,.72); --panel:#1f2230;
+    --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.1);
+    --accent:#ef8354; --on-accent:#1f2230; --accent-soft:rgba(239,131,84,.14);
+    --sheet:rgba(34,37,52,.95); --sheet-solid:#222534; --scrim:rgba(0,0,0,.45);
+  }
+}
+:root[data-palette="gris"][data-theme="dark"]{
+  --base:#1b1e1f;
+  --blob-1:rgba(53,59,60,.9); --blob-2:rgba(132,106,106,.38); --blob-3:rgba(162,153,158,.2);
+  --ink:#eef0f2; --ink-soft:#b5b0b2; --ink-faint:#8f8a8c;
+  --glass:rgba(238,240,242,.07); --glass-tint:rgba(198,199,196,.05);
+  --rim-1:rgba(238,240,242,.5); --rim-2:rgba(238,240,242,.04); --rim-3:rgba(198,199,196,.3); --spec:rgba(238,240,242,.14);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(27,30,31,.7); --panel:#1b1e1f;
+  --card:rgba(238,240,242,.06); --line:rgba(238,240,242,.1);
+  --accent:#c6c7c4; --on-accent:#1b1e1f; --accent-soft:rgba(198,199,196,.12);
+  --sheet:rgba(30,33,34,.95); --sheet-solid:#1e2122; --scrim:rgba(0,0,0,.45);
+}
+:root[data-palette="ardoise"][data-theme="dark"]{
+  --base:#1f2230;
+  --blob-1:rgba(45,49,66,.95); --blob-2:rgba(79,93,117,.5); --blob-3:rgba(239,131,84,.2);
+  --ink:#f4f4f4; --ink-soft:#bfc0c0; --ink-faint:#8e93a0;
+  --glass:rgba(255,255,255,.07); --glass-tint:rgba(191,192,192,.05);
+  --rim-1:rgba(255,255,255,.5); --rim-2:rgba(255,255,255,.04); --rim-3:rgba(239,131,84,.3); --spec:rgba(255,255,255,.14);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(31,34,48,.72); --panel:#1f2230;
+  --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.1);
+  --accent:#ef8354; --on-accent:#1f2230; --accent-soft:rgba(239,131,84,.14);
+  --sheet:rgba(34,37,52,.95); --sheet-solid:#222534; --scrim:rgba(0,0,0,.45);
+}
+/* ==FIN PALETTES== */
+</style>
+<style>
+/* ---------- Coffre ---------- */
+.sec-h{display:flex;align-items:center;justify-content:space-between;padding:6px 4px 0}
+.sec-h .k{font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+.add{color:var(--accent);font-weight:600;font-size:.86rem;padding:6px 4px}
+.liens{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.lien{border-radius:20px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;min-height:104px;justify-content:center}
+.lien .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:1.15rem}
+.lien b{font-size:.8rem;font-weight:500;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.notes{display:flex;flex-direction:column;gap:10px}
+.note-c{border-radius:20px;padding:14px 16px;text-align:left;width:100%;display:flex;flex-direction:column;gap:4px}
+.note-c b{font-size:.95rem}
+.note-c p{margin:0;font-size:.86rem;color:var(--ink-soft);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45}
+.vide{border-radius:20px;padding:16px;font-size:.84rem;color:var(--ink-soft);line-height:1.45}
+.edit-hint{font-size:.74rem;color:var(--ink-soft);text-align:center;margin:4px 0 0}
+/* fenêtre d'édition et code */
+.scrim{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center;padding:12px;
+  padding-bottom:max(12px, env(safe-area-inset-bottom, 0px))}
+html.desk .scrim{align-items:center}
+.panel{width:100%;max-width:460px;border-radius:26px;padding:18px;display:flex;flex-direction:column;gap:10px;background:var(--sheet-solid, var(--base))}
+.panel h3{margin:0;font-size:1.1rem}
+.panel label{display:flex;flex-direction:column;gap:4px;font-size:.78rem;color:var(--ink-soft)}
+.panel input,.panel textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%}
+.panel textarea{min-height:120px;resize:vertical}
+.row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.row .del{margin-right:auto;color:#d63c3c;border-color:transparent;background:none}
+.msg{min-height:1.2em;font-size:.82rem;color:#d63c3c;margin:0}
+.lock{border-radius:24px;padding:22px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.lock svg{width:34px;height:34px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.lock input{font:inherit;font-size:22px;letter-spacing:.3em;text-align:center;width:min(220px,100%);padding:10px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
+      <button class="icon-btn glass" id="lockBtn" type="button" aria-label="Fermer le coffre" hidden><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2.5"/></svg></button>
+    </div>
+    <div class="title-row"><h1>Coffre</h1><span class="stamp">sur cet iPhone</span></div>
+  </div>
+</header>
+<main><div class="wrap" id="out"></div></main>
+
+<script>
+/* Page cachée : on y arrive par un appui de 3 s sur l'heure de l'accueil, puis le code d'Investissements.
+   Son contenu (liens et notes) reste uniquement sur cet appareil (mémoire du navigateur) : il n'est jamais publié. */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'})[c]);
+const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } },
+            set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }};
+const SS = {get(k){ try{ return sessionStorage.getItem(k); }catch{ return null; } }, set(k, v){ try{ v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); }catch{} }};
+let ITEMS = LS.get('coffre:items', []);
+const save = () => LS.set('coffre:items', ITEMS);
+const OUVERT = 10 * 60e3;                       // le coffre reste ouvert 10 min (pour recharger la page sans redonner le code)
+const ouvert = () => { const t = +SS.get('coffre:ok') || 0; return Date.now() - t < OUVERT; };
+
+function render(){
+  if (!LS.get('invest:pin', null)){ $('#lockBtn').hidden = true;
+    $('#out').innerHTML = `<div class="lock glass"><b>Pas encore de code</b><p class="note">Crée d'abord un code dans Investissements (réglages ⚙︎, verrouillage). Le coffre utilise le même.</p><a class="btn main" href="invest.html">Aller à Investissements</a></div>`; return; }
+  if (!ouvert()){ $('#lockBtn').hidden = true; lockScreen(); return; }
+  SS.set('coffre:ok', String(Date.now()));       // chaque action prolonge l'ouverture
+  $('#lockBtn').hidden = false;
+  const liens = ITEMS.map((x, i) => ({...x, i})).filter(x => x.type === 'lien'), notes = ITEMS.map((x, i) => ({...x, i})).filter(x => x.type === 'note');
+  const ini = t => esc((String(t || '?').trim()[0] || '?').toUpperCase());
+  $('#out').innerHTML = `
+    <div class="sec-h"><span class="k">Liens</span><button class="add" type="button" data-add="lien">+ Ajouter</button></div>
+    ${liens.length ? `<div class="liens">${liens.map(x => `<a class="lien glass" href="${esc(x.url)}" data-i="${x.i}" ${/^https?:/i.test(x.url) ? 'target="_blank" rel="noopener"' : ''}><span class="ic">${ini(x.titre)}</span><b>${esc(x.titre || x.url)}</b></a>`).join('')}</div>`
+      : '<div class="vide glass">Aucun lien. Un lien peut être un site (https://…) ou une appli (par exemple « shortcuts://run-shortcut?name=… »).</div>'}
+    <div class="sec-h"><span class="k">Notes</span><button class="add" type="button" data-add="note">+ Ajouter</button></div>
+    ${notes.length ? `<div class="notes">${notes.map(x => `<button type="button" class="note-c glass" data-i="${x.i}">${x.titre ? `<b>${esc(x.titre)}</b>` : ''}<p>${esc(x.texte)}</p></button>`).join('')}</div>`
+      : '<div class="vide glass">Aucune note.</div>'}
+    <p class="edit-hint">Appui long sur un lien, ou touche une note, pour modifier ou supprimer. Tout reste sur cet iPhone.</p>`;
+}
+function lockScreen(){
+  $('#out').innerHTML = `<form class="lock glass" id="pinF"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2.5"/></svg>
+    <b>Code</b><input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="Code">
+    <p class="msg" aria-live="polite"></p><div class="row"><a class="btn" href="index.html">Annuler</a><button class="btn main" type="submit">Ouvrir</button></div></form>`;
+  const f = $('#pinF'), inp = f.querySelector('input'), msg = f.querySelector('.msg'); setTimeout(() => inp.focus(), 50);
+  f.addEventListener('submit', async e => {
+    e.preventDefault();
+    const r = LS.get('invest:pin', null), t = LS.get('invest:pin-essais', {n:0, jusqu:0});
+    if (t.jusqu > Date.now()){ msg.textContent = `Trop d'essais : réessaie dans ${Math.ceil((t.jusqu - Date.now()) / 1000)} s.`; return; }
+    const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(r.sel + inp.value)))].map(x => x.toString(16).padStart(2, '0')).join('');
+    if (h === r.h){ LS.set('invest:pin-essais', {n:0, jusqu:0}); SS.set('coffre:ok', String(Date.now())); render(); return; }
+    t.n++; if (t.n >= 5){ t.n = 0; t.jusqu = Date.now() + 30e3; } LS.set('invest:pin-essais', t);
+    msg.textContent = t.jusqu > Date.now() ? 'Trop d\'essais : attends 30 s.' : `Code incorrect (essai ${t.n}/5).`; inp.value = ''; inp.focus();
+  });
+}
+function editer(i, type){
+  const x = i != null ? ITEMS[i] : {type, titre:'', url:'', texte:''};
+  const box = document.createElement('div'); box.className = 'scrim';
+  box.innerHTML = `<form class="panel glass" role="dialog" aria-modal="true" aria-label="${x.type === 'lien' ? 'Lien' : 'Note'}"><h3>${i != null ? 'Modifier' : 'Ajouter'} ${x.type === 'lien' ? 'un lien' : 'une note'}</h3>
+    <label>Titre<input name="titre" value="${esc(x.titre)}" autocomplete="off"></label>
+    ${x.type === 'lien' ? `<label>Adresse<input name="url" value="${esc(x.url)}" placeholder="https://… ou appli://…" autocomplete="off" autocapitalize="off" spellcheck="false"></label>`
+      : `<label>Texte<textarea name="texte">${esc(x.texte)}</textarea></label>`}
+    <p class="msg" aria-live="polite"></p>
+    <div class="row">${i != null ? '<button type="button" class="btn del" data-x="del">Supprimer</button>' : ''}<button type="button" class="btn" data-x="close">Annuler</button><button type="submit" class="btn main">Enregistrer</button></div></form>`;
+  document.body.appendChild(box);
+  const f = box.querySelector('form'); setTimeout(() => f.querySelector('input,textarea').focus(), 50);
+  box.addEventListener('click', e => { const a = e.target.closest('[data-x]');
+    if (e.target === box || (a && a.dataset.x === 'close')) box.remove();
+    else if (a && a.dataset.x === 'del'){ ITEMS.splice(i, 1); save(); box.remove(); render(); } });
+  f.addEventListener('submit', e => { e.preventDefault();
+    const d = Object.fromEntries(new FormData(f)); let url = (d.url || '').trim();
+    if (x.type === 'lien'){ if (!url){ f.querySelector('.msg').textContent = 'Indique une adresse.'; return; } if (!/^[a-z][\w+.-]*:/i.test(url)) url = 'https://' + url; }
+    else if (!(d.texte || '').trim() && !(d.titre || '').trim()){ f.querySelector('.msg').textContent = 'Note vide.'; return; }
+    const y = x.type === 'lien' ? {type:'lien', titre:(d.titre || '').trim(), url} : {type:'note', titre:(d.titre || '').trim(), texte:d.texte || ''};
+    if (i != null) ITEMS[i] = y; else ITEMS.push(y);
+    save(); box.remove(); render(); });
+}
+document.addEventListener('click', e => {
+  const add = e.target.closest('[data-add]'); if (add){ editer(null, add.dataset.add); return; }
+  const n = e.target.closest('.note-c'); if (n){ editer(+n.dataset.i); return; }
+  if (e.target.closest('#lockBtn')){ SS.set('coffre:ok', null); location.href = 'index.html'; }
+});
+/* appui long sur un lien : modifier */
+(() => { let t = null, fired = false;
+  document.addEventListener('pointerdown', e => { const a = e.target.closest('.lien'); if (!a) return; fired = false; t = setTimeout(() => { fired = true; editer(+a.dataset.i); }, 600); });
+  ['pointerup', 'pointercancel', 'pointermove'].forEach(ev => document.addEventListener(ev, e => { if (ev === 'pointermove' && Math.abs(e.movementX) + Math.abs(e.movementY) < 4) return; clearTimeout(t); }));
+  document.addEventListener('contextmenu', e => { if (e.target.closest('.lien')) e.preventDefault(); });
+  window.addEventListener('click', e => { if (fired && e.target.closest('.lien')){ e.preventDefault(); e.stopImmediatePropagation(); fired = false; } }, true);
+})();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+render();
+</script>
+
+<script>
+/* Toucher visible : un rond qui s'efface là où le doigt appuie (pratique aussi pour les vidéos de démo) */
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  const d = document.createElement('span'); d.className = 'tap-dot';
+  d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
+  document.body.appendChild(d); setTimeout(() => d.remove(), 650);
+}, {passive:true, capture:true});
+</script>
+<script>
+/* Mise en mémoire sur l'iPhone (démarrage instantané, hors ligne) + avis quand une nouvelle version est déposée */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  const t0 = Date.now(); let majDispo = false, cacheAt = 0;
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'nouvelle-version') return;
+    majDispo = true;
+    if (Date.now() - t0 < 8000){ location.reload(); return; }         // page tout juste ouverte : on passe directement à la nouvelle version
+    if (document.querySelector('.maj-toast')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'maj-toast'; b.textContent = 'Nouvelle version — toucher pour l\'afficher';
+    b.addEventListener('click', () => location.reload()); document.body.appendChild(b);
+  });
+  try{ navigator.serviceWorker.startMessages(); }catch{}
+  /* Retour sur l'appli : nouvelle version déjà prête → rechargement ; sinon on vérifie s'il y en a une (au plus toutes les 2 min) */
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    if (majDispo){ location.reload(); return; }
+    if (Date.now() - cacheAt < 120e3) return;
+    cacheAt = Date.now();
+    navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
+    fetch(location.pathname, {cache:'no-cache'}).catch(() => {});
+  });
+}
+</script>
+<!-- ==TIRER== Tirer vers le bas pour recharger (comme Safari) -->
+<style>
+.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top, 0px) + 6px);z-index:9999;width:38px;height:38px;margin-left:-19px;border-radius:50%;
+  display:grid;place-items:center;pointer-events:none;opacity:0;transform:translateY(-60px);
+  background:var(--sheet-solid, var(--base, #eef2f5));color:var(--ink-soft, #56636f);box-shadow:0 6px 18px -8px rgba(0,0,0,.45);border:1px solid var(--line, rgba(0,0,0,.1))}
+.ptr svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.ptr.pret{color:var(--accent, #274c77)}
+.ptr.pret svg{transform:rotate(180deg)}
+.ptr.va{transition:transform .2s, opacity .2s}
+.ptr.tourne svg{animation:ptr-t .7s linear infinite}
+@keyframes ptr-t{to{transform:rotate(360deg)}}
+</style>
+<div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+<script>
+(() => {
+  const el = document.getElementById('ptr'), SEUIL = 78;
+  let y0 = null, x0 = 0, d = 0, actif = false;
+  const OVER = '.scrim:not([hidden]),.sheet-bg:not([hidden]),.sheet:not([hidden]),[role="dialog"]:not([hidden])';
+  const bloque = t => [...document.querySelectorAll(OVER)].some(e => e.getClientRects().length) || !t.closest || t.closest('input,textarea,select,[data-no-ptr]') ||
+    (() => { for (let n = t; n && n !== document.body; n = n.parentElement) if (n.scrollTop > 0) return true; return false; })();
+  const set = (y, cls) => { el.style.transform = `translateY(${y}px)`; el.style.opacity = Math.min(1, y / 40); el.className = 'ptr' + (cls ? ' ' + cls : ''); };
+  addEventListener('touchstart', e => {
+    if (e.touches.length !== 1 || (scrollY || document.documentElement.scrollTop) > 0 || bloque(e.target)) { y0 = null; return; }
+    y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; d = 0; actif = false;
+  }, {passive:true});
+  addEventListener('touchmove', e => {
+    if (y0 == null) return;
+    const dy = e.touches[0].clientY - y0, dx = e.touches[0].clientX - x0;
+    if (!actif){ if (Math.abs(dx) > Math.abs(dy) || dy < 6){ if (Math.abs(dx) > 10 || dy < -6) y0 = null; return; } if ((scrollY || document.documentElement.scrollTop) > 0){ y0 = null; return; } actif = true; }
+    d = Math.max(0, dy);
+    const y = Math.min(80, d * .5);
+    set(y - 10, d >= SEUIL ? 'pret' : '');
+  }, {passive:true});
+  addEventListener('touchend', () => {
+    if (y0 == null || !actif){ y0 = null; return; }
+    y0 = null;
+    if (d >= SEUIL){ set(34, 'va tourne'); setTimeout(() => location.reload(), 250); }
+    else { set(-60, 'va'); }
+  }, {passive:true});
+  addEventListener('touchcancel', () => { if (actif) set(-60, 'va'); y0 = null; }, {passive:true});
+})();
+</script>
+<!-- ==FIN TIRER== -->
+</body>
+</html>

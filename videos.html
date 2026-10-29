@@ -314,6 +314,14 @@ html.desk .ytplay:empty::after{content:"Choisis une vidéo dans la liste";margin
 .now{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.84rem}
 .now b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chan{display:flex;justify-content:space-between;align-items:baseline;padding:4px 4px 0}
+.yt-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.yt-sel{min-height:38px;max-width:100%;padding:0 30px 0 12px!important;font-size:.92rem!important;font-weight:600!important;
+  background-image:linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:calc(100% - 16px) 50%, calc(100% - 11px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+.yt-open{font-size:.8rem;color:var(--accent);font-weight:500}
+.yt-open.muted{color:var(--ink-soft);font-weight:400}
+.yt-ch{color:var(--accent);font-weight:500}
+.more-yt{align-self:center}
 .chan h2{margin:0;font-size:1.05rem}
 .chan a{font-size:.8rem;color:var(--accent);font-weight:500}
 .vlist{border-radius:22px;overflow:hidden}
@@ -375,6 +383,7 @@ let tab = TABS.some(t => t.id === LS.get('videos:onglet', '')) ? LS.get('videos:
 let CAT = null, RES = null, YT = null, loadedAt = 0;
 let F = {type:'tout', tri:'pop', genre:'', q:'', vus:false, plat:'abos'}, shown = 60;
 const arrivee = x => Object.entries(x.arr || {}).filter(([p, d]) => d && ABOS.has(p)).map(([, d]) => d).sort().pop() || null;   // arrivée la plus récente sur un de tes abonnements
+let YTCH = LS.get('videos:yt-chaine', 'toutes'), ytShown = 40;     // chaîne choisie (« toutes » par défaut) et nombre de vidéos affichées
 let LISTE = new Set(LS.get('videos:liste', [])), VUS = new Set(LS.get('videos:vus', [])), YTVUS = new Set(LS.get('videos:yt-vus', []));
 const saveSets = () => { LS.set('videos:liste', [...LISTE]); LS.set('videos:vus', [...VUS]); LS.set('videos:yt-vus', [...YTVUS].slice(-400)); };
 let playing = null;
@@ -471,12 +480,25 @@ function ytHTML(){
   if (!YT) return '<div class="msgbox glass">Chargement des vidéos…</div>';
   const player = playing ? `<div class="player"><iframe src="https://www.youtube-nocookie.com/embed/${esc(playing.id)}?autoplay=1&playsinline=1&rel=0" title="${esc(playing.titre)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
     <div class="now"><b>${esc(playing.titre)}</b><a class="chip" href="https://www.youtube.com/watch?v=${esc(playing.id)}" target="_blank" rel="noopener">YouTube</a>${navigator.share ? `<button class="chip" type="button" data-act="partager">Ouvrir avec…</button>` : ''}<button class="chip" type="button" data-act="stop" aria-label="Fermer le lecteur">✕</button></div>` : '';
-  return `<div class="ytgrid"><div class="ytplay">${player}</div><div class="ytlist">` + (YT.chaines || []).map(c => `<div class="chan"><h2>${esc(c.nom)}</h2><a href="https://www.youtube.com/channel/${esc(c.id)}" target="_blank" rel="noopener">Ouvrir la chaîne ›</a></div>
-    ${c.videos.length ? `<div class="vlist glass">${c.videos.map(v => { const seen = YTVUS.has(v.id), neu = !seen && v.date && Date.now() - v.date < 48 * 3600e3;
+  const CH = YT.chaines || [];
+  if (YTCH !== 'toutes' && !CH.some(c => c.id === YTCH)) YTCH = 'toutes';
+  const one = CH.find(c => c.id === YTCH);
+  const vids = one ? one.videos.map(v => ({...v, ch:one})) : CH.flatMap(c => c.videos.map(v => ({...v, ch:c}))).sort((x, y) => (y.date || 0) - (x.date || 0));
+  const liste = vids.slice(0, ytShown);
+  const bar = `<div class="yt-bar"><select class="chip sel yt-sel" id="ytChaine" aria-label="Chaîne">
+      <option value="toutes"${!one ? ' selected' : ''}>Toutes les chaînes (${CH.length})</option>
+      ${[...CH].sort((x, y) => String(x.nom).localeCompare(String(y.nom), 'fr')).map(c => `<option value="${esc(c.id)}"${one === c ? ' selected' : ''}>${esc(c.nom)}</option>`).join('')}</select>
+    ${one ? `<a class="yt-open" href="https://www.youtube.com/channel/${esc(one.id)}" target="_blank" rel="noopener">Ouvrir la chaîne ›</a>` : '<span class="yt-open muted">Les plus récentes d’abord</span>'}</div>`;
+  const errs = CH.filter(c => c.erreur && !c.videos.length);
+  const items = liste.map(v => { const seen = YTVUS.has(v.id), neu = !seen && v.date && Date.now() - v.date < 48 * 3600e3;
       return `<button class="v${seen ? ' seen' : ''}" type="button" data-yt="${esc(v.id)}"><span class="th"><img src="https://i.ytimg.com/vi/${esc(v.id)}/mqdefault.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">${neu ? '<span class="bd">Nouveau</span>' : v.short ? '<span class="bd">Short</span>' : ''}${seen ? '<span class="vu"></span>' : ''}</span>
-        <span><b>${esc(v.titre)}</b><small>${v.date ? ago(v.date) : ''}${v.vues ? ' · ' + v.vues.toLocaleString('fr-FR') + ' vues' : ''}</small></span></button>`; }).join('')}</div>`
-      : `<div class="msgbox glass">${esc(c.erreur || 'Pas encore de vidéos.')}</div>`}${c.ancien ? '<p class="credit">YouTube ne répond pas : dernière liste connue.</p>' : ''}`).join('')
-    + '<p class="credit">Lecture avec le lecteur officiel de YouTube. Certaines vidéos ne se lisent que sur YouTube : utilise alors « YouTube » ou « Ouvrir avec… ».</p></div></div>';
+        <span><b>${esc(v.titre)}</b><small>${one ? '' : `<span class="yt-ch">${esc(v.ch.nom)}</span> · `}${v.date ? ago(v.date) : ''}${v.vues ? ' · ' + v.vues.toLocaleString('fr-FR') + ' vues' : ''}</small></span></button>`; }).join('');
+  return `<div class="ytgrid"><div class="ytplay">${player}</div><div class="ytlist">${bar}
+    ${liste.length ? `<div class="vlist glass">${items}</div>` : `<div class="msgbox glass">${esc((one && one.erreur) || 'Pas encore de vidéos.')}</div>`}
+    ${vids.length > liste.length ? `<button class="btn more-yt" type="button" data-act="more-yt">Afficher plus (${vids.length - liste.length})</button>` : ''}
+    ${(one ? one.ancien : CH.some(c => c.ancien)) ? '<p class="credit">YouTube ne répond pas : dernière liste connue.</p>' : ''}
+    ${!one && errs.length ? `<p class="credit">Sans vidéos pour l'instant : ${errs.map(c => esc(c.nom)).join(', ')}.</p>` : ''}
+    <p class="credit">Lecture avec le lecteur officiel de YouTube. Certaines vidéos ne se lisent que sur YouTube : utilise alors « YouTube » ou « Ouvrir avec… ».</p></div></div>`;
 }
 
 /* ========== Fenêtre ========== */
@@ -496,6 +518,7 @@ document.addEventListener('click', e => {
   const a = t.dataset.act;
   if (a === 'close') closeSheet();
   else if (a === 'more'){ shown += 60; render(); }
+  else if (a === 'more-yt'){ ytShown += 40; render(); }
   else if (a === 'abos') abosSheet();
   else if (a === 'abos-ok'){ ABOS = new Set([...document.querySelectorAll('[data-abo]:checked')].map(c => c.dataset.abo)); LS.set('videos:abos', [...ABOS]); closeSheet(); render(); }
   else if (a === 'ouvrir'){                 // l'appli ne sait pas recevoir un titre : on le copie, puis on l'ouvre
@@ -514,7 +537,8 @@ document.addEventListener('click', e => {
 });
 let qt = null;
 document.addEventListener('input', e => { if (e.target.id === 'q'){ clearTimeout(qt); qt = setTimeout(() => { F.q = e.target.value; shown = 60; if ($('#res')) $('#res').innerHTML = catRes(); }, 250); } });
-document.addEventListener('change', e => { if (e.target.id === 'genre'){ F.genre = e.target.value; shown = 60; render(); } });
+document.addEventListener('change', e => { if (e.target.id === 'genre'){ F.genre = e.target.value; shown = 60; render(); }
+  if (e.target.id === 'ytChaine'){ YTCH = e.target.value; LS.set('videos:yt-chaine', YTCH); ytShown = 40; render(); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheetBg').hidden) closeSheet(); });
 $('#refreshBtn').addEventListener('click', () => load());
 
@@ -569,5 +593,48 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   });
 }
 </script>
+<!-- ==TIRER== Tirer vers le bas pour recharger (comme Safari) -->
+<style>
+.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top, 0px) + 6px);z-index:9999;width:38px;height:38px;margin-left:-19px;border-radius:50%;
+  display:grid;place-items:center;pointer-events:none;opacity:0;transform:translateY(-60px);
+  background:var(--sheet-solid, var(--base, #eef2f5));color:var(--ink-soft, #56636f);box-shadow:0 6px 18px -8px rgba(0,0,0,.45);border:1px solid var(--line, rgba(0,0,0,.1))}
+.ptr svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.ptr.pret{color:var(--accent, #274c77)}
+.ptr.pret svg{transform:rotate(180deg)}
+.ptr.va{transition:transform .2s, opacity .2s}
+.ptr.tourne svg{animation:ptr-t .7s linear infinite}
+@keyframes ptr-t{to{transform:rotate(360deg)}}
+</style>
+<div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+<script>
+(() => {
+  const el = document.getElementById('ptr'), SEUIL = 78;
+  let y0 = null, x0 = 0, d = 0, actif = false;
+  const OVER = '.scrim:not([hidden]),.sheet-bg:not([hidden]),.sheet:not([hidden]),[role="dialog"]:not([hidden])';
+  const bloque = t => [...document.querySelectorAll(OVER)].some(e => e.getClientRects().length) || !t.closest || t.closest('input,textarea,select,[data-no-ptr]') ||
+    (() => { for (let n = t; n && n !== document.body; n = n.parentElement) if (n.scrollTop > 0) return true; return false; })();
+  const set = (y, cls) => { el.style.transform = `translateY(${y}px)`; el.style.opacity = Math.min(1, y / 40); el.className = 'ptr' + (cls ? ' ' + cls : ''); };
+  addEventListener('touchstart', e => {
+    if (e.touches.length !== 1 || (scrollY || document.documentElement.scrollTop) > 0 || bloque(e.target)) { y0 = null; return; }
+    y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; d = 0; actif = false;
+  }, {passive:true});
+  addEventListener('touchmove', e => {
+    if (y0 == null) return;
+    const dy = e.touches[0].clientY - y0, dx = e.touches[0].clientX - x0;
+    if (!actif){ if (Math.abs(dx) > Math.abs(dy) || dy < 6){ if (Math.abs(dx) > 10 || dy < -6) y0 = null; return; } if ((scrollY || document.documentElement.scrollTop) > 0){ y0 = null; return; } actif = true; }
+    d = Math.max(0, dy);
+    const y = Math.min(80, d * .5);
+    set(y - 10, d >= SEUIL ? 'pret' : '');
+  }, {passive:true});
+  addEventListener('touchend', () => {
+    if (y0 == null || !actif){ y0 = null; return; }
+    y0 = null;
+    if (d >= SEUIL){ set(34, 'va tourne'); setTimeout(() => location.reload(), 250); }
+    else { set(-60, 'va'); }
+  }, {passive:true});
+  addEventListener('touchcancel', () => { if (actif) set(-60, 'va'); y0 = null; }, {passive:true});
+})();
+</script>
+<!-- ==FIN TIRER== -->
 </body>
 </html>
