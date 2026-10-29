@@ -285,11 +285,11 @@ for (const L of LEAGUES){
       const r = await racing(L, {get, NOW, prev});
       write(file, {v:1, id:L.id, updated:index.updated, season:r.season, diag:r.diag, gps:r.gps, catId:r.catId, table:r.table, events:r.events});
       index.leagues[L.id] = {count:r.events.length, gps:r.gps.length, table:r.table ? r.table.src : false, diag:{appels:r.diag.appels, erreurs:r.diag.erreurs.length}, file:`${slug(L.id)}.json`};
-      r.events.filter(m => m.t >= NOW - 4 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
+      r.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
       console.log(`${L.name} : ${r.gps.length} Grands Prix, ${r.events.length} séances, ${Math.round((Date.now() - t0) / 1000)} s`, r.diag.erreurs.slice(0, 3).join(' | '));
     }catch(e){
       index.leagues[L.id] = {error:String(e.message || e)};
-      if (prev && prev.events) prev.events.filter(m => m.t >= NOW - 4 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
+      if (prev && prev.events) prev.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
       console.log(`${L.name} : ERREUR ${e.message}`);
     }
     continue;
@@ -307,11 +307,11 @@ for (const L of LEAGUES){
     const table = await standings(L, S, r.events, prev);
     write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, diag:r.diag, calendar:r.calendar, checked:r.checked, future:r.future, rounds, table, events:r.events.map(slim)});
     index.leagues[L.id] = {count:r.events.length, rounds, table:table ? table.src || 'espn' : false, diag:r.diag, file:`${slug(L.id)}.json`};
-    r.events.filter(m => m.t >= NOW - 4 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
+    r.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
     console.log(`${L.name} : ${r.events.length} matchs, ${Math.round((Date.now() - t0) / 1000)} s`, JSON.stringify(rounds));
   }catch(e){
     index.leagues[L.id] = {error:String(e.message || e)};
-    if (prev && prev.events) prev.events.filter(m => m.t >= NOW - 4 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
+    if (prev && prev.events) prev.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
     console.log(`${L.name} : ERREUR ${e.message}`);
   }
 }

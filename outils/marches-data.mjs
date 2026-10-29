@@ -60,6 +60,18 @@ const parse = res => { try{ return res && res.body ? JSON.parse(res.body) : null
 const ISIN = {...((prev && prev.isin) || {})};
 const searchUrl = isin => `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(isin)}&quotesCount=6&newsCount=0`;
 const chartUrl = sym => `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1y&interval=1d&includePrePost=false`;
+const jourUrl = sym => `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1d&interval=5m&includePrePost=false`;   // séance du jour (courbe « jour » du widget)
+
+/* Séance du jour : cours toutes les 5 min → {d:jour local, t0:début (s), t:[minutes depuis t0], c:[cours]} */
+function seance(j){
+  const res = j && j.chart && j.chart.result && j.chart.result[0]; if (!res) return null;
+  const off = ((res.meta || {}).gmtoffset || 0) * 1000, ts = res.timestamp || [], cl = (((res.indicators || {}).quote || [])[0] || {}).close || [];
+  const pts = ts.map((s, i) => [s, cl[i]]).filter(([, c]) => c != null && isFinite(c));
+  if (pts.length < 2) return null;
+  const d = Math.floor((pts[pts.length - 1][0] * 1000 + off) / DAY), keep = pts.filter(([s]) => Math.floor((s * 1000 + off) / DAY) === d);
+  const t0 = keep[0][0];
+  return {d, t0, t:keep.map(([s]) => Math.round((s - t0) / 60)), c:keep.map(([, c]) => round(c))};
+}
 
 /* Cours sur 1 an (graphique journalier) */
 function quote(sym, j){
@@ -94,13 +106,17 @@ toFind.forEach(it => { const q = ((parse(found[searchUrl(it.isin)]) || {}).quote
   if (pick) ISIN[it.isin] = pick.symbol; });
 // 2) cours
 items.forEach(it => { it.sym = it.code || (it.isin && ISIN[it.isin]) || null; });
-const charts = await yahooAll([...new Set(items.filter(it => it.sym).map(it => chartUrl(it.sym)))]);
+const syms = [...new Set(items.filter(it => it.sym).map(it => it.sym))];
+const charts = await yahooAll([...syms.map(chartUrl), ...syms.map(jourUrl)]);
 for (const it of items){
   try{
     if (!it.sym) throw new Error('ISIN introuvable chez Yahoo : ajoute le code (ex. « EUNL.DE ») dans SUIVI');
     const r = charts[chartUrl(it.sym)];
     if (!r || (!r.body && r.status !== 200)) throw new Error(r && typeof r.status !== 'number' ? String(r.status) : 'HTTP ' + (r ? r.status : '?'));
     cours[it.key] = {...quote(it.sym, parse(r)), ...(it.isin ? {isin:it.isin} : {})};
+    let jr = null; try{ jr = seance(parse(charts[jourUrl(it.sym)])); }catch{}
+    const pj = prev && prev.cours && prev.cours[it.key] && prev.cours[it.key].j;
+    if (jr) cours[it.key].j = jr; else if (pj && pj.d === Math.floor((cours[it.key].at + 0) / DAY)) cours[it.key].j = pj;   // séance du passage précédent, si c'est la même journée
     diag.ok++;
   }catch(e){ diag.ko.push(`${it.key} : ${e.message}`); keep(it.key); }
 }
