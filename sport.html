@@ -230,6 +230,32 @@ section.comp{display:flex;flex-direction:column;gap:8px}
 .tally b{color:var(--ink);font-weight:600}
 .ev .who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ev .who em{font-style:normal;color:var(--ink-faint);font-size:.76rem}
+.tline{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:22px;row-gap:5px;margin-left:-74px;padding:2px 0 4px}
+.tline::before{content:"";position:absolute;left:50%;top:22px;bottom:2px;width:1px;background:var(--line)}
+.tline-h{grid-row:1;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-bottom:2px}
+.tline-h.home{grid-column:1;text-align:right}
+.tline-h.away{grid-column:2}
+.ev2{display:flex;align-items:center;gap:6px;min-width:0;font-size:.82rem;line-height:1.25}
+.ev2.home{grid-column:1;justify-content:flex-end;text-align:right}
+.ev2.away{grid-column:2;flex-direction:row-reverse;justify-content:flex-end}
+.ev2 .who{min-width:0;overflow-wrap:anywhere}
+.ev2 .who small{color:var(--ink-soft);font-size:.72rem}
+.ev2 .m{flex:none;font-family:var(--f-num);font-size:.72rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;min-width:26px}
+.ev2.home .m{text-align:left}
+.ev2.away .m{text-align:right}
+.ev2 .ic{flex:none;width:16px;height:16px;display:grid;place-items:center}
+.ev2 .ic.red::before{content:"";width:9px;height:12px;border-radius:2px;background:var(--redcard)}
+.ev2 .ic.yellow::before{content:"";width:9px;height:12px;border-radius:2px;background:var(--yellowcard)}
+.ev2 .ic.svg,.ev2 .ic.svg svg{width:16px;height:16px}
+.ic.svg .ball{fill:#fff;stroke:none}
+.ic.svg .ball-o{fill:none;stroke:#1c1f20;stroke-width:1.2}
+.ic.svg .ball-o.miss{stroke:#8f1d23}
+.ic.svg .ball-p{fill:#1c1f20;stroke:none}
+.ic.svg .ball-l{fill:none;stroke:#1c1f20;stroke-width:1}
+.ic.svg .ball.miss{fill:#d6343c}
+.ic.svg .ball-p.miss{fill:#fff}
+.ic.svg .ball-l.miss{stroke:#fff}
+@media (max-width:360px){ .tline{margin-left:-60px;column-gap:16px} }
 .more .src{margin-top:4px;font-size:.78rem;color:var(--accent);font-weight:600}
 .more .none{color:var(--ink-faint);font-size:.8rem}
 
@@ -627,7 +653,7 @@ const LEAGUES = [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ];
-const VERSION = '2026-10-29.1';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-29.2';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -676,6 +702,7 @@ function classify(txt, scoring, d = {}){
   const t = String(txt || '').toLowerCase();
   if (d.redCard || /red card|carton rouge/.test(t)) return 'red';
   if (d.yellowCard || /yellow card|carton jaune|sin.?bin/.test(t)) return 'yellow';
+  if (/(penalty|pénalty|shoot.?out|tir au but).{0,24}(miss|sav|manqu|arrêt|raté|stopp)|(missed|saved) penalty/.test(t)) return 'penmiss';
   if (/penalty try|essai de p/.test(t)) return 'try';
   if (/\btry\b|essai/.test(t)) return 'try';
   if (/conver|transfo/.test(t)) return 'conv';
@@ -699,7 +726,7 @@ function norm(ev, L){
     const a = (d.athletesInvolved || [])[0] || {};
     const kind = classify(txt, d.scoringPlay, d);
     return {kind, red:kind === 'red', yellow:kind === 'yellow', goal:kind === 'goal',
-            og:!!d.ownGoal, pen:!!d.penaltyKick, min:(d.clock && d.clock.displayValue) || '',
+            og:!!d.ownGoal, pen:!!d.penaltyKick, so:!!d.shootout, min:(d.clock && d.clock.displayValue) || '',
             team:d.team && d.team.id, who:a.shortName || a.displayName || ''};
   }).filter(d => d.kind);
   const us = [...new Set([
@@ -1092,13 +1119,16 @@ function compLinks(m){
   return `<div class="more-links"><button type="button" class="mini" data-open="table" data-cl="${esc(m.league)}">Classement</button>
     <button type="button" class="mini" data-open="cal" data-cl="${esc(m.league)}" data-t="${m.t}">${LBY[m.league].rounds ? (m.league === 'nfl' ? 'Semaine' : 'Journée') + ' et calendrier' : 'Calendrier'}</button></div>`;
 }
-const KIND = {goal:['goal', 'But'], try:['svg', 'Essai'], conv:['svg', 'Transformation'], pen:['svg', 'Pénalité'],
+const KIND = {goal:['svg', 'But'], penmiss:['svg', 'Penalty manqué'], try:['svg', 'Essai'], conv:['svg', 'Transformation'], pen:['svg', 'Pénalité'],
               drop:['svg', 'Drop'], yellow:['yellow', 'Carton jaune'], red:['red', 'Carton rouge']};
 /* Icônes rugby : ballon pour l'essai, poteaux avec la valeur pour les coups de pied */
 const posts = c => `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 1v18M16.5 1v18M3.5 13.5h13"/><text x="10" y="10.6">${c}</text></svg>`;
 const KIND_ICON = {
   try:'<svg viewBox="0 0 20 20" aria-hidden="true"><ellipse class="f" cx="10" cy="10" rx="8.2" ry="4.9" transform="rotate(-38 10 10)"/><path class="s" d="M6.4 13.6 13.6 6.4M8.2 10.3l1.5 1.5M9.6 8.9l1.5 1.5M11 7.5l1.5 1.5"/></svg>',
-  conv:posts('2'), pen:posts('3'), drop:posts('D')
+  conv:posts('2'), pen:posts('3'), drop:posts('D'),
+  /* Foot : ballon blanc = but (penalty compris), ballon rouge = penalty ou tir au but manqué */
+  goal:'<svg viewBox="0 0 20 20" aria-hidden="true"><circle class="ball" cx="10" cy="10" r="7.6"/><path class="ball-p" d="M10.00 6.90 L12.95 9.04 L11.82 12.51 L8.18 12.51 L7.05 9.04Z"/><path class="ball-p" clip-path="circle(7.6px at 10px 10px)" d="M10.00 5.60 L7.24 3.60 L8.30 0.35 L11.70 0.35 L12.76 3.60Z M14.18 8.64 L15.24 5.40 L18.65 5.40 L19.70 8.64 L16.94 10.64Z M12.59 13.56 L16.00 13.56 L17.05 16.80 L14.29 18.81 L11.53 16.80Z M7.41 13.56 L8.47 16.80 L5.71 18.81 L2.95 16.80 L4.00 13.56Z M5.82 8.64 L3.06 10.64 L0.30 8.64 L1.35 5.40 L4.76 5.40Z"/><path class="ball-l" d="M10.00 6.90 L10.00 4.80 M12.95 9.04 L14.95 8.39 M11.82 12.51 L13.06 14.21 M8.18 12.51 L6.94 14.21 M7.05 9.04 L5.05 8.39"/><circle class="ball-o" cx="10" cy="10" r="7.6"/></svg>',
+  penmiss:'<svg viewBox="0 0 20 20" aria-hidden="true"><circle class="ball miss" cx="10" cy="10" r="7.6"/><path class="ball-p miss" d="M10.00 6.90 L12.95 9.04 L11.82 12.51 L8.18 12.51 L7.05 9.04Z"/><path class="ball-p miss" clip-path="circle(7.6px at 10px 10px)" d="M10.00 5.60 L7.24 3.60 L8.30 0.35 L11.70 0.35 L12.76 3.60Z M14.18 8.64 L15.24 5.40 L18.65 5.40 L19.70 8.64 L16.94 10.64Z M12.59 13.56 L16.00 13.56 L17.05 16.80 L14.29 18.81 L11.53 16.80Z M7.41 13.56 L8.47 16.80 L5.71 18.81 L2.95 16.80 L4.00 13.56Z M5.82 8.64 L3.06 10.64 L0.30 8.64 L1.35 5.40 L4.76 5.40Z"/><path class="ball-l miss" d="M10.00 6.90 L10.00 4.80 M12.95 9.04 L14.95 8.39 M11.82 12.51 L13.06 14.21 M8.18 12.51 L6.94 14.21 M7.05 9.04 L5.05 8.39"/><circle class="ball-o miss" cx="10" cy="10" r="7.6"/></svg>'
 };
 function moreHTML(m){
   const L = LBY[m.league], rugby = L.sport === 'rugby';
@@ -1106,10 +1136,16 @@ function moreHTML(m){
   const name = d => ({home:m.home.name, away:m.away.name})[sideOf(d)] || '';
   const full = FULL[m.id];
   const kindOf = d => d.kind || (d.red ? 'red' : d.yellow ? 'yellow' : d.goal ? 'goal' : '');
-  const list = ((full && full.evs) || m.details).map(d => ({...d, kind:kindOf(d)})).filter(d => KIND[d.kind] && (rugby || d.kind !== 'yellow'));
-  const evs = list.map(d => { const k = KIND[d.kind];
-    return `<div class="ev"><span class="m">${esc(d.min)}</span><span class="ic ${k[0]}" title="${k[1]}">${KIND_ICON[d.kind] || ''}</span>
-      <span class="who">${rugby ? `${k[1]}${d.who ? ' · ' : ''}` : ''}${esc(d.who || (rugby ? '' : k[1]))}${!rugby && d.pen && d.kind === 'goal' ? ' (pén.)' : ''}${d.og ? ' (csc)' : ''} <em>${esc(name(d))}</em></span></div>`; }).join('');
+  const okKind = d => KIND[d.kind] && (rugby ? d.kind !== 'penmiss' : ['goal', 'red', 'penmiss'].includes(d.kind));
+  const list = ((full && full.evs) || m.details).map(d => ({...d, kind:kindOf(d)})).filter(okKind);
+  const lab = d => { const k = KIND[d.kind];
+    if (rugby) return esc(d.who || k[1]);                                  // l'icône dit déjà essai / transformation / pénalité / drop / carton
+    if (d.kind === 'penmiss') return `${esc(d.who || '')}${d.who ? ' ' : ''}<small>(${d.so ? 't.a.b. manqué' : 'manqué'})</small>`;
+    return `${esc(d.who || k[1])}${d.kind === 'goal' && d.so ? ' <small>(t.a.b.)</small>' : d.pen && d.kind === 'goal' ? ' <small>(pén.)</small>' : ''}${d.og ? ' <small>(csc)</small>' : ''}`; };
+  const evs = list.length ? `<div class="tline" role="list" aria-label="Déroulé du match">
+      <span class="tline-h home">${esc(m.home.name)}</span><span class="tline-h away">${esc(m.away.name)}</span>
+      ${list.map((d, i) => { const k = KIND[d.kind], sd = sideOf(d) || 'home';
+        return `<div class="ev2 ${sd}" role="listitem" style="grid-row:${i + 2}" aria-label="${esc(d.min)} ${esc(k[1])} ${esc(d.who || '')} (${esc(name(d))})"><span class="who">${lab(d)}</span><span class="ic ${k[0]}" title="${k[1]}">${KIND_ICON[d.kind] || ''}</span><span class="m">${esc(d.min)}</span></div>`; }).join('')}</div>` : '';
   let tally = '';
   if (rugby && list.length){
     const cnt = (sd, k) => list.filter(d => sideOf(d) === sd && d.kind === k).length;
@@ -1138,7 +1174,9 @@ function summaryEvents(j){
     const txt = `${(p.type && (p.type.text || p.type.name)) || ''} ${p.text || ''}`;
     const kind = classify(txt, p.scoringPlay, p); if (!kind) return;
     const who = ((p.participants || [])[0] || {}).athlete?.displayName || ((p.athletesInvolved || [])[0] || {}).displayName || '';
-    const d = {kind, min:(p.clock && p.clock.displayValue) || '', team:p.team && String(p.team.id), who};
+    const d = {kind, min:(p.clock && p.clock.displayValue) || '', team:p.team && String(p.team.id), who,
+      pen:kind === 'goal' && (/penalty|pénalty/i.test(txt) || !!p.penaltyKick), og:/own goal|contre son camp/i.test(txt) || !!p.ownGoal,
+      so:!!p.shootout || /shoot.?out|tirs? au but/i.test(txt)};
     if (d.team && sideOf[d.team]) d.side = sideOf[d.team];
     const key = `${d.kind}|${d.min}|${d.team}|${d.who}`; if (seen.has(key)) return; seen.add(key);
     evs.push(d);
@@ -1335,7 +1373,7 @@ function matchClick(e, extra = []){
   open.has(id) ? open.delete(id) : open.add(id);
   row.setAttribute('aria-expanded', open.has(id));
   li.querySelector('.more').hidden = !open.has(id);
-  if (m && open.has(id) && LBY[m.league].sport === 'rugby' && m.state !== 'pre'){
+  if (m && open.has(id) && ['rugby', 'soccer'].includes(LBY[m.league].sport) && m.state !== 'pre'){
     if (!FULL[m.id]) li.querySelector('.more').outerHTML = moreHTML(m);
     loadFull(m, li);
   }
@@ -2304,7 +2342,7 @@ function useSample(){
     M('nba', at(-1,1,30), 'post', T('Spurs','SA','118',true), T('Lakers','LAL','111'), {detail:'Final', us:['ESPN']}),
     M('esp.1', at(-1,21,0), 'post', T('Real Madrid','RMA','3',true), T('Séville','SEV','0'), {us:['ESPN+'], details:[{red:true,min:"40'",team:'Séville',who:'Badé'}]}),
     M('uefa.champions', at(0,18,45), 'in', T('PSG','PSG','2'), T('Inter','INT','1'), {detail:"67'", us:['Paramount+'],
-      details:[{goal:true,min:"12'",team:'PSG',who:'Dembélé'},{goal:true,min:"38'",team:'Inter',who:'Lautaro'},{goal:true,min:"59'",team:'PSG',who:'Doué',pen:true}]}),
+      details:[{goal:true,min:"12'",team:'PSG',who:'Dembélé'},{goal:true,min:"38'",team:'Inter',who:'Lautaro'},{goal:true,min:"59'",team:'PSG',who:'Doué',pen:true},{kind:'penmiss',min:"63'",team:'Inter',who:'Calhanoglu'},{red:true,min:"66'",team:'Inter',who:'Bastoni'}]}),
     M('uefa.champions', at(0,21,0), 'pre', T('Monaco','ASM'), T('Liverpool','LIV'), {us:['Paramount+']}),
     M('ger.1', at(0,20,30), 'in', T('Dortmund','BVB','0'), T('Leipzig','RBL','0'), {detail:'HT', details:[{red:true,min:"31'",team:'Leipzig',who:'Orban'}]}),
     M('nba', at(0,2,0), 'in', T('Celtics','BOS','78'), T('Knicks','NYK','81'), {detail:'5:32 - 3rd', us:['ESPN']}),
