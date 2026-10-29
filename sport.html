@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="c3be79d5">
+<meta name="mon-ecran-version" content="5d34469b">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -673,7 +673,7 @@ const LEAGUES = [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ];
-const VERSION = '2026-10-29.12';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-29.13';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -1263,7 +1263,10 @@ function cotesHTML(m){
 const motsEq = s => teamKey(s).split(' ').filter(w => w.length >= 3 && !['fc', 'cf', 'afc', 'club', 'calcio', 'football', 'olympique', 'stade', 'real', 'and', 'the', 'ssc'].includes(w)).map(w => ({psg:'paris', utd:'united', man:'manchester', spurs:'tottenham', wolves:'wolverhampton', nottm:'nottingham', inter:'internazionale', gladbach:'monchengladbach', atleti:'atletico'})[w] || w);
 const procheEq = (a, b) => { const A = motsEq(a), B = motsEq(b); return A.some(w => B.some(x => x === w || (w.length > 4 && x.length > 4 && (x.startsWith(w) || w.startsWith(x))))); };
 async function cotesMain(m, btn){
-  const cle = store.get('cotes:cle'), sk = COTES && COTES.cles && COTES.cles[m.league];
+  // clé de la compétition chez The Odds API : celle vérifiée par la tâche « Cotes », sinon la clé connue (avant tout premier relevé)
+  const CLES = {'fra.1':'soccer_france_ligue_one', 'eng.1':'soccer_epl', 'esp.1':'soccer_spain_la_liga', 'ita.1':'soccer_italy_serie_a', 'ger.1':'soccer_germany_bundesliga',
+    'uefa.champions':'soccer_uefa_champs_league', 'uefa.europa':'soccer_uefa_europa_league', 'uefa.europa.conf':'soccer_uefa_europa_conference_league'};
+  const cle = store.get('cotes:cle'), sk = (COTES && COTES.cles && COTES.cles[m.league]) || CLES[m.league];
   if (!cle || !sk){ btn.title = !cle ? 'Ajoute ta clé dans la page État' : 'Compétition pas encore reconnue'; return; }
   const q = cotesQuota(); if (q && q.restants <= MANUEL_MIN) return;
   btn.disabled = true; btn.classList.add('spin');

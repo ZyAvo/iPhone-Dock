@@ -1,6 +1,6 @@
 {
- "lot": "v17",
- "date": "2026-10-29T17:58:16+00:00",
+ "lot": "v18",
+ "date": "2026-10-29T18:01:51+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/cotes.yml": "d2ab441c",
@@ -25,7 +25,7 @@
   "outils/tv-tri.mjs": "46c15f05",
   "outils/videos-data.mjs": "b4fa660a",
   "outils/yahoo.py": "103be76d",
-  "sport.html": "c3be79d5",
+  "sport.html": "5d34469b",
   "sw.js": "67a7ad44",
   "synchro.js": "efb67e18",
   "videos.html": "5df972a6"
