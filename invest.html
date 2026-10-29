@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="efcdad39">
+<meta name="mon-ecran-version" content="7f5b2b87">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Investissements</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -371,6 +371,7 @@ html.desk .sheet{border-radius:28px;max-height:84vh}
 }
 /* ==FIN PALETTES== */
 </style>
+<script src="synchro.js"></script>
 </head>
 <body>
 <header>
@@ -458,7 +459,7 @@ const COMPTES = {ct:'Compte-titres', av:'Assurance-vie', pee:'PEE'};
 
 let LIGNES = LS.get('invest:lignes', []);
 let VERS = LS.get('invest:versements', []);          // versements et retraits par compte : {compte, date:'AAAA-MM-JJ', montant (retrait < 0)}
-const saveV = () => LS.set('invest:versements', VERS);
+const saveV = () => { LS.set('invest:versements', VERS); syncPlusTard(); };
 let REG = Object.assign({situation:'seul', avOuverture:'', avVerse:null, gainsAnnee:{an:YEAR, v:0}, mvReport:0, cible:{}, tolerance:5, maxLigne:25, verrou:false}, LS.get('invest:reglages', {}));
 if (!REG.gainsAnnee || REG.gainsAnnee.an !== YEAR) REG.gainsAnnee = {an:YEAR, v:0};
 let M = LS.get('invest:marches', null), A = null, loadedAt = 0;
@@ -469,7 +470,12 @@ const dansPerim = l => PERIM === 'tout' || l.compte === PERIM;
 const ouvert = () => { try{ return sessionStorage.getItem('invest:ouvert') === '1'; }catch{ return false; } };
 const setOuvert = v => { try{ v ? sessionStorage.setItem('invest:ouvert', '1') : sessionStorage.removeItem('invest:ouvert'); }catch{} };
 const LOCK_IC = {ferme:'<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2.5"/>', ouvert:'<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 7.6-1.7"/><path d="M12 14.5v2.5"/>'};
-const saveL = () => LS.set('invest:lignes', LIGNES), saveR = () => LS.set('invest:reglages', REG);
+/* Synchronisation chiffrée entre appareils (synchro.js, réglée dans la page État) */
+const SYNC = {local:() => Synchro.investLocal(), choisir:(...a) => Synchro.conflit('Ton portefeuille')(...a),
+  appliquer:v => { Synchro.investAppliquer(v); LIGNES = LS.get('invest:lignes', []); REG = LS.get('invest:reglages', {}); VERS = LS.get('invest:versements', []); render(); toastMsg('Mis à jour depuis un autre appareil'); }};
+const syncPlusTard = () => { if (window.Synchro && Synchro.actif()) Synchro.plusTard('invest', SYNC); };
+const syncMaintenant = async () => { if (window.Synchro && Synchro.actif() && await Synchro.pret()){ await Synchro.partie('invest', SYNC); stamp(); } };
+const saveL = () => { LS.set('invest:lignes', LIGNES); syncPlusTard(); }, saveR = () => { LS.set('invest:reglages', REG); syncPlusTard(); };
 
 const num = v => { if (v == null || v === '') return null; const n = parseFloat(String(v).replace(/\s| |€/g, '').replace(',', '.')); return isFinite(n) ? n : null; };
 const fmt = (v, d = 0) => v == null || !isFinite(v) ? '—' : v.toLocaleString('fr-FR', {minimumFractionDigits:d, maximumFractionDigits:d});
@@ -633,7 +639,9 @@ function render(){
 }
 function stamp(){
   const ok = M && M.updated;
-  $('#stamp').textContent = (ok ? `Cours de ${new Date(M.updated).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}` : '') + (autoOn('marches') ? '' : ' · ⚠ auto coupé');
+  const sy = window.Synchro && Synchro.actif() ? Synchro.etat() : null;
+  $('#stamp').textContent = (ok ? `Cours de ${new Date(M.updated).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}` : '') + (autoOn('marches') ? '' : ' · ⚠ auto coupé')
+    + (sy ? (sy.err ? ' · ⚠ synchro' : sy.at ? ' · synchro ✓' : '') : '');
 }
 const marketOpen = () => {
   const p = new Intl.DateTimeFormat('en-GB', {timeZone:'Europe/Paris', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false}).formatToParts(new Date());
@@ -967,11 +975,12 @@ document.addEventListener('keydown', e => { if (!$('#pinDots') || $('#sheetBg').
 function askPin(titre, sous, ensuite){
   const r = pinRec(); if (!r){ ensuite(); return; }
   padOpen(titre, sous, r.n, async v => {
-    if (await pinOk(v)){ LS.set(TRY_KEY, {n:0, jusqu:0}); ensuite(); return; }
+    if (await pinOk(v)){ LS.set(TRY_KEY, {n:0, jusqu:0}); ensuite(v); return; }
     const t = echec(); $('#pinMsg').textContent = t.jusqu > Date.now() ? 'Trop d\'essais : attends 30 s.' : `Code incorrect (essai ${t.n}/5).`;
   }, '<button class="btn" type="button" data-act="pin-forgot" style="min-height:36px">Code oublié ?</button>');
 }
-function askUnlock(apres){ askPin('Déverrouiller', 'Entre ton code pour voir et modifier tes placements.', () => { setOuvert(true); closeSheet(); render(); if (apres) apres(); }); }
+function askUnlock(apres){ askPin('Déverrouiller', 'Entre ton code pour voir et modifier tes placements.', v => { setOuvert(true); closeSheet(); render(); if (apres) apres();
+  if (v && window.Synchro && Synchro.actif()) Synchro.ouvrirAvecCode(v).then(r => { if (r === false) toastMsg('Synchronisation : ton code a changé, mets-la à jour dans État'); else if (r) syncMaintenant(); }); }); }
 const siOuvert = f => bloque() ? askUnlock(f) : f();        // toute modification demande d'abord le code
 /* Choisir un code (deux fois), puis « fin(code) » */
 function choosePin(fin){
@@ -1035,7 +1044,7 @@ document.addEventListener('click', e => {
   else if (a === 'unlock') askUnlock();
   else if (a === 'pin-on') setupFlow();
   else if (a === 'pin-off') askPin('Désactiver le verrouillage', 'Entre ton code actuel.', () => { LS.set(PIN_KEY, null); try{ localStorage.removeItem(PIN_KEY); }catch{} REG.verrou = false; saveR(); setOuvert(false); closeSheet(); render(); });
-  else if (a === 'pin-change') askPin('Modifier le code', 'Entre ton code actuel.', () => choosePin(async p => { await changePin(p); closeSheet(); toastMsg('Code modifié'); }));
+  else if (a === 'pin-change') askPin('Modifier le code', 'Entre ton code actuel.', ancien => choosePin(async p => { await changePin(p); if (window.Synchro && ancien) await Synchro.recoder(ancien, p); closeSheet(); toastMsg('Code modifié'); }));
   else if (a === 'pin-forgot') recoverFlow();
   else if (a === 'pin-reset') resetFlow();
   else if (a === 'pin-reset-ok'){ LIGNES = []; saveL(); VERS = []; saveV(); try{ localStorage.removeItem(PIN_KEY); localStorage.removeItem(TRY_KEY); }catch{} REG.verrou = false; saveR(); setOuvert(false); closeSheet(); render(); toastMsg('Code et lignes effacés'); }
@@ -1084,6 +1093,9 @@ async function load(force){
 document.addEventListener('visibilitychange', () => { if (!document.hidden && autoOn('marches') && Date.now() - loadedAt > 10 * 60e3) load(); });
 tab = ['portef', 'marches', 'vente'].includes(LS.get('invest:onglet', 'portef')) ? LS.get('invest:onglet', 'portef') : 'portef';
 render(); load();
+syncMaintenant();                                   // session de synchronisation déjà ouverte (code donné ailleurs dans l'appli)
+let syncVu = Date.now();
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - syncVu > 60e3){ syncVu = Date.now(); syncMaintenant(); } });
 </script>
 <script>
 /* Toucher visible : un rond qui s'efface là où le doigt appuie (pratique aussi pour les vidéos de démo) */

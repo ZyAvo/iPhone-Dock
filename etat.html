@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="f68ea7c0">
+<meta name="mon-ecran-version" content="c2bc27ca">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -159,6 +159,12 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .sv-form label,.sv-pinl{display:flex;flex-direction:column;gap:6px;margin-top:10px}
 .sv-form input,.sv-pin{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;max-width:220px}
 #sauvZone .actions{margin-top:8px}
+#syZone .actions{margin-top:8px}
+.sy-row{display:flex;gap:8px;align-items:center}
+.sy-row input{flex:1;max-width:none!important;font:13px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace!important}
+#syForm label input[name=jeton]{max-width:none}
+.sy-etapes{padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.sy-etapes a{color:var(--accent);text-decoration:underline}
 /* ---------- Toucher visible et fondu entre les pages ---------- */
 @view-transition{navigation:auto}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
@@ -252,6 +258,7 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 }
 /* ==FIN PALETTES== */
 </style>
+<script src="synchro.js"></script>
 </head>
 <body>
 <header>
@@ -398,7 +405,7 @@ function render(e){
       f.calendriers.length ? `<ul class="note">${f.calendriers.map(c => `<li>${esc(c.replace(/^calendriers\//, ''))}</li>`).join('')}</ul>` : '<p class="note">Aucun calendrier déposé.</p>', false);
   }
 
-  h += themeHTML() + autoHTML() + sauvHTML();
+  h += themeHTML() + autoHTML() + syncHTML() + sauvHTML();
   h += `<div class="actions"><a class="btn main" href="https://github.com/ZyAvo/iPhone-Dock/actions" target="_blank" rel="noopener">Voir les tâches GitHub</a>
     <button type="button" class="btn" id="resetBtn">Vider la mémoire de l'appli</button></div>
     <p class="note" id="resetMsg">« Vider la mémoire » efface les données gardées sur cet appareil (matchs, actus, pages) ; tes réglages (lieu météo, Spotify, favoris, langue des actus, placements, rafraîchissement) sont conservés.</p>`;
@@ -412,7 +419,7 @@ async function load(){
     if (!r.ok) throw new Error(r.status);
     render(await r.json());
   }catch(err){
-    $('#out').innerHTML = `<div class="sum glass err"><span class="lamp"></span><div><b>Résumé introuvable</b><p>Le fichier etat.json est fait par la tâche GitHub « Publication ». Vérifie qu'elle a bien tourné (Settings → Pages → Source : GitHub Actions).</p></div></div>` + themeHTML() + autoHTML() + sauvHTML();
+    $('#out').innerHTML = `<div class="sum glass err"><span class="lamp"></span><div><b>Résumé introuvable</b><p>Le fichier etat.json est fait par la tâche GitHub « Publication ». Vérifie qu'elle a bien tourné (Settings → Pages → Source : GitHub Actions).</p></div></div>` + themeHTML() + autoHTML() + syncHTML() + sauvHTML();
   }finally{ $('#refreshBtn').classList.remove('spin'); }
 }
 $('#refreshBtn').addEventListener('click', load);
@@ -437,7 +444,7 @@ document.addEventListener('click', e => {
   document.querySelectorAll('[data-pal]').forEach(x => x.setAttribute('aria-checked', x.dataset.pal === v));
 });
 /* ---------- Sauvegarde : tes réglages et données personnelles dans un code à garder (Notes…), chiffré avec ton code ---------- */
-const REGLAGES = ['invest:lignes', 'invest:reglages', 'invest:pin', 'invest:perimetre', 'invest:widget-per', 'invest:versements', 'coffre:chiffre', 'coffre:items',
+const REGLAGES = ['synchro:cfg', 'synchro:etat', 'invest:lignes', 'invest:reglages', 'invest:pin', 'invest:perimetre', 'invest:widget-per', 'invest:versements', 'coffre:chiffre', 'coffre:items',
   'sport:favoris', 'sport:reduites', 'actus:langue', 'videos:abos', 'videos:liste', 'videos:vus', 'videos:yt-chaine',
   'lieu:favoris', 'lieu:actuel', 'palette', 'mode', 'rafraichissement', 'spotify:client'];
 const B64 = {de:u => { let t = ''; for (let i = 0; i < u.length; i += 8192) t += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(t); }, vers:s => Uint8Array.from(atob(s), c => c.charCodeAt(0))};
@@ -499,6 +506,74 @@ document.addEventListener('click', async e => {
     Object.entries(j.d || {}).forEach(([k, v]) => { try{ localStorage.setItem(k, v); }catch{} });
     try{ sessionStorage.clear(); }catch{}
     location.reload(); }
+});
+/* ---------- Synchronisation chiffrée entre appareils (synchro.js) ---------- */
+const quandSync = t => { if (!t) return 'jamais'; const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'à l\'instant' : m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : new Date(t).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}); };
+function syncHTML(){
+  if (!window.Synchro) return '';
+  const on = Synchro.actif(), st = Synchro.etat();
+  const msg = !aUnCode() ? 'Crée d\'abord un code dans Investissements' : !on ? 'Désactivée sur cet appareil' : st.err ? `⚠ ${Synchro.MSG[st.err] || st.err}` : `Active · dernière synchro ${quandSync(st.at)}`;
+  const lvl = !on ? 'none' : st.err ? 'warn' : 'ok';
+  const corps = !aUnCode() ? '<p class="note">La synchronisation utilise ton code d\'Investissements (Investissements → ⚙︎ → verrouillage).</p>'
+    : on ? `<p class="note">Tes placements, versements et le Coffre sont partagés entre tes appareils, dans un fichier chiffré de ton dépôt GitHub (branche « synchro »). Ils se mettent à jour quand tu déverrouilles avec ton code, puis à chaque modification.</p>
+      <div class="actions"><button type="button" class="btn main" data-sy="maintenant">Synchroniser maintenant</button><button type="button" class="btn" data-sy="off">Désactiver sur cet appareil</button></div><div id="syZone"></div>`
+    : `<p class="note">Pour retrouver <b>les mêmes placements, versements et le même Coffre</b> sur ton iPhone et ton PC. Le contenu est chiffré avec une <b>phrase secrète</b> (6 mots) avant de partir sur ton dépôt GitHub : sans elle, c'est illisible. Au quotidien, ton code suffit.</p>
+      <ol class="note sy-etapes">
+        <li><b>Clé GitHub</b> (une fois) : <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">crée une clé « fine-grained »</a>. Nom : Mon Écran ; Expiration : 1 an ; Repository access : <i>Only select repositories</i> → <b>${esc(Synchro.DEPOT.split('/')[1])}</b> ; Permissions → <i>Contents</i> : <b>Read and write</b>. Copie la clé (github_pat_…).</li>
+        <li><b>Phrase secrète</b> : sur le premier appareil, touche « Générer ». Garde-la avec la clé dans Bitwarden : il faudra les deux sur chaque appareil, et la phrase perdue ne se retrouve pas.</li>
+        <li>Sur les autres appareils, colle la même phrase et la même clé.</li></ol>
+      <form class="sv-form" id="syForm">
+        <label class="note">Phrase secrète<span class="sy-row"><input name="phrase" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="mot-mot-mot-mot-mot-mot"><button type="button" class="btn" data-sy="generer">Générer</button></span></label>
+        <label class="note">Clé GitHub<input name="jeton" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…"></label>
+        <label class="note">Ton code<input name="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+        <div class="actions"><button class="btn main" type="submit">Activer sur cet appareil</button></div><p class="note sv-msg" aria-live="polite"></p></form><div id="syZone"></div>`;
+  return part('Synchronisation entre appareils', {lvl, msg}, corps, false);
+}
+const syErr = e => Synchro.MSG[e && e.message] || 'erreur inattendue (' + ((e && e.message) || '?') + ')';
+const syncInvestOpts = () => ({local:() => Synchro.investLocal(), appliquer:v => Synchro.investAppliquer(v), choisir:Synchro.conflit('Ton portefeuille')});
+const syncCoffreOpts = pin => ({local:() => Synchro.coffreLire(pin).catch(() => { throw new Error('coffre'); }), appliquer:v => Synchro.coffreEcrire(pin, v), choisir:Synchro.conflit('Le coffre')});
+document.addEventListener('submit', async e => {
+  if (e.target.id !== 'syForm') return; e.preventDefault();
+  const f = e.target, msg = f.querySelector('.sv-msg'), phrase = f.phrase.value, jeton = f.jeton.value, pin = f.pin.value;
+  if (phrase.trim().split(/[-\s]+/).length < 5){ msg.textContent = 'La phrase doit faire au moins 5 mots (touche « Générer »).'; return; }
+  if (!/^(github_pat_|ghp_)/.test(jeton.trim())){ msg.textContent = 'La clé GitHub commence par « github_pat_ ».'; return; }
+  if (!(await pinOk(pin))){ msg.textContent = 'Code incorrect.'; return; }
+  msg.textContent = 'Connexion à GitHub…';
+  try{
+    const r = await Synchro.activer({phrase, jeton, pin});
+    if (r.existe){
+      msg.textContent = '';
+      $('#syZone').innerHTML = `<p class="note">Des données sont déjà synchronisées (${r.n} ligne${r.n > 1 ? 's' : ''}, mises à jour ${r.maj ? 'le ' + new Date(r.maj).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : ''}${r.par ? ' depuis ' + esc(r.par) : ''}). Que faire ici ?</p>
+        <div class="actions"><button type="button" class="btn main" data-sy="prendre">Prendre ces données</button><button type="button" class="btn" data-sy="envoyer">Les remplacer par celles de cet appareil</button></div>`;
+      window.__sy = {phrase, jeton, pin}; return;
+    }
+    location.reload();
+  }catch(err){ msg.textContent = 'Impossible : ' + syErr(err) + '.'; }
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-sy]'); if (!b) return;
+  const a = b.dataset.sy;
+  if (a === 'generer'){ const i = document.querySelector('#syForm [name=phrase]'); i.value = Synchro.genererPhrase(); i.select(); return; }
+  if (a === 'prendre' || a === 'envoyer'){ try{ await Synchro.activer({...window.__sy, choix:a}); location.reload(); }catch(err){ $('#syZone').insertAdjacentHTML('beforeend', `<p class="note">Impossible : ${esc(syErr(err))}.</p>`); } return; }
+  if (a === 'off'){ Synchro.desactiver(); location.reload(); return; }
+  if (a === 'maintenant'){
+    $('#syZone').innerHTML = `<form class="sv-form" id="syPin"><label class="note">Ton code<input type="password" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="Code"></label>
+      <label class="note sy-anc" hidden>Ton ancien code (celui de l'activation)<input type="password" inputmode="numeric" maxlength="6" autocomplete="off" class="sy-ancien"></label>
+      <div class="actions"><button class="btn main" type="submit">Synchroniser</button></div><p class="note sv-msg" aria-live="polite"></p></form>`;
+    const f = $('#syPin'); f.querySelector('input').focus();
+    f.addEventListener('submit', async ev => { ev.preventDefault(); const m = f.querySelector('.sv-msg'), pin = f.querySelector('input').value, anc = f.querySelector('.sy-ancien').value;
+      if (!(await pinOk(pin))){ m.textContent = 'Code incorrect.'; return; }
+      if (anc && !(await Synchro.recoder(anc, pin))){ m.textContent = 'Ancien code incorrect.'; return; }
+      if (anc){ try{ await Synchro.coffreEcrire(pin, await Synchro.coffreLire(anc)); }catch{} }     // le Coffre suit aussi le nouveau code
+      m.textContent = 'Synchronisation…';
+      const o = await Synchro.ouvrirAvecCode(pin).catch(() => null);
+      if (o === false){ f.querySelector('.sy-anc').hidden = false; m.textContent = 'Ton code a changé depuis l\'activation : entre aussi l\'ancien.'; return; }
+      if (!o){ m.textContent = 'Impossible : ' + (Synchro.MSG[Synchro.etat().err] || 'GitHub injoignable') + '.'; return; }
+      const r1 = await Synchro.partie('invest', syncInvestOpts()), r2 = await Synchro.partie('coffre', syncCoffreOpts(pin));
+      const bad = [r1, r2].find(r => String(r).startsWith('erreur'));
+      m.textContent = bad ? 'Impossible : ' + (Synchro.MSG[bad.split(':')[1]] || bad) + '.' : 'Synchronisé ✓';
+    });
+  }
 });
 document.addEventListener('click', async e => {
   if (!e.target.closest('#resetBtn')) return;

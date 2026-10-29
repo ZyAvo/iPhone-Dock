@@ -1,6 +1,6 @@
 {
- "lot": "v11",
- "date": "2026-10-29T15:53:09+00:00",
+ "lot": "v12",
+ "date": "2026-10-29T16:30:35+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/marches.yml": "26b68d91",
@@ -9,10 +9,10 @@
   ".github/workflows/publication.yml": "eee978e2",
   ".github/workflows/videos.yml": "1faae103",
   "actus.html": "fd33d4e6",
-  "cachee.html": "62782ce7",
-  "etat.html": "f68ea7c0",
-  "index.html": "d46261f7",
-  "invest.html": "efcdad39",
+  "cachee.html": "cda39371",
+  "etat.html": "c2bc27ca",
+  "index.html": "80afa288",
+  "invest.html": "7f5b2b87",
   "outils/actus-data.mjs": "77082673",
   "outils/etat.mjs": "4efddaea",
   "outils/marches-data.mjs": "d70dd09f",
@@ -24,7 +24,8 @@
   "outils/videos-data.mjs": "b4fa660a",
   "outils/yahoo.py": "103be76d",
   "sport.html": "586b5579",
-  "sw.js": "90c86c5c",
+  "sw.js": "67a7ad44",
+  "synchro.js": "efb67e18",
   "videos.html": "5df972a6"
  },
  "supprimer": [

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="d46261f7">
+<meta name="mon-ecran-version" content="80afa288">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -460,6 +460,7 @@ html.desk .w-proch{display:none!important}
 }
 /* ==FIN PALETTES== */
 </style>
+<script src="synchro.js"></script>
 </head>
 <body>
 
@@ -1256,7 +1257,10 @@ function renderInv(){
       <div class="inv-r">${idx}</div></div>`;
 }
 async function loadInv(){
-  invM = LS.get('invest:widget', null) || LS.get('invest:marches', null); renderInv();
+  invM = invM || LS.get('invest:widget', null) || LS.get('invest:marches', null); renderInv();
+  // synchronisation entre appareils (si ton code a déjà été donné pendant cette session)
+  try{ if (window.Synchro && Synchro.actif() && await Synchro.pret())
+    await Synchro.partie('invest', {local:Synchro.investLocal, appliquer:v => { Synchro.investAppliquer(v); renderInv(); }, choisir:Synchro.conflit('Ton portefeuille')}); }catch{}
   try{                                     // petit fichier dédié au widget ; l'ancien fichier complet en secours
     let r = await fetch('donnees/marches/widget.json', {cache:'no-cache'});
     if (!r.ok) r = await fetch('donnees/marches/marches.json', {cache:'no-cache'});
@@ -1292,7 +1296,8 @@ document.addEventListener('click', e => {
   e.preventDefault();
   const set = v => { try{ v ? sessionStorage.setItem('invest:ouvert', '1') : sessionStorage.removeItem('invest:ouvert'); }catch{} };
   if ((() => { try{ return sessionStorage.getItem('invest:ouvert') === '1'; }catch{ return false; } })()){ set(false); renderInv(); return; }
-  pinMini(() => { set(true); renderInv(); });          // ouvert jusqu'à la fermeture de l'appli (comme la page Investissements)
+  pinMini(v => { set(true); renderInv();          // ouvert jusqu'à la fermeture de l'appli (comme la page Investissements)
+    if (v && window.Synchro && Synchro.actif()) Synchro.ouvrirAvecCode(v).then(r => { if (r) loadInv(); }).catch(() => {}); });
 });
 /* Code des montants (le même que la page Investissements) */
 async function pinMini(ok){
@@ -1310,7 +1315,7 @@ async function pinMini(ok){
     e.preventDefault();
     const t = LS.get('invest:pin-essais', {n:0, jusqu:0});
     if (t.jusqu > Date.now()){ msg.textContent = `Trop d'essais : réessaie dans ${Math.ceil((t.jusqu - Date.now()) / 1000)} s.`; return; }
-    if (await sha(r.sel + inp.value) === r.h){ LS.set('invest:pin-essais', {n:0, jusqu:0}); close(); ok(); return; }
+    if (await sha(r.sel + inp.value) === r.h){ LS.set('invest:pin-essais', {n:0, jusqu:0}); close(); ok(inp.value); return; }
     t.n++; if (t.n >= 5){ t.n = 0; t.jusqu = Date.now() + 30e3; } LS.set('invest:pin-essais', t);
     msg.textContent = t.jusqu > Date.now() ? 'Trop d\'essais : attends 30 s.' : `Code incorrect (essai ${t.n}/5).`; inp.value = ''; inp.focus();
   });

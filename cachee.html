@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="62782ce7">
+<meta name="mon-ecran-version" content="cda39371">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Coffre</title>
 <meta name="robots" content="noindex, nofollow">
@@ -279,6 +279,7 @@ html.desk .scrim{align-items:center}
 .lock svg{width:34px;height:34px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .lock input{font:inherit;font-size:22px;letter-spacing:.3em;text-align:center;width:min(220px,100%);padding:10px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 </style>
+<script src="synchro.js"></script>
 </head>
 <body>
 <header>
@@ -320,10 +321,15 @@ async function dechiffrer(cle, box){
   const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(box.iv)}, cle, unb64(box.ct));
   return JSON.parse(new TextDecoder().decode(pt));
 }
-async function save(){
+async function save(sync = true){
   const box = LS.get('coffre:chiffre', null), sel = box ? unb64(box.sel) : crypto.getRandomValues(new Uint8Array(16));
   LS.set('coffre:chiffre', await chiffrer(CLE, sel, ITEMS));
+  if (sync && window.Synchro && Synchro.actif()) Synchro.plusTard('coffre', SYNC);
 }
+/* Synchronisation chiffrée entre appareils (synchro.js, réglée dans la page État) */
+const SYNC = {local:() => ITEMS, choisir:(...a) => Synchro.conflit('Le coffre')(...a),
+  appliquer:async v => { ITEMS = Array.isArray(v) ? v : []; await save(false); render(); }};
+const syncCoffre = async () => { if (window.Synchro && Synchro.actif() && CLE && await Synchro.pret()) await Synchro.partie('coffre', SYNC); };
 /* ouverture avec le code : déchiffre (ou chiffre l'ancien contenu en clair) ; garde la clé pour la session (10 min) */
 async function ouvrirAvec(pin, ancien){
   const box = LS.get('coffre:chiffre', null);
@@ -334,7 +340,7 @@ async function ouvrirAvec(pin, ancien){
     const sel = unb64(box.sel);
     try{ CLE = await deriver(ancien || pin, sel); ITEMS = await dechiffrer(CLE, box); }
     catch{ CLE = null; return false; }
-    if (ancien){ CLE = await deriver(pin, sel); await save(); }   // code changé depuis : on rechiffre avec le code actuel
+    if (ancien){ CLE = await deriver(pin, sel); await save(false); }   // code changé depuis : on rechiffre avec le code actuel
   }
   SS.set('coffre:cle', b64(await crypto.subtle.exportKey('raw', CLE))); SS.set('coffre:ok', String(Date.now()));
   return true;
@@ -346,7 +352,7 @@ async function reprendre(){                                     // rechargement 
 }
 
 let PRET = false;
-async function demarrer(){ if (ouvert() && !(await reprendre())){} PRET = true; render(); }
+async function demarrer(){ if (ouvert() && !(await reprendre())){} PRET = true; render(); if (CLE) syncCoffre(); }
 function render(){
   if (!PRET) return;
   if (!LS.get('invest:pin', null)){ $('#lockBtn').hidden = true;
@@ -377,7 +383,9 @@ function lockScreen(){
     const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(r.sel + inp.value)))].map(x => x.toString(16).padStart(2, '0')).join('');
     if (h === r.h){ LS.set('invest:pin-essais', {n:0, jusqu:0});
       const anc = f.querySelector('[name=ancien]');
-      if (await ouvrirAvec(inp.value, anc && anc.value)){ render(); return; }
+      if (await ouvrirAvec(inp.value, anc && anc.value)){ render();
+        if (window.Synchro && Synchro.actif()) Synchro.ouvrirAvecCode(inp.value).then(r => { if (r) syncCoffre(); });
+        return; }
       // bon code, mais le coffre a été chiffré avec un code précédent (code changé depuis)
       msg.textContent = anc && anc.value ? 'Ancien code incorrect.' : 'Ton code a changé depuis : entre aussi l\'ancien code pour rouvrir le coffre.';
       if (!anc){ const l = document.createElement('input'); l.type = 'password'; l.name = 'ancien'; l.inputMode = 'numeric'; l.maxLength = 6; l.placeholder = 'Ancien code'; l.setAttribute('aria-label', 'Ancien code'); inp.after(l); }
