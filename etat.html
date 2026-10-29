@@ -352,7 +352,7 @@ function render(e){
     const rows = [...manq, ...L.filter(l => !manq.includes(l))].map(l => `<tr><td>${esc(l.nom)}</td><td>${l.logo.perso ? '<span class="tag ok">le tien</span>' : l.logo.espn ? '<span class="tag none">ESPN</span>' : '<span class="tag warn">aucun</span>'}</td><td class="mono">${esc(l.logo.fichier)}</td></tr>`).join('');
     h += part('Logos des compétitions', {lvl:manq.length ? 'warn' : 'ok', msg:manq.length ? `${manq.length} sans logo` : 'Toutes ont un logo'},
       `<table class="rows"><thead><tr><th>Compétition</th><th>Logo</th><th>Ton fichier (nom exact)</th></tr></thead><tbody>${rows}</tbody></table>
-      <p class="note">Pour mettre ton logo : dépose une image carrée (PNG, SVG ou WebP, fond transparent si possible) dans le dossier <b>logos/competitions/</b> du dépôt, avec le nom indiqué (l'extension peut être .svg ou .webp). Il remplace celui d'ESPN. Version pour le mode sombre : même nom suivi de <b>-sombre</b> (ex. <span class="mono">ligue-1-sombre.png</span>).</p>`, manq.length > 0);
+      <p class="note">Pour mettre ton logo : dépose une image carrée (PNG, SVG ou WebP, fond transparent si possible) dans le dossier <b>logos/competitions/</b> du dépôt, avec le nom indiqué (l'extension peut être .svg ou .webp). Il remplace celui d'ESPN. Version pour le mode sombre : même nom suivi de <b>-sombre</b> (ex. <span class="mono">ligue-1-sombre.png</span>).</p>`, false);   // replié par défaut
   }
 
   if (e.tv){

@@ -239,6 +239,7 @@ section.comp{display:flex;flex-direction:column;gap:8px}
 .ev2.home{grid-column:1;justify-content:flex-end;text-align:right}
 .ev2.away{grid-column:2;flex-direction:row-reverse;justify-content:flex-end}
 .ev2 .who{min-width:0;overflow-wrap:anywhere}
+.tline-note{grid-column:1/-1;justify-self:center;position:relative;z-index:1;margin-top:4px;padding:0 8px;background:var(--sheet-solid);border-radius:6px;font-size:.7rem;color:var(--ink-faint);text-align:center}
 .tline-so{grid-column:1/-1;justify-self:center;position:relative;z-index:1;margin:8px 0 3px;padding:3px 11px;border-radius:99px;background:var(--sheet-solid);border:1px solid var(--line);font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap;font-variant-numeric:tabular-nums}
 .ev2 .who small{color:var(--ink-soft);font-size:.72rem}
 .ev2 .m{flex:none;font-family:var(--f-num);font-size:.72rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;min-width:26px}
@@ -654,7 +655,7 @@ const LEAGUES = [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ];
-const VERSION = '2026-10-29.4';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-29.5';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -1142,6 +1143,8 @@ function moreHTML(m){
   if (L.sport === 'soccer') list = markShootout(list.map(d => ({...d, side:sideOf(d)})).filter(d => d.side), m);
   const nReg = list.filter(d => !d.so).length, soAt = list.some(d => d.so) ? nReg : -1;
   const row = i => i + 2 + (soAt >= 0 && i >= soAt ? 1 : 0);
+  const soGoals = list.filter(d => d.so && d.kind === 'goal').length;
+  const soPartiel = soAt >= 0 && m.home.so != null && m.away.so != null && soGoals < (+m.home.so || 0) + (+m.away.so || 0);
   const lab = d => { const k = KIND[d.kind];
     if (rugby) return esc(d.who || k[1]);                                  // l'icône dit déjà essai / transformation / pénalité / drop / carton
     if (d.so) return esc(d.who || k[1]);                                   // sous l'intitulé « Tirs au but » : le ballon blanc ou rouge suffit
@@ -1151,7 +1154,8 @@ function moreHTML(m){
       <span class="tline-h home">${esc(m.home.name)}</span><span class="tline-h away">${esc(m.away.name)}</span>
       ${soAt >= 0 ? `<span class="tline-so" style="grid-row:${soAt + 2}">Tirs au but${m.home.so != null && m.away.so != null ? ` · ${esc(m.home.so)}–${esc(m.away.so)}` : ''}</span>` : ''}
       ${list.map((d, i) => { const k = KIND[d.kind], sd = sideOf(d) || 'home', lbl = d.so ? (d.kind === 'goal' ? 'Tir au but marqué' : 'Tir au but manqué') : k[1];
-        return `<div class="ev2 ${sd}${d.so ? ' so' : ''}" role="listitem" style="grid-row:${row(i)}" aria-label="${d.so ? '' : esc(d.min) + ' '}${esc(lbl)} ${esc(d.who || '')} (${esc(name(d))})"><span class="who">${lab(d)}</span><span class="ic ${k[0]}" title="${lbl}">${KIND_ICON[d.kind] || ''}</span><span class="m">${d.so ? '' : esc(d.min)}</span></div>`; }).join('')}</div>` : '';
+        return `<div class="ev2 ${sd}${d.so ? ' so' : ''}" role="listitem" style="grid-row:${row(i)}" aria-label="${d.so ? '' : esc(d.min) + ' '}${esc(lbl)} ${esc(d.who || '')} (${esc(name(d))})"><span class="who">${lab(d)}</span><span class="ic ${k[0]}" title="${lbl}">${KIND_ICON[d.kind] || ''}</span><span class="m">${d.so ? '' : esc(d.min)}</span></div>`; }).join('')}
+      ${soPartiel ? `<span class="tline-note" style="grid-row:${list.length + 3}">ESPN ne détaille pas tous les tirs de cette séance.</span>` : ''}</div>` : '';
   let tally = '';
   if (rugby && list.length){
     const cnt = (sd, k) => list.filter(d => sideOf(d) === sd && d.kind === k).length;
@@ -1242,8 +1246,10 @@ function soccerEvents(j, m){
     let kind = '', who = '', side = '', og = false, so = false, o;
     const pick = () => {                                   // « Prénom Nom (Équipe) »
       for (const t of txts) for (const y of t.matchAll(/([A-ZÀ-Ý][^.()!,;]*?)\s*\(([^)]+)\)/g)){ const sd = byName(y[2]); if (sd){ who = y[1].replace(/^.*\b(?:by|to)\s+/i, '').trim(); side = sd; return; } } };
-    const goalTxt = txts.find(t => /^goal!/i.test(t.trim()));
-    if (goalTxt){ kind = 'goal'; pick(); so = /\d+\s*\(\d+\)/.test(goalTxt.split(/\.\s/)[0]); }
+    let cand = false;
+    const goalTxt = txts.find(t => /(^|[^a-z])goal!/i.test(t) && !/no goal|disallowed|annulé/i.test(t));
+    if (goalTxt){ kind = 'goal'; pick(); so = /\d\s*\(\d+\)/.test(goalTxt.replace(/\([^)]*[a-z]{3}[^)]*\)/gi, '')); }
+    else if (/converts the penalty|penalty (scored|converted)|scores? (the|his|her) penalty/i.test(all)){ kind = 'goal'; cand = true; pick(); }
     else if ((o = all.match(/own goal by ([^,]+),\s*([^.]+)\./i))){ kind = 'goal'; og = true; who = o[1].trim(); const sd = byName(o[2]); side = sd === 'home' ? 'away' : sd === 'away' ? 'home' : ''; }
     else if (MISS.test(all) && !/penalty (conceded|area|box)\b(?![^.]*\b(miss|sav))/i.test(all)){ kind = 'penmiss'; pick(); }
     else if (/second yellow card to|is shown the red card/i.test(all) || /red.?card/i.test(tt)){ kind = 'red'; pick(); }
@@ -1254,16 +1260,21 @@ function soccerEvents(j, m){
       const y = t.match(/!\s*(?:bad penalty by\s+)?((?:[A-ZÀ-Ý][\w'’.-]*(?:\s+(?:de|da|di|do|dos|del|van|von|der|den|le|la|el|al|ter|mac))*\s*){1,4})/i);
       if (y) who = y[1].replace(/\b(?:fails|right|left|header|is|shot|converts|misses|hits)\b.*$/i, '').trim(); }
     if (!side) side = byId[String((pl.team || {}).id)] || byName((pl.team || {}).displayName) || athSide(a) || ath[teamKey(who)] || '';
-    C.push({kind, min, who, side, og, so, pen:kind === 'goal' && /penalty/i.test(all), n});
+    C.push({kind, min, who, side, og, so, cand, pen:kind === 'goal' && /penalty/i.test(all), n});
   });
 
   // 3) tirs au but lus dans les commentaires : buts « 1(4) » + penaltys manqués qui les entourent
-  let SO = [];
-  if (hasSO){
+  let SO = [], fromTable = false;
+  const table = hasSO ? shootoutTable(j, byId, byName) : null;          // tableau des tirs au but fourni par ESPN, s'il existe
+  if (table){ SO = table; fromTable = true; }
+  else if (hasSO){
     const first = C.findIndex(d => d.so);
     if (first >= 0){
       let k = first; while (k > 0 && C[k - 1].kind === 'penmiss' && minVal(C[k - 1].min) >= 90) k--;   // tirs manqués avant le premier tir réussi
       SO = C.slice(k).filter(d => d.so || d.kind === 'penmiss').map(d => ({...d, so:true}));
+    } else {                                                             // pas de score « 1(4) » : fin de liste faite de penaltys
+      let k = C.length; while (k > 0 && (C[k - 1].kind === 'penmiss' || (C[k - 1].kind === 'goal' && C[k - 1].cand)) && minVal(C[k - 1].min) >= 90) k--;
+      if (k < C.length && C.slice(k).some(d => d.kind === 'goal')) SO = C.slice(k).map(d => ({...d, so:true}));
     }
   }
   // camp manquant pendant la séance : les tirs alternent
@@ -1272,7 +1283,9 @@ function soccerEvents(j, m){
 
   // 4) temps de jeu : actions structurées + commentaires, sans doublons
   const soMin = SO.length ? Math.min(...SO.map(d => minVal(d.min))) : Infinity;
-  const regC = C.filter(d => !SO.some(s => s.n === d.n) && !d.so);
+  const last = w => teamKey(w).split(' ').pop();
+  const regC = C.filter(d => !SO.some(s => s.n != null && s.n === d.n) && !d.so
+    && !(fromTable && minVal(d.min) >= 90 && !String(d.min).includes('+') && (d.kind === 'penmiss' || d.cand) && SO.some(s => last(s.who) === last(d.who))));
   const regS = SO.length ? S.filter(d => !d.so && !(minVal(d.min) >= soMin && d.kind !== 'red' && !String(d.min).includes('+'))) : S;
   const seen = new Map(), reg = [];
   [...regS.map(d => ({...d})), ...regC].forEach(d => {
@@ -1295,6 +1308,37 @@ function soccerEvents(j, m){
   }
   evs = evs.map(({n, ...d}) => d);
   return {evs, diag:evs.length ? '' : 'aucun but ni carton rouge reconnu'};
+}
+/* Tableau des tirs au but d'ESPN (clé « shootout » quelque part dans la fiche) : un objet par tir, réussi ou non */
+function shootoutTable(j, byId, byName){
+  const roots = [];
+  const visit = (v, d) => { if (!v || typeof v !== 'object' || d > 6) return;
+    if (Array.isArray(v)){ v.forEach(x => visit(x, d + 1)); return; }
+    for (const [k, x] of Object.entries(v)){
+      if (/shoot.?out/i.test(k) && !/score/i.test(k) && x && typeof x === 'object') roots.push(x);
+      else if (!['commentary', 'plays', 'keyEvents', 'news', 'article', 'videos', 'standings', 'odds'].includes(k)) visit(x, d + 1); } };
+  visit(j, 0);
+  for (const root of roots){
+    const kicks = [];
+    const walk = (v, sd, d) => { if (!v || typeof v !== 'object' || d > 5) return;
+      if (Array.isArray(v)){ v.forEach(x => walk(x, sd, d + 1)); return; }
+      const t = v.team || {};
+      const s2 = v.homeAway === 'home' || v.homeAway === 'away' ? v.homeAway : byId[String(t.id ?? v.teamId ?? '')] || (t.displayName ? byName(t.displayName) : '') || sd;
+      const flag = ['didScore', 'scored', 'isGoal', 'made', 'success', 'converted'].find(k => typeof v[k] === 'boolean');
+      const res = String(v.result || v.outcome || (v.type && v.type.text) || v.text || '');
+      const ok = flag ? v[flag] : /scored|goal|made|convert/i.test(res) ? true : /miss|save|fail/i.test(res) ? false : null;
+      const p = v.athlete || v.player || ((v.participants || [])[0] || {}).athlete || (v.athletesInvolved || [])[0] || null;
+      const who = p ? p.displayName || p.shortName || p.fullName || '' : '';
+      if (ok !== null && (who || s2)){ kicks.push({ok, who, side:s2 || '', nr:+(v.shotNumber ?? v.shot ?? v.order ?? v.round ?? v.sequence) || null, i:kicks.length}); return; }
+      Object.values(v).forEach(x => { if (x && typeof x === 'object') walk(x, s2, d + 1); }); };
+    walk(root, '', 0);
+    if (!kicks.length) continue;
+    const rank = {home:0, away:0};
+    kicks.forEach(k => { if (k.nr == null) k.nr = ++rank[k.side || 'home']; });
+    kicks.sort((a, b) => a.nr - b.nr || a.i - b.i);
+    return kicks.map((k, i) => ({kind:k.ok ? 'goal' : 'penmiss', who:k.who, side:k.side, min:'', so:true, ord:i}));
+  }
+  return null;
 }
 /* Repère les tirs au but : au-delà du score du temps réglementaire, les buts sont des tirs au but ;
    les penaltys manqués collés à eux en fin de liste aussi. Résultat : temps de jeu trié, puis tirs au but. */
