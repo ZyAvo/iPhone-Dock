@@ -1,3 +1,4 @@
+// mon-ecran-version: 77082673
 // Prépare les actus de la page Actus (lancé par la tâche GitHub « Actus », toutes les 30 min).
 // Lit la liste des onglets et des flux directement dans actus.html, télécharge chaque flux RSS/Atom
 // sans passer par un service tiers, regroupe les mêmes infos venant de plusieurs sites et écrit :
@@ -54,7 +55,7 @@ function parse(xml){
     const g = /news\.google\./.test(link);              // Google Actualités : « Titre - Média », sans résumé utile
     const title = strip(tag(x, ['title']));
     return {title:g ? title.replace(/\s+[-–]\s+[^-–]+$/, '') : title, link:link.trim(), date:Date.parse(when) || null,
-            desc:g ? '' : strip(tag(x, ['description', 'summary', 'content:encoded', 'content'])).slice(0, 260), img:imageOf(x)};
+            desc:g ? '' : strip(tag(x, ['description', 'summary', 'content:encoded', 'content'])).slice(0, 260), img:(imageOf(x) || '').replace(/^http:\/\//i, 'https://') || undefined};   // images en http:// : bloquées par l'iPhone sur une page https
   }).filter(i => i.title && /^https?:\/\//.test(i.link));
 }
 

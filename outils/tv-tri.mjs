@@ -1,3 +1,4 @@
+// mon-ecran-version: 46c15f05
 // Trie le programme TV (XMLTV) et ne garde que le sport -> tv.json
 import fs from 'node:fs';
 const [,, src = 'guide.xml', out = 'tv.json', logFile = ''] = process.argv;

@@ -1,3 +1,4 @@
+// mon-ecran-version: d70dd09f
 // Prépare les cours de la page Investissements (lancé par la tâche GitHub « Marchés »).
 // Lit dans invest.html la liste des indices (INDICES) et des placements suivis (SUIVI : codes ou ISIN seulement,
 // jamais de quantités ni de montants), télécharge les cours sur 1 an et quelques taux officiels, puis écrit :
@@ -89,9 +90,11 @@ function quote(sym, j){
   const k = t.length - 2, prevClose = k >= 0 ? c[k] : (m.chartPreviousClose ?? null);
   const jan1 = Math.floor(Date.UTC(new Date(today * DAY).getUTCFullYear(), 0, 1) / DAY);
   let y0 = null; for (let i = t.length - 1; i >= 0; i--) if (t[i] < jan1){ y0 = c[i]; break; }
+  const dt = new Date(today * DAY), m1 = Math.floor(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), 1) / DAY);
+  let m0 = null; for (let i = t.length - 1; i >= 0; i--) if (t[i] < m1){ m0 = c[i]; break; }     // dernière clôture du mois précédent
   const yr = c.filter((_, i) => t[i] > today - 366);
   return {s:sym, n:m.longName || m.shortName || sym, cur:m.currency || '', px:round(px), prev:round(prevClose), at,
-    y0:round(y0), hi:round(Math.max(...yr)), lo:round(Math.min(...yr)), t0:t[0], t:t.map(d => d - t[0]), c:c.map(round)};
+    y0:round(y0), m0:round(m0), hi:round(Math.max(...yr)), lo:round(Math.min(...yr)), t0:t[0], t:t.map(d => d - t[0]), c:c.map(round)};
 }
 
 const cours = {};
@@ -107,14 +110,17 @@ toFind.forEach(it => { const q = ((parse(found[searchUrl(it.isin)]) || {}).quote
 // 2) cours
 items.forEach(it => { it.sym = it.code || (it.isin && ISIN[it.isin]) || null; });
 const syms = [...new Set(items.filter(it => it.sym).map(it => it.sym))];
-const charts = await yahooAll([...syms.map(chartUrl), ...syms.map(jourUrl)]);
+// séance du jour (5 min) seulement pour les placements suivis : les indices n'en ont pas besoin (moins d'appels, moins de refus 429)
+const SUIVI_KEYS = new Set(SUIVI.map(x => x.id || x.isin || x.code));
+const symsJour = [...new Set(items.filter(it => it.sym && SUIVI_KEYS.has(it.key)).map(it => it.sym))];
+const charts = await yahooAll([...syms.map(chartUrl), ...symsJour.map(jourUrl)]);
 for (const it of items){
   try{
     if (!it.sym) throw new Error('ISIN introuvable chez Yahoo : ajoute le code (ex. « EUNL.DE ») dans SUIVI');
     const r = charts[chartUrl(it.sym)];
     if (!r || (!r.body && r.status !== 200)) throw new Error(r && typeof r.status !== 'number' ? String(r.status) : 'HTTP ' + (r ? r.status : '?'));
     cours[it.key] = {...quote(it.sym, parse(r)), ...(it.isin ? {isin:it.isin} : {})};
-    let jr = null; try{ jr = seance(parse(charts[jourUrl(it.sym)])); }catch{}
+    let jr = null; if (SUIVI_KEYS.has(it.key)) try{ jr = seance(parse(charts[jourUrl(it.sym)])); }catch{}
     const pj = prev && prev.cours && prev.cours[it.key] && prev.cours[it.key].j;
     if (jr) cours[it.key].j = jr; else if (pj && pj.d === Math.floor((cours[it.key].at + 0) / DAY)) cours[it.key].j = pj;   // séance du passage précédent, si c'est la même journée
     diag.ok++;
@@ -154,5 +160,19 @@ for (const [k, s] of Object.entries(ECB)){
 
 fs.mkdirSync(OUT, {recursive:true});
 fs.writeFileSync(`${OUT}/marches.json`, JSON.stringify({v:1, updated:new Date(NOW).toISOString(), cours, taux, isin:ISIN, diag}));
+/* Petit fichier pour le widget de l'accueil : placements suivis (+ EUR/USD) avec leurs cours depuis le 1er janvier et la séance du jour ;
+   indices réduits à leur cours, la veille, fin du mois dernier et fin d'année dernière */
+const jan = Math.floor(Date.UTC(new Date(NOW).getUTCFullYear(), 0, 1) / DAY) - 10;
+const mini = {};
+for (const [k, c] of Object.entries(cours)){
+  const base = {s:c.s, cur:c.cur, px:c.px, prev:c.prev, m0:c.m0, y0:c.y0, ...(c.isin ? {isin:c.isin} : {}), ...(c.ancien ? {ancien:true} : {})};
+  if (SUIVI_KEYS.has(k) || c.s === 'EURUSD=X'){
+    const keep = (c.t || []).map((d, i) => [c.t0 + d, c.c[i]]).filter(([d]) => d >= jan);
+    if (keep.length){ const t0 = keep[0][0]; Object.assign(base, {t0, t:keep.map(([d]) => d - t0), c:keep.map(([, v]) => v)}); }
+    if (c.j) base.j = c.j;
+  }
+  mini[k] = base;
+}
+fs.writeFileSync(`${OUT}/widget.json`, JSON.stringify({v:1, updated:new Date(NOW).toISOString(), cours:mini}));
 console.log(`${diag.ok} séries à jour, ${diag.ko.length} en échec.`);
 diag.ko.forEach(l => console.log('  ✗ ' + l));

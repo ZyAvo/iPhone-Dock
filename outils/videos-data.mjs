@@ -1,3 +1,4 @@
+// mon-ecran-version: b4fa660a
 // Prépare la page Vidéos (lancé par la tâche GitHub « Vidéos »).
 // Lit dans videos.html les plateformes (PLATEFORMES) et les chaînes YouTube (CHAINES_YT), puis écrit :
 //   donnees/videos/catalogue.json + resumes.json → titres disponibles en France sur les plateformes (données TMDB / JustWatch)
@@ -43,9 +44,24 @@ const trim = (s, n) => { s = String(s || '').replace(/\s+/g, ' ').trim(); return
 
 /* Catalogue fusionné : un titre présent sur plusieurs plateformes n'apparaît qu'une fois, avec la liste de ses plateformes.
    catalogue.json (léger, pour la grille) + resumes.json (lu seulement à l'ouverture d'une fiche). */
-const CAT_FILE = `${OUT}/catalogue.json`, RES_FILE = `${OUT}/resumes.json`;
+const CAT_FILE = `${OUT}/catalogue.json`, RES_DIR = `${OUT}/resumes`, OLD_RES = `${OUT}/resumes.json`;
+/* Résumés découpés en 16 petits fichiers (resumes/0.json … f.json) : la fiche n'en charge qu'un. Même règle dans videos.html. */
+const bucket = k => { let h = 0; for (const ch of String(k)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return (h % 16).toString(16); };
+function readRes(){
+  const all = {};
+  for (let i = 0; i < 16; i++) Object.assign(all, read(`${RES_DIR}/${i.toString(16)}.json`) || {});
+  return Object.keys(all).length ? all : (read(OLD_RES) || {});
+}
+function writeRes(map){
+  fs.mkdirSync(RES_DIR, {recursive:true});
+  const parts = {}; for (let i = 0; i < 16; i++) parts[i.toString(16)] = {};
+  Object.entries(map).forEach(([k, v]) => { parts[bucket(k)][k] = v; });
+  Object.entries(parts).forEach(([b, m]) => fs.writeFileSync(`${RES_DIR}/${b}.json`, JSON.stringify(m)));
+  fs.rmSync(OLD_RES, {force:true});
+}
+if (!fs.existsSync(`${RES_DIR}/0.json`) && fs.existsSync(OLD_RES)) writeRes(read(OLD_RES) || {});     // passage à l'ancien format
 const prevCat = read(CAT_FILE) || (() => {                       // reprise de l'ancien catalogue Prime seul, s'il existe
-  const o = read(`${OUT}/catalogue-prime.json`); if (!o || !o.titres) return null;
+  const o = read(`${OUT}/catalogue-prime.json`); if (!o || !o.titres) return null;      // ancien catalogue Prime seul (lu une dernière fois)
   return {updated:o.updated, plateformes:{prime:{nom:'Prime Video', n:o.titres.length}}, titres:o.titres.map(x => ({...x, p:['prime'], arr:{prime:x.vu || null}}))};
 })();
 const fresh = prevCat && prevCat.updated && NOW - Date.parse(prevCat.updated) < 20 * 3600e3 && !process.env.FORCER
@@ -103,9 +119,36 @@ if (!TOKEN){
   }
   const titres = [...byK.values()].sort((a, b) => b.pop - a.pop).map((x, i) => ({...x, rang:i + 1}));
   fs.writeFileSync(CAT_FILE, JSON.stringify({v:2, updated:new Date(NOW).toISOString(), plateformes, titres}));
-  const oldRes = read(RES_FILE) || {};
-  fs.writeFileSync(RES_FILE, JSON.stringify(Object.fromEntries(titres.map(x => [x.k, resumes[x.k] || oldRes[x.k]]).filter(([, v]) => v))));
+  const oldRes = readRes();
+  writeRes(Object.fromEntries(titres.map(x => [x.k, resumes[x.k] || oldRes[x.k]]).filter(([, v]) => v)));
   log.push(`Catalogue : ${titres.length} titres différents`);
+}
+
+if (fs.existsSync(CAT_FILE)) fs.rmSync(`${OUT}/catalogue-prime.json`, {force:true});      // ancien format : plus utilisé
+
+/* ---------- Chaînes en plus : fichier chaines.txt à la racine du dépôt (une par ligne : lien, @nom ou identifiant UC…) ---------- */
+const CH_FILE = process.env.CHAINES_FILE || 'chaines.txt';
+const prevYT0 = read(`${OUT}/youtube.json`), resolus = {...((prevYT0 && prevYT0.resolus) || {})};
+async function idDe(ligne){
+  const [brut, nom] = ligne.split('|').map(x => x.trim());
+  let m = brut.match(/(UC[\w-]{22})/); if (m) return {id:m[1], nom};
+  const h = (brut.match(/@([\w.-]+)/) || brut.match(/youtube\.com\/(?:c|user)\/([\w.-]+)/) || [])[1] || (/^[\w.-]+$/.test(brut) ? brut : null);
+  if (!h) return null;
+  if (resolus[h]) return {id:resolus[h], nom};
+  try{
+    const url = brut.startsWith('http') ? brut : `https://www.youtube.com/@${h}`;
+    const r = await fetch(url, {headers:{'user-agent':'Mozilla/5.0 (Macintosh) MonEcran/1.0', 'accept-language':'fr'}, signal:AbortSignal.timeout(15000)});
+    const t = await r.text();
+    const id = (t.match(/"(?:channelId|externalId|browseId)":"(UC[\w-]{22})"/) || t.match(/channel\/(UC[\w-]{22})/) || [])[1];
+    if (id){ resolus[h] = id; return {id, nom}; }
+  }catch{}
+  log.push(`chaines.txt : « ${brut} » introuvable`); return null;
+}
+const fichierChaines = fs.existsSync(CH_FILE);
+if (fichierChaines){
+  for (const l of fs.readFileSync(CH_FILE, 'utf8').split(/\r?\n/).map(x => x.trim()).filter(x => x && !x.startsWith('#'))){
+    const c = await idDe(l); if (c && !CHAINES.some(x => x.id === c.id)) CHAINES.push({id:c.id, nom:c.nom || '', fichier:true});
+  }
 }
 
 /* ---------- YouTube : flux public de chaque chaîne ---------- */
@@ -124,13 +167,13 @@ for (const C of CHAINES){
       vues:+attr(e, 'media:statistics', 'views') || undefined, short:/\/shorts\//.test(attr(e, 'link', 'href')) || undefined,
       resume:trim(tag(e, 'media:description'), 220) || undefined
     })).filter(v => v.id);
-    chaines.push({id:C.id, nom:C.nom || tag(x, 'title'), videos});
+    chaines.push({id:C.id, nom:C.nom || tag(x, 'title'), videos, ...(C.fichier ? {fichier:true} : {})});
     log.push(`YouTube ${C.nom} : ${videos.length} vidéos`);
   }catch(e){
     const old = prevYT && (prevYT.chaines || []).find(c => c.id === C.id);
-    chaines.push(old ? {...old, ancien:true} : {id:C.id, nom:C.nom, videos:[], erreur:e.message});
+    chaines.push({...(old ? {...old, ancien:true} : {id:C.id, nom:C.nom || C.id, videos:[], erreur:e.message}), ...(C.fichier ? {fichier:true} : {})});
     log.push(`YouTube ${C.nom} : échec ${e.message}`);
   }
 }
-fs.writeFileSync(`${OUT}/youtube.json`, JSON.stringify({v:1, updated:new Date(NOW).toISOString(), chaines}));
+fs.writeFileSync(`${OUT}/youtube.json`, JSON.stringify({v:1, updated:new Date(NOW).toISOString(), chaines, resolus, fichierChaines}));
 log.forEach(l => console.log(l));

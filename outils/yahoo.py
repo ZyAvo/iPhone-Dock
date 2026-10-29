@@ -1,3 +1,4 @@
+# mon-ecran-version: 103be76d
 # Téléchargements Yahoo Finance pour outils/marches-data.mjs.
 # Yahoo refuse (erreur 429) les requêtes qui ne ressemblent pas à un vrai navigateur, surtout depuis les serveurs
 # de GitHub : on passe par curl_cffi, qui imite Chrome, avec le cookie et le « crumb » que Yahoo attend.

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# mon-ecran-version: 33373c10
 # Récupère les données déjà publiées (branche « donnees ») pour que les scripts repartent de là
 if git fetch -q origin donnees 2>/dev/null; then
   git archive FETCH_HEAD | tar -x && echo "Données précédentes récupérées."

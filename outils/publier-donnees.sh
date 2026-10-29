@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# mon-ecran-version: 4834693d
 # Publie des fichiers de données sur la branche « donnees », qui ne garde qu'UN seul enregistrement
 # (aucun historique : le dépôt ne grossit plus). Les autres fichiers déjà présents sur la branche sont conservés.
 # Usage : bash outils/publier-donnees.sh tv.json donnees/sport

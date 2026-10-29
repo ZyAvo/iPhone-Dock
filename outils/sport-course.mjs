@@ -1,3 +1,4 @@
+// mon-ecran-version: f0ac3670
 // Sports mécaniques pour la page Sport : Formule 1 et MotoGP (catégorie reine).
 // - F1 : base ouverte Jolpica (suite d'Ergast) → calendrier, horaires de chaque séance, résultats, classements.
 // - MotoGP : données publiques du site officiel (api.motogp.pulselive.com) → mêmes informations.

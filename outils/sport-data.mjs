@@ -1,7 +1,9 @@
+// mon-ecran-version: 03fefd81
 // Prépare les données de la page Sport (lancé par la tâche GitHub « Programme TV sport »).
 // Lit la liste des compétitions et les fonctions de lecture directement dans sport.html,
 // interroge ESPN côté serveur, numérote les journées et écrit :
-//   donnees/sport/jours.json     → matchs de J-4 à J+17, toutes compétitions (page d'accueil Sport)
+//   donnees/sport/jours.json     → matchs de J-4 à J+15, toutes compétitions (ouverture de la page Sport)
+//   donnees/sport/passe.json     → matchs de J-11 à J-4 (chargés juste après)
 //   donnees/sport/<id>.json      → saison complète, journées, classement d'une compétition
 //   donnees/sport/index.json     → état de chaque compétition (à jour, en pause…)
 import fs from 'node:fs';
@@ -25,7 +27,7 @@ const grab = (a, b) => {
 const fnBlock = name => { const i = page.indexOf(`function ${name}(`); if (i < 0) throw new Error(`Fonction introuvable : ${name}`); return page.slice(i, page.indexOf('\n}\n', i) + 3); };
 const shared = [
   grab('const REGIONS = [', '\nconst VERSION'),
-  grab('const normTxt', 'async function loadTV'),
+  grab('const LETTRES', 'async function loadTV'),
   grab('const same = ', '/* Numéros de journée'),
   fnBlock('applyRefs'), fnBlock('parseCalendar'), fnBlock('classify'), fnBlock('norm'), fnBlock('logosOf'),
   fnBlock('num'), grab('const statOf', 'function sortEntries'), fnBlock('sortEntries'), fnBlock('tableFrom'),
@@ -277,7 +279,7 @@ async function standings(L, S, evs, prev){
 /* ---------- Programme ---------- */
 fs.mkdirSync(OUT, {recursive:true});
 const index = {updated:new Date(NOW).toISOString(), leagues:{}};
-const upcoming = [];
+const upcoming = [], passe = [];      // jours.json : J-4 à J+15 (chargé à l'ouverture) ; passe.json : J-11 à J-4 (chargé ensuite)
 for (const L of LEAGUES){
   const t0 = Date.now(), file = `${OUT}/${slug(L.id)}.json`, prev = read(file), S = seasonOf(L);
   if (L.sport === 'racing'){                              // F1, MotoGP : séances, résultats et classements (outils/sport-course.mjs)
@@ -285,11 +287,11 @@ for (const L of LEAGUES){
       const r = await racing(L, {get, NOW, prev});
       write(file, {v:1, id:L.id, updated:index.updated, season:r.season, diag:r.diag, gps:r.gps, catId:r.catId, table:r.table, events:r.events});
       index.leagues[L.id] = {count:r.events.length, gps:r.gps.length, table:r.table ? r.table.src : false, diag:{appels:r.diag.appels, erreurs:r.diag.erreurs.length}, file:`${slug(L.id)}.json`};
-      r.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
+      r.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => (m.t < NOW - 4 * DAY ? passe : upcoming).push(m));
       console.log(`${L.name} : ${r.gps.length} Grands Prix, ${r.events.length} séances, ${Math.round((Date.now() - t0) / 1000)} s`, r.diag.erreurs.slice(0, 3).join(' | '));
     }catch(e){
       index.leagues[L.id] = {error:String(e.message || e)};
-      if (prev && prev.events) prev.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
+      if (prev && prev.events) prev.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => (m.t < NOW - 4 * DAY ? passe : upcoming).push(m));
       console.log(`${L.name} : ERREUR ${e.message}`);
     }
     continue;
@@ -307,11 +309,11 @@ for (const L of LEAGUES){
     const table = await standings(L, S, r.events, prev);
     write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, diag:r.diag, calendar:r.calendar, checked:r.checked, future:r.future, rounds, table, events:r.events.map(slim)});
     index.leagues[L.id] = {count:r.events.length, rounds, table:table ? table.src || 'espn' : false, diag:r.diag, file:`${slug(L.id)}.json`};
-    r.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
+    r.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => (m.t < NOW - 4 * DAY ? passe : upcoming).push(m));
     console.log(`${L.name} : ${r.events.length} matchs, ${Math.round((Date.now() - t0) / 1000)} s`, JSON.stringify(rounds));
   }catch(e){
     index.leagues[L.id] = {error:String(e.message || e)};
-    if (prev && prev.events) prev.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => upcoming.push(m));
+    if (prev && prev.events) prev.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => (m.t < NOW - 4 * DAY ? passe : upcoming).push(m));
     console.log(`${L.name} : ERREUR ${e.message}`);
   }
 }
@@ -319,9 +321,15 @@ const logos = {};
 for (const L of LEAGUES){ const f = read(`${OUT}/${slug(L.id)}.json`); if (f) logos[L.id] = {logo:f.logo || '', logoDark:f.logoDark || '', season:f.season || ''}; }
 write(`${OUT}/jours.json`, {v:2, updated:index.updated, leagues:logos, events:upcoming.sort((a, b) => a.t - b.t).map(slim)});
 write(`${OUT}/index.json`, index);
+write(`${OUT}/passe.json`, {v:1, updated:index.updated, events:passe.sort((a, b) => a.t - b.t).map(slim)});
 // Petit fichier pour le témoin « LIVE Sports » de l'accueil : matchs et séances d'hier soir à demain
 const DUREE = {soccer:115, rugby:110, basketball:150, football:200, hockey:165};
 write(`${OUT}/aujourdhui.json`, {v:1, updated:index.updated, events:upcoming.filter(m => m.t >= NOW - 8 * 3600e3 && m.t <= NOW + 30 * 3600e3).sort((a, b) => a.t - b.t).map(m => m.home
   ? {id:m.id, l:m.league, ln:NAME_OF[m.league], sp:SPORT_OF[m.league], t:m.t, d:DUREE[SPORT_OF[m.league]] || 120, s:m.state, h:m.home.full || m.home.name, a:m.away.full || m.away.name}
   : {id:m.id, l:m.league, ln:NAME_OF[m.league], t:m.t, d:m.dur || 60, s:m.state, h:m.gp ? m.gp.name : '', a:m.label || ''})});
+// Prochains matchs (8 jours) pour l'accueil : la page y cherche ceux de tes favoris
+const TV_OF = Object.fromEntries(LEAGUES.map(L => [L.id, (L.tv || [])[0] || '']));
+write(`${OUT}/prochains.json`, {v:1, updated:index.updated, events:upcoming.filter(m => m.t >= NOW - 4 * 3600e3 && m.t <= NOW + 8 * DAY && m.state !== 'post').sort((a, b) => a.t - b.t).map(m => m.home
+  ? {id:m.id, l:m.league, ln:NAME_OF[m.league], sp:SPORT_OF[m.league], t:m.t, d:DUREE[SPORT_OF[m.league]] || 120, s:m.state, h:m.home.full || m.home.name, a:m.away.full || m.away.name, hc:m.home.name, ac:m.away.name, tv:TV_OF[m.league] || undefined}
+  : {id:m.id, l:m.league, ln:NAME_OF[m.league], sp:'racing', t:m.t, d:m.dur || 60, s:m.state, h:m.gp ? m.gp.name : '', a:m.label || ''})});
 console.log(`Terminé : ${calls} appels, ${fails} échecs, ${upcoming.length} matchs dans jours.json`);

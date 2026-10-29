@@ -1,3 +1,4 @@
+// mon-ecran-version: 4efddaea
 // Résumé « État des données » (etat.json) : un petit fichier lu par l'accueil (pastille) et par etat.html.
 // Lancé par la tâche « Publication », après la reprise des dernières données.
 import fs from 'node:fs';
@@ -62,5 +63,10 @@ const marches = mj && {
 const fj = read('fichiers.json');
 const fichiers = fj && {calendriers:fj.calendriers || [], logos:(fj.logos || []).length};
 
-fs.writeFileSync('etat.json', JSON.stringify({genere:new Date().toISOString(), sport, tv, actus, marches, fichiers}));
+/* Versions des pages et des scripts publiés, comparées à la liste du lot (lot.json) : repère un fichier oublié ou ancien */
+const lot = read('lot.json');
+const verOf = f => { try{ const t = fs.readFileSync(f, 'utf8'); return (t.match(/mon-ecran-version[":=\s]+(?:content=")?([\w.-]+)/) || [])[1] || null; }catch{ return undefined; } };
+const pages = lot && lot.fichiers ? {lot:lot.lot, date:lot.date, liste:Object.entries(lot.fichiers).map(([f, v]) => ({f, v:verOf(f), attendu:v}))} : null;
+
+fs.writeFileSync('etat.json', JSON.stringify({genere:new Date().toISOString(), sport, tv, actus, marches, fichiers, pages}));
 console.log('etat.json écrit', JSON.stringify({sport:!!sport, tv:!!tv, actus:!!actus, marches:!!marches, fichiers:!!fichiers}));
