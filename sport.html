@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="046684aa">
+<meta name="mon-ecran-version" content="760b714f">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -287,6 +287,11 @@ section.comp{display:flex;flex-direction:column;gap:8px}
 @media (max-width:360px){ .tline{margin-left:-60px;column-gap:16px} .cotes{margin-left:-60px} }
 .more .src{margin-top:4px;font-size:.78rem;color:var(--accent);font-weight:600}
 .more .none{color:var(--ink-faint);font-size:.8rem}
+.ec-flag{display:inline-flex;align-items:center;gap:2px;margin-top:3px;padding:1px 5px 1px 3px;border-radius:999px;font-family:var(--f-ui);font-size:.62rem;font-weight:700;color:var(--on-accent);background:var(--accent);white-space:nowrap}
+.ec-flag svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ec-flag.pari{padding:1px 5px;background:transparent;color:var(--accent);box-shadow:inset 0 0 0 1.3px color-mix(in oklab, var(--accent) 60%, transparent)}
+.ec-flag.pari svg{width:13px;height:13px;stroke-width:1.9}
+.nmw .rec{flex:none;margin-left:6px;font-size:.72rem;font-weight:500;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 .more-h{display:flex;align-items:center;gap:8px;min-height:34px;margin:-4px 0 -2px}
 .more-h .none{flex:1;min-width:0}
 .more-ic{margin-left:auto;display:flex;gap:6px;flex:none}
@@ -849,7 +854,7 @@ const LEAGUES = CFG('sport.leagues', [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ]);
-const VERSION = '2026-10-30.5';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-30.7';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -923,7 +928,8 @@ function norm(ev, L){
   const side = (h, i) => {
     const x = comp.find(t => t.homeAway === h) || comp[i] || {}; const t = x.team || {};
     return {id:t.id, name:t.shortDisplayName || t.displayName || t.name || '?', full:t.displayName || t.name || '',
-            abbr:t.abbreviation || '', logo:t.logo || '', score:x.score ?? '', win:!!x.winner, so:x.shootoutScore ?? null};
+            abbr:t.abbreviation || '', logo:t.logo || '', score:x.score ?? '', win:!!x.winner, so:x.shootoutScore ?? null,
+            rec:['basketball', 'football', 'hockey', 'baseball'].includes(L && L.sport) ? (r => (r.find(y => y.type === 'total' || y.name === 'overall') || r[0] || {}).summary)(x.records || []) : undefined};   // bilan V-D (sports US)
   };
   const details = (c.details || []).map(d => {
     const txt = (d.type && d.type.text) || '';
@@ -1241,12 +1247,32 @@ function postLabel(m){
   if (/AET|OT/i.test(d)) return 'Fin · prol.';
   return 'Terminé';
 }
+/* matchs dont un site s'écarte des autres (même calcul et même seuil que la page Écarts de cotes, sur le dernier relevé) */
+const ecartsDe = (() => { let cle = null, carte = {};
+  const moy = l => l.reduce((a, b) => a + b, 0) / l.length, med = l => { const t = [...l].sort((a, b) => a - b), n = t.length; return n % 2 ? t[(n - 1) / 2] : (t[n / 2 - 1] + t[n / 2]) / 2; };
+  return () => { const L0 = cotesLu(); if (cle === L0) return carte; cle = L0; carte = {};
+    const R = CFG('cotes.rapport', {seuil:0.05, reference:'moyenne'}), S = +R.seuil || 0.05;
+    for (const id of new Set([...Object.keys((COTES && COTES.matchs) || {}), ...Object.keys(L0.man)])){
+      const srv = COTES && COTES.matchs && COTES.matchs[id], man = L0.man[id];
+      const der = man && (!srv || !srv.dernier || man.at > srv.dernier.at) ? man : srv && srv.dernier; if (!der || !der.sites) continue;
+      let max = 0;
+      for (const k of ['h', 'd', 'a']){ const v = Object.values(der.sites).map(o => +(o || {})[k]).filter(x => x > 1); if (v.length < 3) continue;
+        v.forEach((x, i) => { const a = v.filter((_, j) => j !== i); max = Math.max(max, x / (R.reference === 'mediane' ? med(a) : moy(a)) - 1); }); }
+      if (max >= S) carte[id] = max;
+    }
+    return carte; }; })();
+const ICO_ECART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 20.5h17"/><path d="M5 16.5l4.5-5 3.5 3 6-7.5"/><path d="M15 7h4v4"/></svg>';
+const ICO_PARI = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5V14a2 2 0 0 0 0-4z"/><path d="M14.5 6v12" stroke-dasharray="1.6 1.8"/></svg>';
+/* match suivi par les cotes : ticket ; si un site s'écarte des autres : pastille pleine avec l'écart */
+const ecartFlag = m => { if (m.state === 'post' || !COTES_LG.includes(m.league)) return ''; const e = ecartsDe()[m.id];
+  return e ? `<span class="ec-flag" title="Écart de cote : +${Math.round(e * 100)} % (page Écarts de cotes)">${ICO_ECART}+${Math.round(e * 100)} %</span>`
+           : `<span class="ec-flag pari" title="Cotes suivies pour ce match">${ICO_PARI}</span>`; };
 function statusHTML(m){
   if (/POSTPONED/.test(m.code)) return `<span class="st off">Reporté</span>`;
   if (/CANCELED|CANCELLED/.test(m.code)) return `<span class="st off">Annulé</span>`;
-  if (m.state === 'in') return `<span class="st live"><span><span class="pulse"></span>${esc(liveLabel(m))}</span></span>`;
+  if (m.state === 'in') return `<span class="st live"><span><span class="pulse"></span>${esc(liveLabel(m))}</span>${ecartFlag(m)}</span>`;
   if (m.state === 'post') return `<span class="st post">${esc(postLabel(m))}<small>${hhmm(m.t)}</small></span>`;
-  return `<span class="st">${hhmm(m.t)}</span>`;
+  return `<span class="st">${hhmm(m.t)}${ecartFlag(m)}</span>`;
 }
 
 /* ---------- Affichage ---------- */
@@ -1331,7 +1357,7 @@ function teamHTML(m, t, other){
                       : `<span class="lg-ph">${esc((t.abbr || t.name).slice(0,3))}</span>`;
   const score = m.state === 'pre' ? '' : `${esc(t.score)}${t.so != null && m.state === 'post' && t.so !== '' ? `<span class="so">(${esc(t.so)})</span>` : ''}`;
   const fav = teamIsFav(t);
-  return `<span class="team${t.win ? ' win' : ''}${draw ? ' draw' : ''}">${logo}<span class="nmw"><span class="nm">${esc(t.name)}</span><span class="tstar${fav ? ' on' : ''}" role="button" tabindex="0" data-favt="${esc(t.name)}" aria-pressed="${fav}" aria-label="${fav ? 'Retirer' : 'Ajouter'} ${esc(t.name)} ${fav ? 'des' : 'aux'} favoris">${fav ? '★' : '☆'}</span></span>
+  return `<span class="team${t.win ? ' win' : ''}${draw ? ' draw' : ''}">${logo}<span class="nmw"><span class="nm">${esc(t.name)}</span>${t.rec ? `<small class="rec" title="Bilan de la saison">${esc(t.rec)}</small>` : ''}<span class="tstar${fav ? ' on' : ''}" role="button" tabindex="0" data-favt="${esc(t.name)}" aria-pressed="${fav}" aria-label="${fav ? 'Retirer' : 'Ajouter'} ${esc(t.name)} ${fav ? 'des' : 'aux'} favoris">${fav ? '★' : '☆'}</span></span>
     <span class="rc" ${reds || yellows ? `aria-label="${[reds ? `${reds} rouge${reds > 1 ? 's' : ''}` : '', yellows ? `${yellows} jaune${yellows > 1 ? 's' : ''}` : ''].filter(Boolean).join(', ')}"` : 'aria-hidden="true"'}>${'<i class="y"></i>'.repeat(yellows)}${'<i></i>'.repeat(reds)}</span>
     <b class="sc">${score}</b></span>`;
 }
@@ -1421,7 +1447,7 @@ function majOuverts(){
   const par = new Map(Object.values(DATA).flatMap(d => d.events).filter(x => COTES_LG.includes(x.league)).map(x => [String(x.id), x]));
   document.querySelectorAll('li.match').forEach(li => {      // toutes les tuiles, ouvertes ou non : une tuile fermée garde sinon un contenu préparé avant l'arrivée des cotes
     const m = par.get(li.dataset.id); const mo = li.querySelector('.more');
-    if (m && mo && COTES_LG.includes(m.league)) mo.outerHTML = moreHTML(m); });
+    if (m && mo && COTES_LG.includes(m.league)){ mo.outerHTML = moreHTML(m); const st = li.querySelector('.row .st'); if (st) st.outerHTML = statusHTML(m); } });
 }
 const cote = v => v == null ? '—' : Number(v).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2});
 function cotesHTML(m){
@@ -1875,7 +1901,7 @@ const isDefault = () => group === 'all' && selDay === 0 && !foldedOf(selDay).len
 function updateReset(){ const b = $('#resetF'); if (b) b.hidden = isDefault(); }
 function resetFilters(){ group = 'all'; selDay = 0; shownDay = null; FOLD = {}; store.set(FOLD_KEY, FOLD); renderFilters(); window.scrollTo({top:0}); render(); ensureDay(0); saveEtat(); }
 window.addEventListener('pagehide', saveEtat);
-document.addEventListener('visibilitychange', () => { if (document.hidden) saveEtat(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveEtat(); else loadCotes(); });
 
 /* ---------- Interactions ---------- */
 $('#days').addEventListener('click', e => { const b = e.target.closest('.day'); if (!b) return; selDay = +b.dataset.o; window.scrollTo({top:0}); render(); ensureDay(selDay); saveEtat(); });
@@ -2895,6 +2921,7 @@ renderFilters(); showAutoOff();
 LEAGUES.forEach(L => { const c = store.get(CACHE + L.id); if (c && c.day === ymd(dayAt(0))) DATA[L.id] = c; });
 render();
 loadAll();
+setTimeout(() => loadCotes(), 1200);        // cotes chargées d'emblée : icône « écart » sur les tuiles (petit fichier, relu au plus toutes les 5 min)
 loadTV();
 loadBadges();
 loadFiles();
