@@ -1,5 +1,5 @@
 {
- "date": "2026-10-30T15:43:20+00:00",
+ "date": "2026-10-30T16:16:20+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -84,16 +84,7 @@
  "erreurs": [],
  "modifs": {
   "recues": 1,
-  "nouvelles": [
-   {
-    "uid": "mvv55yk2-3j2857574x",
-    "statut": "ok",
-    "message": "reporté dans l'onglet Marchés, ligne 11 : Oui = vide",
-    "id": "mk:dax",
-    "le": "2026-10-30T15:43:20+00:00",
-    "par": "iPhone"
-   }
-  ]
+  "nouvelles": []
  },
  "resume": {
   "ok": 3,
