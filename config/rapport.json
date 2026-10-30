@@ -1,5 +1,5 @@
 {
- "date": "2026-10-30T15:41:02+00:00",
+ "date": "2026-10-30T15:43:20+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -19,7 +19,7 @@
   },
   "marches": {
    "onglet": "Marchés",
-   "coches": 13,
+   "coches": 12,
    "ajouts": 0
   },
   "videos": {
@@ -67,13 +67,6 @@
    "message": "20 articles dans le flux"
   },
   {
-   "onglet": "Marchés",
-   "ligne": 11,
-   "nom": "DAX (Allemagne)",
-   "statut": "warn",
-   "message": "non testé : site injoignable pour l'instant (HTTPError) — gardé, nouvel essai au prochain dépôt"
-  },
-  {
    "onglet": "Sport",
    "ligne": 95,
    "nom": "Pays-Bas · Eredivisie",
@@ -93,18 +86,18 @@
   "recues": 1,
   "nouvelles": [
    {
-    "uid": "mvv52vjo-463t296t6e",
+    "uid": "mvv55yk2-3j2857574x",
     "statut": "ok",
-    "message": "reporté dans l'onglet Marchés, ligne 11 : Oui = Oui",
+    "message": "reporté dans l'onglet Marchés, ligne 11 : Oui = vide",
     "id": "mk:dax",
-    "le": "2026-10-30T15:41:02+00:00",
+    "le": "2026-10-30T15:43:20+00:00",
     "par": "iPhone"
    }
   ]
  },
  "resume": {
   "ok": 3,
-  "warn": 1,
+  "warn": 0,
   "ko": 0,
   "info": 0
  },
