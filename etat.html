@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="1fb30f8b">
+<meta name="mon-ecran-version" content="58413635">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -575,12 +575,27 @@ function render(e){
       f.calendriers.length ? `<ul class="note">${f.calendriers.map(c => `<li>${esc(c.replace(/^calendriers\//, ''))}</li>`).join('')}</ul>` : '<p class="note">Aucun calendrier déposé.</p>', false);
   }
 
-  h += cotesPart() + themeHTML() + autoHTML() + syncHTML() + sauvHTML();
+  h += cotesPart() + confPart() + themeHTML() + autoHTML() + syncHTML() + sauvHTML();
   h += `<div class="actions"><a class="btn main" href="https://github.com/ZyAvo/iPhone-Dock/actions" target="_blank" rel="noopener">Voir les tâches GitHub</a>
     <button type="button" class="btn" id="resetBtn">Vider la mémoire de l'appli</button></div>
     <p class="note" id="resetMsg">« Vider la mémoire » efface les données gardées sur cet appareil (matchs, actus, pages) ; tes réglages (lieu météo, Spotify, favoris, langue des actus, placements, rafraîchissement) sont conservés.</p>`;
   $('#out').innerHTML = h;
   $('#stamp').textContent = '';
+}
+/* ---------- Configuration : résultat de la lecture du classeur (tâche « Configuration », fichier config/rapport.json) ---------- */
+let CONF = null;
+function confPart(){
+  const R = CONF;
+  if (!R) return part('Configuration (classeur)', {lvl:'none', msg:'Aucun classeur déposé pour l\'instant'},
+    '<p class="note">Dépose <b>configuration.xlsx</b> à la racine du dépôt GitHub : la tâche « Configuration » le lit, teste les nouveautés et affiche ici le résultat.</p>', false);
+  const T = R.tests || [], n = k => T.filter(t => t.statut === k).length, ko = n('ko'), warn = n('warn');
+  const nb = Object.values(R.modules || {}).reduce((a, m) => a + (m.coches || 0), 0);
+  const lvl = ko ? 'warn' : 'ok';
+  const msg = `${nb} éléments choisis · ${T.length ? `${n('ok')} ✅ · ${warn} ⚠️ · ${ko} ❌` : 'aucune nouveauté à tester'}`;
+  const ordre = {ko:0, warn:1, info:2, ok:3}, sym = {ok:'✅', warn:'⚠️', ko:'❌', info:'ℹ️'};
+  const rows = [...T].sort((a, b) => ordre[a.statut] - ordre[b.statut]).map(t => `<tr><td>${sym[t.statut]}</td><td>${esc(t.nom)}<br><small class="note" style="margin:0">${esc(t.onglet)} · ligne ${t.ligne}</small></td><td>${esc(t.message)}</td></tr>`).join('');
+  return part('Configuration (classeur)', {lvl, msg}, `<p class="note">Classeur lu ${ago(Date.parse(R.date))}${R.teste ? '' : ' (sans test réseau)'} · le détail est aussi dans <b>config/configuration-resultat.xlsx</b>, colonne « Résultat ».</p>
+    ${rows ? `<table class="rows"><thead><tr><th></th><th>Élément</th><th>Résultat</th></tr></thead><tbody>${rows}</tbody></table>` : ''}`, false);
 }
 /* ---------- Cotes des matchs (tâche « Cotes », The Odds API) : compteur de crédits et clé pour l'actualisation à la main ---------- */
 let COTES = null;
@@ -605,12 +620,13 @@ document.addEventListener('submit', e => { if (e.target.id !== 'ctForm') return;
 async function load(){
   $('#refreshBtn').classList.add('spin');
   try{ const r = await fetch('donnees/cotes/cotes.json', {cache:'no-cache'}); COTES = r.ok ? await r.json() : null; }catch{ COTES = null; }
+  try{ const r = await fetch('config/rapport.json', {cache:'no-cache'}); CONF = r.ok ? await r.json() : null; }catch{ CONF = null; }
   try{
     const r = await fetch('etat.json', {cache:'no-cache'});
     if (!r.ok) throw new Error(r.status);
     render(await r.json());
   }catch(err){
-    $('#out').innerHTML = `<div class="sum glass err"><span class="lamp"></span><div><b>Résumé introuvable</b><p>Le fichier etat.json est fait par la tâche GitHub « Publication ». Vérifie qu'elle a bien tourné (Settings → Pages → Source : GitHub Actions).</p></div></div>` + cotesPart() + themeHTML() + autoHTML() + syncHTML() + sauvHTML();
+    $('#out').innerHTML = `<div class="sum glass err"><span class="lamp"></span><div><b>Résumé introuvable</b><p>Le fichier etat.json est fait par la tâche GitHub « Publication ». Vérifie qu'elle a bien tourné (Settings → Pages → Source : GitHub Actions).</p></div></div>` + cotesPart() + confPart() + themeHTML() + autoHTML() + syncHTML() + sauvHTML();
   }finally{ $('#refreshBtn').classList.remove('spin'); }
 }
 $('#refreshBtn').addEventListener('click', load);
