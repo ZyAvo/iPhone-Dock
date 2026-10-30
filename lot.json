@@ -1,6 +1,6 @@
 {
- "lot": "v21",
- "date": "2026-10-30T05:23:15+00:00",
+ "lot": "v22",
+ "date": "2026-10-30T05:32:55+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/cotes.yml": "d2ab441c",
@@ -9,11 +9,11 @@
   ".github/workflows/programme-tv.yml": "8cc151d3",
   ".github/workflows/publication.yml": "eee978e2",
   ".github/workflows/videos.yml": "1faae103",
-  "actus.html": "fd33d4e6",
-  "cachee.html": "cda39371",
-  "etat.html": "84c21c0c",
-  "index.html": "e5e340e5",
-  "invest.html": "7f5b2b87",
+  "actus.html": "27e3ae08",
+  "cachee.html": "8cab3c69",
+  "etat.html": "1fb30f8b",
+  "index.html": "536c50ef",
+  "invest.html": "e305b8ea",
   "outils/actus-data.mjs": "77082673",
   "outils/cotes-data.mjs": "652c3f97",
   "outils/etat.mjs": "4efddaea",
@@ -25,10 +25,10 @@
   "outils/tv-tri.mjs": "46c15f05",
   "outils/videos-data.mjs": "b4fa660a",
   "outils/yahoo.py": "103be76d",
-  "sport.html": "b967fadd",
+  "sport.html": "07319e9b",
   "sw.js": "67a7ad44",
   "synchro.js": "efb67e18",
-  "videos.html": "b888a647"
+  "videos.html": "37798e11"
  },
  "supprimer": [
   "tv.json",
