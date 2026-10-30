@@ -1,5 +1,5 @@
 {
- "date": "2026-10-30T17:01:45+00:00",
+ "date": "2026-10-30T17:02:09+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -104,22 +104,14 @@
  ],
  "erreurs": [],
  "modifs": {
-  "recues": 2,
+  "recues": 1,
   "nouvelles": [
    {
-    "uid": "mvv7xkux-3h3v366x1w",
+    "uid": "mvv7z88r-0p0r176g5n",
     "statut": "ok",
     "message": "reporté dans l'onglet Actus, ligne 107 : Oui = Oui",
     "id": "actus:sciences:le-monde-sciences",
-    "le": "2026-10-30T17:01:45+00:00",
-    "par": "iPhone"
-   },
-   {
-    "uid": "mvv7yoxr-3u1r0t6g6v",
-    "statut": "ok",
-    "message": "reporté dans l'onglet Accueil, ligne 15 : Oui = Oui",
-    "id": "wg:une",
-    "le": "2026-10-30T17:01:45+00:00",
+    "le": "2026-10-30T17:02:09+00:00",
     "par": "iPhone"
    }
   ]
