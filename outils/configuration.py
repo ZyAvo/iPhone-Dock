@@ -1,21 +1,29 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 6df8f5c1
+# mon-ecran-version: 84dbf6cd
 # Lit le classeur de configuration (configuration.xlsx) et écrit les réglages du dock dans config/ :
 #   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json, applis.json
 #   config/config.js                     → les mêmes réglages en un seul fichier, chargé par les pages (window.MON_ECRAN_CONFIG)
 #   config/chaines-tv.xml                → liste des chaînes pour le programme TV (lue par la tâche « Programme TV sport »)
 #   config/rapport.json                  → résumé + résultat de chaque test (affiché dans la page État)
 #   config/configuration-resultat.xlsx   → copie du classeur avec la colonne « Résultat » remplie
-# Usage : python3 outils/configuration.py configuration.xlsx [--sortie config] [--tester]
+#   config/catalogue.json                → tout le catalogue du classeur et son état (lu par l'appli pour proposer les choix)
+# Usage : python3 outils/configuration.py configuration.xlsx [--sortie config] [--tester] [--modifs config/modifs.json]
 #   --tester : essaie réellement chaque nouveauté cochée et chaque ajout (flux, ESPN, Yahoo, YouTube, météo…)
-import sys, os, re, json, unicodedata, datetime, urllib.request, urllib.parse, urllib.error
+#   --modifs : reporte d'abord dans le classeur (par identifiant) les choix faits dans l'appli, puis l'enregistre :
+#              le classeur reste la référence. Chaque modification a un « uid » ; celles déjà traitées sont ignorées.
+import sys, os, re, json, copy, unicodedata, datetime, urllib.request, urllib.parse, urllib.error
 from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 args = sys.argv[1:]
-POS = [a for i, a in enumerate(args) if not a.startswith('--') and (i == 0 or args[i - 1] != '--sortie')]
+POS = [a for i, a in enumerate(args) if not a.startswith('--') and (i == 0 or args[i - 1] not in ('--sortie', '--modifs'))]
 SRC = POS[0] if POS else 'configuration.xlsx'
 OUT = args[args.index('--sortie') + 1] if '--sortie' in args else 'config'
+MODIFS = args[args.index('--modifs') + 1] if '--modifs' in args else None
 TESTER = '--tester' in args
+CHOIX = ('Oui', 'Widget accueil', 'Par défaut')                 # colonnes « Oui / Non / vide »
+LIENS = ('Lien iPhone', 'Lien Android', 'Lien web')             # colonnes de liens (onglet Applis)
+MODIFIABLES = CHOIX + LIENS                                     # seules colonnes que l'appli peut changer
 UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15'
 
 def slug(s):
@@ -45,7 +53,8 @@ def lire(wb):
             if i.startswith('ajout:'):
                 v = [txt(ws.cell(r, c).value) for c in range(2, 5)]
                 if v[1] or v[2]:
-                    m['ajouts'].append(dict(r=r, section=v[0], nom=v[1], source=v[2] if H.get('Oui') != 4 else '', oui=txt(ws.cell(r, H['Oui']).value)))
+                    m['ajouts'].append(dict(r=r, id=i, section=v[0], nom=v[1], source=v[2] if H.get('Oui') != 4 else '', oui=txt(ws.cell(r, H['Oui']).value),
+                                            cells={h: txt(ws.cell(r, c).value) for h, c in H.items()}))
                 continue
             t = json.loads(ws.cell(r, H['Technique']).value)
             sec['rows'].append(dict(id=i, r=r, oui=txt(ws.cell(r, H['Oui']).value), oui2=txt(ws.cell(r, c2).value) if c2 else '',
@@ -313,9 +322,15 @@ def m_applis(m):
     for a in ajouts(m):
         s = section_pour(m, a['section'] or 'Mes ajouts')
         if s.get('nouvelle'): s['tech'] = {'id': s['id'], 'label': a['section'] or 'Mes ajouts', 'type': 'dossier'}
-        if not a['source']: note(m, a['r'], 'warn', "indique au moins le lien iPhone (ex. spotify://) ou un lien web", a['nom']); continue
+        c = a.get('cells') or {}; src = a['source']
+        ios = src if src and not src.startswith('http') else ''
+        web = c.get('Lien web') or (src if src.startswith('http') else ''); android = c.get('Lien Android', '')
+        if not (ios or web or android): note(m, a['r'], 'warn', "indique au moins le lien iPhone (ex. spotify://) ou un lien web", a['nom']); continue
         d = {'label': a['nom'], 'mono': a['nom'][:2], 'color': '--t-slate'}
-        d['app' if not a['source'].startswith('http') else 'web'] = a['source']
+        if ios: d['app'] = ios
+        if web: d['web'] = web
+        if android: d['android'] = android
+        if web and not ios and not android: d['url'] = web                # simple lien : ouvert dans un nouvel onglet
         note(m, a['r'], 'ok', 'ajoutée (teste-la depuis le dock)', a['nom'])
         s['rows'].append(dict(id='ajout', r=a['r'], oui='Oui', oui2='', support='ok', d=d, nom=a['nom'], resultat='', cells={}))
     out = {'accueil': [], 'dossiers': {}, 'bas_gauche': [], 'bas_droite': [], 'navigation': []}
@@ -348,9 +363,181 @@ def m_apparence(m):
     if len(S['mode'][1]) > 1: note(m, S['mode'][1][0]['r'], 'warn', 'plusieurs modes cochés : seul le premier est gardé', S['mode'][1][0]['nom'])
     return {'palettes': pal, 'palette': (defaut or pal or ['bleu'])[0], 'mode': (modes or ['auto'])[0]}
 
+# ---------- Choix faits dans l'appli (config/modifs.json) → classeur ----------
+# Format écrit par l'appli (noyau.js) : {"v":1, "modifs":[{uid, at, par, id, champs:{"Oui":"Non"}}, {uid, ajout:{module, section, nom, source}, champs},
+#   {uid, id:"ajout:actus:3", nom, effacer:true}, {uid, verif:true}]}   (détail dans outils/dev/LISEZ-MOI-dev.md)
+def feuilles(wb):
+    return {txt(ws['A1'].value).split(';')[0][7:]: ws for ws in wb.worksheets if txt(ws['A1'].value).startswith('module=')}
+def entetes(ws): return {txt(c.value): c.column for c in ws[5] if c.value}
+def lignes_ajout(ws): return [r for r in range(6, ws.max_row + 1) if txt(ws.cell(r, 1).value).startswith('ajout:')]
+def norm_choix(v): return 'Oui' if oui(v) else 'Non' if non(v) else ''
+
+class Refus(Exception): pass
+def valeur(h, v):
+    v = '' if v is None else str(v).strip()
+    if h in CHOIX:
+        if v and not (oui(v) or non(v)): raise Refus(f'« {v} » pour {h} : réponds Oui, Non ou laisse vide')
+        return norm_choix(v)
+    if re.match(r'(javascript|data|vbscript|file):', v, re.I): raise Refus(f'lien refusé : {v[:40]}')
+    if len(v) > 600: raise Refus('lien trop long')
+    return v
+class Ecrivain:
+    """Écrit dans les cellules en notant si quelque chose change vraiment (sinon le classeur n'est pas réenregistré)."""
+    def __init__(self): self.change = False
+    def mettre(self, ws, r, c, v):
+        v = v if v not in ('', None) else None
+        if txt(ws.cell(r, c).value) != txt(v): ws.cell(r, c).value = v; self.change = True
+    def champs(self, ws, r, champs, section=False):
+        H = entetes(ws); faits = []
+        if not isinstance(champs, dict): raise Refus('« champs » doit être une liste colonne → valeur')
+        for h, v in champs.items():
+            if h not in MODIFIABLES or h not in H: raise Refus(f'colonne « {h} » non modifiable dans l\'onglet {ws.title}')
+            if section and h != 'Oui': raise Refus('sur une ligne « toute la section », seule la colonne « Oui » se règle')
+            val = valeur(h, v); self.mettre(ws, r, H[h], val); faits.append(f'{h} = {val or "vide"}')
+        return faits
+
+def nouvelle_ligne_ajout(ws, rows):
+    """Plus de ligne « ajout » libre : on en ajoute une sous la dernière, avec la même mise en forme et la même liste Oui/Non."""
+    der = rows[-1]; r = der + 1
+    if any(ws.cell(r, c).value not in (None, '') for c in range(1, ws.max_column + 1)): ws.insert_rows(r)
+    for c in range(1, ws.max_column + 1):
+        src = ws.cell(der, c)
+        if src.has_style: ws.cell(r, c)._style = copy.copy(src._style)
+    ws.row_dimensions[r].height = ws.row_dimensions[der].height
+    k = max(int(txt(ws.cell(x, 1).value).split(':')[1] or 0) for x in rows) + 1
+    ws.cell(r, 1, f'ajout:{k}')
+    cOui = entetes(ws).get('Oui')
+    for dv in ws.data_validations.dataValidation:
+        if any(rg.min_row <= der <= rg.max_row and rg.min_col <= cOui <= rg.max_col for rg in dv.sqref.ranges): dv.add(f'{get_column_letter(cOui)}{r}')
+    return r
+
+def trouver_ajout(ws, n, nom):
+    rows = lignes_ajout(ws)
+    r = next((x for x in rows if txt(ws.cell(x, 1).value) == f'ajout:{n}'), None)
+    if r and (not nom or slug(ws.cell(r, 3).value) == slug(nom)): return r
+    if nom: return next((x for x in rows if slug(ws.cell(x, 3).value) == slug(nom)), None)     # classeur reconstruit entre-temps : retrouvé par son nom
+    return None
+
+def une_modif(F, index, x, E):
+    """Applique une modification ; renvoie (statut, message, identifiant)."""
+    i = txt(x.get('id')); champs = x.get('champs') or {}
+    if x.get('verif'): return ('ok', 'liaison appli → classeur vérifiée (rien de modifié)', None)
+    if x.get('ajout'):
+        a = x['ajout'] if isinstance(x['ajout'], dict) else {}
+        mod = txt(a.get('module')); ws = F.get(mod)
+        if not ws: return ('ko', f'onglet « {mod} » inconnu', None)
+        rows = lignes_ajout(ws)
+        if not rows: return ('ko', f'l\'onglet {ws.title} n\'a pas de lignes « Mes ajouts »', None)
+        sec, nom, src = txt(a.get('section')), txt(a.get('nom')), txt(a.get('source'))
+        if not (nom or src): return ('ko', 'ajout vide : il faut au moins un nom ou une source', None)
+        if src: valeur('Lien web', src)
+        H = entetes(ws); a_source = H.get('Oui') != 4
+        meme = next((r for r in rows if slug(ws.cell(r, 3).value) == slug(nom) and (not a_source or txt(ws.cell(r, 4).value) == src) and (nom or src)), None)
+        r = meme or next((r for r in rows if not any(txt(ws.cell(r, c).value) for c in (2, 3, 4))), None) or nouvelle_ligne_ajout(ws, rows)
+        E.mettre(ws, r, 2, sec); E.mettre(ws, r, 3, nom)
+        if a_source: E.mettre(ws, r, 4, src)
+        faits = E.champs(ws, r, {'Oui': 'Oui', **champs})
+        ident = f"ajout:{mod}:{txt(ws.cell(r, 1).value).split(':')[1]}"
+        return ('ok', (f'déjà dans l\'onglet {ws.title} (ligne {r}), mis à jour' if meme else f'ajouté dans l\'onglet {ws.title}, ligne {r}') + f' : {", ".join(faits)}', ident)
+    if i.startswith('ajout:'):
+        p = i.split(':')
+        ws = F.get(p[1]) if len(p) == 3 else None
+        if not ws: return ('ko', 'identifiant d\'ajout invalide', i)
+        r = trouver_ajout(ws, p[2], txt(x.get('nom')))
+        if not r: return ('ko', f'ajout introuvable dans l\'onglet {ws.title}', i)
+        i = f"ajout:{p[1]}:{txt(ws.cell(r, 1).value).split(':')[1]}"
+        if x.get('effacer'):
+            H = entetes(ws)
+            for c in range(2, H.get('Note', H.get('Résultat', 4)) + 1): E.mettre(ws, r, c, None)
+            return ('ok', f'ajout effacé (onglet {ws.title}, ligne {r})', i)
+        if not champs: return ('ko', 'rien à modifier', i)
+        return ('ok', f'reporté dans l\'onglet {ws.title}, ligne {r} : {", ".join(E.champs(ws, r, champs))}', i)
+    if i in index:
+        mid, r = index[i]; ws = F[mid]
+        if not champs: return ('ko', 'rien à modifier', i)
+        return ('ok', f'reporté dans l\'onglet {ws.title}, ligne {r} : {", ".join(E.champs(ws, r, champs, section=i.startswith("sec:")))}', i)
+    return ('ko', 'identifiant inconnu dans le classeur', i or None)
+
+def appliquer_modifs(wb, chemin):
+    """Reporte dans le classeur les modifications de l'appli pas encore traitées. Renvoie {traitees, nouvelles, change}."""
+    info = dict(fichier=chemin, recues=0, nouvelles=[], traitees={}, change=False)
+    if not chemin or not os.path.exists(chemin): return info
+    try:
+        doc = json.load(open(chemin, encoding='utf-8')); liste = doc.get('modifs') if isinstance(doc, dict) else None
+        if not isinstance(liste, list): raise ValueError('pas de liste « modifs »')
+    except Exception as e:
+        RAPPORT['erreurs'].append(f'{chemin} illisible : {e}'); info['erreur'] = str(e); return info
+    try: avant = json.load(open(os.path.join(OUT, 'catalogue.json'), encoding='utf-8')).get('modifs', {}).get('traitees', {})
+    except Exception: avant = {}
+    F = feuilles(wb); index = {}
+    for mid, ws in F.items():
+        for r in range(6, ws.max_row + 1):
+            i = txt(ws.cell(r, 1).value)
+            if i and i != 'exemple' and not i.startswith('ajout:'): index[i] = (mid, r)
+    E = Ecrivain()
+    for x in liste:
+        uid = txt(x.get('uid')) if isinstance(x, dict) else ''
+        if not uid: continue
+        info['recues'] += 1
+        if uid in avant: info['traitees'][uid] = avant[uid]; continue          # déjà reportée : surtout ne pas la refaire (le classeur a pu changer depuis)
+        try: st, msg, ident = une_modif(F, index, x, E)
+        except Refus as e: st, msg, ident = 'ko', str(e), txt(x.get('id')) or None
+        except Exception as e: st, msg, ident = 'ko', f'erreur inattendue : {type(e).__name__} {e}', txt(x.get('id')) or None
+        t = dict(statut=st, message=msg, id=ident, le=RAPPORT['date'], par=txt(x.get('par')))
+        info['traitees'][uid] = t; info['nouvelles'].append(dict(uid=uid, **t))
+    info['change'] = E.change
+    return info
+
+# ---------- Catalogue pour l'appli (config/catalogue.json) ----------
+NON_INFO = ('ID', 'Section', 'Résultat', 'Note', 'Technique') + MODIFIABLES
+def catalogue(M, modifs):
+    cat = dict(v=1, genere=RAPPORT['date'], classeur=dict(fichier=os.path.basename(SRC)), colonnes_modifiables=list(MODIFIABLES), modules={},
+               modifs=dict(date=RAPPORT['date'], traitees=modifs['traitees']))
+    for mid, m in M.items():
+        ws, H = m['ws'], m['H']
+        cat['classeur']['version'] = txt(ws['A1'].value).split('version=')[-1] if 'version=' in txt(ws['A1'].value) else ''
+        cnom = next((h for h, c in H.items() if c == 3), '')
+        infos = [h for h, c in sorted(H.items(), key=lambda kv: kv[1]) if c > 3 and h not in NON_INFO]
+        modif = [h for h in MODIFIABLES if h in H]
+        res = lambda r, defaut: RES.get((ws.title, r)) or defaut
+        mod = dict(onglet=ws.title, titre=txt(ws.cell(1, 2).value), intro=txt(ws.cell(2, 2).value),
+                   colonnes=dict(nom=cnom, infos=infos, modifiables=modif), sections=[], ajouts=[], ajout=None)
+        for s in m['sections']:
+            if s.get('nouvelle'): continue                                     # section créée seulement pour un ajout
+            items = []
+            for x in s['rows']:
+                if x['id'] == 'ajout': continue
+                c = x['cells']
+                items.append(dict(id=x['id'], nom=x['nom'], oui=norm_choix(x['oui']), choisi=choisi(s, x), support=x['support'],
+                                  infos={h: c[h] for h in infos if c.get(h)}, champs={h: c.get(h, '') for h in modif if h != 'Oui'},
+                                  resultat=res(x['r'], x['resultat']), note=c.get('Note', ''), **{'def': x['d']}))
+            mod['sections'].append(dict(id=f"sec:{mid}:{s['id']}", cle=s['id'], label=s['tech'].get('label') or txt(ws.cell(s['r'], 2).value),
+                                        oui=norm_choix(s['oui']), affichee=any(i['choisi'] and i['support'] == 'ok' for i in items), tech=s['tech'], items=items))
+        rows = lignes_ajout(ws)
+        if rows:
+            ex = next((r for r in range(6, ws.max_row + 1) if txt(ws.cell(r, 1).value) == 'exemple'), rows[0])
+            ent = {k: txt(ws.cell(ex - 1, c).value) for k, c in (('section', 2), ('nom', 3), ('source', 4)) if H.get('Oui') != c}
+            mod['ajout'] = dict(libres=sum(1 for r in rows if not any(txt(ws.cell(r, c).value) for c in (2, 3, 4))), entetes=ent)
+            for a in m['ajouts']:
+                c = a.get('cells') or {}
+                sec = next((f"sec:{mid}:{s['id']}" for s in m['sections'] if not s.get('nouvelle') and slug(a['section']) in (slug(s['tech'].get('label', '')), slug(s['id']))), None)
+                mod['ajouts'].append(dict(id=f"ajout:{mid}:{a['id'].split(':')[1]}", section=a['section'], section_id=sec, nom=a['nom'], source=a['source'],
+                                          oui=norm_choix(a['oui']), choisi=oui(a['oui']), champs={h: c.get(h, '') for h in modif if h != 'Oui'},
+                                          resultat=res(a['r'], c.get('Résultat', ''))))
+        cat['modules'][mid] = mod
+    return cat
+
 # ---------- Programme principal ----------
 def main():
     wb = load_workbook(SRC)
+    modifs = appliquer_modifs(wb, MODIFS)
+    if modifs['change']:
+        wb.save(SRC)                                                           # le classeur du dépôt garde les choix faits dans l'appli
+    RAPPORT['modifs'] = {k: modifs.get(k) for k in ('recues', 'nouvelles', 'erreur') if modifs.get(k) is not None}
+    if modifs['recues'] or modifs.get('erreur'):
+        n = modifs['nouvelles']; ok = sum(1 for t in n if t['statut'] == 'ok')
+        print(f"Choix faits dans l'appli : {len(n)} nouveau(x), {ok} reporté(s) dans le classeur" + (f", {len(n) - ok} refusé(s)" if len(n) > ok else '') + (' · classeur enregistré' if modifs['change'] else ''))
+        for t in n: print(f"  {'✅' if t['statut'] == 'ok' else '❌'} {t['id'] or '?'} : {t['message']}")
     M = lire(wb)
     manquants = [k for k in ('sport', 'actus', 'actus-en', 'marches', 'videos', 'youtube', 'tv', 'cotes', 'accueil', 'apparence', 'applis') if k not in M]
     if manquants: raise SystemExit(f'Onglets introuvables dans {SRC} : {", ".join(manquants)} (as-tu supprimé la colonne A ou renommé une ligne 1 ?)')
@@ -388,6 +575,8 @@ def main():
     RAPPORT['resume'] = {k: st.count(k) for k in ('ok', 'warn', 'ko', 'info')}
     RAPPORT['teste'] = TESTER
     json.dump(RAPPORT, open(os.path.join(OUT, 'rapport.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    # tout le catalogue et son état, pour les écrans de réglages de l'appli (les « Résultat » ci-dessous sont ceux de ce passage)
+    json.dump(catalogue(M, modifs), open(os.path.join(OUT, 'catalogue.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
     # Copie du classeur avec les résultats
     for (feuille, r), v in RES.items():
         ws = wb[feuille]; c = next(c.column for c in ws[5] if txt(c.value) == 'Résultat'); ws.cell(r, c, v)

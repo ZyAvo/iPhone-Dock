@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="fd240326">
+<meta name="mon-ecran-version" content="60b9bc3b">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vidéos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,7 +17,7 @@ img{max-width:100%}
 [hidden]{display:none!important}
 </style>
 <script src="config/config.js"></script>
-<script>/* réglages du classeur (config/config.js) : CFG('sport.leagues', valeur par défaut) ; {re, flags} redevient une expression régulière */window.CFG=function(c,d){try{var v=c.split('.').reduce(function(o,k){return o==null?o:o[k]},window.MON_ECRAN_CONFIG);if(v==null)return d;return(function r(x){if(Array.isArray(x))return x.map(r);if(x&&typeof x==='object'){var k=Object.keys(x);if(k.length===2&&'re' in x&&'flags' in x)return new RegExp(x.re,x.flags);var o={};k.forEach(function(n){o[n]=r(x[n])});return o}return x})(v)}catch(e){return d}};</script>
+<script src="noyau.js"></script>
 <script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette')||CFG('apparence.palette',''),m=localStorage.getItem('mode')||CFG('apparence.mode','');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
@@ -736,7 +736,7 @@ document.addEventListener('click', e => {
   else if (a === 'abos-ok'){ ABOS = new Set([...document.querySelectorAll('[data-abo]:checked')].map(c => c.dataset.abo)); LS.set('videos:abos', [...ABOS]); if (window.Synchro) Synchro.prefsPlusTard(); closeSheet(); render(); }
   else if (a === 'ouvrir'){                 // l'appli ne sait pas recevoir un titre : on le copie, puis on l'ouvre
     const P = PBY[t.dataset.p], x = CAT.titres.find(y => y.k === t.dataset.k);
-    const go = () => { window.location.href = P.app; };
+    const go = () => { if (!Noyau.lien.ouvrir({app:P.app, android:P.android, web:P.web ? P.web + encodeURIComponent(x.titre) : ''})) window.location.href = P.app; };   // selon l'appareil (noyau.js)
     const msg = $('#ouvMsg');
     (navigator.clipboard ? navigator.clipboard.writeText(x.titre) : Promise.reject()).then(() => { if (msg) msg.textContent = `« ${x.titre} » copié : colle-le dans la recherche de l'appli.`; })
       .catch(() => { if (msg) msg.textContent = `Cherche « ${x.titre} » dans l'appli.`; }).finally(() => setTimeout(go, 350));

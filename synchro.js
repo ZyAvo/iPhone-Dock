@@ -1,4 +1,4 @@
-// mon-ecran-version: 48bd38f7
+// mon-ecran-version: fb6f1060
 /* Mon Écran — synchronisation chiffrée entre tes appareils (iPhone, PC…).
    - Un fichier chiffré (synchro/mon-ecran.json, branche « synchro » de ton dépôt GitHub) contient tes placements,
      versements, réglages d'investissement et le Coffre. Sans la phrase secrète, c'est un bloc illisible.
@@ -24,12 +24,12 @@ async function chiffrer(cle, obj){ const iv = crypto.getRandomValues(new Uint8Ar
 async function dechiffrer(cle, box){ return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(box.iv)}, cle, unb64(box.ct)))); }
 const empreinte = async obj => b64(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(obj ?? null)))).slice(0, 22);
 
-/* Dépôt : déduit de l'adresse (pseudo.github.io/depot/), sinon celui de Mon Écran */
-const DEPOT = (() => { const h = location.hostname.match(/^([\w-]+)\.github\.io$/), p = location.pathname.split('/').filter(Boolean)[0];
+/* Dépôt : déduit de l'adresse (pseudo.github.io/depot/), sinon celui de Mon Écran — le noyau (noyau.js) fait foi s'il est chargé */
+const DEPOT = window.Noyau ? Noyau.depot.nom : (() => { const h = location.hostname.match(/^([\w-]+)\.github\.io$/), p = location.pathname.split('/').filter(Boolean)[0];
   return h && p ? `${h[1]}/${p}` : 'ZyAvo/iPhone-Dock'; })();
 const BRANCHE = 'synchro', CHEMIN = 'synchro/mon-ecran.json', API = `https://api.github.com/repos/${DEPOT}`;
 const TOURS = 310000;
-const appareil = () => /iPhone/.test(navigator.userAgent) ? 'iPhone' : /iPad/.test(navigator.userAgent) ? 'iPad' : /Android/.test(navigator.userAgent) ? 'Android' : 'ordinateur';
+const appareil = () => window.Noyau ? Noyau.appareil().nom : /iPhone/.test(navigator.userAgent) ? 'iPhone' : /iPad/.test(navigator.userAgent) ? 'iPad' : /Android/.test(navigator.userAgent) ? 'Android' : 'ordinateur';
 
 /* ---------- Coffre local (même format que cachee.html : clé tirée du code, 150 000 tours) ---------- */
 async function coffreLire(pin){
@@ -173,6 +173,8 @@ window.Synchro = {
   DEPOT, actif:() => !!LSg('synchro:cfg', null), pret:async () => !!(await sessionCle()), etat, MSG, appareil,
   genererPhrase, demander, conflit, partie, plusTard, coffreLire, coffreEcrire, empreinte,
   fermer(){ SSs(S_KEY, null); },
+  /* clé GitHub de la session ouverte (après ton code), pour les autres écritures sur le dépôt (noyau.js : réglages faits dans l'appli) */
+  async jeton(){ const s = await sessionCle(); return s ? s.jeton : null; },
   /* après ton code : ouvre la session de synchronisation (false si le code a changé depuis l'activation) */
   async ouvrirAvecCode(pin){
     if (!this.actif()) return null; if (await sessionCle()){ setTimeout(prefsSync, 800); return true; }

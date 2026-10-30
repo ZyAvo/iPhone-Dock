@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="844850d2">
+<meta name="mon-ecran-version" content="7a80d12b">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,7 +18,7 @@ img{max-width:100%}
 [hidden]{display:none!important}
 </style>
 <script src="config/config.js"></script>
-<script>/* réglages du classeur (config/config.js) : CFG('sport.leagues', valeur par défaut) ; {re, flags} redevient une expression régulière */window.CFG=function(c,d){try{var v=c.split('.').reduce(function(o,k){return o==null?o:o[k]},window.MON_ECRAN_CONFIG);if(v==null)return d;return(function r(x){if(Array.isArray(x))return x.map(r);if(x&&typeof x==='object'){var k=Object.keys(x);if(k.length===2&&'re' in x&&'flags' in x)return new RegExp(x.re,x.flags);var o={};k.forEach(function(n){o[n]=r(x[n])});return o}return x})(v)}catch(e){return d}};</script>
+<script src="noyau.js"></script>
 <script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette')||CFG('apparence.palette',''),m=localStorage.getItem('mode')||CFG('apparence.mode','');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
@@ -855,10 +855,12 @@ function tileHTML(a){
   const u = iconOf(a);
   return `<span class="tile${u ? ' img' : ''}"${iconAttrs(a)} style="--c:var(${a.color})${u ? `;--img:url(&quot;${esc(u)}&quot;)` : ''}">${inner}</span>`;
 }
+/* liens d'une appli (iPhone, raccourci, Android, site) : Noyau.lien choisit selon l'appareil au moment du toucher */
+const lienAttrs = a => `data-app="${esc(a.app || '')}" data-alt="${esc(a.alt || '')}" data-android="${esc(a.android || '')}" data-web="${esc(a.web || '')}"`;
 function appHTML(a, idx = 0){
   const body = `${tileHTML(a)}<span class="name">${esc(a.label)}</span>`;
   const delay = `style="animation-delay:${idx * 35}ms"`;
-  if (a.app) return `<a class="app-btn" ${delay} href="${esc(a.app)}" data-app="${esc(a.app)}" data-alt="${esc(a.alt || '')}" data-web="${esc(a.web || '')}" aria-label="${esc(a.label)}">${body}</a>`;
+  if (a.app || a.android) return `<a class="app-btn" ${delay} href="${esc(Noyau.lien.pour(a) || a.app || '#')}" ${lienAttrs(a)} aria-label="${esc(a.label)}">${body}</a>`;
   if (a.type === 'page') return `<a class="app-btn${a.live ? ' live-app' : ''}" ${delay} href="${esc(a.url)}" aria-label="${esc(a.label)}">${body}</a>`;
   if (!a.type || a.type === 'link') return `<a class="app-btn" ${delay} href="${esc(a.url)}" target="_blank" rel="noopener" aria-label="${esc(a.label)}">${body}</a>`;
   return `<button type="button" class="app-btn" ${delay} data-type="${a.type}" data-target="${a.target}" aria-label="${esc(a.label)}">${body}</button>`;
@@ -872,32 +874,20 @@ Object.entries(FOLDERS).forEach(([id, f]) => {
 $('#grid').innerHTML = HOME.map(appHTML).join('');
 setTimeout(fetchIcons, 600);
 
-/* Ouverture d'une appli : appli → raccourci (alt) → site, en passant au suivant si rien ne s'ouvre en 1,5 s */
+/* Ouverture d'une appli (noyau.js) : iPhone → appli, raccourci (alt) puis site, en passant au suivant si rien ne s'ouvre en 1,5 s ;
+   Android → appli Android puis site ; ordinateur → le site dans un nouvel onglet */
 document.addEventListener('click', e => {
   const a = e.target.closest('a[data-app]'); if (!a) return;
   e.preventDefault();
-  if (DESK()){                                                        // sur PC : le site de l'appli s'il existe
-    if (a.dataset.web) window.open(a.dataset.web, '_blank', 'noopener');
-    else if (a.classList.contains('app-btn') || a.classList.contains('q')) toast(`${a.getAttribute('aria-label') || 'Cette appli'} : seulement sur iPhone`);
-    return;
-  }
-  const chain = [a.dataset.app, a.dataset.alt ? `shortcuts://run-shortcut?name=${encodeURIComponent(a.dataset.alt)}` : '', a.dataset.web].filter(Boolean);
-  let left = false; const gone = () => { left = true; };
-  document.addEventListener('visibilitychange', gone, {once:true});
-  window.addEventListener('pagehide', gone, {once:true});
-  window.addEventListener('blur', gone, {once:true});
-  const next = i => {
-    if (left || document.hidden || i >= chain.length) return;
-    window.location.href = chain[i];
-    setTimeout(() => next(i + 1), 1500);
-  };
-  next(0);
+  const d = a.dataset;
+  if (!Noyau.lien.ouvrir({app:d.app, alt:d.alt, android:d.android, web:d.web}) && (a.classList.contains('app-btn') || a.classList.contains('q')))
+    toast(`${a.getAttribute('aria-label') || 'Cette appli'} : ${d.app && !d.android && !d.web ? 'seulement sur iPhone' : 'pas de lien pour cet appareil'}`);
 });
 const quickHTML = q => {
   const svg = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[q.icon]}</svg>`;
   if (q.action) return `<button type="button" class="q glass" data-act="${esc(q.action)}" aria-label="${esc(q.label)}" title="${esc(q.label)}" aria-haspopup="dialog">${svg}</button>`;
-  if (!q.app) return `<a class="q glass" href="${esc(q.url)}" target="_blank" rel="noopener" aria-label="${esc(q.label)}" title="${esc(q.label)}">${svg}</a>`;
-  return `<a class="q glass" href="${esc(q.app)}" data-app="${esc(q.app)}" data-alt="${esc(q.alt || '')}" data-web="${esc(q.web || '')}" aria-label="${esc(q.label)}" title="${esc(q.label)}">${svg}</a>`; };
+  if (!q.app && !q.android) return `<a class="q glass" href="${esc(q.url)}" target="_blank" rel="noopener" aria-label="${esc(q.label)}" title="${esc(q.label)}">${svg}</a>`;
+  return `<a class="q glass" href="${esc(Noyau.lien.pour(q) || q.app || '#')}" ${lienAttrs(q)} aria-label="${esc(q.label)}" title="${esc(q.label)}">${svg}</a>`; };
 $('#quickLeft').innerHTML = QUICK_LEFT.map(quickHTML).join('');
 $('#quickRight').innerHTML = QUICK_RIGHT.map(quickHTML).join('');
 

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="82dea22a">
+<meta name="mon-ecran-version" content="3cbb1052">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,7 +17,7 @@ img{max-width:100%}
 [hidden]{display:none!important}
 </style>
 <script src="config/config.js"></script>
-<script>/* réglages du classeur (config/config.js) : CFG('sport.leagues', valeur par défaut) ; {re, flags} redevient une expression régulière */window.CFG=function(c,d){try{var v=c.split('.').reduce(function(o,k){return o==null?o:o[k]},window.MON_ECRAN_CONFIG);if(v==null)return d;return(function r(x){if(Array.isArray(x))return x.map(r);if(x&&typeof x==='object'){var k=Object.keys(x);if(k.length===2&&'re' in x&&'flags' in x)return new RegExp(x.re,x.flags);var o={};k.forEach(function(n){o[n]=r(x[n])});return o}return x})(v)}catch(e){return d}};</script>
+<script src="noyau.js"></script>
 <script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette')||CFG('apparence.palette',''),m=localStorage.getItem('mode')||CFG('apparence.mode','');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
@@ -591,16 +591,49 @@ let CONF = null;
 function confPart(){
   const R = CONF;
   if (!R) return part('Configuration (classeur)', {lvl:'none', msg:'Aucun classeur déposé pour l\'instant'},
-    '<p class="note">Dépose <b>configuration.xlsx</b> à la racine du dépôt GitHub : la tâche « Configuration » le lit, teste les nouveautés et affiche ici le résultat.</p>', false);
+    '<p class="note">Dépose <b>configuration.xlsx</b> à la racine du dépôt GitHub : la tâche « Configuration » le lit, teste les nouveautés et affiche ici le résultat.</p>' + modifsHTML(), false);
   const T = R.tests || [], n = k => T.filter(t => t.statut === k).length, ko = n('ko'), warn = n('warn');
   const nb = Object.values(R.modules || {}).reduce((a, m) => a + (m.coches || 0), 0);
-  const lvl = ko ? 'warn' : 'ok';
-  const msg = `${nb} éléments choisis · ${T.length ? `${n('ok')} ✅ · ${warn} ⚠️ · ${ko} ❌` : 'aucune nouveauté à tester'}`;
+  const mko = ((R.modifs || {}).nouvelles || []).filter(t => t.statut !== 'ok').length, att = window.Noyau ? Noyau.modifs.enAttente().length : 0;
+  const lvl = ko || mko ? 'warn' : 'ok';
+  const msg = `${nb} éléments choisis · ${T.length ? `${n('ok')} ✅ · ${warn} ⚠️ · ${ko} ❌` : 'aucune nouveauté à tester'}${att ? ` · ${att} réglage${att > 1 ? 's' : ''} de l'appli en attente` : ''}`;
   const ordre = {ko:0, warn:1, info:2, ok:3}, sym = {ok:'✅', warn:'⚠️', ko:'❌', info:'ℹ️'};
   const rows = [...T].sort((a, b) => ordre[a.statut] - ordre[b.statut]).map(t => `<tr><td>${sym[t.statut]}</td><td>${esc(t.nom)}<br><small class="note" style="margin:0">${esc(t.onglet)} · ligne ${t.ligne}</small></td><td>${esc(t.message)}</td></tr>`).join('');
   return part('Configuration (classeur)', {lvl, msg}, `<p class="note">Classeur lu ${ago(Date.parse(R.date))}${R.teste ? '' : ' (sans test réseau)'} · le détail est aussi dans <b>config/configuration-resultat.xlsx</b>, colonne « Résultat ».</p>
-    ${rows ? `<table class="rows"><thead><tr><th></th><th>Élément</th><th>Résultat</th></tr></thead><tbody>${rows}</tbody></table>` : ''}`, false);
+    ${rows ? `<table class="rows"><thead><tr><th></th><th>Élément</th><th>Résultat</th></tr></thead><tbody>${rows}</tbody></table>` : ''}${modifsHTML()}`, false);
 }
+/* Réglages faits dans l'appli (noyau.js → config/modifs.json → tâche « Configuration » → configuration.xlsx) */
+function modifsHTML(){
+  if (!window.Noyau) return '';
+  const N = Noyau.modifs.enAttente(), ne = N.filter(m => m.nonEnvoyee).length, M = (CONF && CONF.modifs) || {}, der = M.nouvelles || [];
+  const lignes = der.map(t => `<tr><td>${t.statut === 'ok' ? '✅' : '❌'}</td><td>${esc(t.message)}<br><small class="note" style="margin:0;word-break:break-all">${esc(t.id || (t.message.startsWith('liaison') ? 'vérification' : '—'))}${t.par ? ` · depuis ${esc(t.par)}` : ''}</small></td></tr>`).join('');
+  return `<p class="note"><b>Réglages faits dans l'appli</b> : ${N.length ? `${N.length} en attente de report dans le classeur${ne ? ` (dont ${ne} pas encore envoyé${ne > 1 ? 's' : ''})` : ''}` : 'rien en attente'}.${der.length ? ` Au dernier passage de la tâche, ${der.length} reçu${der.length > 1 ? 's' : ''} :` : ''}</p>
+    ${lignes ? `<table class="rows"><thead><tr><th></th><th>Report dans le classeur</th></tr></thead><tbody>${lignes}</tbody></table>` : ''}
+    <div class="actions"><button type="button" class="btn" data-modifs="verifier">Vérifier la liaison appli → classeur</button>${ne ? '<button type="button" class="btn main" data-modifs="envoyer">Envoyer maintenant</button>' : ''}</div><div id="mfZone"></div>
+    <p class="note">Les choix faits dans l'appli partent dans <b>config/modifs.json</b> (avec la clé GitHub de la synchronisation) ; la tâche « Configuration » les reporte dans <b>configuration.xlsx</b>, qui reste la référence. Pour retoucher le classeur sur ordinateur, télécharge d'abord celui du dépôt : il contient ces choix.</p>`;
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-modifs]'); if (!b) return;
+  const zone = $('#mfZone'), dire = t => { zone.innerHTML = `<p class="note sv-msg" aria-live="polite">${t}</p>`; };
+  if (!Noyau.synchro.actif()){ dire('Active d\'abord la synchronisation entre appareils (plus bas) : elle fournit la clé GitHub qui permet d\'écrire sur le dépôt.'); return; }
+  const go = async () => {
+    if (b.dataset.modifs === 'verifier') Noyau.modifs.verifier();
+    dire('Envoi…');
+    const r = await Noyau.modifs.envoyer();
+    dire(r === 'envoye' ? 'Envoyé ✓ La tâche « Configuration » répond en 1 à 2 minutes : recharge alors cette page, le résultat s\'affiche ci-dessus.'
+      : r === 'rien' ? 'Rien à envoyer.' : 'Impossible : ' + esc(Noyau.message(r)) + '.');
+  };
+  if (await Noyau.synchro.pret()) return go();
+  zone.innerHTML = `<form class="sv-form" id="mfPin"><label class="note">Ton code<input type="password" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="Code"></label>
+    <div class="actions"><button class="btn main" type="submit">Continuer</button></div><p class="note sv-msg" aria-live="polite"></p></form>`;
+  const f = $('#mfPin'); f.querySelector('input').focus();
+  f.addEventListener('submit', async ev => { ev.preventDefault(); const m = f.querySelector('.sv-msg'), pin = f.querySelector('input').value;
+    if (!(await pinOk(pin))){ m.textContent = 'Code incorrect.'; return; }
+    const o = await Noyau.synchro.ouvrirAvecCode(pin).catch(() => null);
+    if (!o){ m.textContent = o === false ? 'Ton code a changé depuis l\'activation : passe par « Synchroniser maintenant » plus bas.' : 'Impossible d\'ouvrir la synchronisation (GitHub injoignable ?).'; return; }
+    go();
+  });
+});
 /* ---------- Cotes des matchs (tâche « Cotes », The Odds API) : compteur de crédits et clé pour l'actualisation à la main ---------- */
 let COTES = null;
 function cotesPart(){
