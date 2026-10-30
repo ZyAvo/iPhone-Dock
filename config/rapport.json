@@ -1,5 +1,5 @@
 {
- "date": "2026-10-30T17:00:40+00:00",
+ "date": "2026-10-30T17:01:45+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -9,7 +9,7 @@
   },
   "actus": {
    "onglet": "Actus",
-   "coches": 33,
+   "coches": 34,
    "ajouts": 0
   },
   "actus-en": {
@@ -61,6 +61,13 @@
  "tests": [
   {
    "onglet": "Actus",
+   "ligne": 107,
+   "nom": "Le Monde Sciences",
+   "statut": "ok",
+   "message": "20 articles dans le flux"
+  },
+  {
+   "onglet": "Actus",
    "ligne": 117,
    "nom": "Ciel & Espace",
    "statut": "ok",
@@ -100,17 +107,25 @@
   "recues": 2,
   "nouvelles": [
    {
-    "uid": "mvv7xc57-684b5g1c1t",
+    "uid": "mvv7xkux-3h3v366x1w",
+    "statut": "ok",
+    "message": "reporté dans l'onglet Actus, ligne 107 : Oui = Oui",
+    "id": "actus:sciences:le-monde-sciences",
+    "le": "2026-10-30T17:01:45+00:00",
+    "par": "iPhone"
+   },
+   {
+    "uid": "mvv7yoxr-3u1r0t6g6v",
     "statut": "ok",
     "message": "reporté dans l'onglet Accueil, ligne 15 : Oui = Oui",
     "id": "wg:une",
-    "le": "2026-10-30T17:00:40+00:00",
+    "le": "2026-10-30T17:01:45+00:00",
     "par": "iPhone"
    }
   ]
  },
  "resume": {
-  "ok": 3,
+  "ok": 4,
   "warn": 2,
   "ko": 0,
   "info": 0

@@ -199,6 +199,20 @@
    ]
   },
   {
+   "id": "sciences",
+   "label": "Sciences",
+   "feeds": [
+    {
+     "name": "Le Monde Sciences",
+     "color": "#2b2b2b",
+     "url": "https://www.lemonde.fr/sciences/rss_full.xml",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:lemonde.fr&hl=fr&gl=FR&ceid=FR:fr"
+     ]
+    }
+   ]
+  },
+  {
    "id": "espace",
    "label": "Astronomie et espace",
    "feeds": [
