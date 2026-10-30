@@ -53,6 +53,18 @@
    "nom": "EUR / USD",
    "change": true,
    "accueil": true
+  },
+  {
+   "id": "btc",
+   "code": "BTC-EUR",
+   "nom": "Bitcoin",
+   "note": "en euros"
+  },
+  {
+   "id": "eth",
+   "code": "ETH-EUR",
+   "nom": "Ethereum",
+   "note": "en euros"
   }
  ],
  "suivi": [

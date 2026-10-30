@@ -1,5 +1,5 @@
 {
- "date": "2026-10-30T16:20:16+00:00",
+ "date": "2026-10-30T16:40:36+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -19,7 +19,7 @@
   },
   "marches": {
    "onglet": "Marchés",
-   "coches": 12,
+   "coches": 14,
    "ajouts": 0
   },
   "videos": {
@@ -67,6 +67,20 @@
    "message": "20 articles dans le flux"
   },
   {
+   "onglet": "Marchés",
+   "ligne": 63,
+   "nom": "Bitcoin",
+   "statut": "warn",
+   "message": "non testé : site injoignable pour l'instant (HTTPError) — gardé, nouvel essai au prochain dépôt"
+  },
+  {
+   "onglet": "Marchés",
+   "ligne": 64,
+   "nom": "Ethereum",
+   "statut": "warn",
+   "message": "non testé : site injoignable pour l'instant (HTTPError) — gardé, nouvel essai au prochain dépôt"
+  },
+  {
    "onglet": "Sport",
    "ligne": 95,
    "nom": "Pays-Bas · Eredivisie",
@@ -83,21 +97,29 @@
  ],
  "erreurs": [],
  "modifs": {
-  "recues": 1,
+  "recues": 2,
   "nouvelles": [
    {
-    "uid": "mvv6gzrp-5f3y562o6m",
+    "uid": "mvv77fy3-3l2p5s5u64",
     "statut": "ok",
-    "message": "reporté dans l'onglet Accueil, ligne 9 : Oui = Oui",
-    "id": "pg:videos",
-    "le": "2026-10-30T16:20:16+00:00",
+    "message": "reporté dans l'onglet Marchés, ligne 63 : Oui = Oui",
+    "id": "mk:btc",
+    "le": "2026-10-30T16:40:36+00:00",
+    "par": "iPhone"
+   },
+   {
+    "uid": "mvv77i67-6x021u4507",
+    "statut": "ok",
+    "message": "reporté dans l'onglet Marchés, ligne 64 : Oui = Oui",
+    "id": "mk:eth",
+    "le": "2026-10-30T16:40:36+00:00",
     "par": "iPhone"
    }
   ]
  },
  "resume": {
   "ok": 3,
-  "warn": 0,
+  "warn": 2,
   "ko": 0,
   "info": 0
  },
