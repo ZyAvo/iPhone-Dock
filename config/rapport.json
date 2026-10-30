@@ -1,5 +1,5 @@
 {
- "date": "2026-10-30T17:30:42+00:00",
+ "date": "2026-10-30T17:30:59+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -104,22 +104,14 @@
  ],
  "erreurs": [],
  "modifs": {
-  "recues": 2,
+  "recues": 3,
   "nouvelles": [
    {
-    "uid": "mvv8zql7-5i4b2n141s",
-    "statut": "ok",
-    "message": "reporté dans l'onglet Sport, ligne 95 : Oui = vide",
-    "id": "sp:ned.1",
-    "le": "2026-10-30T17:30:42+00:00",
-    "par": "iPhone"
-   },
-   {
-    "uid": "mvv8zru5-5q1s33434w",
+    "uid": "mvv90agz-51283f2j5s",
     "statut": "ok",
     "message": "reporté dans l'onglet Sport, ligne 91 : Oui = Oui",
     "id": "sp:sco.1",
-    "le": "2026-10-30T17:30:42+00:00",
+    "le": "2026-10-30T17:30:59+00:00",
     "par": "iPhone"
    }
   ]
