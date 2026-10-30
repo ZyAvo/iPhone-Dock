@@ -1,5 +1,5 @@
 {
- "date": "2026-10-30T16:40:36+00:00",
+ "date": "2026-10-30T16:40:55+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -97,25 +97,8 @@
  ],
  "erreurs": [],
  "modifs": {
-  "recues": 2,
-  "nouvelles": [
-   {
-    "uid": "mvv77fy3-3l2p5s5u64",
-    "statut": "ok",
-    "message": "reporté dans l'onglet Marchés, ligne 63 : Oui = Oui",
-    "id": "mk:btc",
-    "le": "2026-10-30T16:40:36+00:00",
-    "par": "iPhone"
-   },
-   {
-    "uid": "mvv77i67-6x021u4507",
-    "statut": "ok",
-    "message": "reporté dans l'onglet Marchés, ligne 64 : Oui = Oui",
-    "id": "mk:eth",
-    "le": "2026-10-30T16:40:36+00:00",
-    "par": "iPhone"
-   }
-  ]
+  "recues": 0,
+  "nouvelles": []
  },
  "resume": {
   "ok": 3,
