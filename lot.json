@@ -1,6 +1,6 @@
 {
- "lot": "v32",
- "date": "2026-10-30T08:24:58+00:00",
+ "lot": "v33",
+ "date": "2026-10-30T08:33:09+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/configuration.yml": "8a219c5b",
@@ -12,7 +12,7 @@
   ".github/workflows/videos.yml": "1faae103",
   "actus.html": "e092be64",
   "cachee.html": "a90d0f52",
-  "ecarts.html": "bdba5256",
+  "ecarts.html": "2c018fa0",
   "etat.html": "82dea22a",
   "index.html": "844850d2",
   "invest.html": "5426468b",

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="bdba5256">
+<meta name="mon-ecran-version" content="2c018fa0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Écarts de cotes</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -434,16 +434,30 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .chips .lab{flex:none;align-self:center;font-size:.72rem;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-right:2px;min-width:74px}
 .chip{flex:none;padding:6px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:.8rem;font-weight:500;white-space:nowrap;min-height:34px;color:var(--ink)}
 .chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent;font-weight:600}
-.ec{border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
-.ec-h{display:flex;align-items:flex-start;gap:10px}
-.ec-h .t{flex:1;min-width:0}
-.ec-h b{font-size:.98rem;display:block}
-.ec-h small{display:block;font-size:.74rem;color:var(--ink-soft);margin-top:2px}
-.ec-pct{flex:none;padding:4px 10px;border-radius:999px;font-weight:700;font-size:.9rem;background:var(--accent);color:var(--on-accent);font-variant-numeric:tabular-nums}
-.ec-l{font-size:.86rem;line-height:1.4}
-.ec-l .v{font-weight:700;font-variant-numeric:tabular-nums}
-.ec-sites{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.74rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
-.ec-sites .moi{color:var(--ink);font-weight:700}
+.ec{border-radius:20px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.ec-h{display:flex;align-items:baseline;gap:8px;min-width:0}
+.ec-h b{font-size:.96rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ec-h small{margin-left:auto;flex:none;font-size:.72rem;color:var(--ink-soft);white-space:nowrap}
+.ec-rows{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;column-gap:10px;row-gap:5px;align-items:center;font-variant-numeric:tabular-nums}
+.ec-rows > span{white-space:nowrap}
+.ec-i{font-size:.84rem;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis}
+.ec-c{font-size:.9rem}.ec-c b{font-weight:700}
+.ec-m{font-size:.78rem;color:var(--ink-soft)}
+.ec-p{justify-self:end;padding:2px 9px;border-radius:999px;font-weight:700;font-size:.82rem;background:var(--accent);color:var(--on-accent)}
+.sum-l{display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--ink-soft);margin:-2px 2px 0}
+.sum-l b{color:var(--ink)}
+.icon-btn .nb{position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--accent);color:var(--on-accent);font-size:.66rem;font-weight:700;display:grid;place-items:center}
+#filtreBtn{position:relative}
+.top-actions{display:flex;gap:8px}
+.f-bg{position:fixed;inset:0;z-index:50;background:var(--scrim, rgba(0,0,0,.35));display:flex;align-items:flex-end;justify-content:center}
+.f-bg[hidden]{display:none}
+.f-sheet{width:100%;max-width:520px;border-radius:26px 26px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom, 0px));background:var(--sheet-solid, var(--base));display:flex;flex-direction:column;gap:12px;box-shadow:0 -10px 30px -12px rgba(0,0,0,.5)}
+html.desk .f-bg{align-items:center}
+html.desk .f-sheet{border-radius:26px}
+.f-sheet h2{margin:0;font-size:1.1rem}
+.f-sheet h3{margin:0 0 6px;font-size:.72rem;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em}
+.f-sheet .chips{flex-wrap:wrap;overflow:visible}
+.f-ok{padding:11px;border-radius:14px;background:var(--accent);color:var(--on-accent);font-weight:600}
 .vide{border-radius:20px;padding:16px;font-size:.86rem;line-height:1.45}
 .risque{font-size:.72rem;color:var(--ink-soft);line-height:1.45;text-align:center;margin:6px 0 0}
 .risque a{color:var(--accent)}
@@ -455,11 +469,13 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
   <div class="wrap">
     <div class="top">
       <a class="back" href="sport.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Sport</a>
-      <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+      <span class="top-actions"><button class="icon-btn glass" id="filtreBtn" type="button" aria-label="Filtres"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span class="nb" id="filtreN" hidden></span></button>
+      <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span>
     </div>
     <div class="title-row"><h1>Écarts de cotes</h1><span class="stamp" id="stamp"></span></div>
   </div>
 </header>
+<div class="f-bg" id="fBg" hidden><div class="f-sheet" role="dialog" aria-modal="true" aria-labelledby="fTitre" id="fSheet"></div></div>
 <main><div class="wrap" id="out"><div class="sum glass none"><span class="lamp"></span><div><b>Chargement…</b></div></div></div></main>
 
 <script>
@@ -517,39 +533,53 @@ function ecarts(liste){
   return {lignes:out.sort((a, b) => b.e - a.e), compares};
 }
 const chip = (k, v, t) => `<button class="chip" type="button" data-f="${k}" data-v="${esc(v)}" aria-pressed="${F[k] === v}">${esc(t)}</button>`;
+const DEF = {releve:'dernier', periode:'avenir', lg:'toutes'};
+const nFiltres = () => Object.keys(DEF).filter(k => F[k] !== DEF[k]).length;
+let LGS = [];
+function feuille(){
+  $('#fSheet').innerHTML = `<h2 id="fTitre">Filtres</h2>
+    <div><h3>Relevés</h3><div class="chips">${chip('releve', 'dernier', 'Le plus récent')}${chip('releve', 'tous', 'Tous')}</div></div>
+    <div><h3>Matchs</h3><div class="chips">${chip('periode', 'avenir', 'À venir et en cours')}${chip('periode', 'tout', '3 derniers jours')}</div></div>
+    ${LGS.length > 1 ? `<div><h3>Compétition</h3><div class="chips">${chip('lg', 'toutes', 'Toutes')}${LGS.map(l => chip('lg', l, nomLg(l))).join('')}</div></div>` : ''}
+    <button type="button" class="f-ok" data-fermer>Voir les écarts</button>`;
+}
+const court = n => String(n || '').replace(/^(AS|AC|OGC|RC|FC|SC|Stade|Olympique) /, '').replace(/ (AC|FC|SC|CF)$/, '');
 function render(){
   const now = Date.now();
   let L = matchs().filter(m => m.releves.length && (F.periode === 'tout' || (m.t || now) > now - 2 * 3600e3));
-  const lgs = [...new Set(L.map(m => m.lg).filter(Boolean))];
-  if (F.lg !== 'toutes' && !lgs.includes(F.lg)) F.lg = 'toutes';
+  LGS = [...new Set(L.map(m => m.lg).filter(Boolean))];
+  if (F.lg !== 'toutes' && !LGS.includes(F.lg)) F.lg = 'toutes';
   if (F.lg !== 'toutes') L = L.filter(m => m.lg === F.lg);
   const {lignes, compares} = ecarts(L);
   const dernier = Math.max(0, ...matchs().flatMap(m => m.releves.map(r => r.at)));
-  const issue = (m, k) => k === 'd' ? 'Match nul' : `Victoire ${m.eq ? (k === 'h' ? m.eq[0] : m.eq[1]) : (k === 'h' ? 'domicile' : 'extérieur')}`;
-  const cartes = lignes.slice(0, 60).map(x => {
-    const titre = x.m.eq ? `${x.m.eq[0]} – ${x.m.eq[1]}` : `Match ${x.m.id}`;
-    const autres = x.vals.length - 1;
-    return `<article class="ec glass"><div class="ec-h"><span class="t"><b>${esc(titre)}</b><small>${esc(nomLg(x.m.lg))}${x.m.t ? ' · ' + esc(quand(x.m.t)) : ''} · relevé ${esc(PHASES[x.r.phase] || x.r.phase || '')} (${heure(x.r.at)})</small></span><span class="ec-pct">${pct(x.e)}</span></div>
-      <div class="ec-l">${esc(issue(x.m, x.k))} : <span class="v">${cote(x.v)}</span> chez <b>${esc(SITES_NOMS[x.s] || x.s)}</b>, contre ${cote(x.ref)} en ${REF === 'mediane' ? 'médiane' : 'moyenne'} des ${autres} autres sites</div>
-      <div class="ec-sites">${x.vals.sort((a, b) => b[1] - a[1]).map(([s, v]) => `<span class="${s === x.s ? 'moi' : ''}">${esc(SITES_NOMS[s] || s)} ${cote(v)}</span>`).join('')}</div></article>`;
+  // une tuile par match (rangées par leur plus fort écart), une ligne par écart
+  const parMatch = new Map();
+  for (const x of lignes){ if (!parMatch.has(x.m.id)) parMatch.set(x.m.id, []); parMatch.get(x.m.id).push(x); }
+  const issue = (m, k) => k === 'd' ? 'Nul' : m.eq ? court(k === 'h' ? m.eq[0] : m.eq[1]) : (k === 'h' ? '1' : '2');
+  const cartes = [...parMatch.values()].slice(0, 30).map(l => {
+    const m = l[0].m, r = l[0].r;
+    const titre = m.eq ? `${court(m.eq[0])} – ${court(m.eq[1])}` : `Match ${m.id}`;
+    const meta = `${esc(nomLg(m.lg))}${m.t ? ' · ' + heure(m.t) : ''}${F.releve === 'dernier' ? ` · ${esc(PHASES[r.phase] || r.phase || '')}` : ''}`;
+    return `<article class="ec glass"><div class="ec-h"><b>${esc(titre)}</b><small>${meta}</small></div>
+      <div class="ec-rows">${l.map(x => `<span class="ec-i">${esc(issue(x.m, x.k))}${F.releve === 'tous' ? ` <small>· ${esc(PHASES[x.r.phase] || '')}</small>` : ''}</span>
+        <span class="ec-c">${esc(SITES_NOMS[x.s] || x.s)} <b>${cote(x.v)}</b></span><span class="ec-m">moy. ${cote(x.ref)}</span><span class="ec-p">${pct(x.e)}</span>`).join('')}</div></article>`;
   }).join('');
+  const n = nFiltres(); $('#filtreN').hidden = !n; $('#filtreN').textContent = n;
   $('#out').innerHTML = `
-    <div class="sum glass ${lignes.length ? 'ok' : 'none'}"><span class="lamp"></span><div><b>${lignes.length ? `${lignes.length} écart${lignes.length > 1 ? 's' : ''} d'au moins ${pct(SEUIL).slice(1)}` : 'Aucun écart notable'}</b>
-      <p>${compares} match${compares > 1 ? 's' : ''} comparé${compares > 1 ? 's' : ''} · cote d'un site comparée à la ${REF === 'mediane' ? 'médiane' : 'moyenne'} des autres${dernier ? ` · dernier relevé ${ago(dernier)}` : ''}</p></div></div>
-    <div class="filtres">
-      <div class="chips" role="group" aria-label="Relevés"><span class="lab">Relevés</span>${chip('releve', 'dernier', 'Le plus récent')}${chip('releve', 'tous', 'Tous')}</div>
-      <div class="chips" role="group" aria-label="Matchs"><span class="lab">Matchs</span>${chip('periode', 'avenir', 'À venir et en cours')}${chip('periode', 'tout', '3 derniers jours')}</div>
-      ${lgs.length > 1 ? `<div class="chips" role="group" aria-label="Compétition"><span class="lab">Compét.</span>${chip('lg', 'toutes', 'Toutes')}${lgs.map(l => chip('lg', l, nomLg(l))).join('')}</div>` : ''}
-    </div>
-    ${cartes || `<div class="vide glass">${COTES ? `Aucun site ne s'écarte d'au moins ${pct(SEUIL).slice(1)} des autres sur ${F.releve === 'dernier' ? 'les derniers relevés' : 'les relevés'} de ${F.periode === 'tout' ? 'ces 3 derniers jours' : 'ces matchs'}.` : 'Pas encore de cotes relevées : la tâche « Cotes » relève les matchs le matin, avant le coup d’envoi et à la mi-temps.'}</div>`}
-    <p class="risque">Un écart vient souvent d'un site qui a mis à jour sa cote plus tard que les autres : il peut disparaître en quelques minutes. Seuil et méthode : classeur, onglet Cotes.<br>
-      Les jeux d'argent comportent des risques : endettement, dépendance… Appelez le 09 74 75 13 13 (appel non surtaxé) ou rendez-vous sur <a href="https://www.joueurs-info-service.fr/" target="_blank" rel="noopener">joueurs-info-service.fr</a>.</p>`;
+    <p class="sum-l"><span><b>${lignes.length}</b> écart${lignes.length > 1 ? 's' : ''} ≥ ${pct(SEUIL).slice(1)} · ${compares} match${compares > 1 ? 's' : ''}${dernier ? ` · relevé ${ago(dernier)}` : ''}</span></p>
+    ${cartes || `<div class="vide glass">${COTES ? `Aucun site ne s'écarte d'au moins ${pct(SEUIL).slice(1)} des autres${n ? ' avec ces filtres' : ''}.` : 'Pas encore de cotes relevées : la tâche « Cotes » relève les matchs le matin, avant le coup d’envoi et à la mi-temps.'}</div>`}
+    <p class="risque">Écart = cote du site comparée à la ${REF === 'mediane' ? 'médiane' : 'moyenne'} des autres sites ; souvent un site en retard de mise à jour.<br>
+      Jouer comporte des risques : 09 74 75 13 13 (appel non surtaxé) · <a href="https://www.joueurs-info-service.fr/" target="_blank" rel="noopener">joueurs-info-service.fr</a></p>`;
   $('#stamp').textContent = '';
+  if (!$('#fBg').hidden) feuille();
 }
 document.addEventListener('click', e => {
+  if (e.target === $('#fBg') || e.target.closest('[data-fermer]')){ $('#fBg').hidden = true; return; }
   const b = e.target.closest('[data-f]'); if (!b) return;
   F[b.dataset.f] = b.dataset.v; LS.set('ecarts:filtres', F); render();
 });
+$('#filtreBtn').addEventListener('click', () => { feuille(); $('#fBg').hidden = false; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#fBg').hidden = true; });
 async function load(){
   $('#refreshBtn').classList.add('spin'); chargeA = Date.now();
   try{ const r = await fetch('donnees/cotes/cotes.json', {cache:'no-cache'}); COTES = r.ok ? await r.json() : null; }catch{ COTES = null; }
