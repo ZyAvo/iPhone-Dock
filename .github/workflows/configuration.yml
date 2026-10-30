@@ -1,4 +1,4 @@
-# mon-ecran-version: 20cb6e27
+# mon-ecran-version: 8a219c5b
 # Configuration du dock : dépose « configuration.xlsx » à la racine du dépôt (Add file → Upload files).
 # Cette tâche lit le classeur, écrit les réglages dans config/*.json, teste les nouveautés cochées et les
 # « Mes ajouts », range une copie du classeur avec la colonne « Résultat » remplie, puis relance la publication.
@@ -67,4 +67,13 @@ jobs:
         if: steps.enreg.outputs.change == '1'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run publication.yml --ref "${GITHUB_REF_NAME}"
+        run: |
+          # réglages changés → les tâches concernées vont chercher les nouvelles données, puis publication
+          ch=$(git diff --name-only HEAD~1 HEAD || true)
+          lance(){ gh workflow run "$1" --ref "${GITHUB_REF_NAME}" && echo "Lancé : $1"; }
+          echo "$ch" | grep -qE '^config/(sport|tv)\.json$|^config/chaines-tv\.xml$' && lance programme-tv.yml || true
+          echo "$ch" | grep -qE '^config/actus\.json$' && lance actus.yml || true
+          echo "$ch" | grep -qE '^config/marches\.json$' && lance marches.yml || true
+          echo "$ch" | grep -qE '^config/videos\.json$' && lance videos.yml || true
+          echo "$ch" | grep -qE '^config/cotes\.json$' && lance cotes.yml || true
+          lance publication.yml

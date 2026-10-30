@@ -1,4 +1,4 @@
-# mon-ecran-version: 8cc151d3
+# mon-ecran-version: 972cb9b5
 name: Programme TV sport
 
 # Toutes les 2 heures :
@@ -51,7 +51,10 @@ jobs:
         if: github.event_name != 'push'
         working-directory: epg
         continue-on-error: true
-        run: npm run grab --- --channels=../outils/chaines-tv.xml --output=../guide-tv.xml --days=7 --maxConnections=3 --timeout=30000 2>&1 | tee ../grab.log
+        run: |
+          # chaînes choisies dans le classeur (config/chaines-tv.xml), sinon la liste d'origine
+          ch=../config/chaines-tv.xml; [ -s "$ch" ] || ch=../outils/chaines-tv.xml
+          npm run grab --- --channels=$ch --output=../guide-tv.xml --days=7 --maxConnections=3 --timeout=30000 2>&1 | tee ../grab.log
 
       - name: Tri des programmes de sport
         if: github.event_name != 'push'
