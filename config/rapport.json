@@ -1,5 +1,5 @@
 {
- "date": "2026-10-30T17:03:10+00:00",
+ "date": "2026-10-30T17:30:42+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -89,10 +89,10 @@
   },
   {
    "onglet": "Sport",
-   "ligne": 95,
-   "nom": "Pays-Bas · Eredivisie",
+   "ligne": 91,
+   "nom": "Écosse · Premiership",
    "statut": "ok",
-   "message": "ESPN répond (soccer) Dutch Eredivisie"
+   "message": "ESPN répond (soccer) Scottish Premiership"
   },
   {
    "onglet": "YouTube",
@@ -104,8 +104,25 @@
  ],
  "erreurs": [],
  "modifs": {
-  "recues": 1,
-  "nouvelles": []
+  "recues": 2,
+  "nouvelles": [
+   {
+    "uid": "mvv8zql7-5i4b2n141s",
+    "statut": "ok",
+    "message": "reporté dans l'onglet Sport, ligne 95 : Oui = vide",
+    "id": "sp:ned.1",
+    "le": "2026-10-30T17:30:42+00:00",
+    "par": "iPhone"
+   },
+   {
+    "uid": "mvv8zru5-5q1s33434w",
+    "statut": "ok",
+    "message": "reporté dans l'onglet Sport, ligne 91 : Oui = Oui",
+    "id": "sp:sco.1",
+    "le": "2026-10-30T17:30:42+00:00",
+    "par": "iPhone"
+   }
+  ]
  },
  "resume": {
   "ok": 4,
