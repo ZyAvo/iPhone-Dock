@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="91e081da">
+<meta name="mon-ecran-version" content="ad10303c">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Écarts de cotes</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -495,6 +495,13 @@ const nomLg = id => LIGUES[id] || NOMS_LG[id] || id;
 const cote = v => Number(v).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2});
 const pct = v => (v > 0 ? '+' : '') + (v * 100).toLocaleString('fr-FR', {maximumFractionDigits:1}) + ' %';
 const quand = t => new Date(t).toLocaleString('fr-FR', {weekday:'short', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}).replace('.', '');
+/* jour et heure du match : « auj. 19:00 », « demain 20:45 », « dim. 01/11 · 15:00 » (les relevés à la main couvrent toute la compétition, pas seulement aujourd'hui) */
+const jourCle = t => new Date(t).toLocaleDateString('fr-CA');
+function jourHeure(t){
+  const d = new Date(t), j = jourCle(t), auj = jourCle(Date.now()), dem = jourCle(Date.now() + 864e5), hier = jourCle(Date.now() - 864e5);
+  const jour = j === auj ? 'auj.' : j === dem ? 'demain' : j === hier ? 'hier' : d.toLocaleDateString('fr-FR', {weekday:'short', day:'2-digit', month:'2-digit'}).replace('.', '');
+  return `${jour} ${heure(t)}`;
+}
 const heure = t => new Date(t).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
 const ago = t => { const m = Math.round((Date.now() - t) / 60000); if (m < 60) return `il y a ${Math.max(1, m)} min`; const h = Math.round(m / 60); return h < 48 ? `il y a ${h} h` : `il y a ${Math.round(h / 24)} j`; };
 const moyenne = l => l.reduce((a, b) => a + b, 0) / l.length;
@@ -540,14 +547,15 @@ let LGS = [];
 function feuille(){
   $('#fSheet').innerHTML = `<h2 id="fTitre">Filtres</h2>
     <div><h3>Relevés</h3><div class="chips">${chip('releve', 'dernier', 'Le plus récent')}${chip('releve', 'tous', 'Tous')}</div></div>
-    <div><h3>Matchs</h3><div class="chips">${chip('periode', 'avenir', 'À venir et en cours')}${chip('periode', 'tout', '3 derniers jours')}</div></div>
+    <div><h3>Matchs</h3><div class="chips">${chip('periode', 'proches', 'Aujourd\'hui et demain')}${chip('periode', 'avenir', 'À venir et en cours')}${chip('periode', 'tout', 'Avec ceux des 3 derniers jours')}</div></div>
     ${LGS.length > 1 ? `<div><h3>Compétition</h3><div class="chips">${chip('lg', 'toutes', 'Toutes')}${LGS.map(l => chip('lg', l, nomLg(l))).join('')}</div></div>` : ''}
     <button type="button" class="f-ok" data-fermer>Voir les écarts</button>`;
 }
 const court = n => String(n || '').replace(/^(AS|AC|OGC|RC|FC|SC|Stade|Olympique) /, '').replace(/ (AC|FC|SC|CF)$/, '');
 function render(){
   const now = Date.now();
-  let L = matchs().filter(m => m.releves.length && (F.periode === 'tout' || (m.t || now) > now - 2 * 3600e3));
+  const finDemain = new Date(jourCle(now + 2 * 864e5) + 'T00:00').getTime();
+  let L = matchs().filter(m => m.releves.length && (F.periode === 'tout' || (m.t || now) > now - 2 * 3600e3) && (F.periode !== 'proches' || (m.t || now) < finDemain));
   LGS = [...new Set(L.map(m => m.lg).filter(Boolean))];
   if (F.lg !== 'toutes' && !LGS.includes(F.lg)) F.lg = 'toutes';
   if (F.lg !== 'toutes') L = L.filter(m => m.lg === F.lg);
@@ -560,7 +568,7 @@ function render(){
   const cartes = [...parMatch.values()].slice(0, 30).map(l => {
     const m = l[0].m, r = l[0].r;
     const titre = m.eq ? `${court(m.eq[0])} – ${court(m.eq[1])}` : `Match ${m.id}`;
-    const meta = `${esc(nomLg(m.lg))}${m.t ? ' · ' + heure(m.t) : ''}${F.releve === 'dernier' ? ` · ${esc(PHASES[r.phase] || r.phase || '')}` : ''}`;
+    const meta = `${esc(nomLg(m.lg))}${m.t ? ' · ' + jourHeure(m.t) : ''}${F.releve === 'dernier' ? ` · ${esc(PHASES[r.phase] || r.phase || '')}` : ''}`;
     return `<article class="ec glass"><div class="ec-h"><b>${esc(titre)}</b><small>${meta}</small></div>
       <div class="ec-rows">${l.map(x => `<span class="ec-i">${esc(issue(x.m, x.k))}${F.releve === 'tous' ? ` <small>· ${esc(PHASES[x.r.phase] || '')}</small>` : ''}</span>
         <span class="ec-c">${esc(SITES_NOMS[x.s] || x.s)} <b>${cote(x.v)}</b></span><span class="ec-m">moy. ${cote(x.ref)}</span><span class="ec-p">${pct(x.e)}</span>`).join('')}</div></article>`;

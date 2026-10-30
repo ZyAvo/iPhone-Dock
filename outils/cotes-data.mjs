@@ -1,4 +1,4 @@
-// mon-ecran-version: 2accd45c
+// mon-ecran-version: 40e3a71e
 // Cotes des matchs (lancé toutes les 10 min par la tâche GitHub « Cotes », avec le secret ODDS_API_KEY de The Odds API).
 // Plan (option 1) pour les 5 grands championnats et les 3 coupes d'Europe, cote 1 / N / 2 des sites français :
 //   - un relevé le matin (à partir de 8 h) pour chaque compétition qui joue ce jour-là ;
@@ -70,7 +70,8 @@ matchs.forEach(m => { (parComp[m.league] = parComp[m.league] || []).push(m); });
 for (const [lg, ms] of Object.entries(parComp)){
   const auj = ms.filter(m => jourDe(m.t) === jourDe(NOW));
   const kMatin = `${lg}|${jourDe(NOW)}|matin`;
-  if (auj.length && heureParis >= 8 && !st.fait[kMatin] && auj.some(m => m.t > NOW + 20 * MIN)) dus.push({lg, phase:'matin', k:kMatin, ids:auj.map(m => m.id)});
+  // relevé du matin : seulement les matchs pas encore commencés (une tâche partie en retard ne doit pas noter des cotes en direct comme « du matin »)
+  if (auj.length && heureParis >= 8 && !st.fait[kMatin] && auj.some(m => m.t > NOW + 20 * MIN)) dus.push({lg, phase:'matin', k:kMatin, ids:auj.filter(m => m.t > NOW).map(m => m.id)});
   for (const t of [...new Set(ms.map(m => m.t))]){
     const ids = ms.filter(m => m.t === t).map(m => m.id);
     const kAv = `${lg}|${t}|avant`, kMt = `${lg}|${t}|mi-temps`;

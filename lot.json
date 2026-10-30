@@ -1,6 +1,6 @@
 {
- "lot": "v40",
- "date": "2026-10-30T17:01:26+00:00",
+ "lot": "v41",
+ "date": "2026-10-30T18:30:02+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/configuration.yml": "5c3df7af",
@@ -12,7 +12,7 @@
   ".github/workflows/videos.yml": "1faae103",
   "actus.html": "f7e909a2",
   "cachee.html": "f0d459e2",
-  "ecarts.html": "91e081da",
+  "ecarts.html": "ad10303c",
   "etat.html": "683bd036",
   "index.html": "b38fb0a1",
   "invest.html": "190ee583",
@@ -20,7 +20,7 @@
   "outils/actus-data.mjs": "5a0b9bd0",
   "outils/config-lire.mjs": "0bd1f840",
   "outils/configuration.py": "ec3bb1d1",
-  "outils/cotes-data.mjs": "2accd45c",
+  "outils/cotes-data.mjs": "40e3a71e",
   "outils/dev/checkjs.py": "5f6b32db",
   "outils/dev/classeur/cat_actus.py": "63822f0f",
   "outils/dev/classeur/cat_autres.py": "20b346a9",
