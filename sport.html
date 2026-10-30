@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="76c05a60">
+<meta name="mon-ecran-version" content="109f0971">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -287,6 +287,16 @@ section.comp{display:flex;flex-direction:column;gap:8px}
 @media (max-width:360px){ .tline{margin-left:-60px;column-gap:16px} .cotes{margin-left:-60px} }
 .more .src{margin-top:4px;font-size:.78rem;color:var(--accent);font-weight:600}
 .more .none{color:var(--ink-faint);font-size:.8rem}
+.more-h{display:flex;align-items:center;gap:8px;min-height:34px;margin:-4px 0 -2px}
+.more-h .none{flex:1;min-width:0}
+.more-ic{margin-left:auto;display:flex;gap:6px;flex:none}
+.tv .more-ic{align-self:center}
+.sheet-ic{display:flex;justify-content:center;padding:6px 0 2px}
+.sheet-ic .more-ic{margin:0;gap:12px}
+.sheet-ic .ic-btn{width:42px;height:42px}
+.sheet-ic .ic-btn svg{width:21px;height:21px}
+.ic-btn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--accent);background:var(--card);border:1px solid var(--line)}
+.ic-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
 .empty{text-align:center;color:var(--ink-soft);font-size:.9rem;padding:48px 12px;line-height:1.5}
 .skeleton{height:84px;border-radius:22px;opacity:.6}
@@ -707,7 +717,8 @@ details.rk li em{grid-row:1;grid-column:3;font-style:normal;color:var(--ink-soft
     <div class="top">
       <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
       <span class="top-actions"><button class="icon-btn glass health" id="healthBtn" type="button" aria-label="État des données"><svg viewBox="0 0 24 24" id="healthIc"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2M12 7.8v.2"/></svg><b id="healthN" hidden></b></button>
-      <button class="icon-btn glass" id="compsBtn" type="button" aria-label="Classements et calendriers"><svg viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 3.5M17 6h2.5a2.5 2.5 0 0 1-2.6 3.5M12 13v3.5M8.5 20h7M9.5 20l.5-3.5h4l.5 3.5"/></svg></button>
+      <button class="icon-btn glass" id="tablesBtn" type="button" aria-label="Classements"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5h18M4.5 20.5v-6h5v6M9.5 20.5V9h5v11.5M14.5 20.5v-8h5v8"/><path d="M12 3.2l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2-1.45-1.4 2-.3z"/></svg></button>
+      <button class="icon-btn glass" id="calsBtn" type="button" aria-label="Calendriers"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 14h2M11 14h2M14.5 14h2M7.5 17.2h2M11 17.2h2"/></svg></button>
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span>
     </div>
     <div class="title-row"><h1>Sport</h1><span class="live-count" id="liveCount" hidden><span class="pulse"></span><span id="liveN"></span></span>
@@ -836,7 +847,7 @@ const LEAGUES = CFG('sport.leagues', [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ]);
-const VERSION = '2026-10-30.1';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-30.3';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -1333,9 +1344,13 @@ function tvHTML(m){
   if (isUS(m) && m.state !== 'pre') out.push(`<button type="button" class="bx-link">Feuille de match ›</button>`);
   return out.length ? `<div class="tv">${out.join('')}</div>` : '';
 }
-function compLinks(m){
-  return `<div class="more-links"><button type="button" class="mini" data-open="table" data-cl="${esc(m.league)}">Classement</button>
-    <button type="button" class="mini" data-open="cal" data-cl="${esc(m.league)}" data-t="${m.t}">${LBY[m.league].rounds ? (m.league === 'nfl' ? 'Semaine' : 'Journée') + ' et calendrier' : 'Calendrier'}</button></div>`;
+const ICO_CLASSEMENT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5h18M4.5 20.5v-6h5v6M9.5 20.5V9h5v11.5M14.5 20.5v-8h5v8"/><path d="M12 3.2l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2-1.45-1.4 2-.3z"/></svg>', ICO_CALENDRIER = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 14h2M11 14h2M14.5 14h2M7.5 17.2h2M11 17.2h2"/></svg>';
+const ICO_ESPN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v4.5A1.5 1.5 0 0 1 16.5 20h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/></svg>';
+function compIcons(m){
+  const L = LBY[m.league], cal = L.sport === 'racing' ? 'Calendrier' : L.rounds ? (m.league === 'nfl' ? 'Semaine et calendrier' : 'Journée et calendrier') : 'Calendrier';
+  const espn = m.link ? `<a class="ic-btn" href="${esc(m.link)}" target="_blank" rel="noopener" aria-label="Voir le match sur ESPN" title="Voir sur ESPN">${ICO_ESPN}</a>` : '';
+  return `<span class="more-ic"><button type="button" class="ic-btn" data-open="table" data-cl="${esc(m.league)}" aria-label="Classement · ${esc(L.name)}" title="Classement">${ICO_CLASSEMENT}</button>`
+    + `<button type="button" class="ic-btn" data-open="cal" data-cl="${esc(m.league)}" data-t="${m.t}" aria-label="${cal} · ${esc(L.name)}" title="${cal}">${ICO_CALENDRIER}</button>${espn}</span>`;
 }
 const KIND = {goal:['svg', 'But'], penmiss:['svg', 'Penalty manqué'], try:['svg', 'Essai'], conv:['svg', 'Transformation'], pen:['svg', 'Pénalité'],
               drop:['svg', 'Drop'], yellow:['yellow', 'Carton jaune'], red:['red', 'Carton rouge']};
@@ -1381,9 +1396,8 @@ function moreHTML(m){
   const loading = rugby && m.state !== 'pre' && open.has(m.id) && !full;
   const none = m.state === 'pre' ? 'Le match n’a pas commencé.' : loading ? 'Chargement du détail…' : (L.sport === 'soccer' ? 'Aucun but ni carton rouge.' : rugby ? 'Pas de détail disponible pour ce match.' : 'Pas de détail disponible pour ce sport.');
   const diag = !evs && full && full.diag ? `<span class="diag">Infos reçues d'ESPN : ${esc(full.diag)}. <a href="${esc(full.url)}" target="_blank" rel="noopener">Voir la fiche brute</a></span>` : '';
-  return `<div class="more" ${open.has(m.id) ? '' : 'hidden'}>${tally}${evs || `<span class="none">${none}</span>`}${diag}
-    ${cotesHTML(m)}${compLinks(m)}
-    ${m.link ? `<a class="src" href="${esc(m.link)}" target="_blank" rel="noopener">Voir le match sur ESPN</a>` : ''}</div>`;
+  return `<div class="more" ${open.has(m.id) ? '' : 'hidden'}><div class="more-h">${evs ? '' : `<span class="none">${none}</span>`}${compIcons(m)}</div>${tally}${evs}${diag}
+    ${cotesHTML(m)}</div>`;
 }
 /* ---------- Cotes 1 / N / 2 des sites français (tâche GitHub « Cotes », The Odds API, 500 crédits par mois) ---------- */
 const COTES_LG = (c => c ? Object.keys(c) : ['fra.1', 'eng.1', 'esp.1', 'ita.1', 'ger.1', 'uefa.champions', 'uefa.europa', 'uefa.europa.conf'])(CFG('cotes.comps', null));   // compétitions relevées (classeur, onglet Cotes)
@@ -1774,9 +1788,7 @@ function sessionHTML(m, showComp){
   return `<li class="race glass${st === 'in' ? ' is-live' : st === 'post' ? ' is-post' : ''}${isFav(m) ? ' is-fav' : ''}" data-id="${esc(m.id)}">
     ${showComp ? `<div class="ctag">${compBadge(L)}<span>${esc(L.name)} · ${esc(m.gp.flag)} ${esc(m.gp.name)}</span></div>` : ''}
     <div class="rrow">${status}<span class="ses"><b title="${esc(m.label)}">${esc(sesCourt(m.label))}</b>${podium || `<small>${esc(m.gp.flag)} ${esc(m.gp.name)} · ${esc(m.gp.circuit)}</small>`}</span></div>
-    ${tv || live ? `<div class="tv">${tv}${live}</div>` : ''}${more}
-    <div class="more-links"><button type="button" class="mini" data-open="table" data-cl="${esc(L.id)}">Classement</button>
-      <button type="button" class="mini" data-open="cal" data-cl="${esc(L.id)}" data-t="${m.t}">Calendrier</button></div></li>`;
+    <div class="tv">${tv}${live}${compIcons(m)}</div>${more}</li>`;
 }
 const itemHTML = (m, showComp) => LBY[m.league].sport === 'racing' ? sessionHTML(m, showComp) : matchHTML(m, showComp);
 function raceCalHTML(L, c){
@@ -2068,8 +2080,7 @@ function renderBox(){
           ${ok ? `<div class="bar"><i style="width:${(a / (a + o) * 100).toFixed(1)}%"></i></div>` : ''}</div>`; }).join('')}
     </div>`;
   }
-  h += compLinks(m);
-  if (m.link) h += `<a class="src bx-src" href="${esc(m.link)}" target="_blank" rel="noopener">Voir le match sur ESPN</a>`;
+  h += `<div class="sheet-ic">${compIcons(m)}</div>`;
   $('#sheetBody').innerHTML = h;
 }
 
@@ -2150,8 +2161,8 @@ function favCalHTML(){
   return Object.values(days).map(ms => `<h3 class="bx-h">${new Date(ms[0].t).toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'})}</h3>
     <ul class="list">${ms.map(m => itemHTML(m, true)).join('')}</ul>`).join('') + `<p class="hint">Sur les 15 prochains jours (données préparées). Pour toute une saison, ouvre le calendrier de la compétition.</p>`;
 }
-function openCompList(){
-  csheet = {mode:'list', focus:document.activeElement};
+function openCompList(tab = 'table'){
+  csheet = {mode:'list', tab, focus:document.activeElement};      // la compétition choisie s'ouvre sur le classement ou le calendrier
   showCsheet();
 }
 function openComp(L, fromList = false, tab = 'table', at = null){
@@ -2747,7 +2758,7 @@ function renderCsheet(){
   }
   if (c.mode === 'list'){
     back.hidden = true;
-    $('#csheetTitle').innerHTML = '<span>Compétitions</span>';
+    $('#csheetTitle').innerHTML = `<span>${c.tab === 'cal' ? 'Calendriers' : 'Classements'}</span>`;
     $('#csheetBody').innerHTML = REGIONS.map(g => {
       const idle = L => L.seasonal && !DATA[L.id];
       const ls = LEAGUES.filter(L => L.region === g.id).sort((a, b) => idle(a) - idle(b));
@@ -2769,7 +2780,8 @@ function renderCsheet(){
   $('#csheetBody').innerHTML = h;
 }
 
-$('#compsBtn').addEventListener('click', openCompList);
+$('#tablesBtn').addEventListener('click', () => openCompList('table'));
+$('#calsBtn').addEventListener('click', () => openCompList('cal'));
 $('#csheetClose').addEventListener('click', closeComp);
 $('#csheetBack').addEventListener('click', () => { const f = csheet && csheet.focus; csheet = {mode:'list', focus:f}; renderCsheet(); });
 $('#csheet').addEventListener('click', e => { if (e.target.id === 'csheet') closeComp(); });
@@ -2782,7 +2794,7 @@ $('#csheetBody').addEventListener('click', e => {
   const ft = e.target.closest('[data-favt]'); if (ft){ toggleTeamFav(ft.dataset.favt); renderCsheet(); render(); return; }
   if (c.mode === 'favcal'){ matchClick(e, []); return; }
   const it = e.target.closest('[data-league]');
-  if (it){ openComp(LBY[it.dataset.league], true); return; }
+  if (it){ const L = LBY[it.dataset.league], t = c.tab || 'table'; openComp(L, true, t); return; }
   const tab = e.target.closest('[data-tab]');
   if (tab){ c.tab = tab.dataset.tab; if (c.tab === 'cal' && c.cal.events === null) loadCal(); else renderCsheet(); return; }
   const vw = e.target.closest('[data-view]');
