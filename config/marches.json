@@ -12,6 +12,11 @@
    "nom": "Euro Stoxx 50"
   },
   {
+   "id": "dax",
+   "code": "^GDAXI",
+   "nom": "DAX (Allemagne)"
+  },
+  {
    "id": "sp500",
    "code": "^GSPC",
    "nom": "S&P 500",
