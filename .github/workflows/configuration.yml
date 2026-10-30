@@ -1,0 +1,70 @@
+# mon-ecran-version: 20cb6e27
+# Configuration du dock : dépose « configuration.xlsx » à la racine du dépôt (Add file → Upload files).
+# Cette tâche lit le classeur, écrit les réglages dans config/*.json, teste les nouveautés cochées et les
+# « Mes ajouts », range une copie du classeur avec la colonne « Résultat » remplie, puis relance la publication.
+# Le résumé s'affiche dans la page État (partie « Configuration »).
+name: Configuration
+
+on:
+  push:
+    paths: ['configuration.xlsx']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: configuration
+  cancel-in-progress: false
+
+jobs:
+  configuration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Outil de lecture Excel
+        run: pip install --quiet openpyxl
+
+      - name: Lecture du classeur et tests
+        env:
+          TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: |
+          if [ ! -f configuration.xlsx ]; then echo "Pas de configuration.xlsx à la racine du dépôt." | tee -a "$GITHUB_STEP_SUMMARY"; exit 1; fi
+          python3 outils/configuration.py configuration.xlsx --sortie config --tester | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Résumé
+        run: |
+          python3 - >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json
+          r = json.load(open('config/rapport.json')); s = {'ok': '✅', 'warn': '⚠️', 'ko': '❌', 'info': 'ℹ️'}
+          print('\n## Configuration\n')
+          for m in r['modules'].values(): print(f"- {m['onglet']} : {m['coches']} éléments choisis" + (f", {m['ajouts']} ajout(s)" if m['ajouts'] else ''))
+          if r['tests']:
+              print('\n| | Élément | Résultat |\n|---|---|---|')
+              for t in sorted(r['tests'], key=lambda t: ['ko', 'warn', 'info', 'ok'].index(t['statut'])):
+                  print(f"| {s[t['statut']]} | {t['onglet']} · {t['nom']} | {t['message']} |")
+          PY
+
+      - name: Enregistrement
+        id: enreg
+        run: |
+          git config user.name "mon-ecran"
+          git config user.email "mon-ecran@users.noreply.github.com"
+          git add config
+          if git diff --cached --quiet; then echo "change=0" >> "$GITHUB_OUTPUT"; echo "Réglages inchangés."
+          else git commit -q -m "Configuration depuis le classeur" && git push -q && echo "change=1" >> "$GITHUB_OUTPUT"; fi
+
+      # un enregistrement fait par une tâche ne relance pas les autres : on lance la publication nous-mêmes
+      - name: Publication
+        if: steps.enreg.outputs.change == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run publication.yml --ref "${GITHUB_REF_NAME}"
