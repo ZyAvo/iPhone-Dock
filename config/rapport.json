@@ -1,5 +1,5 @@
 {
- "date": "2026-10-30T15:00:21+00:00",
+ "date": "2026-10-30T15:01:48+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -86,11 +86,11 @@
   "recues": 1,
   "nouvelles": [
    {
-    "uid": "mvv3mnif-3t15200m5l",
+    "uid": "mvv3oi7i-0i0q443a6e",
     "statut": "ok",
     "message": "liaison appli → classeur vérifiée (rien de modifié)",
     "id": null,
-    "le": "2026-10-30T15:00:21+00:00",
+    "le": "2026-10-30T15:01:48+00:00",
     "par": "iPhone"
    }
   ]
