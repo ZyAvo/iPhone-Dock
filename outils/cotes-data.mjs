@@ -1,4 +1,4 @@
-// mon-ecran-version: 96d65303
+// mon-ecran-version: 2accd45c
 // Cotes des matchs (lancé toutes les 10 min par la tâche GitHub « Cotes », avec le secret ODDS_API_KEY de The Odds API).
 // Plan (option 1) pour les 5 grands championnats et les 3 coupes d'Europe, cote 1 / N / 2 des sites français :
 //   - un relevé le matin (à partir de 8 h) pour chaque compétition qui joue ce jour-là ;
@@ -74,8 +74,9 @@ for (const [lg, ms] of Object.entries(parComp)){
   for (const t of [...new Set(ms.map(m => m.t))]){
     const ids = ms.filter(m => m.t === t).map(m => m.id);
     const kAv = `${lg}|${t}|avant`, kMt = `${lg}|${t}|mi-temps`;
-    if (!st.fait[kAv] && NOW >= t - 20 * MIN && NOW < t) dus.push({lg, phase:'avant', k:kAv, ids});
-    if (!st.fait[kMt] && NOW >= t + 50 * MIN && NOW < t + 72 * MIN) dus.push({lg, phase:'mi-temps', k:kMt, ids});
+    // fenêtres larges : les tâches programmées de GitHub partent souvent avec 10 à 45 min de retard
+    if (!st.fait[kAv] && NOW >= t - 45 * MIN && NOW < t) dus.push({lg, phase:'avant', k:kAv, ids});
+    if (!st.fait[kMt] && NOW >= t + 48 * MIN && NOW < t + 80 * MIN) dus.push({lg, phase:'mi-temps', k:kMt, ids});
   }
 }
 // une seule demande par compétition, même si plusieurs relevés tombent en même temps
@@ -89,11 +90,23 @@ if (!Object.keys(demandes).length){
 }
 
 /* noms d'équipes comparables (ESPN / The Odds API) */
-const ALIAS = {psg:'paris', utd:'united', man:'manchester', spurs:'tottenham', wolves:'wolverhampton', nottm:'nottingham', inter:'internazionale', gladbach:'monchengladbach', leverkusen:'leverkusen', atleti:'atletico', bilbao:'athletic', betis:'betis', om:'marseille', ol:'lyon'};
+const ALIAS = {psg:'paris', utd:'united', man:'manchester', spurs:'tottenham', wolves:'wolverhampton', nottm:'nottingham', inter:'internazionale', gladbach:'monchengladbach', leverkusen:'leverkusen', atleti:'atletico', bilbao:'athletic', betis:'betis', om:'marseille', ol:'lyon', rennais:'rennes', toulousain:'toulouse', rochelais:'rochelle', nantais:'nantes', brestois:'brest', lorientais:'lorient', havrais:'havre', auxerrois:'auxerre', messin:'metz', st:'saint'};
 const mots = s => String(s || '').toLowerCase().replace(/[ßæœø]/g, c => ({ß:'ss', æ:'ae', œ:'oe', ø:'o'})[c]).normalize('NFD').replace(/[̀-ͯ]/g, '')
   .replace(/[^a-z0-9]+/g, ' ').trim().split(' ').map(w => ALIAS[w] || w)
   .filter(w => w.length >= 3 && !['fc', 'cf', 'afc', 'club', 'calcio', 'football', 'sporting', 'olympique', 'stade', 'real', 'and', 'the', 'ssc', 'acf'].includes(w));
 const proche = (a, b) => { const A = mots(a), B = mots(b); return A.some(w => B.some(x => x === w || (w.length > 4 && x.length > 4 && (x.startsWith(w) || w.startsWith(x))))); };
+
+/* rapprochement ESPN ↔ The Odds API : les deux équipes si possible ; sinon une seule (ex. « Stade Rennais » / « Rennes »),
+   à condition que ce soit le seul match du créneau qui lui corresponde */
+function apparier(evs, m, proche){
+  const H = m.home.full || m.home.name, A = m.away.full || m.away.name;
+  const cand = evs.filter(x => Math.abs(x.commence_time * 1000 - m.t) < 3 * 3600e3).map(x => {
+    const droit = proche(x.home_team, H) + proche(x.away_team, A), inverse = proche(x.home_team, A) + proche(x.away_team, H);
+    return {x, droit, inverse, s:Math.max(droit, inverse)};
+  });
+  for (const s of [2, 1]){ const l = cand.filter(c => c.s === s); if (l.length === 1) return {e:l[0].x, inv:l[0].inverse > l[0].droit}; if (l.length > 1) return null; }
+  return null;
+}
 
 (async () => {
   try{
@@ -118,10 +131,9 @@ const proche = (a, b) => { const A = mots(a), B = mots(b); return A.some(w => B.
       const evs = await api(`/sports/${cle}/odds`, {bookmakers:BOOKS.join(','), markets:'h2h', oddsFormat:'decimal', dateFormat:'unix'});
       let n = 0;
       for (const m of matchs.filter(x => x.league === lg)){
-        const e = evs.find(x => Math.abs(x.commence_time * 1000 - m.t) < 3 * 3600e3 && proche(x.home_team, m.home.full || m.home.name) && proche(x.away_team, m.away.full || m.away.name))
-          || evs.find(x => Math.abs(x.commence_time * 1000 - m.t) < 3 * 3600e3 && proche(x.home_team, m.away.full || m.away.name) && proche(x.away_team, m.home.full || m.home.name));
-        if (!e) continue;
-        const inv = !proche(e.home_team, m.home.full || m.home.name);
+        const ap = apparier(evs, m, proche);
+        if (!ap){ if (liste.some(d => d.ids.includes(m.id))) note(`${lg} : ${m.home.name} – ${m.away.name} introuvable chez les sites de paris`); continue; }
+        const {e, inv} = ap;
         const sites = {};
         for (const b of e.bookmakers || []){
           const mk = (b.markets || []).find(x => x.key === 'h2h'); if (!mk) continue;

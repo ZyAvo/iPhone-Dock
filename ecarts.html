@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="79b06234">
+<meta name="mon-ecran-version" content="bdba5256">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Écarts de cotes</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -471,7 +471,7 @@ const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); retur
 const R = CFG('cotes.rapport', {seuil:0.05, reference:'moyenne'});
 const SEUIL = +R.seuil || 0.05, REF = R.reference === 'mediane' ? 'mediane' : 'moyenne';
 const SITES_NOMS = {winamax_fr:'Winamax', betclic_fr:'Betclic', unibet_fr:'Unibet', pmu_fr:'PMU', netbet_fr:'NetBet', parionssport_fr:'Parions Sport'};
-const PHASES = {matin:'le matin', avant:'15 min avant', 'mi-temps':'à la mi-temps', manuel:'à la main'};
+const PHASES = {matin:'le matin', avant:'avant le match', 'mi-temps':'à la mi-temps', manuel:'à la main'};
 const LIGUES = Object.fromEntries(CFG('sport.leagues', []).map(L => [L.id, L.name]));
 const NOMS_LG = {'fra.1':'Ligue 1', 'eng.1':'Premier League', 'esp.1':'Liga', 'ita.1':'Serie A', 'ger.1':'Bundesliga', 'uefa.champions':'Ligue des champions', 'uefa.europa':'Ligue Europa', 'uefa.europa.conf':'Ligue Conférence'};
 const nomLg = id => LIGUES[id] || NOMS_LG[id] || id;
@@ -541,7 +541,7 @@ function render(){
       <div class="chips" role="group" aria-label="Matchs"><span class="lab">Matchs</span>${chip('periode', 'avenir', 'À venir et en cours')}${chip('periode', 'tout', '3 derniers jours')}</div>
       ${lgs.length > 1 ? `<div class="chips" role="group" aria-label="Compétition"><span class="lab">Compét.</span>${chip('lg', 'toutes', 'Toutes')}${lgs.map(l => chip('lg', l, nomLg(l))).join('')}</div>` : ''}
     </div>
-    ${cartes || `<div class="vide glass">${COTES ? `Aucun site ne s'écarte d'au moins ${pct(SEUIL).slice(1)} des autres sur ${F.releve === 'dernier' ? 'les derniers relevés' : 'les relevés'} de ${F.periode === 'tout' ? 'ces 3 derniers jours' : 'ces matchs'}.` : 'Pas encore de cotes relevées : la tâche « Cotes » relève les matchs le matin, 15 min avant et à la mi-temps.'}</div>`}
+    ${cartes || `<div class="vide glass">${COTES ? `Aucun site ne s'écarte d'au moins ${pct(SEUIL).slice(1)} des autres sur ${F.releve === 'dernier' ? 'les derniers relevés' : 'les relevés'} de ${F.periode === 'tout' ? 'ces 3 derniers jours' : 'ces matchs'}.` : 'Pas encore de cotes relevées : la tâche « Cotes » relève les matchs le matin, avant le coup d’envoi et à la mi-temps.'}</div>`}
     <p class="risque">Un écart vient souvent d'un site qui a mis à jour sa cote plus tard que les autres : il peut disparaître en quelques minutes. Seuil et méthode : classeur, onglet Cotes.<br>
       Les jeux d'argent comportent des risques : endettement, dépendance… Appelez le 09 74 75 13 13 (appel non surtaxé) ou rendez-vous sur <a href="https://www.joueurs-info-service.fr/" target="_blank" rel="noopener">joueurs-info-service.fr</a>.</p>`;
   $('#stamp').textContent = '';

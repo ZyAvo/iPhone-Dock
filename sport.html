@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="061c301c">
+<meta name="mon-ecran-version" content="76c05a60">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1389,7 +1389,7 @@ function moreHTML(m){
 const COTES_LG = (c => c ? Object.keys(c) : ['fra.1', 'eng.1', 'esp.1', 'ita.1', 'ger.1', 'uefa.champions', 'uefa.europa', 'uefa.europa.conf'])(CFG('cotes.comps', null));   // compétitions relevées (classeur, onglet Cotes)
 const SITES_NOMS = {winamax_fr:'Winamax', betclic_fr:'Betclic', unibet_fr:'Unibet', pmu_fr:'PMU', netbet_fr:'NetBet', parionssport_fr:'Parions Sport'};
 const SITES = Object.fromEntries(CFG('cotes.sites', ['winamax_fr', 'betclic_fr', 'unibet_fr', 'pmu_fr', 'netbet_fr']).map(k => [k, SITES_NOMS[k] || k]));   // sites relevés (classeur, onglet Cotes)   // sites relevés (classeur, onglet Cotes)
-const PHASES = {matin:'le matin', avant:'15 min avant', 'mi-temps':'à la mi-temps', manuel:'à la main'};
+const PHASES = {matin:'le matin', avant:'avant le match', 'mi-temps':'à la mi-temps', manuel:'à la main'};
 const MANUEL_MIN = 5;                                   // plus d'actualisation à la main sous 5 crédits restants
 let COTES = null, cotesAt = 0, cotesCache = null;
 const cotesLu = () => { if (!cotesCache || Date.now() - cotesCache.at > 2000) cotesCache = {at:Date.now(), man:store.get('cotes:manuel') || {}, q:cotesQuota(), cle:!!store.get('cotes:cle')}; return cotesCache; };
@@ -1429,7 +1429,18 @@ function cotesHTML(m){
     ${pied}</div>`;
 }
 /* actualisation à la main : appel direct à The Odds API avec ta clé (gardée sur cet appareil, réglée dans État) */
-const motsEq = s => teamKey(s).split(' ').filter(w => w.length >= 3 && !['fc', 'cf', 'afc', 'club', 'calcio', 'football', 'olympique', 'stade', 'real', 'and', 'the', 'ssc'].includes(w)).map(w => ({psg:'paris', utd:'united', man:'manchester', spurs:'tottenham', wolves:'wolverhampton', nottm:'nottingham', inter:'internazionale', gladbach:'monchengladbach', atleti:'atletico'})[w] || w);
+const motsEq = s => teamKey(s).split(' ').filter(w => w.length >= 3 && !['fc', 'cf', 'afc', 'club', 'calcio', 'football', 'olympique', 'stade', 'real', 'and', 'the', 'ssc'].includes(w)).map(w => ({psg:'paris', utd:'united', man:'manchester', spurs:'tottenham', wolves:'wolverhampton', nottm:'nottingham', inter:'internazionale', gladbach:'monchengladbach', atleti:'atletico', rennais:'rennes', toulousain:'toulouse', rochelais:'rochelle', nantais:'nantes', brestois:'brest', lorientais:'lorient', havrais:'havre', auxerrois:'auxerre', messin:'metz', st:'saint'})[w] || w);
+/* rapprochement ESPN ↔ The Odds API : les deux équipes si possible ; sinon une seule (ex. « Stade Rennais » / « Rennes »),
+   à condition que ce soit le seul match du créneau qui lui corresponde */
+function apparier(evs, m, proche){
+  const H = m.home.full || m.home.name, A = m.away.full || m.away.name;
+  const cand = evs.filter(x => Math.abs(x.commence_time * 1000 - m.t) < 3 * 3600e3).map(x => {
+    const droit = proche(x.home_team, H) + proche(x.away_team, A), inverse = proche(x.home_team, A) + proche(x.away_team, H);
+    return {x, droit, inverse, s:Math.max(droit, inverse)};
+  });
+  for (const s of [2, 1]){ const l = cand.filter(c => c.s === s); if (l.length === 1) return {e:l[0].x, inv:l[0].inverse > l[0].droit}; if (l.length > 1) return null; }
+  return null;
+}
 const procheEq = (a, b) => { const A = motsEq(a), B = motsEq(b); return A.some(w => B.some(x => x === w || (w.length > 4 && x.length > 4 && (x.startsWith(w) || w.startsWith(x))))); };
 async function cotesMain(m, btn){
   // clé de la compétition chez The Odds API : celle vérifiée par la tâche « Cotes », sinon la clé connue (avant tout premier relevé)
@@ -1453,9 +1464,8 @@ async function cotesMain(m, btn){
     const tous = (DATA[m.league] && DATA[m.league].events || []).filter(x => x.home && x.away && x.state !== 'post');
     let n = 0;
     for (const x of tous){
-      const e = evs.find(v => Math.abs(v.commence_time * 1000 - x.t) < 3 * 3600e3 && ((procheEq(v.home_team, x.home.full || x.home.name) && procheEq(v.away_team, x.away.full || x.away.name)) || (procheEq(v.home_team, x.away.full || x.away.name) && procheEq(v.away_team, x.home.full || x.home.name))));
-      if (!e) continue;
-      const inv = !procheEq(e.home_team, x.home.full || x.home.name), sites = {};
+      const ap = apparier(evs, x, procheEq); if (!ap) continue;
+      const {e, inv} = ap, sites = {};
       (e.bookmakers || []).forEach(b => { const mk = (b.markets || []).find(y => y.key === 'h2h'); if (!mk) return; const o = nm => (mk.outcomes.find(y => y.name === nm) || {}).price;
         const h = o(e.home_team), a = o(e.away_team), d = o('Draw'); if (h && a) sites[b.key] = inv ? {h:a, d, a:h} : {h, d, a}; });
       if (Object.keys(sites).length){ man[x.id] = {at:Date.now(), sites, eq:[x.home.name, x.away.name], lg:x.league, t:x.t}; n++; }

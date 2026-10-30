@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="491ba4c0">
+<meta name="mon-ecran-version" content="82dea22a">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -614,7 +614,7 @@ function cotesPart(){
     ${Q ? `<div class="ct-jauge" role="img" aria-label="${pct} % des crédits utilisés"><i style="width:${pct}%"></i><span style="left:${100 - 120 / (Q.total || 500) * 100}%" title="mi-temps coupée"></span><span style="left:${100 - 40 / (Q.total || 500) * 100}%" title="relevés automatiques coupés"></span></div>
       <p class="note">${Q.restants} crédits restants sur ${Q.total}. Sous <b>120</b> : plus de relevé à la mi-temps. Sous <b>40</b> : plus de relevé automatique (gardés pour l'actualisation à la main). Sous <b>5</b> : tout est bloqué jusqu'au renouvellement mensuel.</p>` : ''}
     <p class="note"><a href="ecarts.html" style="color:var(--accent);font-weight:600">Voir les écarts de cotes entre sites ›</a></p>
-    <p class="note">Relevés automatiques : le matin, 15 min avant chaque coup d'envoi et à la mi-temps, pour la Ligue 1, la Premier League, la Liga, la Serie A, la Bundesliga et les 3 coupes d'Europe. Une demande = 1 crédit.</p>
+    <p class="note">Relevés automatiques : le matin, dans les 45 min avant chaque coup d'envoi et à la mi-temps, pour la Ligue 1, la Premier League, la Liga, la Serie A, la Bundesliga et les 3 coupes d'Europe. Une demande = 1 crédit.</p>
     ${C && C.journal && C.journal.length ? `<p class="note"><b>Derniers relevés</b></p>${C.journal.slice(-6).reverse().map(l => `<div class="mono">${esc(l)}</div>`).join('')}` : ''}
     <form class="sv-form" id="ctForm"><label class="note">Ta clé The Odds API (pour le bouton ↻ des matchs, gardée sur cet appareil)<input name="cle" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(cle)}" placeholder="clé de the-odds-api.com"></label>
       <div class="actions"><button class="btn" type="submit">Enregistrer la clé</button></div><p class="note sv-msg" aria-live="polite"></p></form>
