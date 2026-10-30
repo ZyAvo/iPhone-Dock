@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="968c5985">
+<meta name="mon-ecran-version" content="046684aa">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -849,7 +849,7 @@ const LEAGUES = CFG('sport.leagues', [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ]);
-const VERSION = '2026-10-30.4';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-30.5';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -1418,8 +1418,9 @@ async function loadCotes(force){
   try{ const r = await fetch('donnees/cotes/cotes.json', {cache:'no-cache'}); if (r.ok){ COTES = await r.json(); cotesCache = null; majOuverts(); } }catch{}
 }
 function majOuverts(){
-  document.querySelectorAll('li.match').forEach(li => { if (!open.has(li.dataset.id)) return;
-    const m = Object.values(DATA).flatMap(d => d.events).find(x => String(x.id) === li.dataset.id); const mo = li.querySelector('.more');
+  const par = new Map(Object.values(DATA).flatMap(d => d.events).filter(x => COTES_LG.includes(x.league)).map(x => [String(x.id), x]));
+  document.querySelectorAll('li.match').forEach(li => {      // toutes les tuiles, ouvertes ou non : une tuile fermée garde sinon un contenu préparé avant l'arrivée des cotes
+    const m = par.get(li.dataset.id); const mo = li.querySelector('.more');
     if (m && mo && COTES_LG.includes(m.league)) mo.outerHTML = moreHTML(m); });
 }
 const cote = v => v == null ? '—' : Number(v).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2});
