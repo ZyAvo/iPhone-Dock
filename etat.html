@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="6605e8e2">
+<meta name="mon-ecran-version" content="491ba4c0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -606,7 +606,7 @@ let COTES = null;
 function cotesPart(){
   const C = COTES, q = C && C.quota, cle = (() => { try{ return JSON.parse(localStorage.getItem('cotes:cle')) || ''; }catch{ return ''; } })();
   const lq = (() => { try{ return JSON.parse(localStorage.getItem('cotes:quota')); }catch{ return null; } })();
-  const Q = q && lq ? (lq.at > q.at ? lq : q) : q || lq;
+  const Q = !q || !lq ? q || lq : Math.abs(q.at - lq.at) < 3 * 864e5 ? (q.restants <= lq.restants ? q : lq) : (lq.at > q.at ? lq : q);   // même règle que la page Sport
   const lvl = !C ? 'none' : C.erreur ? 'warn' : Q && Q.restants <= 40 ? 'warn' : 'ok';
   const msg = !C ? 'Pas encore lancées' : C.erreur ? `⚠ ${C.erreur}` : Q ? `${Q.utilises} crédit${Q.utilises > 1 ? 's' : ''} utilisé${Q.utilises > 1 ? 's' : ''} · ${Q.restants} restant${Q.restants > 1 ? 's' : ''}` : 'Aucun relevé pour l\'instant';
   const pct = Q && Q.total ? Math.min(100, Math.round(Q.utilises / Q.total * 100)) : 0;

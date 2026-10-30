@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="bae3fc0c">
+<meta name="mon-ecran-version" content="061c301c">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1393,11 +1393,13 @@ const PHASES = {matin:'le matin', avant:'15 min avant', 'mi-temps':'à la mi-tem
 const MANUEL_MIN = 5;                                   // plus d'actualisation à la main sous 5 crédits restants
 let COTES = null, cotesAt = 0, cotesCache = null;
 const cotesLu = () => { if (!cotesCache || Date.now() - cotesCache.at > 2000) cotesCache = {at:Date.now(), man:store.get('cotes:manuel') || {}, q:cotesQuota(), cle:!!store.get('cotes:cle')}; return cotesCache; };
-const cotesQuota = () => { const a = COTES && COTES.quota, b = store.get('cotes:quota'); return a && b ? (b.at > a.at ? b : a) : a || b || null; };
+/* compteur : le plus récent ; mais les crédits ne font que baisser dans le mois → si les deux relevés ont moins de 3 jours d'écart, le plus bas */
+const quotaFusion = (a, b) => !a || !b ? a || b || null : Math.abs(a.at - b.at) < 3 * 864e5 ? (a.restants <= b.restants ? a : b) : (b.at > a.at ? b : a);
+const cotesQuota = () => quotaFusion(COTES && COTES.quota, store.get('cotes:quota'));
 async function loadCotes(force){
   if (sample || (!force && Date.now() - cotesAt < 5 * 60e3)) return;
   cotesAt = Date.now();
-  try{ const r = await fetch('donnees/cotes/cotes.json', {cache:'no-cache'}); if (r.ok){ COTES = await r.json(); majOuverts(); } }catch{}
+  try{ const r = await fetch('donnees/cotes/cotes.json', {cache:'no-cache'}); if (r.ok){ COTES = await r.json(); cotesCache = null; majOuverts(); } }catch{}
 }
 function majOuverts(){
   document.querySelectorAll('li.match').forEach(li => { if (!open.has(li.dataset.id)) return;
@@ -1436,8 +1438,9 @@ async function cotesMain(m, btn){
   Object.entries(CFG('cotes.comps', {})).forEach(([k, v]) => { if (v && v.cle) CLES[k] = v.cle; });   // clés du classeur
   const cle = store.get('cotes:cle'), sk = (COTES && COTES.cles && COTES.cles[m.league]) || CLES[m.league];
   if (!cle || !sk){ btn.title = !cle ? 'Ajoute ta clé dans la page État' : 'Compétition pas encore reconnue'; return; }
-  const q = cotesQuota(); if (q && q.restants <= MANUEL_MIN) return;
   btn.disabled = true; btn.classList.add('spin');
+  if (!COTES) await loadCotes(true);                     // compteur de départ : le plus récent connu
+  const q = cotesQuota(); if (q && q.restants <= MANUEL_MIN){ btn.classList.remove('spin'); return; }
   try{
     const u = `https://api.the-odds-api.com/v4/sports/${encodeURIComponent(sk)}/odds?apiKey=${encodeURIComponent(cle)}&bookmakers=${Object.keys(SITES).join(',')}&markets=h2h&oddsFormat=decimal&dateFormat=unix`;
     const r = await fetch(u, {cache:'no-store'});

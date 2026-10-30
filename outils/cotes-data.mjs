@@ -1,4 +1,4 @@
-// mon-ecran-version: 1923f8c1
+// mon-ecran-version: 96d65303
 // Cotes des matchs (lancé toutes les 10 min par la tâche GitHub « Cotes », avec le secret ODDS_API_KEY de The Odds API).
 // Plan (option 1) pour les 5 grands championnats et les 3 coupes d'Europe, cote 1 / N / 2 des sites français :
 //   - un relevé le matin (à partir de 8 h) pour chaque compétition qui joue ce jour-là ;
@@ -32,6 +32,7 @@ const read = f => { try{ return JSON.parse(fs.readFileSync(f, 'utf8')); }catch{ 
 fs.mkdirSync(OUT, {recursive:true});
 const FILE = `${OUT}/cotes.json`;
 const prev = read(FILE) || {};
+const quota0 = prev.quota ? prev.quota.restants : null;
 const st = {v:1, maj:prev.maj || null, quota:prev.quota || null, cles:prev.cles || {}, fait:prev.fait || {}, matchs:prev.matchs || {}, journal:(prev.journal || []).slice(-40), plan:prev.plan || null};
 let change = false;
 const note = t => { st.journal.push(`${new Date(NOW).toISOString().slice(0, 16)}Z ${t}`); console.log(t); };
@@ -39,6 +40,7 @@ const fin = () => {
   // ménage : matchs et relevés de plus de 3 jours
   for (const [id, m] of Object.entries(st.matchs)) if (m.t < NOW - 3 * DAY) delete st.matchs[id];
   for (const k of Object.keys(st.fait)) if (st.fait[k] < NOW - 4 * DAY) delete st.fait[k];
+  if (st.quota && st.quota.restants !== quota0) change = true;      // crédits dépensés ailleurs (à la main) : compteur republié
   fs.writeFileSync(FILE, JSON.stringify(st));
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `change=${change ? 1 : 0}\n`);
 };
@@ -79,7 +81,12 @@ for (const [lg, ms] of Object.entries(parComp)){
 // une seule demande par compétition, même si plusieurs relevés tombent en même temps
 const demandes = {};
 dus.forEach(d => { (demandes[d.lg] = demandes[d.lg] || []).push(d); });
-if (!Object.keys(demandes).length){ console.log('Aucun relevé à faire maintenant.'); fin(); process.exit(0); }
+if (!Object.keys(demandes).length){
+  // rien à relever : on lit quand même le compteur (liste /sports, gratuite) pour voir les crédits dépensés à la main
+  console.log('Aucun relevé à faire maintenant.');
+  try{ await api('/sports'); }catch(e){ console.log('Compteur non lu : ' + e.message); }
+  fin(); process.exit(0);
+}
 
 /* noms d'équipes comparables (ESPN / The Odds API) */
 const ALIAS = {psg:'paris', utd:'united', man:'manchester', spurs:'tottenham', wolves:'wolverhampton', nottm:'nottingham', inter:'internazionale', gladbach:'monchengladbach', leverkusen:'leverkusen', atleti:'atletico', bilbao:'athletic', betis:'betis', om:'marseille', ol:'lyon'};

@@ -1,6 +1,6 @@
 {
- "lot": "v25",
- "date": "2026-10-30T07:22:38+00:00",
+ "lot": "v26",
+ "date": "2026-10-30T07:38:37+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/configuration.yml": "8a219c5b",
@@ -13,13 +13,13 @@
   "actus.html": "e092be64",
   "cachee.html": "a90d0f52",
   "ecarts.html": "79b06234",
-  "etat.html": "6605e8e2",
+  "etat.html": "491ba4c0",
   "index.html": "874a3985",
   "invest.html": "5426468b",
   "outils/actus-data.mjs": "8cec52a9",
   "outils/config-lire.mjs": "0bd1f840",
   "outils/configuration.py": "6df8f5c1",
-  "outils/cotes-data.mjs": "1923f8c1",
+  "outils/cotes-data.mjs": "96d65303",
   "outils/etat.mjs": "cf04c5a9",
   "outils/marches-data.mjs": "5a7dad3f",
   "outils/publier-donnees.sh": "4834693d",
@@ -29,7 +29,7 @@
   "outils/tv-tri.mjs": "5f175f99",
   "outils/videos-data.mjs": "81465ebe",
   "outils/yahoo.py": "103be76d",
-  "sport.html": "bae3fc0c",
+  "sport.html": "061c301c",
   "sw.js": "15ec7b46",
   "synchro.js": "48bd38f7",
   "videos.html": "fd240326"
