@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="c2bf1005">
+<meta name="mon-ecran-version" content="4c950f1b">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Investissements</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -273,6 +273,7 @@ label.f{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--i
 .sheet .row-btns .btn{flex:1}
 .sheet textarea{min-height:90px;border-radius:12px;border:1px solid var(--line);background:var(--card);padding:10px;font:12px/1.4 ui-monospace, Menlo, monospace;color:var(--ink);width:100%}
 .msg{font-size:.8rem;color:var(--ink-soft);margin:0}
+.reg-lien{display:block;padding:10px 14px 14px;border-top:1px solid var(--line);font-size:.84rem;font-weight:600;color:var(--accent)}
 .btn.danger{color:var(--down)}
 #eyeBtn.ouvert{color:var(--up)}
 .pin-dots{display:flex;gap:14px;justify-content:center;margin:4px 0 6px}
@@ -851,7 +852,8 @@ function marchesHTML(){
   const items = [...AGENDA.map(a => ({d:a.d, t:a.t})), ...emploiUS()].filter(a => Date.parse(a.d) / DAY >= TODAY - 0.5).sort((a, b) => a.d < b.d ? -1 : 1).slice(0, 6);
   const arts = ((((LS.get('invest:lire', null) || {}).items) || [])).slice(0, 12);
   return `<div class="idx glass"><div class="idx-row h"><span>Indice</span><span class="r">Jour</span><span class="r">Depuis janv.</span><span class="r">Sur 1 an</span></div>${rows}
-      <p class="msg" style="padding:6px 14px 12px">« Sur 1 an » : position entre le plus bas (gauche) et le plus haut (droite) des 12 derniers mois.</p></div>
+      <p class="msg" style="padding:6px 14px 12px">« Sur 1 an » : position entre le plus bas (gauche) et le plus haut (droite) des 12 derniers mois.</p>
+      <a class="reg-lien" href="reglages.html?retour=invest#marches">Choisir les marchés et fonds suivis ›</a></div>
     <span class="k" style="padding:4px 4px 0">Taux et repères</span>
     <div class="tiles">${tx('oat', 'OAT 10 ans (France)')}${tx('bund', 'Bund 10 ans (Allemagne)')}${tx('depot', 'Taux de dépôt BCE')}${tx('inflation', 'Inflation France (1 an)')}
       <div class="tile2 glass"><span>Livret A</span><b>${fmt(LIVRET_A.taux, 2)} %</b><small>depuis le ${new Date(LIVRET_A.depuis).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'})}</small></div>
@@ -1246,6 +1248,8 @@ async function load(force){
 document.addEventListener('visibilitychange', () => { if (!document.hidden && autoOn('marches') && Date.now() - loadedAt > 10 * 60e3) load(); });
 tab = ['portef', 'marches', 'vente'].includes(LS.get('invest:onglet', 'portef')) ? LS.get('invest:onglet', 'portef') : 'portef';
 render(); load();
+/* ouvert depuis Réglages : ?ouvrir=reglages → réglages du portefeuille (le code est demandé s'il est verrouillé) */
+if (new URLSearchParams(location.search).get('ouvrir') === 'reglages'){ try{ history.replaceState(history.state, '', location.pathname + location.hash); }catch{} setTimeout(() => { try{ siOuvert(settingsSheet); }catch{} }, 200); }
 syncMaintenant();                                   // session de synchronisation déjà ouverte (code donné ailleurs dans l'appli)
 let syncVu = Date.now();
 document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - syncVu > 60e3){ syncVu = Date.now(); syncMaintenant(); } });

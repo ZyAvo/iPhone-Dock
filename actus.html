@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="fe71aafa">
+<meta name="mon-ecran-version" content="e3e938ce">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Actus</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -123,6 +123,8 @@ h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:
 .lang-menu button{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-weight:500;font-size:.92rem;text-align:left}
 .lang-menu button span{font-size:1.15rem}
 .lang-menu button[aria-checked="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+.lang-menu .lm-choix{display:flex;white-space:nowrap;align-items:center;gap:10px;padding:10px 12px;margin-top:4px;border-top:1px solid var(--line);border-radius:0 0 12px 12px;font-weight:500;font-size:.88rem;color:var(--accent)}
+.lang-menu .lm-choix svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
 /* ---------- Recherche ---------- */
 .search{display:flex;align-items:center;gap:8px;padding:4px 6px 4px 12px;border-radius:16px}
@@ -451,6 +453,7 @@ html.desk .kbd-help{display:block;font-size:.72rem;color:var(--ink-soft);text-al
           <span class="lang-menu glass" id="langMenu" role="menu" hidden>
             <button type="button" role="menuitemradio" data-lang="fr"><span>🇫🇷</span>Français</button>
             <button type="button" role="menuitemradio" data-lang="en"><span>🇺🇸</span>International</button>
+            <a role="menuitem" class="lm-choix" id="choixMedias" href="reglages.html?retour=actus#actus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Choisir les médias…</a>
           </span></span>
         <button class="icon-btn glass" id="searchBtn" type="button" aria-label="Rechercher dans les actus" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></button>
         <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
@@ -825,6 +828,7 @@ function renderLang(){
   $('#langBtn').textContent = LANG === 'en' ? '🇺🇸' : '🇫🇷';
   $('#langBtn').setAttribute('aria-label', `Actus : ${LANG === 'en' ? 'International' : 'Français'} — changer`);
   document.querySelectorAll('#langMenu [data-lang]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.lang === LANG)));
+  const cm = $('#choixMedias'); if (cm) cm.href = 'reglages.html?retour=actus#' + (LANG === 'en' ? 'actus-en' : 'actus');   // écran de choix des médias (Réglages)
 }
 function toggleLangMenu(open){ $('#langMenu').hidden = !open; $('#langBtn').setAttribute('aria-expanded', String(open)); if (open) $(`#langMenu [data-lang="${LANG}"]`).focus(); }
 $('#langBtn').addEventListener('click', e => { e.stopPropagation(); toggleLangMenu($('#langMenu').hidden); });

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="3cbb1052">
+<meta name="mon-ecran-version" content="683bd036">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -609,7 +609,7 @@ function modifsHTML(){
   const lignes = der.map(t => `<tr><td>${t.statut === 'ok' ? '✅' : '❌'}</td><td>${esc(t.message)}<br><small class="note" style="margin:0;word-break:break-all">${esc(t.id || (t.message.startsWith('liaison') ? 'vérification' : '—'))}${t.par ? ` · depuis ${esc(t.par)}` : ''}</small></td></tr>`).join('');
   return `<p class="note"><b>Réglages faits dans l'appli</b> : ${N.length ? `${N.length} en attente de report dans le classeur${ne ? ` (dont ${ne} pas encore envoyé${ne > 1 ? 's' : ''})` : ''}` : 'rien en attente'}.${der.length ? ` Au dernier passage de la tâche, ${der.length} reçu${der.length > 1 ? 's' : ''} :` : ''}</p>
     ${lignes ? `<table class="rows"><thead><tr><th></th><th>Report dans le classeur</th></tr></thead><tbody>${lignes}</tbody></table>` : ''}
-    <div class="actions"><button type="button" class="btn" data-modifs="verifier">Vérifier la liaison appli → classeur</button>${ne ? '<button type="button" class="btn main" data-modifs="envoyer">Envoyer maintenant</button>' : ''}</div><div id="mfZone"></div>
+    <div class="actions"><a class="btn" href="reglages.html?retour=etat">Réglages ›</a><button type="button" class="btn" data-modifs="verifier">Vérifier la liaison appli → classeur</button>${ne ? '<button type="button" class="btn main" data-modifs="envoyer">Envoyer maintenant</button>' : ''}</div><div id="mfZone"></div>
     <p class="note">Les choix faits dans l'appli partent dans <b>config/modifs.json</b> (avec la clé GitHub de la synchronisation) ; la tâche « Configuration » les reporte dans <b>configuration.xlsx</b>, qui reste la référence. Pour retoucher le classeur sur ordinateur, télécharge d'abord celui du dépôt : il contient ces choix.</p>`;
 }
 document.addEventListener('click', async e => {

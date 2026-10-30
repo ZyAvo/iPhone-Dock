@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="a3d92137">
+<meta name="mon-ecran-version" content="89b8d3b3">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -141,6 +141,8 @@ h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:
 /* Favoris */
 .favbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 2px}
 .fav-bas{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.reg-lien{text-align:center;padding-block:4px calc(28px + env(safe-area-inset-bottom, 0px))}
+.reg-lien a{display:inline-block;padding:10px 14px;font-size:.84rem;font-weight:600;color:var(--accent)}
 .fav-bas .k{width:100%;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
 .favbar .fv{display:inline-flex;align-items:center;gap:4px;padding:4px 6px 4px 10px;border-radius:999px;font-size:.78rem;font-weight:600;background:var(--accent-soft);color:var(--accent)}
 .favbar .fv button{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:var(--ink-soft);font-size:.95rem}
@@ -742,6 +744,7 @@ details.rk li em{grid-row:1;grid-column:3;font-style:normal;color:var(--ink-soft
 
 <main>
   <div class="wrap" id="content"></div>
+  <div class="wrap reg-lien"><a href="reglages.html?retour=sport#sport">Choisir les compétitions affichées ›</a></div>
 </main>
 
 <div class="sheet" id="csheet" hidden>
@@ -2917,6 +2920,9 @@ function useSample(){
 
 /* ---------- Démarrage ---------- */
 restoreEtat();
+/* ouvert depuis Réglages : ?ouvrir=favoris → onglet Favoris */
+if (new URLSearchParams(location.search).get('ouvrir') === 'favoris' && GROUPS.some(g => g.id === 'fav')){
+  group = 'fav'; selDay = 0; RESTORE_Y = null; try{ history.replaceState(history.state, '', location.pathname + location.hash); }catch{} }
 renderFilters(); showAutoOff();
 LEAGUES.forEach(L => { const c = store.get(CACHE + L.id); if (c && c.day === ymd(dayAt(0))) DATA[L.id] = c; });
 render();

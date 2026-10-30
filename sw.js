@@ -1,4 +1,4 @@
-// mon-ecran-version: 579a44b1
+// mon-ecran-version: 784cf12d
 /* Mon Écran — mise en mémoire sur l'iPhone pour un démarrage instantané, même sans réseau.
    - Pages (accueil, actus, sport, état) : dernière version si le réseau répond en moins de 1,5 s,
      sinon la version en mémoire tout de suite, mise à jour en arrière-plan (la page se recharge seule
@@ -7,7 +7,7 @@
    - Polices Google : gardées en mémoire.
    Les sites extérieurs (ESPN, Spotify, flux RSS…) ne passent pas par ici. */
 const PAGES = 'pages-v1', DATA = 'donnees-v1', FONTS = 'polices-v1';
-const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'noyau.js', 'synchro.js', 'manifest.json', 'apple-touch-icon.png'];
+const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'reglages.html', 'noyau.js', 'synchro.js', 'manifest.json', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(PAGES).then(c => Promise.all(SHELL.map(u => c.add(new Request(u, {cache:'reload'})).catch(() => {})))).then(() => self.skipWaiting()));

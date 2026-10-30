@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="60b9bc3b">
+<meta name="mon-ecran-version" content="22938ef5">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vidéos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -447,6 +447,8 @@ main .wrap{padding-block:12px 40px;display:flex;flex-direction:column;gap:12px}
 .msgbox{border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:8px;font-size:.88rem;line-height:1.45}
 .msgbox ol{margin:0;padding-left:20px}
 .credit{font-size:.7rem;color:var(--ink-soft);text-align:center;line-height:1.45;margin:6px 0 0}
+.yt-choix{margin-top:10px}
+.yt-choix a{display:inline-block;padding:8px 12px;font-size:.84rem;font-weight:600;color:var(--accent)}
 .sheet-bg{position:fixed;inset:0;z-index:50;background:rgba(8,18,31,.4);display:flex;align-items:flex-end;justify-content:center}
 .sheet{width:100%;max-width:560px;max-height:90vh;overflow-y:auto;border-radius:28px 28px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom, 0px));
   display:flex;flex-direction:column;gap:12px;background:var(--panel, var(--base))}
@@ -690,6 +692,7 @@ function ytHTML(){
     ${vids.length > liste.length ? `<button class="btn more-yt" type="button" data-act="more-yt">Afficher plus (${vids.length - liste.length})</button>` : ''}
     ${(one ? one.ancien : CH.some(c => c.ancien)) ? '<p class="credit">YouTube ne répond pas : dernière liste connue.</p>' : ''}
     ${!one && errs.length ? `<p class="credit">Sans vidéos pour l'instant : ${errs.map(c => esc(c.nom)).join(', ')}.</p>` : ''}
+    <p class="credit yt-choix"><a href="reglages.html?retour=videos#youtube">Choisir les chaînes suivies ›</a></p>
     <p class="credit">Lecture avec le lecteur officiel de YouTube. Certaines vidéos ne se lisent que sur YouTube : utilise alors « YouTube » ou « Ouvrir avec… ».</p></div></div>`;
 }
 
@@ -770,6 +773,8 @@ async function load(){
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - loadedAt > 30 * 60e3) load(); });
 render(); load();
+/* ouvert depuis Réglages : ?ouvrir=abos → choix des abonnements */
+if (new URLSearchParams(location.search).get('ouvrir') === 'abos'){ try{ history.replaceState(history.state, '', location.pathname + location.hash); }catch{} setTimeout(() => { try{ abosSheet(); }catch{} }, 200); }
 </script>
 <script>
 /* Toucher visible : un rond qui s'efface là où le doigt appuie (pratique aussi pour les vidéos de démo) */

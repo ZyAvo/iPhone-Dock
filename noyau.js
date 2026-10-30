@@ -1,4 +1,4 @@
-// mon-ecran-version: 47aa0063
+// mon-ecran-version: cf06040b
 /* Mon Écran — noyau commun à toutes les pages, et base des futures applis dédiées (iPhone, Android, PC).
    Rien ici ne dépend d'une astuce de Safari : ce qui est propre à « l'iPhone en mode web » est rangé dans Noyau.iphoneWeb,
    et une appli dédiée pourra fournir window.MonEcranNatif (ouvrir un lien, garder la clé…) que le noyau utilisera en priorité.
@@ -168,11 +168,12 @@ const catalogue = {
 };
 
 /* ---------- Modifications faites dans l'appli → config/modifs.json ---------- */
-const CHEMIN = 'config/modifs.json', ATTENTE = 'modifs:attente', ENVOYEES = 'modifs:envoyees';
+const CHEMIN = 'config/modifs.json', ATTENTE = 'modifs:attente', ENVOYEES = 'modifs:envoyees', REPORTEES = 'modifs:reportees';
 const uid = () => Date.now().toString(36) + '-' + Array.from(crypto.getRandomValues(new Uint8Array(5)), b => b.toString(36).padStart(2, '0')).join('');
 const signaler = () => { try{ window.dispatchEvent(new CustomEvent('noyau:modifs', {detail:modifs.enAttente()})); }catch{} };
+const signalerEnvoi = resultat => { try{ window.dispatchEvent(new CustomEvent('noyau:envoi', {detail:{resultat}})); }catch{} };   // 'encours', 'envoye', 'rien', 'verrou', 'inactif', 'erreur:…'
 const ajouterAttente = m => { const A = stockage.lire(ATTENTE, []); A.push({uid:uid(), at:new Date().toISOString(), par:appareil().nom, ...m}); stockage.ecrire(ATTENTE, A); signaler(); return A[A.length - 1].uid; };
-let enCours = Promise.resolve(), tPlusTard = null, envoi = new Set();          // envoi : uid en cours d'envoi (plus complétés)
+let enCours = Promise.resolve(), tPlusTard = null, attentePlusTard = [], envoi = new Set();          // envoi : uid en cours d'envoi (plus complétés)
 const modifs = {
   /* change une ou plusieurs colonnes d'un élément : modifier('actus:une:le-monde', {Oui:'Non'}) ; colonnes possibles :
      Oui, Widget accueil, Par défaut (valeurs « Oui », « Non » ou vide) et, pour les applis, Lien iPhone, Lien Android, Lien web */
@@ -193,13 +194,27 @@ const modifs = {
     return [...stockage.lire(ENVOYEES, []), ...stockage.lire(ATTENTE, []).map(m => ({...m, nonEnvoyee:true}))].filter(m => !t[m.uid]);
   },
   nonEnvoyees:() => stockage.lire(ATTENTE, []),
-  /* oublie les modifications envoyées que la tâche a traitées (d'après le catalogue chargé) */
+  /* oublie les modifications envoyées que la tâche a traitées (d'après le catalogue chargé) ; leur résultat est gardé dans modifs:reportees */
   nettoyer(){ const t = CAT && CAT.modifs && CAT.modifs.traitees || {}, E = stockage.lire(ENVOYEES, []), reste = E.filter(m => !t[m.uid]);
-    if (reste.length !== E.length){ stockage.ecrire(ENVOYEES, reste); signaler(); } },
+    if (reste.length !== E.length){
+      const faites = E.filter(m => t[m.uid]).map(m => ({uid:m.uid, at:m.at, id:m.id || t[m.uid].id || null, nom:m.nom || (m.ajout && m.ajout.nom) || '', ajout:m.ajout || null,
+        champs:m.champs || null, effacer:!!m.effacer, verif:!!m.verif, resultat:t[m.uid]}));
+      const R = stockage.lire(REPORTEES, []).filter(r => !faites.some(f => f.uid === r.uid));
+      stockage.ecrire(REPORTEES, [...R, ...faites].slice(-200));
+      stockage.ecrire(ENVOYEES, reste); signaler(); } },
+  /* déjà reportées (par cet appareil), avec le résultat de la tâche : [{uid, id, nom, ajout, champs, effacer, resultat:{statut, message, id, le}}] */
+  reportees:() => stockage.lire(REPORTEES, []),
+  /* dernier résultat de report connu pour un élément ou une section (cet appareil, ou n'importe lequel d'après le catalogue) : {statut, message, id, le} | null */
+  dernierResultat(id){
+    const L = [...stockage.lire(REPORTEES, []).map(r => r.resultat), ...Object.values(CAT && CAT.modifs && CAT.modifs.traitees || {})]
+      .filter(r => r && r.id === id).sort((a, b) => String(a.le).localeCompare(String(b.le)));
+    return L[L.length - 1] || null;
+  },
   /* envoie sur GitHub : 'envoye' | 'rien' | 'verrou' | 'inactif' | 'erreur:<code>' (Noyau.MSG pour le texte) */
   envoyer(){
     const run = async () => {
       const A = stockage.lire(ATTENTE, []); if (!A.length) return 'rien';
+      signalerEnvoi('encours');
       A.forEach(m => envoi.add(m.uid));
       try{
         const jeton = await depot.jeton(); if (!jeton) return synchro.actif() ? 'verrou' : 'inactif';
@@ -222,10 +237,17 @@ const modifs = {
       }catch(e){ return 'erreur:' + (e.message || 'reseau'); }
       finally{ envoi.clear(); }
     };
-    const p = enCours.then(run, run); enCours = p.catch(() => {}); return p;
+    const p = enCours.then(run, run).then(r => { signalerEnvoi(r); return r; }); enCours = p.catch(() => {}); return p;
   },
-  /* regroupe les changements faits coup sur coup (une seule tâche GitHub lancée) */
-  envoyerPlusTard(ms = 4000){ clearTimeout(tPlusTard); tPlusTard = setTimeout(() => modifs.envoyer(), ms); },
+  /* regroupe les changements faits coup sur coup (une seule tâche GitHub lancée) ; la promesse donne le résultat de l'envoi
+     (comme envoyer), aussi annoncé par l'évènement « noyau:envoi » ; plusTard() : un envoi est-il programmé ? */
+  envoyerPlusTard(ms = 4000){
+    clearTimeout(tPlusTard);
+    const p = new Promise(res => attentePlusTard.push(res));
+    tPlusTard = setTimeout(async () => { tPlusTard = null; const L = attentePlusTard; attentePlusTard = []; const r = await modifs.envoyer(); L.forEach(f => f(r)); }, ms);
+    return p;
+  },
+  plusTard:() => tPlusTard !== null,
 };
 
 window.Noyau = {version:1, config, stockage, appareil, lien, iphoneWeb, depot, synchro, catalogue, modifs, MSG,
