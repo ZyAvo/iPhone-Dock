@@ -1,4 +1,4 @@
-# mon-ecran-version: eee978e2
+# mon-ecran-version: 0a1b11fe
 name: Publication
 
 # Met le site en ligne (GitHub Pages) en assemblant :
@@ -9,6 +9,7 @@ name: Publication
 on:
   push:
     branches: [main]
+    paths-ignore: ['config/modifs.json']     # réglages de l'appli : la tâche Configuration les reporte puis relance la publication
   workflow_dispatch:
   workflow_run:
     workflows: ["Programme TV sport", "Actus", "Marchés", "Vidéos"]
