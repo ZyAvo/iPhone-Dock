@@ -1,14 +1,14 @@
 {
  "v": 1,
  "info": "Choix faits dans l'appli Mon Écran ; la tâche « Configuration » les reporte dans configuration.xlsx. Ne pas modifier à la main.",
- "maj": "2026-10-30T16:59:33.911Z",
+ "maj": "2026-10-30T16:59:54.360Z",
  "par": "iPhone",
  "modifs": [
   {
-   "uid": "mvv7w5gx-636i3e284m",
-   "at": "2026-10-30T16:59:31.377Z",
+   "uid": "mvv7wlc7-1q5y5j3s3w",
+   "at": "2026-10-30T16:59:51.944Z",
    "par": "iPhone",
-   "id": "wg:une",
+   "id": "pg:actus",
    "champs": {
     "Oui": ""
    }
