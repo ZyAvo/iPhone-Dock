@@ -1,4 +1,4 @@
-# mon-ecran-version: 6bfebc6f
+# mon-ecran-version: 67446b98
 # Mise à jour en un seul fichier : dépose « mise-a-jour-….zip » à la racine du dépôt (Add file → Upload files).
 # Cette tâche le décompresse, applique la liste de fichiers à retirer (lot.json), supprime le zip, enregistre
 # le tout puis relance la publication. Les fichiers de .github/workflows ne peuvent pas être modifiés par une
@@ -76,4 +76,5 @@ jobs:
           echo "$ch" | grep -qE '^(videos\.html|outils/videos-data\.mjs|chaines\.txt)$' && lance videos.yml || true
           echo "$ch" | grep -qE '^(sport\.html|outils/sport-[a-z]+\.mjs|outils/tv-tri\.mjs|logos/|calendriers/)' && lance programme-tv.yml || true
           echo "$ch" | grep -qE '^outils/cotes-data\.mjs$' && lance cotes.yml || true
-          lance publication.yml
+          # nouveau lecteur du classeur : la configuration est refaite (elle relance elle-même la publication)
+          if echo "$ch" | grep -qE '^outils/configuration\.py$' && [ -f configuration.xlsx ]; then lance configuration.yml; else lance publication.yml; fi
