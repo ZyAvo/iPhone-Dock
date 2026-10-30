@@ -282,13 +282,6 @@
    "app": "fb-messenger://",
    "web": "https://www.messenger.com",
    "android": "intent://#Intent;package=com.facebook.orca;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.facebook.orca;end"
-  },
-  {
-   "label": "X",
-   "icon": "xmark",
-   "app": "twitter://",
-   "web": "https://x.com",
-   "android": "intent://#Intent;package=com.twitter.android;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.twitter.android;end"
   }
  ],
  "bas_droite": [

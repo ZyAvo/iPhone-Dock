@@ -1,5 +1,5 @@
 {
- "date": "2026-10-30T15:01:48+00:00",
+ "date": "2026-10-30T15:15:53+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -49,7 +49,7 @@
   },
   "applis": {
    "onglet": "Applis",
-   "coches": 41,
+   "coches": 40,
    "ajouts": 0
   },
   "apparence": {
@@ -84,16 +84,7 @@
  "erreurs": [],
  "modifs": {
   "recues": 1,
-  "nouvelles": [
-   {
-    "uid": "mvv3oi7i-0i0q443a6e",
-    "statut": "ok",
-    "message": "liaison appli → classeur vérifiée (rien de modifié)",
-    "id": null,
-    "le": "2026-10-30T15:01:48+00:00",
-    "par": "iPhone"
-   }
-  ]
+  "nouvelles": []
  },
  "resume": {
   "ok": 3,
