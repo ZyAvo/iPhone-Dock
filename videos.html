@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="75d362d2">
+<meta name="mon-ecran-version" content="fd240326">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vidéos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -500,6 +500,7 @@ html.desk .ytplay:empty::after{content:"Choisis une vidéo dans la liste";margin
 .v small{display:block;font-size:.72rem;color:var(--ink-soft);margin-top:3px}
 .v.seen b{color:var(--ink-soft);font-weight:500}
 </style>
+<script src="synchro.js"></script>
 </head>
 <body>
 <header>
@@ -544,6 +545,7 @@ const ago = t => { const m = Math.round((Date.now() - t) / 60000); if (m < 60) r
 const TABS = [{id:'films', nom:'Films et séries'}, {id:'youtube', nom:'YouTube'}];
 const PBY = Object.fromEntries(PLATEFORMES.map(p => [p.id, p]));
 let ABOS = new Set(LS.get('videos:abos', PLATEFORMES.filter(p => p.abo).map(p => p.id)));
+window.addEventListener('synchro:prefs', () => { ABOS = new Set(LS.get('videos:abos', PLATEFORMES.filter(p => p.abo).map(p => p.id))); render(); });   // abonnements venus d'un autre appareil
 let tab = TABS.some(t => t.id === LS.get('videos:onglet', '')) ? LS.get('videos:onglet') : TABS[0].id;
 let CAT = null, RES = {}, YT = null, loadedAt = 0;
 /* Résumés : 16 petits fichiers (même règle que outils/videos-data.mjs) ; l'ancien gros fichier en secours */
@@ -731,7 +733,7 @@ document.addEventListener('click', e => {
   else if (a === 'filtres') filtresSheet();
   else if (a === 'filtres-raz'){ Object.assign(F, {plat:'abos', type:'tout', genre:'', vus:false}); shown = 60; render(); filtresSheet(); }
   else if (a === 'cherche'){ if (qOuvert || F.q){ qOuvert = false; F.q = ''; } else qOuvert = true; shown = 60; render(); const q = $('#q'); if (q) q.focus(); }
-  else if (a === 'abos-ok'){ ABOS = new Set([...document.querySelectorAll('[data-abo]:checked')].map(c => c.dataset.abo)); LS.set('videos:abos', [...ABOS]); closeSheet(); render(); }
+  else if (a === 'abos-ok'){ ABOS = new Set([...document.querySelectorAll('[data-abo]:checked')].map(c => c.dataset.abo)); LS.set('videos:abos', [...ABOS]); if (window.Synchro) Synchro.prefsPlusTard(); closeSheet(); render(); }
   else if (a === 'ouvrir'){                 // l'appli ne sait pas recevoir un titre : on le copie, puis on l'ouvre
     const P = PBY[t.dataset.p], x = CAT.titres.find(y => y.k === t.dataset.k);
     const go = () => { window.location.href = P.app; };

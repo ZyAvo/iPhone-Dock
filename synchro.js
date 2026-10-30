@@ -1,4 +1,4 @@
-// mon-ecran-version: efb67e18
+// mon-ecran-version: 48bd38f7
 /* Mon Écran — synchronisation chiffrée entre tes appareils (iPhone, PC…).
    - Un fichier chiffré (synchro/mon-ecran.json, branche « synchro » de ton dépôt GitHub) contient tes placements,
      versements, réglages d'investissement et le Coffre. Sans la phrase secrète, c'est un bloc illisible.
@@ -151,18 +151,35 @@ const MSG = {jeton:'clé GitHub refusée (expirée ou mal copiée)', droits:'la 
 /* partie « invest » : placements, réglages (sauf l'état du cadenas, propre à chaque appareil) et versements */
 const investLocal = () => { const { verrou, ...reglages } = LSg('invest:reglages', {}); return {lignes:LSg('invest:lignes', []), reglages, versements:LSg('invest:versements', [])}; };
 const investAppliquer = v => { const reg = LSg('invest:reglages', {}); LSs('invest:lignes', v.lignes || []); LSs('invest:reglages', {...(v.reglages || {}), verrou:reg.verrou}); LSs('invest:versements', v.versements || []); };
+/* partie « prefs » : tes choix personnels, réglés dans l'appli (plus dans le classeur) :
+   équipes et compétitions favorites (Sport), abonnements cochés (Vidéos), villes météo (Accueil) */
+const PREFS = {sport:'sport:favoris', abos:'videos:abos', villes:'lieu:favoris'};
+const prefsLocal = () => Object.fromEntries(Object.entries(PREFS).map(([k, c]) => [k, LSg(c, null)]));
+const prefsAppliquer = v => {
+  for (const [k, c] of Object.entries(PREFS)) if (v && v[k] != null) LSs(c, v[k]);
+  try{ localStorage.setItem('sport:favoris:maj', String(Date.now())); }catch{}
+  window.dispatchEvent(new CustomEvent('synchro:prefs'));          // la page ouverte se met à jour
+};
+const prefsVide = p => !p || Object.values(p).every(x => x == null);
+const PREFS_OPTS = {local:prefsLocal, appliquer:prefsAppliquer,
+  choisir:(ici, ailleurs) => prefsVide(ici) ? 'ailleurs' : prefsVide(ailleurs) ? 'ici' : conflit('Tes favoris (sport, abonnements, villes)')()};
+const prefsSync = () => LSg('synchro:cfg', null) ? partie('prefs', PREFS_OPTS) : Promise.resolve('inactif');
+/* au chargement : si la session est déjà ouverte (code saisi), on échange les préférences sans rien demander */
+setTimeout(async () => { try{ if (LSg('synchro:cfg', null) && await sessionCle()) prefsSync(); }catch{} }, 2500);
 window.Synchro = {
-  investLocal, investAppliquer,
+  investLocal, investAppliquer, prefsLocal, prefsAppliquer,
+  prefs:prefsSync,
+  prefsPlusTard(){ if (LSg('synchro:cfg', null)) plusTard('prefs', PREFS_OPTS, 2000); },
   DEPOT, actif:() => !!LSg('synchro:cfg', null), pret:async () => !!(await sessionCle()), etat, MSG, appareil,
   genererPhrase, demander, conflit, partie, plusTard, coffreLire, coffreEcrire, empreinte,
   fermer(){ SSs(S_KEY, null); },
   /* après ton code : ouvre la session de synchronisation (false si le code a changé depuis l'activation) */
   async ouvrirAvecCode(pin){
-    if (!this.actif()) return null; if (await sessionCle()) return true;
+    if (!this.actif()) return null; if (await sessionCle()){ setTimeout(prefsSync, 800); return true; }
     const cfg = await lireConfig(pin); if (!cfg) return false;
     let sel = cfg.sel;
     if (!sel){ const d = await lireDistant(cfg.jeton).catch(() => null); if (!d) return null; sel = d.fichier.sel; }
-    await ouvrirSession(cfg.phrase, cfg.jeton, sel); return true;
+    await ouvrirSession(cfg.phrase, cfg.jeton, sel); setTimeout(prefsSync, 800); return true;
   },
   /* code changé : reprendre la configuration avec l'ancien code puis la rechiffrer avec le nouveau */
   async recoder(ancien, nouveau){ const cfg = await lireConfig(ancien); if (!cfg) return false; await ecrireConfig(nouveau, cfg); return true; },
@@ -171,7 +188,7 @@ window.Synchro = {
     phrase = phrase.trim().toLowerCase(); jeton = jeton.trim();
     const r = await gh(jeton, ''); if (!r.ok) throw new Error(r.status === 404 ? 'droits' : 'reseau');
     const d = await lireDistant(jeton);
-    const ici = {invest:investLocal(), coffre:await coffreLire(pin)};
+    const ici = {invest:investLocal(), coffre:await coffreLire(pin), prefs:prefsLocal()};
     if (d){
       const cle = await cleDe(phrase, unb64(d.fichier.sel), d.fichier.tours || TOURS);
       let contenu; try{ contenu = await dechiffrer(cle, d.fichier); }catch{ throw new Error('phrase'); }
@@ -180,11 +197,12 @@ window.Synchro = {
       if (choix === 'prendre'){
         if (contenu.invest) investAppliquer(contenu.invest);
         if (contenu.coffre) await coffreEcrire(pin, contenu.coffre);
-        noter({base:{invest:await empreinte(contenu.invest ?? null), coffre:await empreinte(contenu.coffre ?? null)}, at:Date.now(), err:''});
+        if (contenu.prefs) prefsAppliquer(contenu.prefs);
+        noter({base:{invest:await empreinte(contenu.invest ?? null), coffre:await empreinte(contenu.coffre ?? null), prefs:await empreinte(contenu.prefs ?? null)}, at:Date.now(), err:''});
       } else {
         const nouveau = {...contenu, ...ici, _maj:new Date().toISOString(), _par:appareil()};
         await ecrireDistant(jeton, {v:1, sel:d.fichier.sel, tours:TOURS, ...(await chiffrer(cle, nouveau)), maj:nouveau._maj, par:nouveau._par}, d.sha);
-        noter({base:{invest:await empreinte(ici.invest), coffre:await empreinte(ici.coffre)}, at:Date.now(), err:''});
+        noter({base:{invest:await empreinte(ici.invest), coffre:await empreinte(ici.coffre), prefs:await empreinte(ici.prefs)}, at:Date.now(), err:''});
       }
       return {ok:true};
     }
@@ -192,7 +210,7 @@ window.Synchro = {
     const cle = await cleDe(phrase, unb64(sel), TOURS), nouveau = {...ici, _maj:new Date().toISOString(), _par:appareil()};
     await ecrireDistant(jeton, {v:1, sel, tours:TOURS, ...(await chiffrer(cle, nouveau)), maj:nouveau._maj, par:nouveau._par}, null);
     await ecrireConfig(pin, {phrase, jeton, sel}); await ouvrirSession(phrase, jeton, sel);
-    noter({base:{invest:await empreinte(ici.invest), coffre:await empreinte(ici.coffre)}, at:Date.now(), err:''});
+    noter({base:{invest:await empreinte(ici.invest), coffre:await empreinte(ici.coffre), prefs:await empreinte(ici.prefs)}, at:Date.now(), err:''});
     return {ok:true, cree:true};
   },
   desactiver(){ LSs('synchro:cfg', null); LSs(ETAT, null); SSs(S_KEY, null); }

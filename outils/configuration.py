@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 10b777ee
+# mon-ecran-version: 6df8f5c1
 # Lit le classeur de configuration (configuration.xlsx) et écrit les réglages du dock dans config/ :
 #   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json, applis.json
 #   config/config.js                     → les mêmes réglages en un seul fichier, chargé par les pages (window.MON_ECRAN_CONFIG)
@@ -197,11 +197,7 @@ def m_sport(M):
     sel = selection(m, tst)
     regions = [s['tech'] for s, rows in sel if rows]
     leagues = [x['d'] for s, rows in sel for x in rows]
-    favl = [x['d']['id'] for s, rows in sel for x in rows if oui(x['oui2'])]
-    e = M['equipes']
-    for a in ajouts(e): section_pour(e, a['section'] or 'Mes ajouts')['rows'].append(dict(id='ajout', r=a['r'], oui='Oui', support='ok', d={'nom': a['nom']}, nom=a['nom'], resultat='', oui2=''))
-    equipes = [x['d']['nom'] for s, rows in selection(e) for x in rows]
-    return {'regions': regions, 'leagues': leagues, 'favoris': {'equipes': equipes, 'ligues': favl}}
+    return {'regions': regions, 'leagues': leagues}     # favoris : choisis dans l'appli (étoiles), partagés par la synchronisation
 
 def m_actus(m):
     def tst(m, x):
@@ -262,9 +258,7 @@ def m_videos(M):
     pl = []
     for s, rows in selection(m, tst):
         for x in rows:
-            d = dict(x['d']); d.pop('abo', None)
-            if oui(x['oui2']): d['abo'] = True
-            pl.append(d)
+            pl.append(dict(x['d']))        # « abo » : valeur de départ ; tes abonnements se cochent dans la page Vidéos
     y = M['youtube']
     def tsty(m, x):
         res = t_youtube(x['d']['id']); appliquer_test(m, x['r'], x['nom'], res)
@@ -310,21 +304,10 @@ def m_cotes(m):
     return {'sites': sites, 'comps': comps, 'rapport': {'seuil': (seuil or [0.05])[0], 'reference': (ref or ['moyenne'])[0]}}
 
 def m_accueil(m):
-    for a in ajouts(m):
-        s = section_pour(m, a['section'] or 'Villes météo')
-        if s['id'] != 'meteo': note(m, a['r'], 'info', "seules les villes météo s'ajoutent ici ; le reste viendra dans l'appli", a['nom']); continue
-        res = t_ville(a['nom'], a['source'])
-        appliquer_test(m, a['r'], a['nom'], res)
-        if not res: note(m, a['r'], 'info', 'coordonnées cherchées à la prochaine tâche', a['nom']); continue
-        if res[0] == 'warn': note(m, a['r'], 'warn', 'coordonnées pas encore trouvées (service météo injoignable) : nouvel essai au prochain dépôt', a['nom'])
-        if res[0] != 'ok': continue
-        v = res[2]; s['rows'].append(dict(id='ajout', r=a['r'], oui='Oui', oui2='', support='ok', nom=a['nom'], resultat='',
-                                          d={'name': v['name'], 'region': a['source'] or v.get('admin2') or v.get('admin1', ''), 'lat': round(v['latitude'], 4), 'lon': round(v['longitude'], 4)}))
     S = {s['id']: (s, rows) for s, rows in selection(m)}
     une = [x['d'] for x in S['une'][1]]
     if len(une) > 1: note(m, S['une'][1][1]['r'], 'warn', 'une seule source « À la une » : la première cochée est gardée', S['une'][1][1]['nom'])
-    return {'pages': [x['d'] for x in S['pages'][1]], 'widgets': [x['d'] for x in S['widgets'][1]], 'meteo': [x['d'] for x in S['meteo'][1]],
-            'une': une[0] if une else None}
+    return {'pages': [x['d'] for x in S['pages'][1]], 'widgets': [x['d'] for x in S['widgets'][1]], 'une': une[0] if une else None}
 
 def m_applis(m):
     for a in ajouts(m):
@@ -369,7 +352,7 @@ def m_apparence(m):
 def main():
     wb = load_workbook(SRC)
     M = lire(wb)
-    manquants = [k for k in ('sport', 'equipes', 'actus', 'actus-en', 'marches', 'videos', 'youtube', 'tv', 'cotes', 'accueil', 'apparence', 'applis') if k not in M]
+    manquants = [k for k in ('sport', 'actus', 'actus-en', 'marches', 'videos', 'youtube', 'tv', 'cotes', 'accueil', 'apparence', 'applis') if k not in M]
     if manquants: raise SystemExit(f'Onglets introuvables dans {SRC} : {", ".join(manquants)} (as-tu supprimé la colonne A ou renommé une ligne 1 ?)')
     fr, en = m_actus(M['actus']), m_actus(M['actus-en'])
     marches, widget = m_marches(M['marches'])

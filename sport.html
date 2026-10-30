@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="45ff4823">
+<meta name="mon-ecran-version" content="bae3fc0c">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -698,6 +698,7 @@ details.rk li em{grid-row:1;grid-column:3;font-style:normal;color:var(--ink-soft
 }
 /* ==FIN PALETTES== */
 </style>
+<script src="synchro.js"></script>
 </head>
 <body>
 
@@ -1238,9 +1239,10 @@ function statusHTML(m){
 /* ---------- Affichage ---------- */
 function plays(m, name){ return [m.home.full, m.home.name, m.away.full, m.away.name].some(n => n === name); }
 /* ---------- Favoris (gardés sur cet appareil) ---------- */
-const FAV_DEFAULT = CFG('sport.favoris', {equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']});
+const FAV_DEFAULT = {equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']};   // favoris de départ d'un nouvel appareil (ensuite : étoiles, partagées par la synchronisation)
 let FAV = store.get('sport:favoris') || FAV_DEFAULT;
-const saveFav = () => { store.set('sport:favoris', FAV); try{ localStorage.setItem('sport:favoris:maj', String(Date.now())); }catch{} };
+const saveFav = () => { store.set('sport:favoris', FAV); try{ localStorage.setItem('sport:favoris:maj', String(Date.now())); }catch{} if (window.Synchro) Synchro.prefsPlusTard(); };
+window.addEventListener('synchro:prefs', () => { FAV = store.get('sport:favoris') || FAV_DEFAULT; render(); });   // favoris venus d'un autre appareil
 const favTok = name => tokens({full:name});
 const teamIsFav = t => !!t && FAV.equipes.some(n => { const f = favTok(n), x = tokens(t); return f.length && f.every(w => x.includes(w)); });
 const isFav = m => FAV.ligues.includes(m.league) || (!!m.home && (teamIsFav(m.home) || teamIsFav(m.away)));

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="a9a494e8">
+<meta name="mon-ecran-version" content="874a3985">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -999,18 +999,19 @@ async function loadWidget(){
 }
 
 /* ---------- Lieu et météo (Open-Meteo, sans clé) ---------- */
-const FAV_DEFAULT = CFG('accueil.meteo', [
+const FAV_DEFAULT = [
   {name:'Réalmont', region:'Tarn', lat:43.7767, lon:2.1897},
   {name:'Mazamet',  region:'Tarn', lat:43.4920, lon:2.3736},
   {name:'Castres',  region:'Tarn', lat:43.6060, lon:2.2400},
   {name:'Albi',     region:'Tarn', lat:43.9289, lon:2.1464},
   {name:'Toulouse', region:'Haute-Garonne', lat:43.6045, lon:1.4440}
-]);
+];   // villes de départ d'un nouvel appareil (ensuite : liste de l'accueil, partagée par la synchronisation)
 const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } },
             set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }};
 let favs = LS.get('lieu:favoris', FAV_DEFAULT);
 let place = LS.get('lieu:actuel', {mode:'fav', ...FAV_DEFAULT[0]});    // mode 'gps' = ma position
 const placeLabel = p => p.region ? `${p.name} · ${p.region}` : p.name;
+window.addEventListener('synchro:prefs', () => { favs = LS.get('lieu:favoris', FAV_DEFAULT); try{ renderBand(); }catch{} });   // villes et favoris venus d'un autre appareil
 function showPlace(){ $('#placeName').textContent = place.mode === 'gps' ? `${place.name || 'Ma position'}` : placeLabel(place); }
 
 /* Icônes météo (codes WMO) : soleil, éclaircies, nuages, brouillard, pluie, neige, orage */
@@ -1090,7 +1091,7 @@ function locate(){
 $('#placeList').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.gps){ locate(); return; }
-  if (b.dataset.del != null){ favs.splice(+b.dataset.del, 1); LS.set('lieu:favoris', favs); renderPlaces(); return; }
+  if (b.dataset.del != null){ favs.splice(+b.dataset.del, 1); LS.set('lieu:favoris', favs); if (window.Synchro) Synchro.prefsPlusTard(); renderPlaces(); return; }
   if (b.dataset.fav != null){ setPlace({mode:'fav', ...favs[+b.dataset.fav]}); closePlaces(); }
 });
 let found = [];
@@ -1109,7 +1110,7 @@ $('#placeForm').addEventListener('submit', async e => {
 $('#placeResults').addEventListener('click', e => {
   const b = e.target.closest('[data-add]'); if (!b) return;
   const f = found[+b.dataset.add];
-  if (!favs.some(x => same(x, f))){ favs.push(f); LS.set('lieu:favoris', favs); }
+  if (!favs.some(x => same(x, f))){ favs.push(f); LS.set('lieu:favoris', favs); if (window.Synchro) Synchro.prefsPlusTard(); }
   setPlace({mode:'fav', ...f}); closePlaces();
 });
 
@@ -1564,7 +1565,7 @@ deskMQ.addEventListener && deskMQ.addEventListener('change', () => { if (DESK())
 setInterval(() => { if (DESK() && !document.hidden && autoOn('actus') && Date.now() - deskNewsAt > 15 * 60e3) loadDeskNews(); }, 60e3);
 
 /* ---------- Témoin LIVE Sports (matchs du jour préparés + vérification ESPN des matchs censés être en cours) ---------- */
-const SPORT_FAV = CFG('sport.favoris', {equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']});
+const SPORT_FAV = {equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']};
 const favWords = t => String(t || '').toLowerCase().replace(/[ßæœøłđðþıħ]/g, c => ({'ß':'ss', 'æ':'ae', 'œ':'oe', 'ø':'o', 'ł':'l', 'đ':'d', 'ð':'d', 'þ':'th', 'ı':'i', 'ħ':'h'})[c]).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ')
   .map(w => ({toulousain:'toulouse', rochelais:'rochelle', paloise:'pau', bayonnais:'bayonne'})[w] || w).filter(w => w.length >= 3 && !['stade', 'olympique', 'club', 'the', 'les'].includes(w));
 function favOf(){ try{ return JSON.parse(localStorage.getItem('sport:favoris')) || SPORT_FAV; }catch{ return SPORT_FAV; } }
