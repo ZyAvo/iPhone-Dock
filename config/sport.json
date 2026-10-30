@@ -39,6 +39,10 @@
   {
    "id": "moto",
    "label": "Sports mécaniques"
+  },
+  {
+   "id": "eur",
+   "label": "Europe · autres championnats"
   }
  ],
  "leagues": [
@@ -498,26 +502,14 @@
    "tv": [
     "Canal+"
    ]
+  },
+  {
+   "id": "ned.1",
+   "region": "eur",
+   "flag": "🇳🇱",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Pays-Bas · Eredivisie"
   }
- ],
- "favoris": {
-  "equipes": [
-   "Liverpool",
-   "Arsenal",
-   "Marseille",
-   "Toulouse",
-   "Rodez",
-   "Castres",
-   "Stade Toulousain",
-   "Lakers",
-   "Packers",
-   "Steelers",
-   "Maple Leafs",
-   "Monaco"
-  ],
-  "ligues": [
-   "f1",
-   "motogp"
-  ]
- }
+ ]
 }

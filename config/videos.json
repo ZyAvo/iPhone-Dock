@@ -5,20 +5,20 @@
    "nom": "Netflix",
    "court": "N",
    "coul": "#e50914",
+   "abo": true,
    "tmdb": "^netflix",
    "app": "nflx://",
-   "web": "https://www.netflix.com/search?q=",
-   "abo": true
+   "web": "https://www.netflix.com/search?q="
   },
   {
    "id": "prime",
    "nom": "Prime Video",
    "court": "prime",
    "coul": "#1a98ff",
+   "abo": true,
    "tmdb": "^amazon prime video",
    "app": "aiv://",
-   "web": "https://www.primevideo.com/search/ref=atv_nb_sr?phrase=",
-   "abo": true
+   "web": "https://www.primevideo.com/search/ref=atv_nb_sr?phrase="
   },
   {
    "id": "disney",
@@ -74,6 +74,10 @@
   {
    "id": "UCTdicWbtwYfLyZ7S1M9XuIQ",
    "nom": "Oliech"
+  },
+  {
+   "id": "UCKNJiTmKrur10zxStf5Gztw",
+   "nom": "Joueur du Grenier"
   }
  ]
 }

@@ -1,15 +1,10 @@
 {
- "date": "2026-10-30T07:12:13+00:00",
+ "date": "2026-10-30T07:29:16+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
    "onglet": "Sport",
    "coches": 41,
-   "ajouts": 0
-  },
-  "equipes": {
-   "onglet": "Équipes favorites",
-   "coches": 12,
    "ajouts": 0
   },
   "actus": {
@@ -34,7 +29,7 @@
   },
   "youtube": {
    "onglet": "YouTube",
-   "coches": 2,
+   "coches": 3,
    "ajouts": 0
   },
   "tv": {
@@ -49,7 +44,7 @@
   },
   "accueil": {
    "onglet": "Accueil",
-   "coches": 18,
+   "coches": 13,
    "ajouts": 0
   },
   "applis": {
@@ -73,18 +68,25 @@
   },
   {
    "onglet": "Sport",
-   "ligne": 88,
-   "nom": "IndyCar",
-   "statut": "info",
-   "message": "données disponibles, affichage à développer dans l'appli"
+   "ligne": 95,
+   "nom": "Pays-Bas · Eredivisie",
+   "statut": "ok",
+   "message": "ESPN répond (soccer) Dutch Eredivisie"
+  },
+  {
+   "onglet": "YouTube",
+   "ligne": 43,
+   "nom": "Joueur du Grenier",
+   "statut": "ok",
+   "message": "chaîne UCKNJiTmKrur10zxStf5Gztw · 15 vidéos récentes"
   }
  ],
  "erreurs": [],
  "resume": {
-  "ok": 1,
+  "ok": 3,
   "warn": 0,
   "ko": 0,
-  "info": 1
+  "info": 0
  },
  "teste": true
 }
