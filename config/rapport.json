@@ -1,5 +1,5 @@
 {
- "date": "2026-10-30T16:17:19+00:00",
+ "date": "2026-10-30T16:18:09+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -83,14 +83,22 @@
  ],
  "erreurs": [],
  "modifs": {
-  "recues": 1,
+  "recues": 2,
   "nouvelles": [
    {
-    "uid": "mvv6dhlx-1s53130w55",
+    "uid": "mvv6enfg-1z6g242p2b",
     "statut": "ok",
-    "message": "reporté dans l'onglet Accueil, ligne 15 : Oui = vide",
+    "message": "reporté dans l'onglet Accueil, ligne 15 : Oui = Oui",
     "id": "wg:une",
-    "le": "2026-10-30T16:17:19+00:00",
+    "le": "2026-10-30T16:18:09+00:00",
+    "par": "iPhone"
+   },
+   {
+    "uid": "mvv6ep03-1q1y5a1p0n",
+    "statut": "ok",
+    "message": "reporté dans l'onglet Accueil, ligne 9 : Oui = vide",
+    "id": "pg:videos",
+    "le": "2026-10-30T16:18:09+00:00",
     "par": "iPhone"
    }
   ]

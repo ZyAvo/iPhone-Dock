@@ -2,13 +2,13 @@
  "pages": [
   "actus",
   "sport",
-  "videos",
   "invest",
   "cachee",
   "etat"
  ],
  "widgets": [
   "meteo",
+  "une",
   "invest",
   "spotify",
   "sport",
