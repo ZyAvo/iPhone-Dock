@@ -1,4 +1,4 @@
-// mon-ecran-version: f3ebf71f
+// mon-ecran-version: af240f8f
 /* Mon Écran — noyau commun à toutes les pages, et base des futures applis dédiées (iPhone, Android, PC).
    Rien ici ne dépend d'une astuce de Safari : ce qui est propre à « l'iPhone en mode web » est rangé dans Noyau.iphoneWeb,
    et une appli dédiée pourra fournir window.MonEcranNatif (ouvrir un lien, garder la clé…) que le noyau utilisera en priorité.
@@ -12,7 +12,11 @@
    - Noyau.modifs                           choix faits dans l'appli → config/modifs.json ; la tâche « Configuration »
                                             les reporte dans configuration.xlsx (le classeur reste la référence)
    - Noyau.accueil                          pages et widgets activés (config/accueil.json + choix en attente sur cet appareil),
-                                            garde des pages désactivées, disposition du widget resté seul (propre à l'appareil) */
+                                            garde des pages désactivées, disposition du widget resté seul (propre à l'appareil),
+                                            applis de l'accueil telles qu'elles s'affichent sur cet appareil (accueil.applis)
+   - Noyau.applis                           modèle de l'écran d'accueil (applis, dossiers, bandeau, Navigation) : depuis
+                                            config/applis.json ou le catalogue, choix en attente appliqués, disposition à envoyer
+   - Noyau.icones                           pictogrammes des tuiles et du bandeau (communs à l'accueil et à Réglages) */
 (() => {
 'use strict';
 const natif = () => window.MonEcranNatif || null;            // pont fourni par une future appli dédiée (absent sur le web)
@@ -178,7 +182,7 @@ const ajouterAttente = m => { const A = stockage.lire(ATTENTE, []); A.push({uid:
 let enCours = Promise.resolve(), tPlusTard = null, attentePlusTard = [], envoi = new Set();          // envoi : uid en cours d'envoi (plus complétés)
 const modifs = {
   /* change une ou plusieurs colonnes d'un élément : modifier('actus:une:le-monde', {Oui:'Non'}) ; colonnes possibles :
-     Oui, Widget accueil, Par défaut (valeurs « Oui », « Non » ou vide) et, pour les applis, Lien iPhone, Lien Android, Lien web */
+     Oui, Widget accueil, Par défaut (valeurs « Oui », « Non » ou vide) et, pour les applis, Appli (nom), Lien iPhone, Lien Android, Lien web */
   modifier(id, champs, {nom} = {}){
     const A = stockage.lire(ATTENTE, []), x = A.find(m => m.id === id && m.champs && !m.effacer && !envoi.has(m.uid));
     if (x){ Object.assign(x.champs, champs); x.at = new Date().toISOString(); stockage.ecrire(ATTENTE, A); signaler(); return x.uid; }   // pas encore envoyée : on la complète
@@ -188,6 +192,20 @@ const modifs = {
   /* nouvel élément dans les lignes « Mes ajouts » d'un onglet (actus, actus-en, sport, marches, videos, youtube, tv, cotes, applis) */
   ajouter:(module, {section = '', nom = '', source = '', champs = {}} = {}) => ajouterAttente({ajout:{module, section, nom, source}, champs}),
   effacer:(id, nom) => ajouterAttente({id, nom, effacer:true}),           // un de tes ajouts (id « ajout:module:n »)
+  /* retouche un ajout pas encore envoyé (nom, source, champs) ; false s'il est déjà parti */
+  majAjout(u, {nom, source, champs} = {}){
+    const A = stockage.lire(ATTENTE, []), x = A.find(m => m.uid === u && m.ajout && !envoi.has(m.uid)); if (!x) return false;
+    if (nom !== undefined) x.ajout.nom = nom; if (source !== undefined) x.ajout.source = source;
+    if (champs) x.champs = {...(x.champs || {}), ...champs};
+    x.at = new Date().toISOString(); stockage.ecrire(ATTENTE, A); signaler(); return true;
+  },
+  /* disposition complète d'un onglet (applis : ordre des tuiles, dossiers, bandeau, Navigation) ; elle remplace celle qui n'est pas encore
+     partie et se place en dernier (elle peut citer des ajouts faits avant elle : « uid:… ») ; null : retire celle pas encore partie */
+  disposer(module, listes){
+    stockage.ecrire(ATTENTE, stockage.lire(ATTENTE, []).filter(m => !(m.disposition && m.disposition.module === module && !envoi.has(m.uid))));
+    if (!listes){ signaler(); return null; }
+    return ajouterAttente({disposition:{module, listes}});
+  },
   verifier:() => ajouterAttente({verif:true}),                            // essai de bout en bout : la tâche répond sans rien changer
   annuler(u){ stockage.ecrire(ATTENTE, stockage.lire(ATTENTE, []).filter(m => m.uid !== u)); signaler(); },
   /* faites ici et pas encore reportées dans le classeur (envoyées ou non), dans l'ordre ; « traitée » d'après le catalogue chargé,
@@ -201,7 +219,7 @@ const modifs = {
   nettoyer(){ const t = CAT && CAT.modifs && CAT.modifs.traitees || {}, E = stockage.lire(ENVOYEES, []), reste = E.filter(m => !t[m.uid]);
     if (reste.length !== E.length){
       const faites = E.filter(m => t[m.uid]).map(m => ({uid:m.uid, at:m.at, id:m.id || t[m.uid].id || null, nom:m.nom || (m.ajout && m.ajout.nom) || '', ajout:m.ajout || null,
-        champs:m.champs || null, effacer:!!m.effacer, verif:!!m.verif, resultat:t[m.uid]}));
+        champs:m.champs || null, effacer:!!m.effacer, verif:!!m.verif, disposition:m.disposition ? m.disposition.module : null, resultat:t[m.uid]}));
       const R = stockage.lire(REPORTEES, []).filter(r => !faites.some(f => f.uid === r.uid));
       stockage.ecrire(REPORTEES, [...R, ...faites].slice(-200));
       stockage.ecrire(ENVOYEES, reste); signaler(); } },
@@ -253,6 +271,183 @@ const modifs = {
   plusTard:() => tPlusTard !== null,
 };
 
+/* ---------- Pictogrammes des tuiles et du bandeau (accueil, Réglages) ---------- */
+const icones = {
+  phone:'<path d="M6.6 3.5h2.6l1.5 4.2-2 1.5a12 12 0 0 0 6.1 6.1l1.5-2 4.2 1.5v2.6a2 2 0 0 1-2.1 2A16.5 16.5 0 0 1 4.6 5.6a2 2 0 0 1 2-2.1z"/>',
+  bubble:'<path d="M4 5.5h16a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5V17.5H4A1.5 1.5 0 0 1 2.5 16V7A1.5 1.5 0 0 1 4 5.5z"/>',
+  round:'<path d="M12 3.5a8.5 8.5 0 0 0-7.4 12.7L3.5 20.5l4.4-1.1A8.5 8.5 0 1 0 12 3.5z"/><path d="M8.6 12h.01M12 12h.01M15.4 12h.01"/>',
+  duo:'<path d="M3.5 6.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H9l-3.5 2.8V13.5a2 2 0 0 1-2-2z"/><path d="M15.5 8.5h3a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2V20l-3-2.5h-3.5a2 2 0 0 1-2-2v-.5"/>',
+  card:'<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19M6 15h4"/>',
+  spark:'<path d="M12 3.5c.7 4.4 2.9 6.6 7.3 7.3-4.4.7-6.6 2.9-7.3 7.3-.7-4.4-2.9-6.6-7.3-7.3 4.4-.7 6.6-2.9 7.3-7.3z"/><path d="M18.5 15.5c.25 1.5 1 2.25 2.5 2.5-1.5.25-2.25 1-2.5 2.5-.25-1.5-1-2.25-2.5-2.5 1.5-.25 2.25-1 2.5-2.5z"/>',
+  xmark:'<path d="M6 5.5 18 18.5M18 5.5 6 18.5"/>',
+  cog:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  play:'<rect x="3" y="5" width="18" height="14" rx="3.5"/><path d="M10 9.2v5.6l4.8-2.8z" fill="currentColor"/>',
+  shield:'<path d="M12 2.8 4.8 5.6v5.6c0 4.6 3 8.3 7.2 9.9 4.2-1.6 7.2-5.3 7.2-9.9V5.6z"/><path d="M12 6v12.2c2.6-1.3 4.4-3.9 4.4-7V7.6z" fill="currentColor"/>',
+  network:'<circle cx="12" cy="5" r="2.2"/><circle cx="5" cy="18.5" r="2.2"/><circle cx="19" cy="18.5" r="2.2"/><path d="M11 7 6 16.6M13 7l5 9.6M7.2 18.5h9.6"/>',
+  nav:'<path d="M12 3 19.5 20.5 12 16.3 4.5 20.5z"/>',
+  folder:'<path d="M3 7.5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 10h18"/>',
+  camera:'<path d="M4 7.5h3.2L9 5h6l1.8 2.5H20a1.5 1.5 0 0 1 1.5 1.5v9.5A1.5 1.5 0 0 1 20 20H4a1.5 1.5 0 0 1-1.5-1.5V9A1.5 1.5 0 0 1 4 7.5z"/><circle cx="12" cy="13.3" r="3.8"/>',
+  gear:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/><path d="M4 12h5M13 12h7"/><circle cx="11" cy="12" r="2"/>',
+  media:'<rect x="2.5" y="4.5" width="19" height="13" rx="2.5"/><path d="m10 8.2 4.8 2.8-4.8 2.8z"/><path d="M8 20.5h8"/>',
+  news:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 8.5h6M7 12h10M7 15.5h10"/>',
+  invest:'<path d="M4 19.5h16"/><path d="m5 15.5 4.5-4.5 3.5 3.5 6.5-7.5"/><path d="M15 7h4.5v4.5"/>',
+  meteo:'<circle cx="8.5" cy="8.5" r="3.2"/><path d="M8.5 2.5v1.3M2.5 8.5h1.3M4.3 4.3l.9.9M12.7 4.3l-.9.9"/><path d="M8 20h9.5a3.8 3.8 0 0 0 0-7.6 5 5 0 0 0-9.4 1.6A3 3 0 0 0 8 20z"/>',
+  map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/>',
+  drive:'<path d="M3 7.5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  translate:'<path d="M3.5 5.5h9M8 3.5v2M5.5 5.5c1 4 3.8 6.8 6.5 7.8M10.5 5.5c-1 4-3.8 6.8-6.5 7.8"/><path d="m13 20.5 4-9 4 9M14.4 17.5h5.2"/>',
+  search:'<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+  play:'<rect x="2.5" y="5.5" width="19" height="13" rx="3.5"/><path d="m10 9.2 5 2.8-5 2.8z"/>',
+  book:'<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3"/>',
+  tag:'<path d="M3 11.5V4h7.5L21 14.5 13.5 22z"/><circle cx="7.5" cy="8" r="1.4"/>',
+  sport:'<circle cx="12" cy="12" r="8.5"/><path d="m12 7.6 4.2 3-1.6 4.9H9.4l-1.6-4.9z"/><path d="M12 3.5v4.1M16.2 10.6l3.9-1.3M14.6 15.5l2.4 3.4M9.4 15.5 7 18.9M7.8 10.6 3.9 9.3"/>'
+};
+
+/* ---------- Applis de l'accueil (onglet Applis du classeur) ----------
+   Modèle commun à l'accueil (affichage) et à Réglages (éditeur) : {listes:{accueil, bas_gauche, bas_droite, navigation, 'd:<dossier>'},
+   dossiers:{<clé>:{nom, id}}, ordreD:[clés des dossiers]} ; chaque élément {id, def, cache} (def = définition de config/applis.json,
+   cache = masqué : case « Oui » pas à Oui). Les choix en attente s'appliquent dans l'ordre :
+   {id, champs} (Oui, Appli, liens), {ajout:{module:'applis', section, nom, source}} (élément « uid:<uid> »), {id:'ajout:applis:n', effacer},
+   {disposition:{module:'applis', listes:[{cle, ids}, {cle, dossier:true, nom, ids}…]}} (ordre complet, dossiers nouveaux ou renommés). */
+const LISTES_APPLIS = ['accueil', 'bas_gauche', 'bas_droite', 'navigation'];
+const NOMS_LISTES = {accueil:'Écran d\'accueil', bas_gauche:'Bandeau du bas · gauche', bas_droite:'Bandeau du bas · droite', navigation:'Applis proposées par Navigation'};
+const TUILES_AUTO = {actus:{label:'Actus', type:'auto', auto:'actus'}, invest:{label:'Invest.', type:'auto', auto:'invest'}, sport:{label:'Sport', type:'auto', auto:'sport'}};
+const COLONNES_LIENS = [['app', 'Lien iPhone'], ['android', 'Lien Android'], ['web', 'Lien web']];
+const sl = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+const copie = x => JSON.parse(JSON.stringify(x));
+const estAppli = d => !!d && !d.type && !d.action;                          // une appli avec ses 3 liens (pas une page, un dossier, un emplacement, Navigation)
+const accueilSeul = d => !!d && (d.type === 'folder' || d.type === 'auto' || !!d.live);
+/* où un élément peut aller : dossiers, emplacements et tuile LIVE sur l'accueil seulement, Navigation dans le bandeau, menu Navigation : des applis */
+const permis = (d, cle) => accueilSeul(d) ? cle === 'accueil' : d && d.action ? cle === 'bas_gauche' || cle === 'bas_droite' : cle === 'navigation' ? estAppli(d) : true;
+/* appli ajoutée par « Mes ajouts » (même règle que la tâche Configuration) */
+function defAjout(nom, source, champs = {}){
+  source = String(source || ''); nom = String(nom || '') || source;
+  const http = /^https?:/i.test(source), ios = source && !http ? source : '', web = champs['Lien web'] || (http ? source : ''), android = champs['Lien Android'] || '';
+  const d = {label:nom, mono:nom.slice(0, 2), color:'--t-slate'};
+  if (ios) d.app = ios; if (web) d.web = web; if (android) d.android = android;
+  if (web && !ios && !android) d.url = web;                                 // simple lien : ouvert dans un nouvel onglet
+  return d;
+}
+function liensDans(d, c){
+  if (!estAppli(d)) return;
+  for (const [k, h] of COLONNES_LIENS) if (h in c){ if (c[h]) d[k] = c[h]; else delete d[k]; }
+  if (d.url && !d.app && !d.android) d.url = d.web || d.url;
+}
+const videModele = () => ({listes:Object.fromEntries(LISTES_APPLIS.map(k => [k, []])), dossiers:{}, ordreD:[]});
+function cleSection(m, label){
+  const s = sl(label);
+  for (const k of LISTES_APPLIS) if (s === sl(NOMS_LISTES[k]) || s === sl(k)) return k;
+  for (const [k, d] of Object.entries(m.dossiers)) if (s === sl(d.nom) || s === sl(k)) return 'd:' + k;
+  const k = s || 'mes-ajouts'; m.dossiers[k] = {nom:String(label || 'Mes ajouts'), id:null}; m.listes['d:' + k] = []; return 'd:' + k;   // nouveau dossier
+}
+/* complète le modèle : listes manquantes, ordre des dossiers, tuile d'un dossier qui n'en a pas (comme la tâche) */
+function finaliser(m){
+  for (const k of LISTES_APPLIS) m.listes[k] = m.listes[k] || [];
+  for (const k of Object.keys(m.dossiers)) m.listes['d:' + k] = m.listes['d:' + k] || [];
+  m.ordreD = [...(m.ordreD || []).filter(k => m.dossiers[k]), ...Object.keys(m.dossiers).filter(k => !(m.ordreD || []).includes(k))];
+  for (const k of m.ordreD){
+    if (!m.listes['d:' + k].some(it => !it.cache) || m.listes.accueil.some(it => it.def.type === 'folder' && it.def.target === k)) continue;
+    m.listes.accueil.push({id:'dossier:' + k, def:{label:m.dossiers[k].nom, type:'folder', target:k}, cache:false});
+  }
+  return m;
+}
+function disposer(m, D){
+  const pool = new Map(); for (const L of Object.values(m.listes)) for (const it of L) pool.set(it.id, it);
+  const ordreD = [];
+  for (const e of D) if (e && e.dossier && e.cle){ const k = String(e.cle);
+    if (!m.dossiers[k]) m.dossiers[k] = {nom:String(e.nom || k), id:null}; else if (e.nom) m.dossiers[k].nom = String(e.nom);
+    if (!ordreD.includes(k)) ordreD.push(k); }
+  const nouv = {}, vus = new Set();
+  for (const e of D){
+    if (!e || !e.cle) continue;
+    const cle = e.dossier ? 'd:' + e.cle : String(e.cle); if (!e.dossier && !LISTES_APPLIS.includes(cle)) continue;
+    const L = nouv[cle] = nouv[cle] || [];
+    for (const id of e.ids || []){
+      if (vus.has(id)) continue;
+      let it = pool.get(id);
+      if (!it && cle === 'accueil' && /^auto:(actus|invest|sport)$/.test(id)) it = {id, def:{...TUILES_AUTO[id.slice(5)]}, cache:false};
+      if (!it && cle === 'accueil' && /^dossier:/.test(id) && m.dossiers[id.slice(8)]) it = {id, def:{label:m.dossiers[id.slice(8)].nom, type:'folder', target:id.slice(8)}, cache:false};
+      if (!it || !permis(it.def, cle)) continue;
+      vus.add(id); L.push(it);
+    }
+  }
+  for (const [cle, L] of Object.entries(m.listes)) for (const it of L) if (!vus.has(it.id)){ (nouv[cle] = nouv[cle] || []).push(it); vus.add(it.id); }   // pas cités : en fin de leur liste
+  for (const it of nouv.accueil || []) if (it.def.type === 'folder' && m.dossiers[it.def.target]) it.def.label = m.dossiers[it.def.target].nom;
+  m.listes = nouv; m.ordreD = ordreD;
+}
+const applis = {
+  LISTES:LISTES_APPLIS, NOMS_LISTES, TUILES_AUTO, permis, estAppli, accueilSeul, defAjout, cle:sl,
+  /* depuis config/applis.json (ou les valeurs écrites dans l'accueil) : éléments visibles + réserve des masqués */
+  depuisConfig(c){
+    const m = videModele(); c = c || {};
+    const item = (d, cle, i, cache) => { const {id, ou, ou_nom, apres, ...def} = d || {}; return {id:id || `x:${cle}:${sl(def.label)}:${i}`, def, cache}; };
+    for (const k of LISTES_APPLIS) m.listes[k] = (c[k] || []).map((d, i) => item(d, k, i, false));
+    for (const [k, f] of Object.entries(c.dossiers || {})){ m.dossiers[k] = {nom:f.title || k, id:f.id || null}; m.listes['d:' + k] = (f.items || []).map((d, i) => item(d, 'd:' + k, i, false)); }
+    for (const [id, d] of Object.entries(c.reserve || {})){
+      const cle = LISTES_APPLIS.includes(d.ou) ? d.ou : 'd:' + d.ou;
+      if (!m.listes[cle]){ m.dossiers[d.ou] = {nom:d.ou_nom || d.ou, id:null}; m.listes[cle] = []; }
+      const L = m.listes[cle], i = d.apres ? L.findIndex(x => x.id === d.apres) : -1;
+      L.splice(d.apres ? (i >= 0 ? i + 1 : L.length) : 0, 0, item({...d, id}, cle, 0, true));
+    }
+    return finaliser(m);
+  },
+  /* depuis le catalogue (module applis) : tout l'onglet, masqués compris, avec les noms et liens du classeur */
+  depuisCatalogue(mod){
+    const m = videModele(); if (!mod) return m;
+    const cleDe = s => { const t = s.tech || {}; if (t.type === 'dossier'){ m.dossiers[t.id] = m.dossiers[t.id] || {nom:t.label || s.label, id:s.id}; return 'd:' + t.id; } return t.id || s.cle; };
+    for (const s of mod.sections || []){
+      const cle = cleDe(s);
+      m.listes[cle] = (s.items || []).map(it => { const d = {...(it.def || {})}, c = it.champs || {};
+        d.label = c.Appli || it.nom || d.label; liensDans(d, c);
+        return {id:it.id, def:d, cache:!it.choisi || it.support !== 'ok'}; });
+    }
+    for (const a of mod.ajouts || []){
+      if (!a.nom && !a.source) continue;
+      const s = a.section_id && (mod.sections || []).find(x => x.id === a.section_id), cle = s ? cleDe(s) : cleSection(m, a.section || 'Mes ajouts');
+      m.listes[cle].push({id:a.id, def:defAjout(a.nom, a.source, a.champs || {}), cache:!a.choisi, ajout:true});
+    }
+    return finaliser(m);
+  },
+  /* applique les choix en attente (dans l'ordre) ; les éléments touchés sont marqués « attente » */
+  appliquer(base, liste){
+    const m = copie(base);
+    const trouver = id => { for (const [cle, L] of Object.entries(m.listes)){ const i = L.findIndex(it => it.id === id); if (i >= 0) return {cle, i, it:L[i]}; } return null; };
+    for (const x of liste || []){
+      if (x.disposition){ if (x.disposition.module === 'applis'){ disposer(m, x.disposition.listes || []); finaliser(m); } continue; }
+      if (x.ajout){ if (x.ajout.module !== 'applis') continue;
+        const cle = cleSection(m, x.ajout.section), c = x.champs || {};
+        m.listes[cle].push({id:'uid:' + x.uid, def:defAjout(x.ajout.nom, x.ajout.source, c), cache:'Oui' in c && c.Oui !== 'Oui', attente:true, uid:x.uid, nonEnvoyee:!!x.nonEnvoyee});
+        finaliser(m); continue; }
+      if (!x.id) continue;
+      const f = trouver(x.id); if (!f) continue;
+      if (x.effacer){ m.listes[f.cle].splice(f.i, 1); continue; }
+      const c = x.champs || {}, d = f.it.def;
+      if ('Oui' in c) f.it.cache = c.Oui !== 'Oui';
+      if (c.Appli) d.label = c.Appli;
+      liensDans(d, c); f.it.attente = true;
+    }
+    return finaliser(m);
+  },
+  /* ce que l'accueil affiche : même forme que config/applis.json (éléments visibles, chacun avec son id) */
+  vers(m){
+    const vis = L => (L || []).filter(it => !it.cache).map(it => ({...it.def, id:it.id}));
+    const dossiers = {};
+    for (const k of m.ordreD){ const items = vis(m.listes['d:' + k]); if (items.length) dossiers[k] = {title:m.dossiers[k].nom, id:m.dossiers[k].id, items}; }
+    return {accueil:vis(m.listes.accueil).filter(a => a.type !== 'folder' || dossiers[a.target]), dossiers,
+            bas_gauche:vis(m.listes.bas_gauche), bas_droite:vis(m.listes.bas_droite), navigation:vis(m.listes.navigation)};
+  },
+  /* disposition à envoyer (Noyau.modifs.disposer('applis', …)) : ordre complet, masqués compris ; dossiers dans l'ordre de leurs tuiles */
+  disposition(m){
+    const tuiles = m.listes.accueil.filter(it => it.def.type === 'folder').map(it => it.def.target);
+    const ordre = [...tuiles.filter(k => m.dossiers[k]), ...m.ordreD.filter(k => !tuiles.includes(k))];
+    const ids = cle => (m.listes[cle] || []).map(it => it.id);
+    return [{cle:'accueil', ids:ids('accueil')}, ...ordre.map(k => ({cle:k, dossier:true, nom:m.dossiers[k].nom, ids:ids('d:' + k)})),
+            ...['bas_gauche', 'bas_droite', 'navigation'].map(k => ({cle:k, ids:ids(k)}))];
+  },
+  /* choix en attente qui touchent l'onglet Applis */
+  concerne:x => !!x && ((x.disposition && x.disposition.module === 'applis') || (x.ajout && x.ajout.module === 'applis') || /^(ap:|ajout:applis:)/.test(x.id || '')),
+};
+
 /* ---------- Accueil : pages et widgets activés ----------
    config/accueil.json (classeur, onglet Accueil) + les choix faits sur cet appareil pas encore reportés (pg:…, wg:…, un:…),
    pour que le changement se voie tout de suite ici ; les autres appareils le voient après le report. Sans le catalogue (léger). */
@@ -270,16 +465,24 @@ const accueil = {
     const v = attenteOui('pg:' + id); return v !== undefined ? v === 'Oui' : actifDans('accueil.pages', id); },
   widget(id){ id = String(id).replace(/^wg:/, '');
     const v = attenteOui('wg:' + id); return v !== undefined ? v === 'Oui' : actifDans('accueil.widgets', id); },
-  /* source du widget « À la une » : {name, color, url} ; un choix en attente l'emporte (sa définition est gardée par Réglages) */
-  une(defaut = null){ const c = stockage.lire(UNE_CHOIX, null);
+  /* source choisie pour le widget « À la une » : {name, color, url}, ou null pour « Automatique » (l'info la plus reprise) ;
+     un choix en attente l'emporte (Réglages garde sa définition ; « auto » : toutes les sources décochées) */
+  uneChoisie(){ const c = stockage.lire(UNE_CHOIX, null);
+    if (c && c.id === 'auto' && (c.ids || []).some(id => attenteOui(id) !== undefined)) return null;
     if (c && c.id && c.def && attenteOui(c.id) === 'Oui') return c.def;
-    return config('accueil.une', null) || defaut; },
-  choisirUne(id, def){ stockage.ecrire(UNE_CHOIX, {id, def}); },
+    return config('accueil.une', null); },
+  /* source à utiliser pour un flux direct : la choisie, sinon la valeur par défaut de la page */
+  une(defaut = null){ return accueil.uneChoisie() || defaut; },
+  choisirUne(id, def, ids){ stockage.ecrire(UNE_CHOIX, {id, def:def || null, ...(ids ? {ids} : {})}); },
+  /* applis, dossiers, bandeau et menu Navigation tels qu'ils s'affichent sur cet appareil : config/applis.json (ou les valeurs
+     écrites dans l'accueil) + les choix faits ici pas encore reportés ; même forme que config/applis.json */
+  applis(defauts){ return applis.vers(applis.appliquer(applis.depuisConfig(config('applis', null) || defauts), modifs.enAttente())); },
   /* téléphone : widget resté seul dans la rangée du haut, en « large » (pleine largeur) ou « carre » (même taille) ; propre à l'appareil */
   disposition:() => stockage.lire(DISPOSITION, 'large') === 'carre' ? 'carre' : 'large',
   choisirDisposition:d => stockage.ecrire(DISPOSITION, d === 'carre' ? 'carre' : 'large'),
   /* résumé de tout ce qui change l'accueil (pour savoir s'il faut le recharger) */
-  signature:() => JSON.stringify([PAGES.filter(accueil.page), WIDGETS.filter(accueil.widget), (accueil.une() || {}).url || '', accueil.disposition()]),
+  signature:() => JSON.stringify([PAGES.filter(accueil.page), WIDGETS.filter(accueil.widget), (accueil.uneChoisie() || {}).url || 'auto', accueil.disposition(),
+    modifs.enAttente().filter(applis.concerne).map(m => [m.uid, m.champs || null, m.disposition || null, m.ajout || null, !!m.effacer])]),
   /* en tête d'une page : si elle est désactivée, affiche « Page désactivée » à la place ; le reste du fichier n'est pas lu
      (<plaintext> masqué : aucun script de la page ne s'exécute, aucune donnée n'est chargée), et la page se termine normalement */
   garde(id){
@@ -306,7 +509,7 @@ background:radial-gradient(60% 45% at 10% 8%,color-mix(in oklab,var(--pd-acc) 30
   },
 };
 
-window.Noyau = {version:1, config, stockage, appareil, lien, iphoneWeb, depot, synchro, catalogue, modifs, accueil, MSG,
+window.Noyau = {version:1, config, stockage, appareil, lien, iphoneWeb, depot, synchro, catalogue, modifs, accueil, applis, icones, MSG,
   message:code => MSG[String(code).replace(/^erreur:/, '')] || (window.Synchro && Synchro.MSG[String(code).replace(/^erreur:/, '')]) || String(code)};
 window.CFG = config;
 })();

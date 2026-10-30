@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="a0c981b9">
+<meta name="mon-ecran-version" content="1fa48692">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Réglages</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -245,6 +245,108 @@ label.it{cursor:pointer}
 .it.dispo-l .it-t small,.it.acc-l .it-t small{white-space:normal}
 .it .seg.dispo{flex:1 1 100%}
 .it .seg.dispo button{min-height:30px;padding:5px 6px;font-size:.8rem}
+
+/* ---------- Écran d'accueil (éditeur) : tuiles comme sur l'accueil, bandeau, menu Navigation, fiche ---------- */
+.ed-etat{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 4px}
+.eg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px 10px;padding:14px 12px 12px;min-height:84px}
+.eg.eg4{grid-template-columns:repeat(4,minmax(0,1fr));padding:4px 2px 2px}
+html.desk .eg:not(.eg4){grid-template-columns:repeat(7,minmax(0,1fr))}
+.et{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;padding:0;touch-action:manipulation;
+  -webkit-user-select:none;user-select:none;cursor:grab}
+.et .tile,.en .tile,.sh-h .tile{width:100%;aspect-ratio:1;border-radius:26%;display:grid;place-items:center;color:var(--glyph,#fff);position:relative;isolation:isolate;
+  background:linear-gradient(160deg, color-mix(in oklab, var(--c) 55%, transparent), color-mix(in oklab, var(--c) 88%, transparent));
+  box-shadow:0 10px 22px -12px color-mix(in oklab, var(--c) 80%, black);transition:transform .15s}
+.et:active .tile{transform:scale(.94)}
+.et .tile svg,.en .tile svg,.sh-h .tile svg{width:50%;height:50%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tile .mo{font-weight:700;font-size:.9rem;letter-spacing:-.03em}
+.tile .mo.long{font-size:.66rem}
+.en .tile .mo{font-size:.78rem}
+.tile.img{background:var(--img) center / cover no-repeat;box-shadow:0 8px 18px -10px rgba(0,0,0,.45)}
+.tile.img > *{display:none}
+.tile.folder{background:linear-gradient(160deg, var(--glass), var(--glass-tint));box-shadow:var(--shadow);border:1px solid var(--line);
+  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:16%;place-items:stretch}
+.tile.folder i{border-radius:30%;display:block;min-width:0;min-height:0;background:linear-gradient(160deg, color-mix(in oklab, var(--c) 60%, transparent), var(--c))}
+.tile.folder i.img{background:var(--img) center / cover no-repeat}
+.tile.auto{background:none;box-shadow:none;border:2px dashed color-mix(in oklab, var(--ink-soft) 60%, transparent);color:var(--ink-soft)}
+.live-w{display:flex;flex-direction:column;align-items:flex-start;color:var(--glyph,#fff)}
+.live-row{display:flex;align-items:center;gap:3px}.live-row b{font-weight:800;font-size:.72rem;letter-spacing:.05em}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#aeb4ba;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+.live-sub{margin-left:10px;font-size:.6rem;font-weight:700;font-style:italic;color:var(--sport-accent,#a3cef1);line-height:1}
+.et .name{font-size:.64rem;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.et.et-auto .name{color:var(--ink-soft);font-style:italic}
+.et.off .tile{filter:grayscale(1);opacity:.4}
+.pt{position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;border:2px solid var(--base);background:#e08a12}
+.pt.ko{background:#d63c3c}
+.et.fantome,.eq.fantome,.en.fantome{opacity:.22}
+.et.cible-dossier .tile{transform:scale(1.12);box-shadow:0 0 0 3px var(--accent)}
+.glisse{position:fixed;left:0;top:0;z-index:80;pointer-events:none;margin:0;transform-origin:center;opacity:.95;filter:drop-shadow(0 14px 18px rgba(0,0,0,.35))}
+.glisse.et .tile,.glisse.eq,.glisse.en{transform:scale(1.08)}
+html.glisse-en-cours,html.glisse-en-cours *{cursor:grabbing!important;-webkit-user-select:none;user-select:none}
+.ed-act{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:4px 12px 14px}
+.ed-act .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px}
+.ed-act .btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.ed-auto{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 12px 14px;font-size:.76rem;color:var(--ink-soft)}
+.ed-auto button{padding:5px 10px;border-radius:999px;border:1px dashed color-mix(in oklab, var(--ink-soft) 60%, transparent);font-size:.76rem;font-weight:600;color:var(--accent)}
+/* bandeau du bas */
+.eb{display:flex;align-items:center;gap:4px;padding:14px 10px;justify-content:space-between}
+.eb-g{flex:1 1 0;min-width:0;display:flex;gap:4px;align-items:center}
+.eb-g.d{justify-content:flex-end}
+.eb-c{display:flex;gap:4px;align-items:center;min-height:32px;min-width:32px;flex-wrap:wrap;border-radius:12px}
+.eb-g.d .eb-c{justify-content:flex-end;flex:1 1 auto}
+.eq{position:relative;width:30px;height:30px;flex:none;border-radius:11px;display:grid;place-items:center;color:var(--ink);background:var(--card);border:1px solid var(--line);
+  touch-action:manipulation;-webkit-user-select:none;user-select:none;cursor:grab}
+.eq svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.eq .qm{font-size:.68rem;font-weight:700;letter-spacing:-.02em}
+.eq.fixe{cursor:default;color:var(--ink-soft);border-style:dashed}
+.eq.fixe .cad{position:absolute;right:-5px;bottom:-5px;width:15px;height:15px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center}
+.eq.fixe .cad svg{width:9px;height:9px;stroke-width:2.6}
+.eetat{flex:none;width:22px;height:32px;display:grid;place-items:center;position:relative}
+.eetat i{width:8px;height:8px;border-radius:50%;background:#1e8a4c;box-shadow:0 0 0 3px rgba(30,138,76,.2)}
+/* menu Navigation et masquées */
+.en-l{display:flex;flex-direction:column}
+.en{display:flex;align-items:center;gap:12px;width:100%;padding:8px 14px;min-height:52px;border-top:1px solid var(--line);text-align:left;position:relative;
+  touch-action:manipulation;-webkit-user-select:none;user-select:none;cursor:grab;background:transparent}
+.en-l > .en:first-child{border-top:0}
+.en .tile{width:34px;flex:none;border-radius:10px}
+.en .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.en .t b{font-size:.9rem;font-weight:500}
+.en .t small{font-size:.72rem;color:var(--ink-soft)}
+.en .poi{flex:none;width:20px;height:20px;fill:none;stroke:var(--ink-soft);stroke-width:2;stroke-linecap:round}
+.en .pt{top:8px;right:auto;left:40px}
+.en .mini{flex:none;font-size:.78rem;font-weight:600;color:var(--accent);padding:6px 4px}
+/* fiche (feuille du bas sur téléphone, fenêtre au centre sur ordinateur) */
+#feuille{position:fixed;inset:0;z-index:60}
+.sheet-bg{position:absolute;inset:0;background:var(--scrim, rgba(8,18,31,.35));animation:fondu .2s ease-out}
+@keyframes fondu{from{opacity:0}}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88vh;max-height:88dvh;overflow:auto;border-radius:26px 26px 0 0;
+  padding:16px max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background:var(--sheet-solid, var(--base));display:flex;flex-direction:column;gap:12px;animation:monte .25s cubic-bezier(.2,.8,.2,1);overscroll-behavior:contain}
+@keyframes monte{from{transform:translateY(40px);opacity:.4}}
+html.desk .sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(440px, calc(100% - 32px));transform:translate(-50%,-50%);border-radius:26px;animation:none;max-height:86vh}
+.sh-h{display:flex;align-items:center;gap:12px}
+.sh-h .tile{width:52px;flex:none}
+.sh-h .eq{flex:none}
+.sh-h .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.sh-h h3{margin:0;font-size:1.15rem;letter-spacing:-.02em;overflow-wrap:anywhere}
+.sh-h small{color:var(--ink-soft);font-size:.78rem}
+.sh-x{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--ink-soft);background:var(--card);border:1px solid var(--line)}
+.sh-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.chp{display:flex;flex-direction:column;gap:5px;font-size:.78rem;color:var(--ink-soft);font-weight:500}
+.chp input,.chp select{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 11px;width:100%;min-width:0}
+.chp input.lien{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;font-size:14px}
+.chp input:disabled{opacity:.55}
+.chp small{font-weight:400;font-size:.72rem}
+.sh-l{display:flex;gap:8px;align-items:flex-end}
+.sh-l .chp{flex:1;min-width:0}
+.sh-l .seg{flex:none}
+.sh-l .seg button{min-width:44px;min-height:40px}
+.sh-a{display:flex;flex-wrap:wrap;gap:8px}
+.sh-a .btn{padding:9px 13px}
+.btn.ko{color:#d63c3c}
+.sh-msg{margin:0;font-size:.8rem;color:#d63c3c}
+.sh-msg:empty{display:none}
+.sh-pied{display:flex;gap:8px;justify-content:flex-end;padding-top:4px}
+.btn:disabled{opacity:.45;cursor:default}
 
 /* barre d'envoi (en bas) */
 .barre{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom, 0px));z-index:30;width:min(528px, calc(100% - 24px));
@@ -512,6 +614,7 @@ label.it{cursor:pointer}
   <section id="ecran" aria-live="polite"></section>
 </div></main>
 <div class="barre glass" id="barre" role="status" hidden></div>
+<div id="feuille" hidden></div>
 
 <script>
 /* Réglages : tout ce qui se règle dans l'appli, au même endroit.
@@ -545,11 +648,16 @@ const ICO = {
   chev:'<path d="m9 6 6 6-6 6"/>', maison:'<path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/>',
   poub:'<path d="M4 7h16M9 7V5h6v2M6.5 7l1 12h9l1-12"/>', plus:'<path d="M12 5v14M5 12h14"/>',
   pages:'<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><path d="M14 17h6M17 14v6"/>',
+  applis:'<rect x="3.5" y="3.5" width="5" height="5" rx="1.5"/><rect x="9.5" y="3.5" width="5" height="5" rx="1.5"/><rect x="15.5" y="3.5" width="5" height="5" rx="1.5"/><rect x="3.5" y="9.5" width="5" height="5" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.5"/><path d="M5 19.5h14"/>',
+  cadenas:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  poignee:'<path d="M5 9h14M5 15h14"/>', croix:'<path d="M6 6l12 12M18 6 6 18"/>',
 };
 /* écrans de choix : modules du catalogue (config/catalogue.json) */
 const ECRANS = {
-  accueil:{titre:'Pages et widgets', modules:['accueil'], ico:'pages', special:true,
+  accueil:{titre:'Pages et widgets', modules:['accueil'], ico:'pages', special:'accueil',
            intro:'Désactive une page ou un widget : il disparaît de l\'écran d\'accueil et ne charge plus rien. Le changement se voit tout de suite sur cet appareil, sur tes autres appareils après le report dans le classeur.'},
+  applis:{titre:'Écran d\'accueil', modules:['applis'], ico:'applis', special:'applis',
+          intro:'Maintiens une tuile puis fais-la glisser pour la déplacer (sur un dossier pour l\'y ranger) ; touche-la pour la renommer, changer ses liens, la déplacer ou la masquer. Réglages et État restent toujours dans le bandeau. Le changement se voit tout de suite sur cet appareil, sur tes autres appareils après le report dans le classeur.'},
   actus:{titre:'Médias d\'actus', modules:['actus', 'actus-en'], langues:['Français', 'International'], ico:'actus',
          intro:'Coche un média : sa rubrique apparaît dans la page Actus. « Toute la rubrique » prend tous ses médias, y compris ceux ajoutés plus tard au classeur.'},
   youtube:{titre:'Chaînes YouTube', modules:['youtube'], ico:'youtube',
@@ -559,7 +667,7 @@ const ECRANS = {
   marches:{titre:'Marchés et fonds', modules:['marches'], ico:'marches', widget:true,
            intro:'Coche ce que la page Investissements suit. La case maison l\'affiche aussi dans le widget de l\'écran d\'accueil (4 au plus conseillés).'},
 };
-const MOD_ECRAN = {accueil:'accueil', actus:'actus', 'actus-en':'actus', youtube:'youtube', sport:'sport', marches:'marches'};
+const MOD_ECRAN = {accueil:'accueil', applis:'applis', actus:'actus', 'actus-en':'actus', youtube:'youtube', sport:'sport', marches:'marches'};
 /* raccourcis vers les choix personnels, qui restent dans leurs pages */
 const PERSO = [
   {ico:'etoile', t:'Équipes et compétitions favorites', d:'Page Sport, onglet Favoris (étoile sous un match)', url:'sport.html?ouvrir=favoris', page:'sport'},
@@ -716,8 +824,8 @@ function rendreMenu(){
   const choix = Object.entries(ECRANS).map(([k, E]) => {
     let d = 'catalogue pas encore chargé';
     if (CAT){ const its = E.modules.flatMap(mid => moduleDe(mid) ? itemsDe(moduleDe(mid)) : []), c = compte(its);
-      const att = E.modules.reduce((a, mid) => a + M.enAttente().filter(m => (m.ajout && m.ajout.module === mid) || (m.id && C.element(m.id) && C.element(m.id).module === mid)).length, 0);
-      d = E.special ? resumeAccueil() : `${c.n} choisi${c.n > 1 ? 's' : ''} sur ${c.tot}`;
+      const att = E.modules.reduce((a, mid) => a + M.enAttente().filter(m => (m.ajout && m.ajout.module === mid) || (m.disposition && m.disposition.module === mid) || (m.id && C.element(m.id) && C.element(m.id).module === mid)).length, 0);
+      d = E.special === 'accueil' ? resumeAccueil() : E.special === 'applis' ? resumeApplis() : `${c.n} choisi${c.n > 1 ? 's' : ''} sur ${c.tot}`;
       if (att) d += ` · ${att} en attente`; }
     return ligne('#' + (k === 'actus' && langue ? 'actus-en' : k), E.ico, E.titre, esc(d), route.replace('-en', '') === k);
   }).join('');
@@ -737,7 +845,8 @@ function rendreEcran(){
   if (!CAT){ out.innerHTML = `<div class="sec glass"><p class="vide">${esc(erreurCat || 'Chargement du catalogue…')}</p></div>`; return; }
   const mid = E.modules[E.langues ? langue : 0], mod = moduleDe(mid);
   if (!mod){ out.innerHTML = `<div class="sec glass"><p class="vide">L'onglet « ${esc(mid)} » n'est pas dans le classeur actuel.</p></div>`; return; }
-  if (E.special){ out.innerHTML = ecranAccueil(E, mod); return; }
+  if (E.special === 'accueil'){ out.innerHTML = ecranAccueil(E, mod); return; }
+  if (E.special === 'applis'){ out.innerHTML = ecranApplis(E, mod); return; }
   const nq = norm(q.trim());
   const trouve = it => !nq || norm([it.nom, ...Object.values(it.infos || {})].join(' ')).includes(nq);
   let h = `<h2 class="ecr-t">${esc(E.titre)}</h2><p class="intro">${esc(E.intro)}</p>`, rien = true;
@@ -825,13 +934,15 @@ function resumeAccueil(){
   const n = L => L.filter(it => on(it.id)).length;
   return `${n(P)} page${n(P) > 1 ? 's' : ''} sur ${P.length} · ${n(W)} widget${n(W) > 1 ? 's' : ''} sur ${W.length}`;
 }
-/* une seule source « À la une » : Oui sur la source choisie, les autres vides (ou « Non » si toute la section est cochée) */
+/* une seule source « À la une » : Oui sur la source choisie, les autres vides (ou « Non » si toute la section est cochée) ;
+   « auto » (Automatique : l'info la plus reprise) : toutes décochées */
 function choisirUne(id){
-  const e = C.element(id); if (!e || !e.section) return;
-  const secOui = etat(e.section.id).oui;
-  for (const it of e.section.items || []) if (it.id !== id && on(it.id)) changer(it.id, {Oui:secOui === 'Oui' ? 'Non' : ''});
-  if (etat(id).oui !== 'Oui') changer(id, {Oui:'Oui'});
-  A.choisirUne(id, e.item.def);                                           // l'accueil de cet appareil l'utilise sans attendre le report
+  const sU = secAccueil('une'); if (!sU) return;
+  const e = id === 'auto' ? null : C.element(id); if (id !== 'auto' && (!e || !e.section)) return;
+  const secOui = etat(sU.id).oui;
+  for (const it of sU.items || []) if (it.id !== id && on(it.id)) changer(it.id, {Oui:secOui === 'Oui' ? 'Non' : ''});
+  if (id !== 'auto' && etat(id).oui !== 'Oui') changer(id, {Oui:'Oui'});
+  A.choisirUne(id, e ? e.item.def : null, id === 'auto' ? (sU.items || []).map(it => it.id) : undefined);   // l'accueil de cet appareil l'utilise sans attendre le report
 }
 /* ce que devient l'accueil quand un élément est coupé (d'après les choix actuels, en attente compris) */
 function noteAccueil(it){
@@ -876,15 +987,441 @@ function ecranAccueil(E, mod){
     h += blocAccueil(sW.label, `${(sW.items || []).filter(it => on(it.id)).length} sur ${(sW.items || []).length} · un widget coupé n'est ni affiché ni chargé`, (sW.items || []).map(ligneAccueil).join('') + dispo, att(sW));
   }
   if (sU){
-    const rows = (sU.items || []).map(it => { const e = etat(it.id), inf = infoTxt(null, it);
+    const auto = !(sU.items || []).some(it => etat(it.id).choisi);
+    const rows = `<label class="it"><span class="it-t"><b>Automatique</b><small>l'info la plus reprise par les médias suivis (page Actus)</small></span>
+        <input type="radio" name="une" class="ck" data-une="auto" aria-label="Automatique"${auto ? ' checked' : ''}></label>` +
+      (sU.items || []).map(it => { const e = etat(it.id), inf = infoTxt(null, it);
       return `<label class="it"><span class="it-t"><b>${esc(it.nom)}</b>${inf ? `<small>${esc(inf)}</small>` : ''}${badges(it.id, it)}</span>
         <input type="radio" name="une" class="ck" data-une="${esc(it.id)}" aria-label="${esc(it.nom)}"${e.choisi ? ' checked' : ''}></label>`; }).join('');
-    h += blocAccueil('Source du widget « À la une »', 'une seule · utilisée quand les actus préparées ne sont pas à jour', rows, att(sU));
+    h += blocAccueil('Source du widget « À la une »', 'une source choisie passe en premier ; Automatique : l\'info la plus reprise', rows, att(sU));
   }
   return h;
 }
 
+/* ---------- Écran d'accueil : applis, dossiers, bandeau du bas, menu Navigation (onglet Applis du classeur) ----------
+   Modèle : Noyau.applis (catalogue + choix en attente) ; l'ordre part en une « disposition » complète (Noyau.modifs.disposer),
+   noms, liens et « masquer » en modifs par identifiant, les nouvelles applis par « Mes ajouts ». Réglages (⚙︎) et État ne sont pas
+   dans le classeur : affichés verrouillés, on ne peut ni les déplacer ni les retirer. */
+const AP = Noyau.applis, IC = Noyau.icones;
+const ICS = S.lire('icons:v1', {}) || {};                                  // vraies icônes App Store gardées par l'accueil
+const cleIcone = d => d.icon && !d.store && !d.storeId ? '' : d.storeId ? 'id:' + d.storeId : d.store ? 's:' + d.store : '';
+const imgDe = d => { const k = cleIcone(d); return k && ICS[k] || ''; };
+const pageDe = url => { const m = String(url || '').match(/^(?:\.\/)?(actus|sport|ecarts|videos|invest|cachee|etat|reglages)\.html(?:[?#]|$)/); return m ? (m[1] === 'ecarts' ? 'sport' : m[1]) : null; };
+const AUTO_INFO = {actus:{icon:'news', w:'À la une', page:'actus'}, invest:{icon:'invest', w:'Investissements', page:'invest'}, sport:{icon:'sport', w:'Bandeau Sports', page:'sport'}};
+let ED = null, FICHE = null, apresGlisse = 0, glisseId = '';
+const modApplis = () => moduleDe('applis');
+const sansDispoNonEnvoyee = () => M.enAttente().filter(x => !(x.disposition && x.disposition.module === 'applis' && x.nonEnvoyee));
+function calculerED(){ const mod = modApplis(); ED = mod ? AP.appliquer(AP.depuisCatalogue(mod), M.enAttente()) : null; return ED; }
+const tous = () => ED ? Object.entries(ED.listes).flatMap(([cle, L]) => L.map((it, i) => ({it, cle, i}))) : [];
+const trouverIt = id => tous().find(x => x.it.id === id) || null;
+const visibles = cle => ((ED && ED.listes[cle]) || []).filter(it => !it.cache);
+const nomListe = cle => cle.startsWith('d:') ? `Dossier ${((ED.dossiers[cle.slice(2)] || {}).nom) || ''}` :
+  ({accueil:'Écran d\'accueil', bas_gauche:'Bandeau du bas · gauche', bas_droite:'Bandeau du bas · droite', navigation:'Menu Navigation'})[cle] || cle;
+function resumeApplis(){
+  const m = calculerED(); if (!m) return 'onglet Applis absent du classeur';
+  const n = Object.keys(m.listes).reduce((a, k) => a + visibles(k).filter(it => !['folder', 'auto'].includes(it.def.type)).length, 0);
+  const d = m.ordreD.filter(k => visibles('d:' + k).length).length;
+  return `${n} appli${n > 1 ? 's' : ''} · ${d} dossier${d > 1 ? 's' : ''} · bandeau ${visibles('bas_gauche').length + visibles('bas_droite').length}`;
+}
+
+/* ----- dessin ----- */
+function tuileHTML(d, contenu){
+  const c = `--c:var(${d.color || '--t-slate'})`;
+  if (d.type === 'folder') return `<span class="tile folder">${(contenu || []).slice(0, 4).map(i => { const u = imgDe(i.def);
+    return `<i class="${u ? 'img' : ''}" style="--c:var(${i.def.color || '--t-slate'})${u ? `;--img:url(&quot;${esc(u)}&quot;)` : ''}"></i>`; }).join('')}</span>`;
+  if (d.type === 'auto') return `<span class="tile auto">${SVG(IC[(AUTO_INFO[d.auto] || {}).icon] || '')}</span>`;
+  if (d.live) return `<span class="tile live-tile" style="${c}"><span class="live-w"><span class="live-row"><i class="live-dot"></i><b>LIVE</b></span><span class="live-sub">Sports</span></span></span>`;
+  const u = imgDe(d), mono = d.mono || String(d.label || '').slice(0, 2);
+  const inner = d.icon && IC[d.icon] ? SVG(IC[d.icon]) : `<span class="mo${String(mono).length > 3 ? ' long' : ''}">${esc(mono)}</span>`;
+  return `<span class="tile${u ? ' img' : ''}" style="${c}${u ? `;--img:url(&quot;${esc(u)}&quot;)` : ''}">${inner}</span>`;
+}
+const pastille = it => { if (it.attente) return '<i class="pt" aria-hidden="true"></i>'; const r = M.dernierResultat(it.id); return r && r.statut !== 'ok' ? '<i class="pt ko" aria-hidden="true"></i>' : ''; };
+const titreDe = it => { const d = it.def, p = pageDe(d.url);
+  if (d.type === 'auto') return `${d.label} : visible seulement si le widget ${(AUTO_INFO[d.auto] || {}).w} est coupé`;
+  if (p && !A.page(p)) return `${d.label} : page désactivée (Pages et widgets)`;
+  return d.label; };
+function etHTML(it){
+  const d = it.def, p = pageDe(d.url), off = (p && !A.page(p)) || (d.type === 'auto' && !A.page((AUTO_INFO[d.auto] || {}).page));
+  return `<button type="button" class="et${off ? ' off' : ''}${d.type === 'auto' ? ' et-auto' : ''}" data-et="${esc(it.id)}" aria-label="${esc(titreDe(it))}" title="${esc(titreDe(it))}">${tuileHTML(d, d.type === 'folder' ? visibles('d:' + d.target) : null)}<span class="name">${esc(d.label)}</span>${pastille(it)}</button>`;
+}
+const glypheBandeau = d => d.icon && IC[d.icon] ? SVG(IC[d.icon]) : `<span class="qm">${esc(d.mono || String(d.label || '').slice(0, 2))}</span>`;
+const eqHTML = it => `<button type="button" class="eq" data-et="${esc(it.id)}" aria-label="${esc(it.def.label)}" title="${esc(it.def.label)}">${glypheBandeau(it.def)}${pastille(it)}</button>`;
+const enHTML = (it, i) => `<button type="button" class="en" data-et="${esc(it.id)}" aria-label="${esc(it.def.label)}">${tuileHTML(it.def)}<span class="t"><b>${esc(it.def.label)}</b><small>${i === 0 ? 'mise en avant (première du menu)' : ''}</small></span>${SVG(ICO.poignee).replace('<svg', '<svg class="poi"')}${pastille(it)}</button>`;
+
+function ecranApplis(E, mod){
+  calculerED(); const m = ED;
+  const dispo = M.enAttente().filter(x => x.disposition && x.disposition.module === 'applis');
+  const refus = M.reportees().filter(r => (r.disposition === 'applis' || (r.ajout && r.ajout.module === 'applis') || /^(ap:|ajout:applis:)/.test(r.id || '')) &&
+    r.resultat && r.resultat.statut !== 'ok' && !VUS.has(r.uid));
+  let h = `<h2 class="ecr-t">${esc(E.titre)}</h2><p class="intro">${esc(E.intro)}</p>`;
+  if (dispo.length) h += `<div class="ed-etat"><span class="bd att">⏳ nouvel ordre ${dispo.some(x => x.nonEnvoyee) ? 'pas encore envoyé' : 'en attente de report'}</span></div>`;
+  for (const r of refus) h += `<div class="ed-etat"><span class="bd ko">❌ ${esc(r.nom || (r.ajout && r.ajout.nom) || (r.disposition ? 'Disposition' : r.id || ''))} : ${esc(r.resultat.message)}</span><button type="button" class="mini" data-vu="${esc(r.uid)}" style="color:var(--accent);font-weight:600;font-size:.78rem">OK</button></div>`;
+  const acc = visibles('accueil');
+  const manque = ['actus', 'invest', 'sport'].filter(a => !m.listes.accueil.some(it => it.def.type === 'auto' && it.def.auto === a && !it.cache));
+  h += blocAccueil('Accueil', `${acc.length} tuile${acc.length > 1 ? 's' : ''} · dans l'ordre de l'écran`, `<div class="eg" data-liste="accueil" data-no-ptr>${acc.map(etHTML).join('')}</div>
+    <div class="ed-act"><button type="button" class="btn" data-ap="ajouter">${SVG(ICO.plus)}Ajouter une appli</button></div>
+    ${manque.length ? `<div class="ed-auto"><span>Tuiles de remplacement (si leur widget est coupé) : en fin de grille. Choisir leur place :</span>${manque.map(a => `<button type="button" data-auto="${a}">＋ ${esc(AP.TUILES_AUTO[a].label)}</button>`).join('')}</div>` : ''}`, false);
+  const nb = k => visibles(k).length, trop = nb('bas_gauche') > 4 || nb('bas_droite') > 4;
+  h += blocAccueil('Bandeau du bas', 'gauche · Réglages · État · droite', `<div class="eb" data-no-ptr>
+      <div class="eb-g"><div class="eb-c" data-liste="bas_gauche">${visibles('bas_gauche').map(eqHTML).join('')}</div>
+      <span class="eq fixe" role="img" aria-label="Réglages : toujours au bout du côté gauche" title="Réglages : toujours là">${SVG(IC.cog)}<span class="cad">${SVG(ICO.cadenas)}</span></span></div>
+      <span class="eetat" role="img" aria-label="État des données : toujours au milieu" title="État : toujours au milieu"><i></i></span>
+      <div class="eb-g d"><div class="eb-c" data-liste="bas_droite">${visibles('bas_droite').map(eqHTML).join('')}</div></div></div>
+    ${trop ? '<p class="ptit">Sur téléphone, le bandeau tient 4 icônes de chaque côté.</p>' : '<p class="ptit">Fais glisser une icône d\'un côté à l\'autre, ou depuis l\'accueil (fiche › Place).</p>'}`, false);
+  h += blocAccueil('Menu Navigation', 'proposé par le bouton Navigation du bandeau ; la première est mise en avant',
+    `<div class="en-l" data-liste="navigation" data-sens="v" data-no-ptr>${visibles('navigation').map(enHTML).join('') || '<p class="vide">Aucune appli : le bouton Navigation n\'ouvre rien.</p>'}</div>`, false);
+  const cachees = tous().filter(x => x.it.cache && x.it.def.type !== 'folder');
+  const dossiersCaches = tous().filter(x => x.it.cache && x.it.def.type === 'folder');
+  if (cachees.length || dossiersCaches.length) h += blocAccueil('Masquées', 'pas sur l\'écran ; touche « Afficher » pour les remettre',
+    `<div class="en-l">${[...dossiersCaches, ...cachees].map(({it, cle}) => `<div class="en" style="cursor:default">${tuileHTML(it.def, it.def.type === 'folder' ? visibles('d:' + it.def.target) : null)}<span class="t"><b>${esc(it.def.label)}</b><small>${esc(it.def.type === 'folder' ? 'dossier' : nomListe(cle))}${it.attente ? ' · ⏳' : ''}</small></span><button type="button" class="mini" data-afficher="${esc(it.id)}">Afficher</button></div>`).join('')}</div>`, false);
+  return h;
+}
+
+/* ----- changements ----- */
+function envoyerDisposition(){
+  const mod = modApplis(); if (!mod || !ED) return;
+  const L = AP.disposition(ED), sans = AP.disposition(AP.appliquer(AP.depuisCatalogue(mod), sansDispoNonEnvoyee()));
+  M.disposer('applis', JSON.stringify(L) === JSON.stringify(sans) ? null : L);     // revenu à l'ordre déjà connu : rien à envoyer
+  apresChangement();
+}
+function deplacer(id, vers, pos){
+  const x = trouverIt(id); if (!x || !AP.permis(x.it.def, vers) || !ED.listes[vers]) return false;
+  ED.listes[x.cle].splice(x.i, 1);
+  const L = ED.listes[vers]; L.splice(pos == null ? L.length : Math.max(0, Math.min(pos, L.length)), 0, x.it); return true;
+}
+function decaler(id, sens){
+  const x = trouverIt(id); if (!x) return false; const L = ED.listes[x.cle];
+  let j = x.i + sens; while (j >= 0 && j < L.length && L[j].cache) j += sens;
+  if (j < 0 || j >= L.length) return false;
+  L.splice(x.i, 1); L.splice(j, 0, x.it); return true;
+}
+function creerDossier(nom, idApp){
+  const k = 'nouveau-' + Date.now().toString(36), x = trouverIt(idApp);
+  ED.dossiers[k] = {nom, id:null}; ED.listes['d:' + k] = []; ED.ordreD.push(k);
+  const pos = x && x.cle === 'accueil' ? x.i : ED.listes.accueil.length;
+  ED.listes.accueil.splice(pos, 0, {id:'dossier:' + k, def:{label:nom, type:'folder', target:k}, cache:false});
+  deplacer(idApp, 'd:' + k); return k;
+}
+function afficher(id, montrer){
+  const x = trouverIt(id); if (!x) return;
+  if (id.startsWith('uid:')){ M.majAjout(x.it.uid, {champs:{Oui:montrer ? 'Oui' : 'Non'}}); apresChangement(); return; }
+  if (/^(auto|dossier):/.test(id)){ if (!montrer){ ED.listes[x.cle].splice(x.i, 1); envoyerDisposition(); } return; }   // pas encore une ligne du classeur
+  changer(id, {Oui:montrer ? 'Oui' : 'Non'}); apresChangement();
+}
+/* cibles possibles pour « Place » */
+function cibles(d){
+  const L = [['accueil', 'Écran d\'accueil']];
+  if (!AP.accueilSeul(d)){
+    for (const k of ED.listes.accueil.filter(it => it.def.type === 'folder').map(it => it.def.target).filter(k => ED.dossiers[k])) L.push(['d:' + k, `Dossier ${ED.dossiers[k].nom}`]);
+    if (!d.action) L.push(['+dossier', 'Nouveau dossier…']);
+    L.push(['bas_gauche', 'Bandeau du bas · gauche'], ['bas_droite', 'Bandeau du bas · droite']);
+    if (AP.estAppli(d)) L.push(['navigation', 'Menu Navigation']);
+  }
+  return L.filter(([k]) => k.startsWith('+') || AP.permis(d, k));
+}
+
+/* ----- fiche ----- */
+const LIENS_F = [['Lien iPhone', 'app', 'Lien iPhone', 'ex. spotify://, shortcuts://run-shortcut?name=…'], ['Lien Android', 'android', 'Lien Android', 'ex. intent://…;package=…;end'], ['Lien web', 'web', 'Lien web', 'https://… (ordinateur, ou si l\'appli manque)']];
+const champ = (nom, lab, val, {ph = '', lien = false, dis = false, aide = ''} = {}) => `<label class="chp">${esc(lab)}<input name="${esc(nom)}" value="${esc(val)}" ${ph ? `placeholder="${esc(ph)}"` : ''} maxlength="${lien ? 600 : 40}" autocomplete="off" ${lien ? 'autocapitalize="off" spellcheck="false" inputmode="url" class="lien"' : ''}${dis ? ' disabled' : ''}>${aide ? `<small>${esc(aide)}</small>` : ''}</label>`;
+function teteFiche(d, sous, contenu){
+  return `<div class="sh-h">${['bas_gauche', 'bas_droite'].includes(sous && sous.cle) ? `<span class="eq">${glypheBandeau(d)}</span>` : tuileHTML(d, contenu)}<span class="t"><h3 id="fT">${esc(d.label)}</h3><small>${esc(sous ? sous.txt : '')}</small></span>
+    <button type="button" class="sh-x" data-f="fermer" aria-label="Fermer">${SVG(ICO.croix)}</button></div>`;
+}
+function ficheItem(f){
+  const x = trouverIt(f.id); if (!x) return null;
+  const {it, cle} = x, d = it.def, pend = it.id.startsWith('uid:'), parti = pend && !it.nonEnvoyee;
+  const v = {Appli:d.label, 'Lien iPhone':d.app || '', 'Lien Android':d.android || '', 'Lien web':d.web || '', ...(f.brouillon || {})};
+  const p = pageDe(d.url), L = ED.listes[cle], vi = L.filter(y => !y.cache), k = vi.indexOf(it);
+  const typ = d.type === 'folder' ? 'dossier' : d.type === 'auto' ? `tuile de remplacement : visible seulement si le widget ${(AUTO_INFO[d.auto] || {}).w} est coupé` :
+    d.action ? 'bouton : choix de l\'appli de navigation' : d.live ? 'tuile LIVE Sports (sur ordinateur, ou si le bandeau Sports est coupé)' : p ? `page ${d.url}${A.page(p) ? '' : ' · désactivée (Pages et widgets)'}` : 'appli';
+  let b = '';
+  if (pend) b = `<span class="etq"><span class="bd att">⏳ ajout ${it.nonEnvoyee ? 'pas encore envoyé' : 'en attente de report'}</span></span>`;
+  else b = badges(it.id, null);
+  let h = teteFiche(d, {cle, txt:`${typ} · ${nomListe(cle)}`}, d.type === 'folder' ? visibles('d:' + d.target) : null) + b;
+  if (d.type !== 'auto' && d.type !== 'folder') h += champ('Appli', 'Nom', v.Appli, {dis:parti});
+  if (AP.estAppli(d)){
+    h += LIENS_F.map(([n, , lab, ph]) => champ(n, lab, v[n], {ph, lien:true, dis:parti})).join('');
+    h += '<p class="ptit" style="padding:0">Le lien utilisé dépend de l\'appareil : iPhone (puis le site), Android (puis le site), ordinateur : le site.</p>';
+  }
+  const C_ = cibles(d);
+  if (!pend) h += `<div class="sh-l"><label class="chp">Place<select data-f="vers">${C_.map(([kk, lab]) => `<option value="${esc(kk)}"${kk === cle ? ' selected' : ''}>${esc(lab)}</option>`).join('')}</select></label>
+    <div class="seg" role="group" aria-label="Déplacer"><button type="button" data-f="avant" aria-label="Plus tôt"${k <= 0 ? ' disabled' : ''}>◀</button><button type="button" data-f="apres" aria-label="Plus loin"${k < 0 || k >= vi.length - 1 ? ' disabled' : ''}>▶</button></div></div>
+    <div id="nvD" hidden>${champ('nouveauDossier', 'Nom du nouveau dossier', '', {ph:'ex. Loisirs'})}<div class="sh-a" style="margin-top:8px"><button type="button" class="btn main" data-f="creerDossier">Créer et y ranger</button></div></div>`;
+  const act = [];
+  if (pend && it.nonEnvoyee) act.push(`<button type="button" class="btn ko" data-f="annulerAjout">Annuler l'ajout</button>`);
+  if (!pend && !(d.type === 'folder' && it.id.startsWith('dossier:'))) act.push(`<button type="button" class="btn" data-f="${it.cache ? 'afficher' : 'masquer'}">${it.cache ? 'Afficher' : d.type === 'folder' ? 'Masquer le dossier' : 'Masquer'}</button>`);
+  if (it.id.startsWith('ajout:applis:')) act.push(`<button type="button" class="btn ko" data-f="effacer">Effacer l'ajout</button>`);
+  if (d.type === 'folder') act.push(`<button type="button" class="btn" data-f="ouvrirDossier">Ouvrir le dossier</button>`);
+  if (act.length) h += `<div class="sh-a">${act.join('')}</div>`;
+  h += '<p class="sh-msg" id="fMsg" aria-live="polite"></p>';
+  const modif = d.type !== 'auto' && d.type !== 'folder' && !parti;
+  h += `<div class="sh-pied">${f.retour ? `<button type="button" class="btn" data-f="retour">‹ Dossier</button>` : ''}<button type="button" class="btn" data-f="fermer">${modif ? 'Annuler' : 'Fermer'}</button>${modif ? '<button type="button" class="btn main" data-f="ok">Enregistrer</button>' : ''}</div>`;
+  return h;
+}
+function ficheDossier(f){
+  const k = f.dossier, D = ED.dossiers[k]; if (!D) return null;
+  const tuile = ED.listes.accueil.find(it => it.def.type === 'folder' && it.def.target === k), L = visibles('d:' + k);
+  const nom = f.brouillon && 'nom' in f.brouillon ? f.brouillon.nom : D.nom;
+  let h = teteFiche({label:D.nom, type:'folder'}, {cle:'accueil', txt:`dossier · ${L.length} appli${L.length > 1 ? 's' : ''}`}, L);
+  h += champ('nom', 'Nom du dossier', nom);
+  h += `<div class="eg eg4" data-liste="d:${esc(k)}" data-no-ptr>${L.map(etHTML).join('')}</div>
+    <p class="ptit" style="padding:0">Maintiens puis fais glisser pour changer l'ordre ; touche une appli pour la régler ou la sortir du dossier (Place). Un dossier vide disparaît de l'écran.</p>`;
+  const act = [`<button type="button" class="btn" data-f="ajouterIci">${SVG(ICO.plus).replace('<svg', '<svg style="width:15px;height:15px;vertical-align:-2px;fill:none;stroke:currentColor;stroke-width:2"')} Ajouter une appli ici</button>`];
+  if (tuile) act.push(`<button type="button" class="btn" data-f="ficheTuile">Place du dossier…</button>`);
+  h += `<div class="sh-a">${act.join('')}</div><p class="sh-msg" id="fMsg" aria-live="polite"></p>
+    <div class="sh-pied"><button type="button" class="btn" data-f="fermer">Fermer</button><button type="button" class="btn main" data-f="okDossier">Enregistrer le nom</button></div>`;
+  return h;
+}
+function ficheNouvelle(f){
+  const v = {nom:'', ou:f.ou || 'accueil', nd:'', 'Lien iPhone':'', 'Lien Android':'', 'Lien web':'', ...(f.brouillon || {})};
+  const opts = cibles({}).map(([k, lab]) => [k === '+dossier' ? '+dossier' : k, lab]);
+  let h = `<div class="sh-h"><span class="t"><h3 id="fT">Nouvelle appli</h3><small>ajoutée dans « Mes ajouts » du classeur, testée par la tâche Configuration</small></span>
+    <button type="button" class="sh-x" data-f="fermer" aria-label="Fermer">${SVG(ICO.croix)}</button></div>`;
+  h += champ('nom', 'Nom', v.nom, {ph:'ex. Spotify'});
+  h += `<label class="chp">Où<select name="ou">${opts.map(([k, lab]) => `<option value="${esc(k)}"${k === v.ou ? ' selected' : ''}>${esc(lab)}</option>`).join('')}</select></label>`;
+  h += `<div id="nvD"${v.ou === '+dossier' ? '' : ' hidden'}>${champ('nd', 'Nom du nouveau dossier', v.nd, {ph:'ex. Loisirs'})}</div>`;
+  h += LIENS_F.map(([n, , lab, ph]) => champ(n, lab, v[n], {ph, lien:true})).join('');
+  h += `<p class="ptit" style="padding:0">Au moins un lien : celui de l'iPhone (ex. spotify://) ou celui du site.</p><p class="sh-msg" id="fMsg" aria-live="polite"></p>
+    <div class="sh-pied"><button type="button" class="btn" data-f="fermer">Annuler</button><button type="button" class="btn main" data-f="creer">Ajouter</button></div>`;
+  return h;
+}
+function lireBrouillon(){
+  const el = $('#feuille'), b = {}; el.querySelectorAll('input[name],select[name]').forEach(i => { b[i.name] = i.value; }); return b;
+}
+function rendreFiche(force = false){
+  const el = $('#feuille');
+  if (!FICHE || route !== 'applis' || !ED){ if (!el.hidden){ el.hidden = true; el.innerHTML = ''; } return; }
+  const act = document.activeElement;
+  if (!force && !el.hidden && el.contains(act) && /^(INPUT|SELECT)$/.test(act.tagName)) return;      // en pleine saisie : on ne redessine pas
+  if (!el.hidden && el.innerHTML) FICHE.brouillon = {...(FICHE.brouillon || {}), ...lireBrouillon()};
+  const h = FICHE.nouveau ? ficheNouvelle(FICHE) : FICHE.dossier ? ficheDossier(FICHE) : ficheItem(FICHE);
+  if (!h){ FICHE = null; el.hidden = true; el.innerHTML = ''; return; }
+  const ouvert = !el.hidden;
+  el.innerHTML = `<div class="sheet-bg" data-f="fermer"></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="fT" data-no-ptr>${h}</div>`;
+  el.hidden = false;
+  if (!ouvert) el.querySelector('.sheet').style.animation = '';
+  else el.querySelector('.sheet').style.animation = 'none';
+}
+function ouvrirFiche(f){ FICHE = f; rendreFiche(true); }
+function fermerFiche(){ FICHE = null; rendreFiche(true); }
+const msgF = t => { const m = $('#fMsg'); if (m) m.textContent = t; };
+const lienRefuse = v => /^(javascript|data|vbscript|file):/i.test(String(v || '').trim());
+function enregistrerItem(){
+  const x = trouverIt(FICHE.id); if (!x) return fermerFiche();
+  const {it} = x, d = it.def, b = lireBrouillon(), nom = String(b.Appli || '').replace(/\s+/g, ' ').trim();
+  if ('Appli' in b && !nom) return msgF('Donne un nom.');
+  const L = LIENS_F.filter(([n]) => n in b).map(([n, k]) => [n, k, String(b[n] || '').trim()]);
+  if (L.some(([, , v]) => lienRefuse(v))) return msgF('Ce lien n\'est pas accepté.');
+  if (AP.estAppli(d) && L.length && !L.some(([, , v]) => v)) return msgF('Garde au moins un lien.');
+  if (it.id.startsWith('uid:')){
+    const ios = (L.find(l => l[0] === 'Lien iPhone') || [])[2] || '', web = (L.find(l => l[0] === 'Lien web') || [])[2] || '', and_ = (L.find(l => l[0] === 'Lien Android') || [])[2] || '';
+    M.majAjout(it.uid, {nom, source:ios || web, champs:{'Lien Android':and_, 'Lien web':web}});
+  } else {
+    const ch = {};
+    if ('Appli' in b && nom !== d.label) ch.Appli = nom;
+    for (const [n, k, v] of L) if (v !== (d[k] || '')) ch[n] = v;
+    if (Object.keys(ch).length) changer(it.id, ch);
+  }
+  FICHE = FICHE.retour ? {dossier:FICHE.retour} : null; apresChangement();
+}
+function creerAppli(){
+  const b = lireBrouillon(), nom = String(b.nom || '').replace(/\s+/g, ' ').trim();
+  const ios = String(b['Lien iPhone'] || '').trim(), and_ = String(b['Lien Android'] || '').trim(), web = String(b['Lien web'] || '').trim();
+  if (!nom) return msgF('Donne un nom.');
+  if (!ios && !web && !and_) return msgF('Indique au moins un lien.');
+  if ([ios, and_, web].some(lienRefuse)) return msgF('Ce lien n\'est pas accepté.');
+  let section;
+  if (b.ou === '+dossier'){ section = String(b.nd || '').replace(/\s+/g, ' ').trim(); if (!section) return msgF('Donne un nom au nouveau dossier.'); }
+  else section = b.ou && b.ou.startsWith('d:') ? (ED.dossiers[b.ou.slice(2)] || {}).nom : AP.NOMS_LISTES[b.ou] || AP.NOMS_LISTES.accueil;
+  const champs = {}; if (and_) champs['Lien Android'] = and_; if (web && ios) champs['Lien web'] = web;
+  M.ajouter('applis', {section, nom, source:ios || web, champs});
+  FICHE = null; apresChangement();
+}
+
+/* ----- glisser-déposer (doigt : appui de 0,3 s puis glisser ; souris : glisser) ----- */
+const DND = {st:null};
+function dndDebut(el, x, y, source){
+  DND.st = {el, id:el.dataset.et, x0:x, y0:y, x, y, source, actif:false, timer:null, dossier:null, tAction:null, prevue:'', action:null};
+  if (source === 'touch') DND.st.timer = setTimeout(() => dndActiver(), 300);
+}
+function dndActiver(){
+  const st = DND.st; if (!st || st.actif) return;
+  const x = trouverIt(st.id); if (!x){ DND.st = null; return; }
+  st.actif = true; st.def = x.it.def;
+  const r = st.el.getBoundingClientRect(); st.dx = st.x0 - r.left; st.dy = st.y0 - r.top;
+  const c = st.el.cloneNode(true); c.classList.add('glisse'); c.removeAttribute('data-et'); c.style.width = r.width + 'px'; c.style.height = r.height + 'px';
+  document.body.appendChild(c); st.clone = c; st.el.classList.add('fantome');
+  document.documentElement.classList.add('glisse-en-cours');
+  try{ navigator.vibrate && navigator.vibrate(8); }catch{}
+  dndPlacer(); dndBoucle();
+}
+function dndPlacer(){ const st = DND.st; if (st && st.clone) st.clone.style.transform = `translate(${st.x - st.dx}px, ${st.y - st.dy}px)`; }
+function dndBoucle(){
+  const st = DND.st; if (!st || !st.actif) return;
+  const H = innerHeight, v = st.y < 70 ? -10 : st.y > H - 90 ? 10 : 0;
+  const sc = $('#feuille .sheet');
+  if (v){ if (sc && sc.contains(st.el)) sc.scrollTop += v; else window.scrollBy(0, v); dndSurvol(); }
+  requestAnimationFrame(dndBoucle);
+}
+function flip(conteneurs, agir){
+  const els = conteneurs.flatMap(c => [...c.children]), avant = new Map(els.map(e => [e, e.getBoundingClientRect()]));
+  agir();
+  for (const e of els){ const a = avant.get(e), b = e.getBoundingClientRect(); if (!a || e === DND.st.el) continue;
+    const dx = a.left - b.left, dy = a.top - b.top; if (!dx && !dy) continue;
+    e.style.transition = 'none'; e.style.transform = `translate(${dx}px, ${dy}px)`;
+    requestAnimationFrame(() => { e.style.transition = 'transform .18s ease'; e.style.transform = ''; }); }
+}
+/* au-dessus d'une place : on attend que le doigt s'y pose un instant avant de déplacer (sinon tout bouge pendant le trajet) ;
+   au milieu d'un dossier de l'accueil, un peu plus longtemps : l'appli y sera rangée au lâcher */
+function dndSurvol(){
+  const st = DND.st; if (!st || !st.actif) return;
+  const a = dndAction(st);
+  const cle = a ? (a.dossier ? 'd:' + a.dossier : a.cont.dataset.liste + '|' + (a.ref ? a.ref.dataset.et || '' : '$')) : '';
+  if (cle === st.prevue) return;
+  clearTimeout(st.tAction); st.prevue = cle;
+  if (st.dossier && (!a || a.dossier !== st.dossier)){ st.dossier = null; document.querySelectorAll('.cible-dossier').forEach(e => e.classList.remove('cible-dossier')); }
+  if (!a) return;
+  st.action = a;
+  st.tAction = setTimeout(() => { if (DND.st === st && st.prevue === cle) dndAppliquer(st, a); }, a.dossier ? 420 : 110);
+}
+function dndAppliquer(st, a){
+  st.prevue = '';
+  if (a.dossier){ st.dossier = a.dossier; a.el.classList.add('cible-dossier'); return; }
+  if (a.ref === st.el || (st.el.nextElementSibling === a.ref && st.el.parentNode === a.cont)) return;
+  const anc = st.el.parentNode, vide = a.cont.querySelector(':scope > .vide'); if (vide) vide.remove();
+  flip([a.cont, anc].filter((c, i, l) => l.indexOf(c) === i), () => a.cont.insertBefore(st.el, a.ref));
+}
+function dndAction(st){
+  const cible = document.elementFromPoint(st.x, st.y);
+  const tuile = cible && cible.closest('[data-et]'), cont = cible && cible.closest('[data-liste]');
+  if (tuile && tuile !== st.el && tuile.closest('[data-liste="accueil"]') && !AP.accueilSeul(st.def) && !st.def.action){
+    const dos = (trouverIt(tuile.dataset.et) || {}).it;
+    if (dos && dos.def.type === 'folder'){
+      const r = tuile.getBoundingClientRect();
+      if (Math.abs(st.x - (r.left + r.width / 2)) < r.width * .25 && Math.abs(st.y - (r.top + r.width / 2)) < r.width * .25) return {dossier:dos.def.target, el:tuile};
+    }
+  }
+  if (!cont || !AP.permis(st.def, cont.dataset.liste)) return null;
+  if (tuile && tuile !== st.el && cont.contains(tuile)){
+    const r = tuile.getBoundingClientRect(), v = cont.dataset.sens === 'v';
+    return {cont, ref:(v ? st.y > r.top + r.height / 2 : st.x > r.left + r.width / 2) ? tuile.nextElementSibling : tuile};
+  }
+  if (!tuile && cont !== st.el.parentNode) return {cont, ref:null};          // espace libre d'une autre liste : à la fin
+  return null;
+}
+function dndBouger(x, y){
+  const st = DND.st; if (!st) return;
+  st.x = x; st.y = y;
+  if (!st.actif){
+    const dist = Math.hypot(x - st.x0, y - st.y0);
+    if (st.source === 'mouse'){ if (dist > 6) dndActiver(); else return; }
+    else { if (dist > 10){ clearTimeout(st.timer); DND.st = null; } return; }       // le doigt bouge avant l'appui long : défilement normal
+  }
+  dndPlacer(); dndSurvol();
+}
+function dndFin(annule){
+  const st = DND.st; DND.st = null; if (!st) return;
+  clearTimeout(st.timer); clearTimeout(st.tAction);
+  if (!st.actif) return;
+  if (!annule && st.prevue && st.action && !st.action.dossier) dndAppliquer(st, st.action);   // lâché avant la fin de l'attente : la place visée compte
+  apresGlisse = Date.now(); glisseId = st.id;
+  if (st.clone) st.clone.remove();
+  st.el.classList.remove('fantome'); document.documentElement.classList.remove('glisse-en-cours');
+  document.querySelectorAll('.cible-dossier').forEach(e => e.classList.remove('cible-dossier'));
+  if (annule){ rendre(); return; }                                         // (un rendu reporté pendant le glisser se fait après l'envoi ci-dessous)
+  if (st.dossier){ if (deplacer(st.id, 'd:' + st.dossier)) envoyerDisposition(); else rendre(); return; }
+  // nouvel ordre lu dans la page : chaque liste affichée garde ses éléments masqués à leur place
+  const conts = [...document.querySelectorAll('#ecran [data-liste], #feuille [data-liste]')];
+  const parId = new Map(tous().map(x => [x.it.id, x.it])), V = {};
+  for (const c of conts) V[c.dataset.liste] = [...c.querySelectorAll(':scope > [data-et]')].map(e => e.dataset.et).filter(id => parId.has(id));
+  const cites = new Set(Object.values(V).flat());
+  for (const [cle, L] of Object.entries(ED.listes)) if (!(cle in V)) ED.listes[cle] = L.filter(it => !cites.has(it.id) || it.cache);
+  for (const [cle, ids] of Object.entries(V)){
+    const L = (ED.listes[cle] || []).filter(it => it.cache || ids.includes(it.id)), q = [...ids], res = [];
+    for (const it of L){ if (it.cache) res.push(it); else if (q.length) res.push(parId.get(q.shift())); }
+    for (const id of q) res.push(parId.get(id));
+    ED.listes[cle] = res;
+  }
+  envoyerDisposition();
+}
+document.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) { if (DND.st) dndFin(true); return; }
+  const el = e.target.closest('[data-et]'); if (!el || route !== 'applis') return;
+  dndDebut(el, e.touches[0].clientX, e.touches[0].clientY, 'touch');
+}, {passive:true});
+document.addEventListener('touchmove', e => {
+  if (!DND.st) return;
+  if (DND.st.actif) e.preventDefault();                                   // pendant le glisser, la page ne défile pas
+  dndBouger(e.touches[0].clientX, e.touches[0].clientY);
+}, {passive:false});
+document.addEventListener('touchend', e => { if (DND.st && DND.st.actif) e.preventDefault(); dndFin(false); }, {passive:false});
+document.addEventListener('touchcancel', () => dndFin(true));
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch' || e.button !== 0 || route !== 'applis') return;
+  const el = e.target.closest('[data-et]'); if (!el) return;
+  dndDebut(el, e.clientX, e.clientY, 'mouse');
+});
+document.addEventListener('pointermove', e => { if (e.pointerType !== 'touch' && DND.st && DND.st.source === 'mouse') dndBouger(e.clientX, e.clientY); });
+document.addEventListener('pointerup', e => { if (e.pointerType !== 'touch' && DND.st && DND.st.source === 'mouse') dndFin(false); });
+document.addEventListener('contextmenu', e => { if (DND.st || e.target.closest('[data-et]')) e.preventDefault(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape'){ if (DND.st) dndFin(true); else if (FICHE) fermerFiche(); } });
+/* le « clic » qui suit le lâcher (sur la tuile déplacée) ne doit pas ouvrir sa fiche */
+document.addEventListener('click', e => { const t = e.target.closest('[data-et]');
+  if (Date.now() - apresGlisse < 450 && ((t && t.dataset.et === glisseId) || e.target.closest('.sheet-bg'))){ e.stopPropagation(); e.preventDefault(); } }, true);
+
+/* ----- touches ----- */
+function clicEditeur(e){
+  if (route !== 'applis') return false;
+  const t = e.target.closest('[data-et],[data-ap],[data-auto],[data-afficher]'); if (!t) return false;
+  if (t.dataset.ap === 'ajouter'){ ouvrirFiche({nouveau:true, ou:'accueil'}); return true; }
+  if (t.dataset.auto){ calculerED(); const id = 'auto:' + t.dataset.auto, cache = ED.listes.accueil.find(it => it.def.type === 'auto' && it.def.auto === t.dataset.auto);
+    if (cache) afficher(cache.id, true); else { ED.listes.accueil.push({id, def:{...AP.TUILES_AUTO[t.dataset.auto]}, cache:false}); envoyerDisposition(); }
+    return true; }
+  if (t.dataset.afficher){ calculerED(); afficher(t.dataset.afficher, true); return true; }
+  const x = trouverIt(t.dataset.et); if (!x) return true;
+  if (x.it.def.type === 'folder' && !t.closest('#feuille')) ouvrirFiche({dossier:x.it.def.target});
+  else ouvrirFiche({id:x.it.id, retour:FICHE && FICHE.dossier ? FICHE.dossier : null});
+  return true;
+}
+$('#feuille').addEventListener('click', async e => {
+  if (clicEditeur(e)) return;
+  const t = e.target.closest('[data-f]'); if (!t) return;
+  const f = t.dataset.f;
+  if (f === 'fermer') return fermerFiche();
+  if (f === 'retour') return ouvrirFiche({dossier:FICHE.retour});
+  if (f === 'ok') return enregistrerItem();
+  if (f === 'creer') return creerAppli();
+  if (f === 'okDossier'){ const nom = String(lireBrouillon().nom || '').replace(/\s+/g, ' ').trim(); if (!nom) return msgF('Donne un nom.');
+    const k = FICHE.dossier; if (nom !== ED.dossiers[k].nom){ ED.dossiers[k].nom = nom; FICHE = null; envoyerDisposition(); } else fermerFiche(); return; }
+  if (f === 'ajouterIci') return ouvrirFiche({nouveau:true, ou:'d:' + FICHE.dossier});
+  if (f === 'ficheTuile'){ const tu = ED.listes.accueil.find(it => it.def.type === 'folder' && it.def.target === FICHE.dossier); if (tu) ouvrirFiche({id:tu.id}); return; }
+  if (f === 'ouvrirDossier'){ const x = trouverIt(FICHE.id); if (x) ouvrirFiche({dossier:x.it.def.target}); return; }
+  const x = FICHE && FICHE.id && trouverIt(FICHE.id); if (!x) return;
+  if (f === 'avant' || f === 'apres'){ FICHE.brouillon = lireBrouillon(); if (decaler(x.it.id, f === 'avant' ? -1 : 1)) envoyerDisposition(); return; }
+  if (f === 'masquer' || f === 'afficher'){ afficher(x.it.id, f === 'afficher'); if (f === 'masquer') FICHE = FICHE.retour ? {dossier:FICHE.retour} : null; rendre(); return; }
+  if (f === 'annulerAjout'){ M.annuler(x.it.uid); FICHE = null; apresChangement(); return; }
+  if (f === 'effacer'){
+    const ok = await Synchro.demander('Effacer cet ajout ?', `« ${esc(x.it.def.label)} » sera retiré : sa ligne « Mes ajouts » est vidée dans le classeur.`, [['oui', 'Effacer'], ['non', 'Garder']]);
+    if (ok !== 'oui') return; M.effacer(x.it.id, x.it.def.label); FICHE = null; apresChangement(); return; }
+  if (f === 'creerDossier'){ const nom = String(lireBrouillon().nouveauDossier || '').replace(/\s+/g, ' ').trim(); if (!nom) return msgF('Donne un nom au dossier.');
+    creerDossier(nom, x.it.id); FICHE = null; envoyerDisposition(); return; }
+});
+$('#feuille').addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.f === 'vers'){
+    const x = FICHE && FICHE.id && trouverIt(FICHE.id); if (!x) return;
+    if (t.value === '+dossier'){ $('#nvD').hidden = false; const i = $('#nvD input'); if (i && !('ontouchstart' in window)) i.focus(); return; }
+    $('#nvD').hidden = true; FICHE.brouillon = lireBrouillon(); delete FICHE.brouillon.nouveauDossier;
+    if (deplacer(x.it.id, t.value)){ if (FICHE.retour && t.value !== 'd:' + FICHE.retour) FICHE.retour = null; envoyerDisposition(); }
+  }
+  if (t.name === 'ou' && FICHE && FICHE.nouveau) $('#nvD').hidden = t.value !== '+dossier';
+});
+$('#feuille').addEventListener('submit', e => e.preventDefault());
+
+let rendreApres = false;
 function rendre(){
+  if (DND.st && DND.st.actif){ rendreApres = true; return; }           // pas pendant un glisser : la page bougerait sous le doigt
+  rendreApres = false;
   const k = route.replace('-en', ''), E = ECRANS[k];
   $('#lay').classList.toggle('sur-ecran', !!E);
   if (desk() && !E){ route = 'accueil'; return rendre(); }
@@ -899,7 +1436,7 @@ function rendre(){
   if (E && E.langues) seg.innerHTML = E.langues.map((l, i) => `<button type="button" data-langue="${i}" aria-pressed="${i === langue}">${i ? '🇺🇸' : '🇫🇷'} ${esc(l)}</button>`).join('');
   $('#q').placeholder = E ? `Rechercher ${{actus:'un média', youtube:'une chaîne', sport:'une compétition', marches:'un indice, un fonds…'}[k] || ''}` : 'Rechercher';
   $('#qEff').hidden = !q;
-  rendreMenu(); rendreEcran();
+  rendreMenu(); rendreEcran(); rendreFiche();
   $('#stamp').textContent = M.enAttente().length ? `${M.enAttente().length} en attente` : '';
 }
 
@@ -909,7 +1446,7 @@ function lireRoute(){
   route = h in ECRANS || h === 'actus-en' ? h : '';
   if (route === 'actus-en') langue = 1; else if (route === 'actus') langue = 0;
 }
-window.addEventListener('hashchange', () => { lireRoute(); q = ''; $('#q').value = ''; formAjout = null; rendre(); window.scrollTo({top:0}); });
+window.addEventListener('hashchange', () => { lireRoute(); q = ''; $('#q').value = ''; formAjout = null; FICHE = null; rendre(); window.scrollTo({top:0}); });
 $('#back').addEventListener('click', e => {
   if ($('#back').getAttribute('href') !== '#') return;
   e.preventDefault(); history.length > 1 && location.hash && history.state !== 'direct' ? history.back() : (location.hash = '');
@@ -920,6 +1457,7 @@ $('#q').addEventListener('input', e => { q = e.target.value; $('#qEff').hidden =
 $('#qEff').addEventListener('click', () => { q = ''; $('#q').value = ''; $('#qEff').hidden = true; rendreEcran(); });
 $('#refreshBtn').addEventListener('click', async () => { const b = $('#refreshBtn'); b.classList.add('spin'); await charger(true); b.classList.remove('spin'); });
 $('#ecran').addEventListener('click', async e => {
+  if (clicEditeur(e)) return;
   const t = e.target.closest('[data-ouvrir],[data-acc],[data-effacer],[data-annuler],[data-form],[data-vu],[data-dispo]'); if (!t) return;
   if (t.dataset.dispo){ A.choisirDisposition(t.dataset.dispo); rendreEcran(); return; }
   if (t.dataset.ouvrir){ const id = t.dataset.ouvrir; OUV.has(id) ? OUV.delete(id) : OUV.add(id); S.session.ecrire('reglages:ouverts', [...OUV]); if (formAjout && id === 'ajouts:' + formAjout) formAjout = null; rendreEcran(); return; }

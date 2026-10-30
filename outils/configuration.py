@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 8590f0b5
+# mon-ecran-version: ec3bb1d1
 # Lit le classeur de configuration (configuration.xlsx) et écrit les réglages du dock dans config/ :
 #   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json, applis.json
 #   config/config.js                     → les mêmes réglages en un seul fichier, chargé par les pages (window.MON_ECRAN_CONFIG)
@@ -23,7 +23,8 @@ MODIFS = args[args.index('--modifs') + 1] if '--modifs' in args else None
 TESTER = '--tester' in args
 CHOIX = ('Oui', 'Widget accueil', 'Par défaut')                 # colonnes « Oui / Non / vide »
 LIENS = ('Lien iPhone', 'Lien Android', 'Lien web')             # colonnes de liens (onglet Applis)
-MODIFIABLES = CHOIX + LIENS                                     # seules colonnes que l'appli peut changer
+NOMS = ('Appli',)                                               # nom d'une appli (onglet Applis)
+MODIFIABLES = CHOIX + LIENS + NOMS                              # seules colonnes que l'appli peut changer
 UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15'
 
 def slug(s):
@@ -318,38 +319,59 @@ def m_accueil(m):
     if len(une) > 1: note(m, S['une'][1][1]['r'], 'warn', 'une seule source « À la une » : la première cochée est gardée', S['une'][1][1]['nom'])
     return {'pages': [x['d'] for x in S['pages'][1]], 'widgets': [x['d'] for x in S['widgets'][1]], 'une': une[0] if une else None}
 
+def def_ajout_appli(nom, src, android='', web=''):
+    """Définition d'une appli ajoutée (Mes ajouts) : même règle dans l'appli (noyau.js, Noyau.applis.defAjout)."""
+    ios = src if src and not src.startswith('http') else ''
+    web = web or (src if src.startswith('http') else '')
+    d = {'label': nom or src, 'mono': (nom or src)[:2], 'color': '--t-slate'}
+    if ios: d['app'] = ios
+    if web: d['web'] = web
+    if android: d['android'] = android
+    if web and not ios and not android: d['url'] = web                    # simple lien : ouvert dans un nouvel onglet
+    return d
+
+def def_appli(x):
+    """Définition d'une ligne de l'onglet Applis : nom (colonne Appli) et liens modifiables du tableau."""
+    d = dict(x['d']); c = x.get('cells') or {}
+    if x.get('nom'): d['label'] = x['nom']
+    if not d.get('type') and not d.get('action') and c:                   # liens modifiables dans le tableau
+        for k, h in (('app', 'Lien iPhone'), ('android', 'Lien Android'), ('web', 'Lien web')):
+            v = c.get(h, '')
+            if v: d[k] = v
+            else: d.pop(k, None)
+        if d.get('url') and not d.get('app') and not d.get('android'): d['url'] = d.get('web') or d['url']
+    return d
+
 def m_applis(m):
-    for a in ajouts(m):
+    # Mes ajouts : rangés à la fin de leur section (dossier, accueil, bandeau…) ; décochés : dans la réserve (l'appli peut les réafficher)
+    for a in m['ajouts']:
+        if not oui(a['oui']) and not non(a['oui']): note(m, a['r'], 'info', 'mets « Oui » pour l\'ajouter', a['nom']); continue
         s = section_pour(m, a['section'] or 'Mes ajouts')
         if s.get('nouvelle'): s['tech'] = {'id': s['id'], 'label': a['section'] or 'Mes ajouts', 'type': 'dossier'}
-        c = a.get('cells') or {}; src = a['source']
-        ios = src if src and not src.startswith('http') else ''
-        web = c.get('Lien web') or (src if src.startswith('http') else ''); android = c.get('Lien Android', '')
-        if not (ios or web or android): note(m, a['r'], 'warn', "indique au moins le lien iPhone (ex. spotify://) ou un lien web", a['nom']); continue
-        d = {'label': a['nom'], 'mono': a['nom'][:2], 'color': '--t-slate'}
-        if ios: d['app'] = ios
-        if web: d['web'] = web
-        if android: d['android'] = android
-        if web and not ios and not android: d['url'] = web                # simple lien : ouvert dans un nouvel onglet
-        note(m, a['r'], 'ok', 'ajoutée (teste-la depuis le dock)', a['nom'])
-        s['rows'].append(dict(id='ajout', r=a['r'], oui='Oui', oui2='', support='ok', d=d, nom=a['nom'], resultat='', cells={}))
-    out = {'accueil': [], 'dossiers': {}, 'bas_gauche': [], 'bas_droite': [], 'navigation': []}
-    for s, rows in selection(m):
-        items = []
-        for x in rows:
-            d = dict(x['d']); c = x.get('cells') or {}
-            if not d.get('type') and not d.get('action') and c:          # liens modifiables dans le tableau
-                for k, h in (('app', 'Lien iPhone'), ('android', 'Lien Android'), ('web', 'Lien web')):
-                    v = c.get(h, '')
-                    if v: d[k] = v
-                    else: d.pop(k, None)
-            items.append(d)
-        t = s['tech']
-        if t.get('type') == 'dossier':
-            if items: out['dossiers'][t['id']] = {'title': t['label'], 'items': items}
-        else: out[t['id']] = items
-    for k in out['dossiers']:                                            # nouveau dossier : sa tuile sur l'accueil
-        if not any(a.get('target') == k for a in out['accueil']): out['accueil'].append({'label': out['dossiers'][k]['title'], 'type': 'folder', 'target': k})
+        c = a.get('cells') or {}
+        d = def_ajout_appli(a['nom'], a['source'], c.get('Lien Android', ''), c.get('Lien web', ''))
+        if not (d.get('app') or d.get('web') or d.get('android')):
+            if oui(a['oui']): note(m, a['r'], 'warn', "indique au moins le lien iPhone (ex. spotify://) ou un lien web", a['nom'])
+            continue
+        if oui(a['oui']): note(m, a['r'], 'ok', 'ajoutée (teste-la depuis le dock)', a['nom'])
+        s['rows'].append(dict(id='ajout', ident=f"ajout:applis:{a['id'].split(':')[1]}", r=a['r'], oui='Oui' if oui(a['oui']) else 'Non', oui2='', support='ok', d=d,
+                              nom='', resultat='', cells={}))
+    out = {'accueil': [], 'dossiers': {}, 'bas_gauche': [], 'bas_droite': [], 'navigation': [], 'reserve': {}}
+    retenus = {id(x) for s, rows in selection(m) for x in rows}
+    cibles = set()                                                        # dossiers qui ont une tuile (même masquée) sur l'accueil
+    for s in m['sections']:
+        t = s['tech']; items = []; prec = None; dossier = t.get('type') == 'dossier'
+        for x in s['rows']:
+            d = def_appli(x); i = x.get('ident') or x['id']; d = {'id': i, **d}
+            if t.get('id') == 'accueil' and d.get('type') == 'folder': cibles.add(d.get('target'))
+            if id(x) in retenus: items.append(d)
+            else: out['reserve'][i] = {**d, 'ou': t['id'], **({'ou_nom': t['label']} if dossier else {}), 'apres': prec}
+            prec = i
+        if dossier:
+            if items: out['dossiers'][t['id']] = {'title': t['label'], 'id': None if s.get('nouvelle') else f"sec:applis:{s['id']}", 'items': items}
+        elif t.get('id') in out: out[t['id']] = items
+    for k in out['dossiers']:                                            # dossier sans tuile (nouveau, venu d'un ajout) : sa tuile sur l'accueil
+        if k not in cibles: out['accueil'].append({'id': f'dossier:{k}', 'label': out['dossiers'][k]['title'], 'type': 'folder', 'target': k})
     out['accueil'] = [a for a in out['accueil'] if a.get('type') != 'folder' or a.get('target') in out['dossiers']]
     return out
 
@@ -378,6 +400,11 @@ def valeur(h, v):
     if h in CHOIX:
         if v and not (oui(v) or non(v)): raise Refus(f'« {v} » pour {h} : réponds Oui, Non ou laisse vide')
         return norm_choix(v)
+    if h in NOMS:
+        v = re.sub(r'\s+', ' ', v)
+        if not v: raise Refus('le nom ne peut pas être vide')
+        if len(v) > 40: raise Refus('nom trop long (40 caractères au plus)')
+        return v
     if re.match(r'(javascript|data|vbscript|file):', v, re.I): raise Refus(f'lien refusé : {v[:40]}')
     if len(v) > 600: raise Refus('lien trop long')
     return v
@@ -418,10 +445,223 @@ def trouver_ajout(ws, n, nom):
     if nom: return next((x for x in rows if slug(ws.cell(x, 3).value) == slug(nom)), None)     # classeur reconstruit entre-temps : retrouvé par son nom
     return None
 
-def une_modif(F, index, x, E):
-    """Applique une modification ; renvoie (statut, message, identifiant)."""
-    i = txt(x.get('id')); champs = x.get('champs') or {}
+# ---------- Disposition de l'accueil (onglet Applis) : ordre des lignes = ordre à l'écran ----------
+def decaler_plages(texte, fin, nfin):
+    """Plages d'une feuille après le rangement du tableau (lignes 6..fin devenues 6..nfin) : ce qui est dessous descend d'autant."""
+    from openpyxl.worksheet.cell_range import CellRange
+    delta, out = nfin - fin, []
+    for p in str(texte).split():
+        rg = CellRange(p)
+        if rg.min_row > fin: rg.shift(row_shift=delta)
+        elif rg.max_row == fin: rg.expand(down=delta) if delta >= 0 else rg.shrink(bottom=-delta)
+        elif rg.max_row > fin: rg.expand(down=delta) if delta >= 0 else rg.shrink(bottom=-delta)
+        out.append(rg.coord)
+    return ' '.join(out)
+
+def ranger_applis(wb, ws, listes, REF):
+    """Range les lignes de l'onglet Applis comme l'écran de l'appli (disposition complète envoyée par Réglages) :
+    ordre des sections et des lignes, appli déplacée d'un dossier à l'autre (même identifiant), dossier renommé ou créé,
+    ajout placé (devient une ligne du tableau), emplacement d'une tuile automatique. Rien n'est jamais supprimé ;
+    ce que la disposition ne cite pas (ajouté dans le classeur entre-temps) reste à la fin de sa section.
+    Renvoie (message, changé)."""
+    from openpyxl.styles.cell_style import StyleArray
+    from openpyxl.formatting.formatting import ConditionalFormattingList
+    from openpyxl.worksheet.cell_range import MultiCellRange
+    if not isinstance(listes, list) or not listes: raise Refus('disposition vide')
+    H = entetes(ws); last = ws.max_column
+    for h in ('Oui', 'Technique', 'Lien iPhone'):
+        if h not in H: raise Refus(f'colonne « {h} » introuvable dans l\'onglet {ws.title}')
+    cOui, cTech = H['Oui'], H['Technique']; cNote = H.get('Note', H.get('Résultat', cTech - 1))
+    fin = 5
+    for r in range(6, ws.max_row + 1):
+        i = txt(ws.cell(r, 1).value)
+        if i and i != 'exemple' and not i.startswith('ajout:'): fin = r
+    if fin < 6: raise Refus(f'tableau introuvable dans l\'onglet {ws.title}')
+    def lire_l(r): return dict(v=[ws.cell(r, c).value for c in range(1, last + 1)], st=[copy.copy(ws.cell(r, c)._style) for c in range(1, last + 1)],
+                               h=ws.row_dimensions[r].height, ol=ws.row_dimensions[r].outline_level)
+    avant = [[ws.cell(r, c).value for c in range(1, last + 1)] for r in range(6, ws.max_row + 1)]
+    secs, cur = [], None
+    for r in range(6, fin + 1):
+        i = txt(ws.cell(r, 1).value)
+        if not i: continue
+        L = lire_l(r); L['id'] = i
+        try: L['tech'] = json.loads(ws.cell(r, cTech).value or '{}')
+        except Exception: L['tech'] = {}
+        if i.startswith('sec:'): L['items'] = []; secs.append(L); cur = L
+        elif cur is not None: cur['items'].append(L)
+    if not secs: raise Refus(f'aucune section dans l\'onglet {ws.title}')
+    tpl_sec = secs[0]; tpl_it = next((it for s in secs for it in s['items']), None)
+    if not tpl_it: raise Refus(f'aucune appli dans l\'onglet {ws.title}')
+    estd = lambda s: s['tech'].get('type') == 'dossier'
+    cle_de = lambda s: ('d:' + s['tech'].get('id', '')) if estd(s) else s['tech'].get('id', '')
+    par_cle = {cle_de(s): s for s in secs}
+    par_id = {it['id']: it for s in secs for it in s['items']}
+    tous_ids = set(par_id) | {s['id'] for s in secs}
+    fd = lambda it: (it.get('tech') or {}).get('def') or {}
+    def permis(it, s):
+        d, cle = fd(it), cle_de(s)
+        if d.get('type') in ('folder', 'auto') or d.get('live'): return cle == 'accueil'
+        if d.get('action'): return cle in ('bas_gauche', 'bas_droite')
+        if cle == 'navigation': return not d.get('type') and not d.get('action')
+        return True
+    def unique(base):
+        k, n = base, 2
+        while k in tous_ids: k = f'{base}-{n}'; n += 1
+        tous_ids.add(k); return k
+    def nouvelle_ligne(id_, s, nom, liens, oui_, d, note_=''):
+        v = [None] * last; v[0] = id_; v[2] = nom
+        for h, val in liens.items():
+            if h in H and val: v[H[h] - 1] = val
+        v[cOui - 1] = oui_ or None; v[cTech - 1] = json.dumps({'support': 'ok', 'def': d}, ensure_ascii=False)
+        if note_ and cNote: v[cNote - 1] = note_
+        it = dict(id=id_, v=v, st=None, h=None, ol=1, tech={'support': 'ok', 'def': d}, nouveau=True); par_id[id_] = it; return it
+    faits = dict(crees=[], renommes=[], promus=[], emplacements=[], ignores=[])
+    efface = [False]
+    def promouvoir(rid, s):
+        p = rid.split(':'); r = trouver_ajout(ws, p[2], None) if len(p) == 3 else None
+        if not r: return None
+        g = lambda h: txt(ws.cell(r, H[h]).value) if h in H else ''
+        nom, src = txt(ws.cell(r, 3).value), txt(ws.cell(r, 4).value)
+        if not (nom or src): return None
+        d = def_ajout_appli(nom, src, g('Lien Android'), g('Lien web'))
+        ios = src if src and not src.startswith('http') else ''
+        nid = unique(f"ap:{s['tech'].get('id', 'accueil')}:{slug(nom or src) or 'appli'}")
+        it = nouvelle_ligne(nid, s, nom or src, {'Lien iPhone': ios, 'Lien Android': g('Lien Android'), 'Lien web': d.get('web', '')}, norm_choix(ws.cell(r, cOui).value) or 'Oui', d,
+                            'ajoutée depuis l\'appli (Mes ajouts)')
+        for c in range(2, cNote + 1): ws.cell(r, c).value = None                  # la ligne « Mes ajouts » est libérée
+        efface[0] = True; REF[rid] = nid; faits['promus'].append(nom or src); return it
+    # 1. dossiers : existants (renommés), nouveaux
+    alias, ordreD = {}, []
+    for e in listes:
+        if not isinstance(e, dict) or not e.get('dossier'): continue
+        k = txt(e.get('cle')); k = REF.get('d>' + k, k); nom = re.sub(r'\s+', ' ', txt(e.get('nom')))[:40]
+        s = par_cle.get('d:' + k)
+        if not s:
+            if not nom or not any(txt(i) for i in (e.get('ids') or [])): continue
+            nk, n = slug(nom) or 'dossier', 2
+            while 'd:' + nk in par_cle: nk = f'{slug(nom) or "dossier"}-{n}'; n += 1
+            s = dict(id=unique(f'sec:applis:dossier-{nk}'), v=None, st=None, h=None, ol=0, tech={'id': nk, 'label': nom, 'type': 'dossier'}, items=[], nouveau=True)
+            par_cle['d:' + nk] = s; REF['d>' + txt(e.get('cle'))] = nk; faits['crees'].append(nom)
+        elif nom and nom != s['tech'].get('label'):
+            faits['renommes'].append(f"{s['tech'].get('label')} → {nom}"); s['tech']['label'] = nom; s['renomme'] = True
+        alias['d:' + txt(e.get('cle'))] = s
+        if s not in ordreD: ordreD.append(s)
+    # 2. lignes de chaque section, dans l'ordre de l'écran
+    nouv, vus, accueil = {}, set(), par_cle.get('accueil')
+    for e in listes:
+        if not isinstance(e, dict): continue
+        s = alias.get('d:' + txt(e.get('cle'))) if e.get('dossier') else par_cle.get(txt(e.get('cle')))
+        if not s or (not e.get('dossier') and estd(s)): continue
+        L = nouv.setdefault(s['id'], [])
+        for raw in e.get('ids') or []:
+            rid = REF.get(txt(raw), txt(raw)); rid = REF.get(rid, rid)
+            it = par_id.get(rid)
+            if not it and rid.startswith('ajout:applis:'): it = promouvoir(rid, s)
+            if not it and s is accueil and re.fullmatch(r'auto:(actus|invest|sport)', rid):
+                a = rid[5:]; it = par_id.get(f'ap:accueil:auto-{a}')
+                if not it:
+                    lab = {'actus': 'Actus', 'invest': 'Invest.', 'sport': 'Sport'}[a]
+                    it = nouvelle_ligne(unique(f'ap:accueil:auto-{a}'), s, lab, {'Lien iPhone': f'emplacement de la tuile {lab} (si son widget est coupé)'}, 'Oui',
+                                        {'label': lab, 'type': 'auto', 'auto': a}); faits['emplacements'].append(lab)
+            if not it and s is accueil and rid.startswith('dossier:'):
+                k = REF.get('d>' + rid[8:], rid[8:]); ds = alias.get('d:' + rid[8:]) or par_cle.get('d:' + k)
+                if ds:
+                    k = ds['tech']['id']; it = next((x for x in par_id.values() if fd(x).get('type') == 'folder' and fd(x).get('target') == k), None)
+                    if not it: it = nouvelle_ligne(unique(f"ap:accueil:{slug(ds['tech']['label']) or k}"), s, ds['tech']['label'], {'Lien iPhone': f'dossier {k}'}, 'Oui',
+                                                   {'label': ds['tech']['label'], 'type': 'folder', 'target': k})
+            if not it: faits['ignores'].append(rid); continue
+            if it['id'] in vus: continue
+            if not permis(it, s): faits['ignores'].append(rid); continue
+            vus.add(it['id']); L.append(it)
+    for s in secs:                                                          # pas cités (ajoutés au classeur entre-temps) : à la fin de leur section
+        for it in s['items']:
+            if it['id'] not in vus: nouv.setdefault(s['id'], []).append(it); vus.add(it['id'])
+    # 3. ordre des sections : accueil, dossiers (ordre de l'écran puis les autres), bandeau, navigation…
+    ordre, mis = [], False
+    autres_d = [s for s in secs if estd(s) and s not in ordreD]
+    for s in secs:
+        if estd(s):
+            if not mis: ordre += ordreD + autres_d; mis = True
+            continue
+        ordre.append(s)
+        if s is accueil and not any(estd(x) for x in secs): ordre += ordreD; mis = True
+    if not mis: ordre += ordreD
+    ordre = [s for s in ordre if not s.get('nouveau') or nouv.get(s['id'])]
+    # 4. nouvelles valeurs (libellés de section, nom des tuiles de dossier)
+    titres = {s['tech'].get('id'): s['tech'].get('label') for s in ordre if estd(s)}
+    lignes = []
+    for s in ordre:
+        lab = f"Dossier {s['tech']['label']}" if estd(s) and (s.get('nouveau') or s.get('renomme')) else (s['v'][1] if s.get('v') else s['tech'].get('label'))
+        v = list(s['v']) if s.get('v') else [None] * last
+        v[0] = s['id']; v[1] = lab; v[cTech - 1] = json.dumps(s['tech'], ensure_ascii=False)
+        if not s.get('v'): v[2] = '▸ toute la section'
+        lignes.append(dict(v=v, st=s['st'] or tpl_sec['st'], h=s['h'], ol=0))
+        for it in nouv.get(s['id'], []):
+            v = list(it['v']); v[1] = lab
+            d = fd(it)
+            if d.get('type') == 'folder' and d.get('target') in titres and titres[d['target']] and v[2] != titres[d['target']]:
+                v[2] = titres[d['target']]; t = dict(it['tech']); t['def'] = {**d, 'label': titres[d['target']]}; v[cTech - 1] = json.dumps(t, ensure_ascii=False)
+            lignes.append(dict(v=v, st=it['st'] or tpl_it['st'], h=it['h'], ol=1))
+    # 5. réécriture : le tableau, puis le bloc « Mes ajouts » déplacé d'autant (fusions, listes Oui/Non, mises en forme, synthèse)
+    nfin = 5 + len(lignes); delta = nfin - fin
+    bas = [lire_l(r) for r in range(fin + 1, ws.max_row + 1)]
+    fus = [m.coord for m in list(ws.merged_cells.ranges) if m.min_row > fin]
+    for c in fus: ws.unmerge_cells(c)
+    fin_max = max(ws.max_row, nfin + len(bas))
+    for r in range(6, fin_max + 1):
+        for c in range(1, last + 1): x = ws.cell(r, c); x.value = None; x._style = StyleArray()
+        ws.row_dimensions[r].height = None; ws.row_dimensions[r].outline_level = 0
+    for k, L in enumerate(lignes + bas):
+        r = 6 + k
+        for c in range(1, last + 1): x = ws.cell(r, c); x.value = L['v'][c - 1]; x._style = copy.copy(L['st'][c - 1])
+        ws.row_dimensions[r].height = L['h']; ws.row_dimensions[r].outline_level = L['ol'] or 0
+    for c in fus: ws.merge_cells(decaler_plages(c, fin, nfin))
+    for dv in ws.data_validations.dataValidation: dv.sqref = MultiCellRange(decaler_plages(dv.sqref, fin, nfin))
+    cf = ConditionalFormattingList()
+    for f in ws.conditional_formatting:
+        for rule in f.rules: cf.add(decaler_plages(f.sqref, fin, nfin), rule)
+    ws.conditional_formatting = cf
+    if ws.auto_filter.ref: ws.auto_filter.ref = decaler_plages(ws.auto_filter.ref, fin, nfin)
+    q = "'?" + re.escape(ws.title) + "'?!"                                     # synthèse de l'onglet Lisez-moi (plages de cet onglet, nom entre ' ou non)
+    for w in wb.worksheets:
+        for row in w.iter_rows():
+            for x in row:
+                if isinstance(x.value, str) and x.value.startswith('=') and ws.title in x.value:
+                    x.value = re.sub(q + r'(\$?[A-Z]+\$?6:\$?[A-Z]+\$?)(\d+)', lambda mm: mm.group(0)[:-len(mm.group(2))] + (str(nfin) if int(mm.group(2)) == fin else mm.group(2)), x.value)
+    apres = [[ws.cell(r, c).value for c in range(1, last + 1)] for r in range(6, ws.max_row + 1)]
+    while apres and not any(v not in (None, '') for v in apres[-1]): apres.pop()
+    while avant and not any(v not in (None, '') for v in avant[-1]): avant.pop()
+    change = apres != avant or efface[0]
+    n = sum(1 for s in ordre for it in nouv.get(s['id'], []))
+    msg = f"disposition de l'accueil reportée dans l'onglet {ws.title} ({n} lignes rangées dans l'ordre de l'écran)" if change else "disposition déjà à jour dans le classeur"
+    for k, lab in (('crees', 'dossier créé'), ('renommes', 'dossier renommé'), ('promus', 'ajout placé'), ('emplacements', 'emplacement ajouté')):
+        if faits[k]: msg += f" · {lab}{'s' if len(faits[k]) > 1 else ''} : {', '.join(faits[k])}"
+    if faits['ignores']: msg += f" · ignoré{'s' if len(faits['ignores']) > 1 else ''} (inconnu{'s' if len(faits['ignores']) > 1 else ''} ou pas à sa place) : {', '.join(faits['ignores'][:8])}"
+    return msg, change
+
+def indexer_lignes(F, index):
+    """Identifiant → (onglet, ligne) ; à refaire après un rangement."""
+    index.clear()
+    for mid, ws in F.items():
+        for r in range(6, ws.max_row + 1):
+            i = txt(ws.cell(r, 1).value)
+            if i and i != 'exemple' and not i.startswith('ajout:'): index[i] = (mid, r)
+
+def une_modif(F, index, x, E, REF=None, wb=None):
+    """Applique une modification ; renvoie (statut, message, identifiant).
+    REF : correspondances de ce passage (« uid:… » → ajout créé, ajout placé → sa nouvelle ligne, « d>clé » d'un nouveau dossier → sa clé)."""
+    REF = {} if REF is None else REF
+    i = txt(x.get('id')); i = REF.get(i, i); champs = x.get('champs') or {}
     if x.get('verif'): return ('ok', 'liaison appli → classeur vérifiée (rien de modifié)', None)
+    if x.get('disposition'):
+        d = x['disposition'] if isinstance(x['disposition'], dict) else {}
+        if d.get('module') != 'applis': return ('ko', f"disposition de l'onglet « {txt(d.get('module'))} » non prise en charge", None)
+        ws = F.get('applis')
+        if not ws: return ('ko', 'onglet Applis introuvable', None)
+        msg, ch = ranger_applis(wb, ws, d.get('listes'), REF)
+        if ch: E.change = True
+        indexer_lignes(F, index)
+        return ('ok', msg, None)
     if x.get('ajout'):
         a = x['ajout'] if isinstance(x['ajout'], dict) else {}
         mod = txt(a.get('module')); ws = F.get(mod)
@@ -469,18 +709,19 @@ def appliquer_modifs(wb, chemin):
         RAPPORT['erreurs'].append(f'{chemin} illisible : {e}'); info['erreur'] = str(e); return info
     try: avant = json.load(open(os.path.join(OUT, 'catalogue.json'), encoding='utf-8')).get('modifs', {}).get('traitees', {})
     except Exception: avant = {}
-    F = feuilles(wb); index = {}
-    for mid, ws in F.items():
-        for r in range(6, ws.max_row + 1):
-            i = txt(ws.cell(r, 1).value)
-            if i and i != 'exemple' and not i.startswith('ajout:'): index[i] = (mid, r)
-    E = Ecrivain()
+    F = feuilles(wb); index = {}; indexer_lignes(F, index)
+    E = Ecrivain(); REF = {}
     for x in liste:
         uid = txt(x.get('uid')) if isinstance(x, dict) else ''
         if not uid: continue
         info['recues'] += 1
-        if uid in avant: info['traitees'][uid] = avant[uid]; continue          # déjà reportée : surtout ne pas la refaire (le classeur a pu changer depuis)
-        try: st, msg, ident = une_modif(F, index, x, E)
+        if uid in avant:                                                       # déjà reportée : surtout ne pas la refaire (le classeur a pu changer depuis)
+            info['traitees'][uid] = avant[uid]
+            if x.get('ajout') and avant[uid].get('id'): REF['uid:' + uid] = avant[uid]['id']
+            continue
+        try:
+            st, msg, ident = une_modif(F, index, x, E, REF, wb)
+            if st == 'ok' and x.get('ajout') and ident: REF['uid:' + uid] = ident
         except Refus as e: st, msg, ident = 'ko', str(e), txt(x.get('id')) or None
         except Exception as e: st, msg, ident = 'ko', f'erreur inattendue : {type(e).__name__} {e}', txt(x.get('id')) or None
         t = dict(statut=st, message=msg, id=ident, le=RAPPORT['date'], par=txt(x.get('par')))

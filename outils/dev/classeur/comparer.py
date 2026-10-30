@@ -1,4 +1,4 @@
-# mon-ecran-version: c8beda25
+# mon-ecran-version: a2873760
 # Vérification « avant / après » : la configuration produite par le classeur pré-coché doit être identique aux réglages du code.
 import json, sys
 ref = json.load(open('reference.json')); D = sys.argv[1]
@@ -16,9 +16,10 @@ for x in ref['tv']['chaines']: x.pop('ordre', None)
 if 'cotes' in c: c['cotes'].pop('rapport', None)
 nand = 0
 if 'applis' in c:
-    A = c['applis']
+    A = c['applis']; A.pop('reserve', None)                               # réserve des masqués et identifiants : pour l'appli (v40), pas dans le code d'origine
+    for f in A['dossiers'].values(): f.pop('id', None)
     for L in [A['accueil'], A['bas_gauche'], A['bas_droite'], A['navigation']] + [f['items'] for f in A['dossiers'].values()]:
-        for a in L: nand += 'android' in a; a.pop('android', None)
+        for a in L: nand += 'android' in a; a.pop('android', None); a.pop('id', None)
 else: attendu.pop('applis')
 def diff(a, b, p=''):
     if type(a) != type(b): yield f'{p}: type {type(a).__name__} ≠ {type(b).__name__}'; return

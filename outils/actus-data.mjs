@@ -1,4 +1,4 @@
-// mon-ecran-version: 8cec52a9
+// mon-ecran-version: 5a0b9bd0
 // Prépare les actus de la page Actus (lancé par la tâche GitHub « Actus », toutes les 30 min).
 // Lit la liste des onglets et des flux directement dans actus.html, télécharge chaque flux RSS/Atom
 // sans passer par un service tiers, regroupe les mêmes infos venant de plusieurs sites et écrit :
@@ -178,7 +178,17 @@ fs.writeFileSync(`${OUT}/actus-en.json`, JSON.stringify({v:2, updated:UPD, tabsE
 // « à la une » du widget de l'accueil : l'info la plus reprise, avec une image de préférence
 const score = i => (i.also || []).length * 2 + (i.img ? 1 : 0);
 const top = ((tabs.une || {}).items || []).slice(0, 8).reduce((b, i) => !b || score(i) > score(b) ? i : b, null);
-fs.writeFileSync(`${OUT}/une.json`, JSON.stringify({v:1, updated:UPD, top:top && {source:top.source, color:top.color, title:top.title, date:top.date, img:top.img || '', link:top.link}}));
+// source choisie pour ce widget (Réglages › Pages et widgets, classeur onglet Accueil) : son dernier titre, montré en premier par l'accueil ;
+// rien de choisi (« Automatique ») : l'accueil montre « top »
+const UNE = CFG('accueil.une', null);
+let choix = null;
+if (UNE && UNE.url){
+  let L = BY[UNE.url];
+  if (!L || !L.length){ try{ L = parse(await get(UNE.url)); }catch(e){ console.log('À la une : flux injoignable', UNE.url, e.message || e); } }
+  const it = (L || []).filter(i => i.title && (!i.date || i.date < NOW + H)).sort((x, y) => (y.date || 0) - (x.date || 0))[0];
+  if (it) choix = {url:UNE.url, source:UNE.name, color:UNE.color || '--t-slate', title:it.title, date:it.date || NOW, img:it.img || '', link:it.link};
+}
+fs.writeFileSync(`${OUT}/une.json`, JSON.stringify({v:1, updated:UPD, top:top && {source:top.source, color:top.color, title:top.title, date:top.date, img:top.img || '', link:top.link}, choix}));
 for (const id of autres) fs.writeFileSync(`${OUT}/onglet-${id}.json`, JSON.stringify({v:1, updated:UPD,
   items:((tabs[id] || {}).items || []).slice(0, 15).map(i => ({title:i.title, link:i.link, source:i.source, color:i.color, date:i.date}))}));
 const ko = Object.values(state).filter(s => !s.ok);

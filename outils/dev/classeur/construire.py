@@ -1,4 +1,4 @@
-# mon-ecran-version: 7302bf3b
+# mon-ecran-version: bb5c4935
 # Construit le classeur de configuration « Mon Écran » (openpyxl).
 # Usage : python3 construire.py reference.json sortie.xlsx [ancien.xlsx pour reprendre les choix]
 import sys, json
@@ -20,7 +20,8 @@ WR = Alignment(wrap_text=True, vertical='top')
 MID = Alignment(vertical='center')
 CENTER = Alignment(horizontal='center', vertical='center')
 
-LIENS = ('Lien iPhone', 'Lien Android', 'Lien web')       # modifiables dans l'appli : repris tels quels
+LIENS = ('Lien iPhone', 'Lien Android', 'Lien web', 'Appli')   # modifiables dans l'appli (liens, nom d'une appli) : repris tels quels
+COLS_APPLIS = {'nom': 'Appli', 'ios': 'Lien iPhone', 'android': 'Lien Android', 'web': 'Lien web'}
 
 def anciens_choix(path):
     """Reprend les « Oui / Non », la 2e case, les liens d'applis et les ajouts d'un ancien classeur, par identifiant
@@ -43,6 +44,40 @@ def anciens_choix(path):
             liens = {h: ws.cell(r, c).value for h, c in hdr.items() if h in LIENS}
             choix[i] = (ws.cell(r, co).value if co else None, ws.cell(r, c2).value if c2 else None, liens)
     return choix, ajouts
+
+def ancienne_disposition(path):
+    """Disposition de l'onglet Applis d'un ancien classeur (ordre des sections et des lignes, dossiers créés ou renommés,
+    applis déplacées, ajouts placés, emplacements) : rangée depuis l'appli par la tâche Configuration, elle est reprise telle quelle."""
+    if not path: return None
+    wb = load_workbook(path)
+    ws = next((w for w in wb.worksheets if str(w['A1'].value or '').split(';')[0] == 'module=applis'), None)
+    if not ws: return None
+    hdr = {str(c.value).strip(): c.column for c in ws[5] if c.value}
+    if 'Technique' not in hdr: return None
+    secs, cur = [], None
+    for r in range(6, ws.max_row + 1):
+        i = str(ws.cell(r, 1).value or '').strip()
+        if not i or i == 'exemple' or i.startswith('ajout:'): continue
+        try: t = json.loads(ws.cell(r, hdr['Technique']).value or '{}')
+        except Exception: t = {}
+        val = lambda h: ws.cell(r, hdr[h]).value if h in hdr else None
+        if i.startswith('sec:'):
+            cur = dict(id=i.split(':', 2)[2], label=str(ws.cell(r, 2).value or ''), tech=t, rows=[], note=val('Note') or ''); secs.append(cur)
+        elif cur is not None:
+            cur['rows'].append(dict(id=i, vals={k: (val(h) or '') for k, h in COLS_APPLIS.items()}, oui=val('Oui') or '', oui2='', tech=t.get('def'),
+                                    resultat=val('Résultat') or '', note=val('Note') or '', support=t.get('support', 'ok')))
+    return secs or None
+
+def avec_disposition(m, ancien):
+    """Sections de l'onglet Applis : celles de l'ancien classeur (sa disposition), plus ce que le modèle propose de nouveau."""
+    if not ancien: return m
+    ids = {r['id'] for s in ancien for r in s['rows']}
+    par_id = {s['id']: s for s in ancien}
+    for s in m['sections']:
+        neuves = [r for r in s['rows'] if r['id'] not in ids]
+        if s['id'] in par_id: par_id[s['id']]['rows'] += neuves
+        elif neuves: ancien.append(dict(s, rows=neuves))
+    return dict(m, sections=ancien)
 
 def feuille_module(wb, m, choix, ajouts_prec):
     ws = wb.create_sheet(m['feuille'])
@@ -226,9 +261,9 @@ def feuille_tuto(wb):
     ws.sheet_properties.tabColor = '8B5E00'
 
 def construire_classeur(ref, sortie, ancien=None):
-    choix, ajouts = anciens_choix(ancien)
+    choix, ajouts = anciens_choix(ancien); dispo = ancienne_disposition(ancien)
     wb = Workbook(); wb.remove(wb.active)
-    infos = [feuille_module(wb, m, choix, ajouts) for m in construire(ref)]
+    infos = [feuille_module(wb, avec_disposition(m, dispo) if m['id'] == 'applis' else m, choix, ajouts) for m in construire(ref)]
     feuille_lisezmoi(wb, infos); feuille_tuto(wb)
     wb.active = 0
     wb.properties.title = 'Mon Écran · configuration'; wb.properties.creator = 'Mon Écran'
