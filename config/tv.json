@@ -1,0 +1,698 @@
+{
+ "chaines": [
+  {
+   "site": "canalplus.com",
+   "site_id": "#301",
+   "lang": "fr",
+   "xmltv_id": "CPLUS",
+   "nom": "Canal+"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#177",
+   "lang": "fr",
+   "xmltv_id": "CPSPORT",
+   "nom": "Canal+ Sport"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#19",
+   "lang": "fr",
+   "xmltv_id": "CPFOOT",
+   "nom": "Canal+ Foot"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#83",
+   "lang": "fr",
+   "xmltv_id": "CP360",
+   "nom": "Canal+ Sport 360"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1135",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE1",
+   "nom": "Canal+ Live 1"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1136",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE2",
+   "nom": "Canal+ Live 2"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1137",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE3",
+   "nom": "Canal+ Live 3"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1138",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE4",
+   "nom": "Canal+ Live 4"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1139",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE5",
+   "nom": "Canal+ Live 5"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1140",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE6",
+   "nom": "Canal+ Live 6"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1141",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE7",
+   "nom": "Canal+ Live 7"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1142",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE8",
+   "nom": "Canal+ Live 8"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1143",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE9",
+   "nom": "Canal+ Live 9"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1144",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE10",
+   "nom": "Canal+ Live 10"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1145",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE11",
+   "nom": "Canal+ Live 11"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1146",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE12",
+   "nom": "Canal+ Live 12"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1147",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE13",
+   "nom": "Canal+ Live 13"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1148",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE14",
+   "nom": "Canal+ Live 14"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1149",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE15",
+   "nom": "Canal+ Live 15"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1150",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE16",
+   "nom": "Canal+ Live 16"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1151",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE17",
+   "nom": "Canal+ Live 17"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1152",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE18",
+   "nom": "Canal+ Live 18"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1153",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE19",
+   "nom": "Canal+ Live 19"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1077",
+   "lang": "fr",
+   "xmltv_id": "DAZN1",
+   "nom": "DAZN 1"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1155",
+   "lang": "fr",
+   "xmltv_id": "DAZN2",
+   "nom": "DAZN 2"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1156",
+   "lang": "fr",
+   "xmltv_id": "DAZN3",
+   "nom": "DAZN 3"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1157",
+   "lang": "fr",
+   "xmltv_id": "DAZN4",
+   "nom": "DAZN 4"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1158",
+   "lang": "fr",
+   "xmltv_id": "DAZN5",
+   "nom": "DAZN 5"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#101",
+   "lang": "fr",
+   "xmltv_id": "EUROSPORT1",
+   "nom": "Eurosport 1"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#436",
+   "lang": "fr",
+   "xmltv_id": "EUROSPORT2",
+   "nom": "Eurosport 2"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#551",
+   "lang": "fr",
+   "xmltv_id": "INFOSPORT",
+   "nom": "Infosport+"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#732",
+   "lang": "fr",
+   "xmltv_id": "RMC1",
+   "nom": "RMC Sport 1"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#733",
+   "lang": "fr",
+   "xmltv_id": "RMC2",
+   "nom": "RMC Sport 2"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "1290",
+   "lang": "fr",
+   "xmltv_id": "BEIN1",
+   "nom": "beIN Sports 1"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "1304",
+   "lang": "fr",
+   "xmltv_id": "BEIN2",
+   "nom": "beIN Sports 2"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "1335",
+   "lang": "fr",
+   "xmltv_id": "BEIN3",
+   "nom": "beIN Sports 3"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "1336",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX4",
+   "nom": "beIN Sports Max 4"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "1337",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX5",
+   "nom": "beIN Sports Max 5"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "1338",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX6",
+   "nom": "beIN Sports Max 6"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "1339",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX7",
+   "nom": "beIN Sports Max 7"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "1340",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX8",
+   "nom": "beIN Sports Max 8"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "1341",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX9",
+   "nom": "beIN Sports Max 9"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "1342",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX10",
+   "nom": "beIN Sports Max 10"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "4210",
+   "lang": "fr",
+   "xmltv_id": "L1P1",
+   "nom": "Ligue 1+"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "4211",
+   "lang": "fr",
+   "xmltv_id": "L1P2",
+   "nom": "Ligue 1+ 2"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "4212",
+   "lang": "fr",
+   "xmltv_id": "L1P3",
+   "nom": "Ligue 1+ 3"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "4213",
+   "lang": "fr",
+   "xmltv_id": "L1P4",
+   "nom": "Ligue 1+ 4"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "4214",
+   "lang": "fr",
+   "xmltv_id": "L1P5",
+   "nom": "Ligue 1+ 5"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "4219",
+   "lang": "fr",
+   "xmltv_id": "L1P6",
+   "nom": "Ligue 1+ 6"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "4220",
+   "lang": "fr",
+   "xmltv_id": "L1P7",
+   "nom": "Ligue 1+ 7"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "4221",
+   "lang": "fr",
+   "xmltv_id": "L1P8",
+   "nom": "Ligue 1+ 8"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "4222",
+   "lang": "fr",
+   "xmltv_id": "L1P9",
+   "nom": "Ligue 1+ 9"
+  },
+  {
+   "site": "chaines-tv.orange.fr",
+   "site_id": "1401",
+   "lang": "fr",
+   "xmltv_id": "EQUIPE",
+   "nom": "La chaîne L'Équipe"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1174",
+   "lang": "fr",
+   "xmltv_id": "L1P3_W",
+   "nom": "Ligue 1+ 3"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1179",
+   "lang": "fr",
+   "xmltv_id": "L1P4_W",
+   "nom": "Ligue 1+ 4"
+  },
+  {
+   "site": "canalplus.com",
+   "site_id": "#1180",
+   "lang": "fr",
+   "xmltv_id": "L1P5_W",
+   "nom": "Ligue 1+ 5"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "3501",
+   "lang": "fr",
+   "xmltv_id": "CPFOOT_S",
+   "nom": "Canal+ Foot"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "3504",
+   "lang": "fr",
+   "xmltv_id": "CP360_S",
+   "nom": "Canal+ Sport 360"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "4068",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE1_S",
+   "nom": "Canal+ Live 1"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "4069",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE2_S",
+   "nom": "Canal+ Live 2"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "4070",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE3_S",
+   "nom": "Canal+ Live 3"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "4071",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE4_S",
+   "nom": "Canal+ Live 4"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "4072",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE5_S",
+   "nom": "Canal+ Live 5"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "4073",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE6_S",
+   "nom": "Canal+ Live 6"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "4074",
+   "lang": "fr",
+   "xmltv_id": "CPLIVE7_S",
+   "nom": "Canal+ Live 7"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "3795",
+   "lang": "fr",
+   "xmltv_id": "DAZN1_S",
+   "nom": "DAZN 1"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "2665",
+   "lang": "fr",
+   "xmltv_id": "RMC1_S",
+   "nom": "RMC Sport 1"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "2666",
+   "lang": "fr",
+   "xmltv_id": "RMC2_S",
+   "nom": "RMC Sport 2"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "76",
+   "lang": "fr",
+   "xmltv_id": "EUROSPORT1_S",
+   "nom": "Eurosport 1"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "439",
+   "lang": "fr",
+   "xmltv_id": "EUROSPORT2_S",
+   "nom": "Eurosport 2"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "1401",
+   "lang": "fr",
+   "xmltv_id": "EQUIPE_S",
+   "nom": "La chaîne L'Équipe"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "1290",
+   "lang": "fr",
+   "xmltv_id": "BEIN1_S",
+   "nom": "beIN Sports 1"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "1304",
+   "lang": "fr",
+   "xmltv_id": "BEIN2_S",
+   "nom": "beIN Sports 2"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "1335",
+   "lang": "fr",
+   "xmltv_id": "BEIN3_S",
+   "nom": "beIN Sports 3"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "1336",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX4_S",
+   "nom": "beIN Sports Max 4"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "1337",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX5_S",
+   "nom": "beIN Sports Max 5"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "1338",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX6_S",
+   "nom": "beIN Sports Max 6"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "1339",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX7_S",
+   "nom": "beIN Sports Max 7"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "1340",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX8_S",
+   "nom": "beIN Sports Max 8"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "1341",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX9_S",
+   "nom": "beIN Sports Max 9"
+  },
+  {
+   "site": "tv.sfr.fr",
+   "site_id": "1342",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX10_S",
+   "nom": "beIN Sports Max 10"
+  },
+  {
+   "site": "epgshare01.online",
+   "site_id": "FR1#Canal+.Sport.fr",
+   "lang": "fr",
+   "xmltv_id": "CPSPORT_E",
+   "nom": "Canal+ Sport"
+  },
+  {
+   "site": "epgshare01.online",
+   "site_id": "FR1#Canal+.Foot.fr",
+   "lang": "fr",
+   "xmltv_id": "CPFOOT_E",
+   "nom": "Canal+ Foot"
+  },
+  {
+   "site": "epgshare01.online",
+   "site_id": "FR1#Canal+.Sport.360.fr",
+   "lang": "fr",
+   "xmltv_id": "CP360_E",
+   "nom": "Canal+ Sport 360"
+  },
+  {
+   "site": "epgshare01.online",
+   "site_id": "FR1#CANAL+.fr",
+   "lang": "fr",
+   "xmltv_id": "CPLUS_E",
+   "nom": "Canal+"
+  },
+  {
+   "site": "epgshare01.online",
+   "site_id": "FR1#CANAL+.PREMIER.LEAGUE.fr",
+   "lang": "fr",
+   "xmltv_id": "CPPL_E",
+   "nom": "Canal+ Premier League"
+  },
+  {
+   "site": "epgshare01.online",
+   "site_id": "FR1#CANAL+.TOP14.fr",
+   "lang": "fr",
+   "xmltv_id": "CPTOP14_E",
+   "nom": "Canal+ Top 14"
+  },
+  {
+   "site": "epgshare01.online",
+   "site_id": "FR1#DAZN.1.fr",
+   "lang": "fr",
+   "xmltv_id": "DAZN1_E",
+   "nom": "DAZN 1"
+  },
+  {
+   "site": "epgshare01.online",
+   "site_id": "FR1#RMC.Sport.1.fr",
+   "lang": "fr",
+   "xmltv_id": "RMC1_E",
+   "nom": "RMC Sport 1"
+  },
+  {
+   "site": "beinsports.com",
+   "site_id": "66265DD1-D2AA-4A89-9412-2455186E90ED",
+   "lang": "fr",
+   "xmltv_id": "BEIN1_W",
+   "nom": "beIN Sports 1"
+  },
+  {
+   "site": "beinsports.com",
+   "site_id": "1E886E98-3104-4D8E-A97F-734B23108E8A",
+   "lang": "fr",
+   "xmltv_id": "BEIN2_W",
+   "nom": "beIN Sports 2"
+  },
+  {
+   "site": "beinsports.com",
+   "site_id": "6DB008B8-66DA-423E-805D-616211D4B174",
+   "lang": "fr",
+   "xmltv_id": "BEIN3_W",
+   "nom": "beIN Sports 3"
+  },
+  {
+   "site": "beinsports.com",
+   "site_id": "EF7E0369-CFD9-4607-9238-EC483E6D58A3",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX4_W",
+   "nom": "beIN Sports Max 4"
+  },
+  {
+   "site": "beinsports.com",
+   "site_id": "A4425E44-B004-4137-ACB4-458BA4D710F8",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX5_W",
+   "nom": "beIN Sports Max 5"
+  },
+  {
+   "site": "beinsports.com",
+   "site_id": "BBD26D71-897D-4799-87A1-A87120130D48",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX6_W",
+   "nom": "beIN Sports Max 6"
+  },
+  {
+   "site": "beinsports.com",
+   "site_id": "9B4708C5-F5F0-452A-8157-4661C30FAE6A",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX7_W",
+   "nom": "beIN Sports Max 7"
+  },
+  {
+   "site": "beinsports.com",
+   "site_id": "76D2430C-8BCB-41BD-A1DE-FBA0D58C5E8A",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX8_W",
+   "nom": "beIN Sports Max 8"
+  },
+  {
+   "site": "beinsports.com",
+   "site_id": "FB208953-1C70-4D1E-B918-103AB02AB181",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX9_W",
+   "nom": "beIN Sports Max 9"
+  },
+  {
+   "site": "beinsports.com",
+   "site_id": "6F425028-14F0-4E38-B776-71A9DB3F3493",
+   "lang": "fr",
+   "xmltv_id": "BEINMAX10_W",
+   "nom": "beIN Sports Max 10"
+  }
+ ],
+ "a_trouver": []
+}

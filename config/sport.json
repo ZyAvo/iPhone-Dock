@@ -1,0 +1,516 @@
+{
+ "regions": [
+  {
+   "id": "fr",
+   "label": "France"
+  },
+  {
+   "id": "ec",
+   "label": "Compétitions européennes"
+  },
+  {
+   "id": "intl",
+   "label": "Football international"
+  },
+  {
+   "id": "en",
+   "label": "Angleterre"
+  },
+  {
+   "id": "big",
+   "label": "Espagne · Italie · Allemagne"
+  },
+  {
+   "id": "rfr",
+   "label": "Rugby · France"
+  },
+  {
+   "id": "reu",
+   "label": "Rugby · Europe"
+  },
+  {
+   "id": "rintl",
+   "label": "Rugby · International"
+  },
+  {
+   "id": "us",
+   "label": "Sports US"
+  },
+  {
+   "id": "moto",
+   "label": "Sports mécaniques"
+  }
+ ],
+ "leagues": [
+  {
+   "id": "fra.1",
+   "region": "fr",
+   "flag": "🇫🇷",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Ligue 1",
+   "tv": [
+    "Ligue 1+"
+   ],
+   "rounds": true,
+   "of": "fr.1"
+  },
+  {
+   "id": "fra.2",
+   "region": "fr",
+   "flag": "🇫🇷",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Ligue 2",
+   "tv": [
+    "beIN Sports"
+   ],
+   "rounds": true,
+   "of": "fr.2",
+   "tsdb": {
+    "c": "France",
+    "s": "Soccer",
+    "re": {}
+   }
+  },
+  {
+   "id": "fra.coupe_de_france",
+   "region": "fr",
+   "flag": "🇫🇷",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Coupe de France",
+   "tv": [
+    "beIN Sports"
+   ]
+  },
+  {
+   "id": "fra.super_cup",
+   "region": "fr",
+   "flag": "🇫🇷",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Trophée des champions",
+   "seasonal": true
+  },
+  {
+   "id": "uefa.champions",
+   "region": "ec",
+   "flag": "🇪🇺",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Ligue des champions",
+   "tv": [
+    "Canal+"
+   ]
+  },
+  {
+   "id": "uefa.europa",
+   "region": "ec",
+   "flag": "🇪🇺",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Ligue Europa",
+   "tv": [
+    "Canal+"
+   ]
+  },
+  {
+   "id": "uefa.europa.conf",
+   "region": "ec",
+   "flag": "🇪🇺",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Ligue Conférence",
+   "tv": [
+    "Canal+"
+   ]
+  },
+  {
+   "id": "uefa.super_cup",
+   "region": "ec",
+   "flag": "🇪🇺",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Supercoupe d'Europe",
+   "seasonal": true
+  },
+  {
+   "id": "fifa.world",
+   "region": "intl",
+   "flag": "🌍",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Coupe du monde",
+   "seasonal": true
+  },
+  {
+   "id": "uefa.euro",
+   "region": "intl",
+   "flag": "🇪🇺",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Euro",
+   "seasonal": true
+  },
+  {
+   "id": "fifa.worldq.uefa",
+   "region": "intl",
+   "flag": "🌍",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Qualifications Coupe du monde",
+   "tv": [
+    "TF1"
+   ],
+   "tvTeam": "France",
+   "seasonal": true
+  },
+  {
+   "id": "uefa.euroq",
+   "region": "intl",
+   "flag": "🇪🇺",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Qualifications Euro",
+   "tv": [
+    "TF1"
+   ],
+   "tvTeam": "France",
+   "seasonal": true
+  },
+  {
+   "id": "uefa.nations",
+   "region": "intl",
+   "flag": "🇪🇺",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Ligue des nations",
+   "tv": [
+    "TF1"
+   ],
+   "tvTeam": "France",
+   "seasonal": true
+  },
+  {
+   "id": "fifa.friendly",
+   "region": "intl",
+   "flag": "🌍",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Amicaux internationaux",
+   "tv": [
+    "TF1"
+   ],
+   "tvTeam": "France",
+   "seasonal": true
+  },
+  {
+   "id": "fifa.olympics",
+   "region": "intl",
+   "flag": "🌍",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Jeux olympiques",
+   "seasonal": true
+  },
+  {
+   "id": "fifa.cwc",
+   "region": "intl",
+   "flag": "🌍",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Coupe du monde des clubs",
+   "seasonal": true
+  },
+  {
+   "id": "eng.1",
+   "region": "en",
+   "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Premier League",
+   "tv": [
+    "Canal+"
+   ],
+   "rounds": true,
+   "of": "en.1"
+  },
+  {
+   "id": "eng.2",
+   "region": "en",
+   "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Championship",
+   "rounds": true,
+   "of": "en.2"
+  },
+  {
+   "id": "eng.league_cup",
+   "region": "en",
+   "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Coupe de la Ligue anglaise",
+   "tv": [
+    "beIN Sports"
+   ]
+  },
+  {
+   "id": "eng.fa",
+   "region": "en",
+   "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "FA Cup"
+  },
+  {
+   "id": "eng.charity",
+   "region": "en",
+   "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Community Shield",
+   "seasonal": true
+  },
+  {
+   "id": "esp.1",
+   "region": "big",
+   "flag": "🇪🇸",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Liga",
+   "tv": [
+    "DAZN",
+    "Disney+"
+   ],
+   "rounds": true,
+   "of": "es.1"
+  },
+  {
+   "id": "ita.1",
+   "region": "big",
+   "flag": "🇮🇹",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Serie A",
+   "tv": [
+    "DAZN"
+   ],
+   "rounds": true,
+   "of": "it.1"
+  },
+  {
+   "id": "ger.1",
+   "region": "big",
+   "flag": "🇩🇪",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Bundesliga",
+   "tv": [
+    "beIN Sports"
+   ],
+   "rounds": true,
+   "of": "de.1"
+  },
+  {
+   "id": "esp.copa_del_rey",
+   "region": "big",
+   "flag": "🇪🇸",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Coupe du Roi"
+  },
+  {
+   "id": "esp.super_cup",
+   "region": "big",
+   "flag": "🇪🇸",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Supercoupe d'Espagne",
+   "seasonal": true
+  },
+  {
+   "id": "ita.coppa_italia",
+   "region": "big",
+   "flag": "🇮🇹",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Coupe d'Italie"
+  },
+  {
+   "id": "ita.super_cup",
+   "region": "big",
+   "flag": "🇮🇹",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Supercoupe d'Italie",
+   "seasonal": true
+  },
+  {
+   "id": "ger.dfb_pokal",
+   "region": "big",
+   "flag": "🇩🇪",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Coupe d'Allemagne"
+  },
+  {
+   "id": "ger.super_cup",
+   "region": "big",
+   "flag": "🇩🇪",
+   "sport": "soccer",
+   "group": "foot",
+   "name": "Supercoupe d'Allemagne",
+   "seasonal": true
+  },
+  {
+   "id": "270559",
+   "region": "rfr",
+   "flag": "🇫🇷",
+   "sport": "rugby",
+   "group": "rugby",
+   "name": "Top 14",
+   "tv": [
+    "Canal+"
+   ],
+   "rounds": true,
+   "tsdb": {
+    "c": "France",
+    "s": "Rugby",
+    "re": {}
+   },
+   "badges": true
+  },
+  {
+   "id": "271937",
+   "region": "reu",
+   "flag": "🇪🇺",
+   "sport": "rugby",
+   "group": "rugby",
+   "name": "Champions Cup",
+   "tv": [
+    "beIN Sports"
+   ],
+   "badges": "270559"
+  },
+  {
+   "id": "164205",
+   "region": "rintl",
+   "flag": "🌍",
+   "sport": "rugby",
+   "group": "rugby",
+   "name": "Coupe du monde de rugby",
+   "tv": [
+    "TF1"
+   ],
+   "seasonal": true
+  },
+  {
+   "id": "180659",
+   "region": "rintl",
+   "flag": "🇪🇺",
+   "sport": "rugby",
+   "group": "rugby",
+   "name": "Six Nations",
+   "tv": [
+    "France TV"
+   ],
+   "seasonal": true
+  },
+  {
+   "id": "289234",
+   "region": "rintl",
+   "flag": "🌍",
+   "sport": "rugby",
+   "group": "rugby",
+   "name": "Tests internationaux",
+   "tv": [
+    "TF1"
+   ],
+   "tvTeam": "France",
+   "seasonal": true
+  },
+  {
+   "id": "nba",
+   "region": "us",
+   "flag": "🇺🇸",
+   "sport": "basketball",
+   "group": "basket",
+   "name": "NBA",
+   "tv": [
+    "beIN Sports",
+    "Prime Video"
+   ],
+   "partial": true
+  },
+  {
+   "id": "nfl",
+   "region": "us",
+   "flag": "🇺🇸",
+   "sport": "football",
+   "group": "nfl",
+   "name": "NFL",
+   "tv": [
+    "beIN Sports"
+   ],
+   "partial": true,
+   "rounds": true
+  },
+  {
+   "id": "nhl",
+   "region": "us",
+   "flag": "🇺🇸",
+   "sport": "hockey",
+   "group": "hockey",
+   "name": "NHL",
+   "tv": [
+    "beIN Sports",
+    "DAZN"
+   ],
+   "partial": true
+  },
+  {
+   "id": "f1",
+   "region": "moto",
+   "flag": "🏁",
+   "sport": "racing",
+   "group": "f1",
+   "name": "Formule 1",
+   "tv": [
+    "Canal+"
+   ]
+  },
+  {
+   "id": "motogp",
+   "region": "moto",
+   "flag": "🏁",
+   "sport": "racing",
+   "group": "motogp",
+   "name": "MotoGP",
+   "tv": [
+    "Canal+"
+   ]
+  }
+ ],
+ "favoris": {
+  "equipes": [
+   "Liverpool",
+   "Arsenal",
+   "Marseille",
+   "Toulouse",
+   "Rodez",
+   "Castres",
+   "Stade Toulousain",
+   "Lakers",
+   "Packers",
+   "Steelers",
+   "Maple Leafs"
+  ],
+  "ligues": [
+   "f1",
+   "motogp"
+  ]
+ }
+}

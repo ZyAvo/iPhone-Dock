@@ -1,0 +1,75 @@
+{
+ "indices": [
+  {
+   "id": "cac40",
+   "code": "^FCHI",
+   "nom": "CAC 40",
+   "accueil": true
+  },
+  {
+   "id": "eurostoxx50",
+   "code": "^STOXX50E",
+   "nom": "Euro Stoxx 50"
+  },
+  {
+   "id": "sp500",
+   "code": "^GSPC",
+   "nom": "S&P 500",
+   "accueil": true
+  },
+  {
+   "id": "nasdaq100",
+   "code": "^NDX",
+   "nom": "Nasdaq 100"
+  },
+  {
+   "id": "monde",
+   "code": "EUNL.DE",
+   "nom": "MSCI World",
+   "note": "via un ETF en euros",
+   "accueil": true
+  },
+  {
+   "id": "emergents",
+   "code": "IS3N.DE",
+   "nom": "Émergents",
+   "note": "via un ETF en euros"
+  },
+  {
+   "id": "or",
+   "code": "GC=F",
+   "nom": "Or",
+   "note": "en dollars"
+  },
+  {
+   "id": "brent",
+   "code": "BZ=F",
+   "nom": "Pétrole Brent",
+   "note": "en dollars"
+  },
+  {
+   "id": "eurusd",
+   "code": "EURUSD=X",
+   "nom": "EUR / USD",
+   "change": true,
+   "accueil": true
+  }
+ ],
+ "suivi": [
+  {
+   "isin": "IE00B4L5Y983",
+   "code": "EUNL.DE",
+   "nom": "iShares Core MSCI World (Acc)"
+  },
+  {
+   "isin": "LU1681045370",
+   "code": "AEEM.PA",
+   "nom": "Amundi MSCI Emerging Markets (Acc)"
+  },
+  {
+   "isin": "LU1681048804",
+   "code": "500.PA",
+   "nom": "Amundi S&P 500 (Acc)"
+  }
+ ]
+}

@@ -1,0 +1,79 @@
+{
+ "plateformes": [
+  {
+   "id": "netflix",
+   "nom": "Netflix",
+   "court": "N",
+   "coul": "#e50914",
+   "tmdb": "^netflix",
+   "app": "nflx://",
+   "web": "https://www.netflix.com/search?q=",
+   "abo": true
+  },
+  {
+   "id": "prime",
+   "nom": "Prime Video",
+   "court": "prime",
+   "coul": "#1a98ff",
+   "tmdb": "^amazon prime video",
+   "app": "aiv://",
+   "web": "https://www.primevideo.com/search/ref=atv_nb_sr?phrase=",
+   "abo": true
+  },
+  {
+   "id": "disney",
+   "nom": "Disney+",
+   "court": "D+",
+   "coul": "#113ccf",
+   "tmdb": "^disney ?(plus|\\+)",
+   "app": "disneyplus://",
+   "web": "https://www.disneyplus.com/search?q="
+  },
+  {
+   "id": "hbo",
+   "nom": "HBO Max",
+   "court": "HBO",
+   "coul": "#5b2bd1",
+   "tmdb": "^(hbo )?max$|^hbo max",
+   "app": "hbomax://",
+   "web": "https://play.hbomax.com/search?q="
+  },
+  {
+   "id": "apple",
+   "nom": "Apple TV",
+   "court": "tv",
+   "coul": "#1d1d1f",
+   "tmdb": "^apple tv",
+   "app": "videos://",
+   "web": "https://tv.apple.com/fr/search?term="
+  },
+  {
+   "id": "canal",
+   "nom": "Canal+",
+   "court": "C+",
+   "coul": "#111111",
+   "tmdb": "^canal ?(\\+|plus)",
+   "app": "mycanal://",
+   "web": "https://www.canalplus.com/recherche/?q="
+  },
+  {
+   "id": "ocs",
+   "nom": "OCS",
+   "court": "OCS",
+   "coul": "#f26522",
+   "tmdb": "^ocs",
+   "app": "mycanal://",
+   "web": "https://www.canalplus.com/recherche/?q="
+  }
+ ],
+ "chaines_yt": [
+  {
+   "id": "UCFKDEp9si4RmHFWJW1vYsMA",
+   "nom": "EthosLab"
+  },
+  {
+   "id": "UCTdicWbtwYfLyZ7S1M9XuIQ",
+   "nom": "Oliech"
+  }
+ ]
+}

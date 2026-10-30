@@ -1,0 +1,437 @@
+{
+ "fr": [
+  {
+   "id": "une",
+   "label": "À la une",
+   "feeds": [
+    {
+     "name": "France Info",
+     "color": "#f2b705",
+     "url": "https://www.francetvinfo.fr/titres.rss"
+    },
+    {
+     "name": "Le Monde",
+     "color": "#2b2b2b",
+     "url": "https://www.lemonde.fr/rss/une.xml"
+    },
+    {
+     "name": "Le Figaro",
+     "color": "#163860",
+     "url": "https://www.lefigaro.fr/rss/figaro_actualites.xml"
+    },
+    {
+     "name": "Libération",
+     "color": "#e2001a",
+     "url": "https://www.liberation.fr/arc/outboundfeeds/rss-all/?outputType=xml"
+    },
+    {
+     "name": "20 Minutes",
+     "color": "#0b5fb4",
+     "url": "https://www.20minutes.fr/feeds/rss-une.xml"
+    }
+   ]
+  },
+  {
+   "id": "france",
+   "label": "France",
+   "feeds": [
+    {
+     "name": "France Info",
+     "color": "#f2b705",
+     "url": "https://www.francetvinfo.fr/france.rss"
+    },
+    {
+     "name": "Le Monde",
+     "color": "#2b2b2b",
+     "url": "https://www.lemonde.fr/politique/rss_full.xml"
+    },
+    {
+     "name": "Le Figaro",
+     "color": "#163860",
+     "url": "https://www.lefigaro.fr/rss/figaro_politique.xml"
+    }
+   ]
+  },
+  {
+   "id": "monde",
+   "label": "Monde",
+   "feeds": [
+    {
+     "name": "France Info",
+     "color": "#f2b705",
+     "url": "https://www.francetvinfo.fr/monde.rss"
+    },
+    {
+     "name": "Le Monde",
+     "color": "#2b2b2b",
+     "url": "https://www.lemonde.fr/international/rss_full.xml"
+    },
+    {
+     "name": "Courrier international",
+     "color": "#c8102e",
+     "url": "https://www.courrierinternational.com/feed/all/rss.xml"
+    }
+   ]
+  },
+  {
+   "id": "eco",
+   "label": "Éco",
+   "feeds": [
+    {
+     "name": "Les Échos",
+     "color": "#8a1538",
+     "url": "https://syndication.lesechos.fr/rss/rss_une.xml",
+     "site": "https://www.lesechos.fr/",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:lesechos.fr&hl=fr&gl=FR&ceid=FR:fr"
+     ]
+    },
+    {
+     "name": "La Tribune",
+     "color": "#0b6a8a",
+     "url": "https://www.latribune.fr/feed.xml",
+     "site": "https://www.latribune.fr/",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:latribune.fr&hl=fr&gl=FR&ceid=FR:fr"
+     ]
+    },
+    {
+     "name": "L'Usine Nouvelle",
+     "color": "#f08a00",
+     "url": "https://www.usinenouvelle.com/rss/"
+    },
+    {
+     "name": "France Info",
+     "color": "#f2b705",
+     "url": "https://www.francetvinfo.fr/economie.rss"
+    },
+    {
+     "name": "Le Monde",
+     "color": "#2b2b2b",
+     "url": "https://www.lemonde.fr/economie/rss_full.xml"
+    }
+   ]
+  },
+  {
+   "id": "sport",
+   "label": "Sport",
+   "feeds": [
+    {
+     "name": "L'Équipe",
+     "color": "#e30613",
+     "url": "https://dwh.lequipe.fr/api/edito/rss?path=/"
+    },
+    {
+     "name": "L'Équipe Rugby",
+     "color": "#a3121a",
+     "url": "https://dwh.lequipe.fr/api/edito/rss?path=/Rugby/"
+    },
+    {
+     "name": "RMC Sport",
+     "color": "#4a4a4a",
+     "url": "https://rmcsport.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/",
+     "site": "https://rmcsport.bfmtv.com/",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:rmcsport.bfmtv.com&hl=fr&gl=FR&ceid=FR:fr"
+     ]
+    },
+    {
+     "name": "France Info",
+     "color": "#f2b705",
+     "url": "https://www.francetvinfo.fr/sports.rss"
+    }
+   ]
+  },
+  {
+   "id": "tech",
+   "label": "Tech",
+   "feeds": [
+    {
+     "name": "Numerama",
+     "color": "#e4007c",
+     "url": "https://www.numerama.com/feed/"
+    },
+    {
+     "name": "Les Numériques",
+     "color": "#0a8f6a",
+     "url": "https://www.lesnumeriques.com/rss.xml"
+    },
+    {
+     "name": "Frandroid",
+     "color": "#29a8e0",
+     "url": "https://www.frandroid.com/feed"
+    },
+    {
+     "name": "01net",
+     "color": "#d6002a",
+     "url": "https://www.01net.com/feed/"
+    }
+   ]
+  },
+  {
+   "id": "local",
+   "label": "Tarn",
+   "feeds": [
+    {
+     "name": "Le Tarn Libre",
+     "color": "#e85d0c",
+     "url": "https://www.letarnlibre.com/feed/",
+     "site": "https://www.letarnlibre.com/",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:letarnlibre.com&hl=fr&gl=FR&ceid=FR:fr"
+     ]
+    },
+    {
+     "name": "La Dépêche Tarn",
+     "color": "#d4021d",
+     "url": "https://www.ladepeche.fr/tarn/rss.xml",
+     "site": "https://www.ladepeche.fr/tarn/",
+     "hint": "tarn",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:ladepeche.fr+Tarn&hl=fr&gl=FR&ceid=FR:fr"
+     ]
+    },
+    {
+     "name": "France 3 Occitanie",
+     "color": "#1f5ba8",
+     "url": "https://france3-regions.franceinfo.fr/occitanie/rss"
+    }
+   ]
+  }
+ ],
+ "autres": [
+  {
+   "id": "marches",
+   "label": "Marchés",
+   "feeds": [
+    {
+     "name": "Les Échos Marchés",
+     "color": "#8a1538",
+     "url": "https://syndication.lesechos.fr/rss/rss_finance-marches.xml",
+     "site": "https://www.lesechos.fr/finance-marches",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:lesechos.fr/finance-marches&hl=fr&gl=FR&ceid=FR:fr"
+     ]
+    },
+    {
+     "name": "Investir",
+     "color": "#0f4c81",
+     "url": "https://investir.lesechos.fr/rss",
+     "site": "https://investir.lesechos.fr/",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:investir.lesechos.fr&hl=fr&gl=FR&ceid=FR:fr"
+     ]
+    },
+    {
+     "name": "Boursorama",
+     "color": "#c4006a",
+     "url": "https://www.boursorama.com/rss/actualites/marches",
+     "site": "https://www.boursorama.com/bourse/actualites/",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:boursorama.com/bourse/actualites&hl=fr&gl=FR&ceid=FR:fr"
+     ]
+    },
+    {
+     "name": "Zonebourse",
+     "color": "#1f6f43",
+     "url": "https://www.zonebourse.com/rss/",
+     "site": "https://www.zonebourse.com/",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:zonebourse.com&hl=fr&gl=FR&ceid=FR:fr"
+     ]
+    },
+    {
+     "name": "AMF",
+     "color": "#1d3c78",
+     "url": "https://www.amf-france.org/fr/flux-rss/display/22",
+     "site": "https://www.amf-france.org/fr/actualites-publications",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:amf-france.org&hl=fr&gl=FR&ceid=FR:fr"
+     ]
+    }
+   ]
+  }
+ ],
+ "en": [
+  {
+   "id": "une",
+   "label": "À la une",
+   "feeds": [
+    {
+     "name": "BBC News",
+     "color": "#bb1919",
+     "url": "https://feeds.bbci.co.uk/news/rss.xml"
+    },
+    {
+     "name": "Sky News",
+     "color": "#c4122f",
+     "url": "https://feeds.skynews.com/feeds/rss/home.xml"
+    },
+    {
+     "name": "Euronews",
+     "color": "#0b3c8c",
+     "url": "https://www.euronews.com/rss?format=mrss&level=theme&name=news"
+    },
+    {
+     "name": "The Guardian",
+     "color": "#052962",
+     "url": "https://www.theguardian.com/international/rss"
+    },
+    {
+     "name": "New York Times",
+     "color": "#2b2b2b",
+     "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"
+    },
+    {
+     "name": "Wall Street Journal",
+     "color": "#0274b6",
+     "url": "https://feeds.content.dowjones.io/public/rss/RSSWorldNews",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:wsj.com&hl=en-US&gl=US&ceid=US:en"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "france",
+   "label": "France",
+   "feeds": [
+    {
+     "name": "France 24",
+     "color": "#00a3e0",
+     "url": "https://www.france24.com/en/france/rss"
+    },
+    {
+     "name": "RFI",
+     "color": "#e5004d",
+     "url": "https://www.rfi.fr/en/france/rss",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:rfi.fr/en&hl=en-US&gl=US&ceid=US:en"
+     ]
+    },
+    {
+     "name": "The Local",
+     "color": "#e2001a",
+     "url": "https://www.thelocal.fr/feeds/rss.php",
+     "site": "https://www.thelocal.fr/",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:thelocal.fr&hl=en-US&gl=US&ceid=US:en"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "monde",
+   "label": "Monde",
+   "feeds": [
+    {
+     "name": "BBC News",
+     "color": "#bb1919",
+     "url": "https://feeds.bbci.co.uk/news/world/rss.xml"
+    },
+    {
+     "name": "The Guardian",
+     "color": "#052962",
+     "url": "https://www.theguardian.com/world/rss"
+    },
+    {
+     "name": "New York Times",
+     "color": "#2b2b2b",
+     "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
+    },
+    {
+     "name": "Sky News",
+     "color": "#c4122f",
+     "url": "https://feeds.skynews.com/feeds/rss/world.xml"
+    },
+    {
+     "name": "Wall Street Journal",
+     "color": "#0274b6",
+     "url": "https://feeds.content.dowjones.io/public/rss/RSSWorldNews"
+    },
+    {
+     "name": "Al Jazeera",
+     "color": "#d39c1f",
+     "url": "https://www.aljazeera.com/xml/rss/all.xml"
+    }
+   ]
+  },
+  {
+   "id": "eco",
+   "label": "Éco",
+   "feeds": [
+    {
+     "name": "Financial Times",
+     "color": "#990f3d",
+     "url": "https://www.ft.com/rss/home",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:ft.com&hl=en-US&gl=US&ceid=US:en"
+     ]
+    },
+    {
+     "name": "The Economist",
+     "color": "#e3120b",
+     "url": "https://www.economist.com/finance-and-economics/rss.xml",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:economist.com&hl=en-US&gl=US&ceid=US:en"
+     ]
+    },
+    {
+     "name": "Wall Street Journal",
+     "color": "#0274b6",
+     "url": "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:wsj.com&hl=en-US&gl=US&ceid=US:en"
+     ]
+    },
+    {
+     "name": "BBC News",
+     "color": "#bb1919",
+     "url": "https://feeds.bbci.co.uk/news/business/rss.xml"
+    }
+   ]
+  },
+  {
+   "id": "sport",
+   "label": "Sport",
+   "feeds": [
+    {
+     "name": "BBC Sport",
+     "color": "#e8b400",
+     "url": "https://feeds.bbci.co.uk/sport/rss.xml"
+    },
+    {
+     "name": "The Guardian",
+     "color": "#052962",
+     "url": "https://www.theguardian.com/uk/sport/rss"
+    },
+    {
+     "name": "Sky Sports",
+     "color": "#d0021b",
+     "url": "https://www.skysports.com/rss/12040"
+    }
+   ]
+  },
+  {
+   "id": "tech",
+   "label": "Tech",
+   "feeds": [
+    {
+     "name": "The Verge",
+     "color": "#5200ff",
+     "url": "https://www.theverge.com/rss/index.xml"
+    },
+    {
+     "name": "Ars Technica",
+     "color": "#ff4e00",
+     "url": "https://feeds.arstechnica.com/arstechnica/index"
+    },
+    {
+     "name": "BBC News",
+     "color": "#bb1919",
+     "url": "https://feeds.bbci.co.uk/news/technology/rss.xml"
+    }
+   ]
+  }
+ ]
+}

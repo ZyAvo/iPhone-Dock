@@ -1,0 +1,61 @@
+{
+ "pages": [
+  "actus",
+  "sport",
+  "videos",
+  "invest",
+  "cachee",
+  "etat"
+ ],
+ "widgets": [
+  "meteo",
+  "une",
+  "invest",
+  "spotify",
+  "sport",
+  "live"
+ ],
+ "meteo": [
+  {
+   "name": "Réalmont",
+   "region": "Tarn",
+   "lat": 43.7767,
+   "lon": 2.1897
+  },
+  {
+   "name": "Mazamet",
+   "region": "Tarn",
+   "lat": 43.492,
+   "lon": 2.3736
+  },
+  {
+   "name": "Castres",
+   "region": "Tarn",
+   "lat": 43.606,
+   "lon": 2.24
+  },
+  {
+   "name": "Albi",
+   "region": "Tarn",
+   "lat": 43.9289,
+   "lon": 2.1464
+  },
+  {
+   "name": "Toulouse",
+   "region": "Haute-Garonne",
+   "lat": 43.6045,
+   "lon": 1.444
+  }
+ ],
+ "une": {
+  "name": "France Info",
+  "color": "--t-slate",
+  "url": "https://www.francetvinfo.fr/titres.rss"
+ },
+ "indices_widget": [
+  "^FCHI",
+  "^GSPC",
+  "EUNL.DE",
+  "EURUSD=X"
+ ]
+}

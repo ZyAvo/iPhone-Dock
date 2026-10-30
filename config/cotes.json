@@ -1,0 +1,43 @@
+{
+ "sites": [
+  "winamax_fr",
+  "betclic_fr",
+  "unibet_fr",
+  "pmu_fr",
+  "netbet_fr"
+ ],
+ "comps": {
+  "fra.1": {
+   "cle": "soccer_france_ligue_one",
+   "re": {}
+  },
+  "eng.1": {
+   "cle": "soccer_epl",
+   "re": {}
+  },
+  "esp.1": {
+   "cle": "soccer_spain_la_liga",
+   "re": {}
+  },
+  "ita.1": {
+   "cle": "soccer_italy_serie_a",
+   "re": {}
+  },
+  "ger.1": {
+   "cle": "soccer_germany_bundesliga",
+   "re": {}
+  },
+  "uefa.champions": {
+   "cle": "soccer_uefa_champs_league",
+   "re": {}
+  },
+  "uefa.europa": {
+   "cle": "soccer_uefa_europa_league",
+   "re": {}
+  },
+  "uefa.europa.conf": {
+   "cle": "soccer_uefa_europa_conference_league",
+   "re": {}
+  }
+ }
+}

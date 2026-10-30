@@ -1,0 +1,70 @@
+{
+ "date": "2026-10-30T06:26:21+00:00",
+ "source": "configuration.xlsx",
+ "modules": {
+  "sport": {
+   "onglet": "Sport",
+   "coches": 40,
+   "ajouts": 0
+  },
+  "equipes": {
+   "onglet": "Équipes favorites",
+   "coches": 11,
+   "ajouts": 0
+  },
+  "actus": {
+   "onglet": "Actus",
+   "coches": 32,
+   "ajouts": 0
+  },
+  "actus-en": {
+   "onglet": "Actus International",
+   "coches": 25,
+   "ajouts": 0
+  },
+  "marches": {
+   "onglet": "Marchés",
+   "coches": 12,
+   "ajouts": 0
+  },
+  "videos": {
+   "onglet": "Vidéos",
+   "coches": 7,
+   "ajouts": 0
+  },
+  "youtube": {
+   "onglet": "YouTube",
+   "coches": 2,
+   "ajouts": 0
+  },
+  "tv": {
+   "onglet": "Programme TV",
+   "coches": 55,
+   "ajouts": 0
+  },
+  "cotes": {
+   "onglet": "Cotes",
+   "coches": 13,
+   "ajouts": 0
+  },
+  "accueil": {
+   "onglet": "Accueil",
+   "coches": 18,
+   "ajouts": 0
+  },
+  "apparence": {
+   "onglet": "Apparence",
+   "coches": 8,
+   "ajouts": 0
+  }
+ },
+ "tests": [],
+ "erreurs": [],
+ "resume": {
+  "ok": 0,
+  "warn": 0,
+  "ko": 0,
+  "info": 0
+ },
+ "teste": true
+}
