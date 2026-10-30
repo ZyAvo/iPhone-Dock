@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="5df972a6">
+<meta name="mon-ecran-version" content="b888a647">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vidéos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -111,25 +111,26 @@ a{color:inherit;text-decoration:none}
 header{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--head);
   backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
   border-bottom:1px solid var(--line)}
-header .wrap{padding-block:10px 12px;display:flex;flex-direction:column;gap:10px}
+header .wrap{padding-block:8px;display:flex;flex-direction:column;gap:8px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .back{display:flex;align-items:center;gap:2px;color:var(--accent);font-weight:500;font-size:1rem;padding-block:6px}
 .back svg,.icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .icon-btn{color:var(--accent);width:38px;height:38px;display:grid;place-items:center;border-radius:50%}
 .icon-btn.spin svg{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.title-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:1}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:0}
+.top .tabs{flex:0 1 auto;min-width:0;margin-inline:auto}
+@media (max-width:370px){ .back .bk{display:none} }
 .stamp{font-size:.74rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
 
-.tabs{display:flex;gap:4px;padding:4px;border-radius:18px;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity}
+.tabs{display:flex;gap:2px;padding:3px;border-radius:16px;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity}
 .tabs::-webkit-scrollbar{display:none}
-.tab{flex:none;scroll-snap-align:center;padding:8px 14px;border-radius:14px;font-size:.85rem;font-weight:500;color:var(--ink-soft);white-space:nowrap;
+.tab{flex:none;scroll-snap-align:center;padding:6px 12px;border-radius:13px;font-size:.82rem;font-weight:500;color:var(--ink-soft);white-space:nowrap;
   transition:background .2s ease,color .2s ease}
 .tab[aria-selected="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
 
 /* ---------- État ---------- */
-main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
+main .wrap{padding-block:12px 40px;display:flex;flex-direction:column;gap:12px}
 .sum{border-radius:24px;padding:16px 18px;display:flex;align-items:center;gap:14px}
 .sum b{font-size:1.1rem;letter-spacing:-.01em}
 .sum p{margin:2px 0 0;font-size:.82rem;color:var(--ink-soft)}
@@ -257,10 +258,18 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .chip{flex:none;padding:7px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:.82rem;font-weight:500;white-space:nowrap;min-height:36px;color:var(--ink)}
 .chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent;font-weight:600}
 .chip.sel{padding:0 8px;appearance:none;-webkit-appearance:none;font:inherit;font-size:.82rem;font-weight:500}
-.count{font-size:.78rem;color:var(--ink-soft)}
+.count{font-size:.76rem;color:var(--ink-soft);display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.fbar{margin-top:-4px}
+.chip.ic{display:inline-flex;align-items:center;gap:5px}
+.chip.ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.chip .n{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--on-accent);color:var(--accent);font-size:.68rem;font-weight:700}
+.fsec{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.fsec h3{margin:0;font-size:.74rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft)}
+.fsec .chips{flex-wrap:wrap;overflow:visible}
+.vsep{width:1px;flex:none;background:var(--line);margin:6px 2px}
 .pl{display:inline-grid;place-items:center;min-width:20px;height:16px;padding:0 4px;border-radius:5px;background:var(--pc);color:#fff;font-style:normal;font-size:.58rem;font-weight:800;letter-spacing:.02em;margin-right:5px;vertical-align:1px}
 .chip .pl{margin-right:6px}
-.poster .pls{position:absolute;left:6px;bottom:6px;display:flex;gap:3px}
+.poster .pls{position:absolute;left:6px;right:6px;bottom:6px;display:flex;flex-wrap:wrap;gap:3px}
 .poster .pls .pl{margin:0;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 .pl.off{opacity:.55}
 .dispo{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:8px 10px;padding:8px 0;border-top:1px solid var(--line)}
@@ -268,16 +277,16 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .dispo small{grid-column:2;grid-row:2;font-size:.72rem;color:var(--ink-soft);margin-top:-6px}
 .dispo .btn{min-height:38px;padding:6px 12px;font-size:.82rem}
 .dispo .lien{font-size:.78rem;color:var(--accent);font-weight:600}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px}
 @media (min-width:700px){ .grid{grid-template-columns:repeat(5,minmax(0,1fr))} }
-.tit{display:flex;flex-direction:column;gap:5px;text-align:left;min-width:0}
+.tit{display:flex;flex-direction:column;gap:3px;text-align:left;min-width:0}
 .poster{position:relative;aspect-ratio:2/3;border-radius:12px;overflow:hidden;background:var(--card);box-shadow:0 8px 18px -12px rgba(0,0,0,.5)}
 .poster img{width:100%;height:100%;object-fit:cover;display:block}
 .poster .noimg{position:absolute;inset:0;display:grid;place-items:center;padding:8px;text-align:center;font-size:.74rem;color:var(--ink-soft)}
 .poster .bd{position:absolute;left:6px;top:6px;padding:2px 7px;border-radius:999px;font-size:.62rem;font-weight:700;background:var(--accent);color:var(--on-accent)}
 .poster .mk{position:absolute;right:6px;top:6px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.72rem;background:rgba(0,0,0,.55);color:#fff}
 .poster .nt{position:absolute;right:6px;bottom:6px;padding:2px 6px;border-radius:8px;font-size:.66rem;font-weight:700;background:rgba(0,0,0,.6);color:#fff}
-.tit b{font-size:.76rem;font-weight:600;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tit b{font-size:.76rem;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .tit small{font-size:.68rem;color:var(--ink-soft)}
 .more{align-self:center}
 .btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
@@ -343,11 +352,11 @@ html.desk .ytplay:empty::after{content:"Choisis une vidéo dans la liste";margin
 <header>
   <div class="wrap">
     <div class="top">
-      <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
+      <a class="back" href="index.html" aria-label="Accueil"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span class="bk">Accueil</span></a>
+      <h1 class="vh">Vidéos</h1>
+      <div class="tabs glass" role="tablist" aria-label="Sources" id="tabs"></div>
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
     </div>
-    <div class="title-row"><h1>Vidéos</h1><span class="stamp" id="stamp"></span></div>
-    <div class="tabs glass" role="tablist" aria-label="Sources" id="tabs"></div>
   </div>
 </header>
 <main><div class="wrap" id="out" role="tabpanel"></div></main>
@@ -393,7 +402,8 @@ function resumeDe(k, done){
     .then(r => r.ok ? r.json() : fetch('donnees/videos/resumes.json', {cache:'no-cache'}).then(r2 => r2.ok ? r2.json() : {}))
     .then(j => { Object.assign(RES, j || {}); done(); }).catch(() => { delete RES_LU[b]; });
 }
-let F = {type:'tout', tri:'pop', genre:'', q:'', vus:false, plat:'abos'}, shown = 60;
+let F = {type:'tout', tri:'pop', genre:'', q:'', vus:false, plat:'abos'}, shown = 60, qOuvert = false;
+const nFiltres = () => (F.plat !== 'abos') + (F.type !== 'tout') + !!F.genre + !!F.vus;   // filtres actifs (hors tri), affichés sur le bouton « Filtres »
 const arrivee = x => Object.entries(x.arr || {}).filter(([p, d]) => d && ABOS.has(p)).map(([, d]) => d).sort().pop() || null;   // arrivée la plus récente sur un de tes abonnements
 let YTCH = LS.get('videos:yt-chaine', 'toutes'), ytShown = 40;     // chaîne choisie (« toutes » par défaut) et nombre de vidéos affichées
 let LISTE = new Set(LS.get('videos:liste', [])), VUS = new Set(LS.get('videos:vus', [])), YTVUS = new Set(LS.get('videos:yt-vus', []));
@@ -405,7 +415,7 @@ function render(){
   $('#tabs').innerHTML = TABS.map(t => `<button class="tab" role="tab" type="button" data-tab="${t.id}" aria-selected="${t.id === tab}">${esc(t.nom)}</button>`).join('');
   $('#out').innerHTML = tab === 'youtube' ? ytHTML() : catHTML();
   const d = tab === 'youtube' ? YT : CAT;
-  $('#stamp').textContent = d && d.updated ? `à jour ${ago(Date.parse(d.updated))}` : '';
+  const st = $('#stamp'); if (st) st.textContent = d && d.updated ? `à jour ${ago(Date.parse(d.updated))}` : '';
 }
 
 /* ---------- Bibliothèque d'une plateforme ---------- */
@@ -431,22 +441,22 @@ function catHTML(){
       <li>Paramètres → API → demande une clé (usage personnel), puis copie le « API Read Access Token ».</li>
       <li>Sur GitHub : Settings → Secrets and variables → Actions → New repository secret, nom <b>TMDB_TOKEN</b>, colle le jeton.</li>
       <li>Actions → « Vidéos » → Run workflow.</li></ol>` : `<span>${esc(C.erreur || 'La tâche « Vidéos » n\'a pas encore tourné.')}</span>`}</div>`;
-  const genres = [...new Set(C.titres.flatMap(x => x.genres || []))].sort((a, b) => a.localeCompare(b, 'fr'));
   const l = filtrer(C), nNew = C.titres.filter(x => arrivee(x) && Date.parse(arrivee(x)) >= Date.now() - 30 * 864e5).length;
-  const pchip = (v, t, extra = '') => `<button class="chip" type="button" data-f="plat" data-v="${v}" aria-pressed="${F.plat === v}"${extra}>${t}</button>`;
-  const dispo = PLATEFORMES.filter(p => (C.plateformes || {})[p.id] && C.plateformes[p.id].n);
   const chip = (k, v, t) => `<button class="chip" type="button" data-f="${k}" data-v="${v}" aria-pressed="${F[k] === v}">${t}</button>`;
-  return `<label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="Chercher un film, une série" value="${esc(F.q)}" autocomplete="off" aria-label="Chercher un film ou une série"></label>
-    <div class="chips" role="group" aria-label="Plateformes">${pchip('abos', 'Mes abonnements')}${dispo.map(p => pchip(p.id, `<i class="pl" style="--pc:${p.coul}">${esc(p.court)}</i>${esc(p.nom)}`)).join('')}${pchip('toutes', 'Toutes')}
-      <button class="chip" type="button" data-act="abos" aria-label="Choisir mes abonnements">⚙︎</button></div>
-    <div class="chips" role="group" aria-label="Type">${chip('type', 'tout', 'Tout')}${chip('type', 'film', 'Films')}${chip('type', 'serie', 'Séries')}
-      <select class="chip sel" id="genre" aria-label="Genre"><option value="">Tous genres</option>${genres.map(g => `<option${F.genre === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select></div>
-    <div class="chips" role="group" aria-label="Tri">${chip('tri', 'pop', 'Populaires')}${chip('tri', 'recent', 'Sorties récentes')}${chip('tri', 'note', 'Mieux notés')}${nNew ? chip('tri', 'nouveau', `Nouveaux (${nNew})`) : ''}${chip('tri', 'liste', `Ma liste${LISTE.size ? ` (${LISTE.size})` : ''}`)}</div>
+  const nf = nFiltres(), cherche = qOuvert || F.q;
+  return `${cherche ? `<label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="Chercher un film, une série" value="${esc(F.q)}" autocomplete="off" aria-label="Chercher un film ou une série"></label>` : ''}
+    <div class="chips fbar" role="group" aria-label="Filtres et tri">
+      <button class="chip ic" type="button" data-act="cherche" aria-label="Chercher" aria-pressed="${!!cherche}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
+      <button class="chip ic" type="button" data-act="filtres" aria-pressed="${nf > 0}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filtres${nf ? `<span class="n">${nf}</span>` : ''}</button>
+      <span class="vsep" aria-hidden="true"></span>
+      ${chip('tri', 'pop', 'Populaires')}${chip('tri', 'recent', 'Récents')}${chip('tri', 'note', 'Mieux notés')}${nNew ? chip('tri', 'nouveau', `Nouveaux (${nNew})`) : ''}${chip('tri', 'liste', `Ma liste${LISTE.size ? ` (${LISTE.size})` : ''}`)}</div>
     <div id="res" style="display:flex;flex-direction:column;gap:12px">${catRes(P, l)}</div>
     <p class="credit">Catalogues en France, mis à jour chaque nuit. Données : TMDB (ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB) · disponibilités : JustWatch.</p>`;
 }
 function catRes(P, l = filtrer(CAT)){
-  return `<span class="count">${l.length} titre${l.length > 1 ? 's' : ''}${!F.vus && F.tri !== 'liste' && VUS.size ? ` · <button type="button" class="chip" data-f="vus" data-v="1" style="min-height:28px;padding:3px 10px">afficher les déjà vus</button>` : ''}</span>
+  const resume = [F.plat === 'abos' ? 'mes abonnements' : F.plat === 'toutes' ? 'toutes plateformes' : (PBY[F.plat] || {}).nom, F.type === 'film' ? 'films' : F.type === 'serie' ? 'séries' : '', F.genre.toLowerCase()].filter(Boolean).join(' · ');
+  const st = CAT && CAT.updated ? `à jour ${ago(Date.parse(CAT.updated))}` : '';
+  return `<span class="count"><span><b>${l.length}</b> titre${l.length > 1 ? 's' : ''} · ${esc(resume)}</span>${st ? `<span class="stamp" id="stamp">${st}</span>` : ''}</span>
     ${l.length ? `<div class="grid">${l.slice(0, shown).map(posterHTML).join('')}</div>` : `<div class="msgbox glass">${F.tri === 'liste' ? 'Ta liste est vide : ouvre un titre et touche « Ma liste ».' : 'Aucun titre ne correspond.'}</div>`}
     ${l.length > shown ? `<button class="btn more" type="button" data-act="more">Afficher plus (${l.length - shown} restants)</button>` : ''}`;
 }
@@ -456,9 +466,8 @@ function posterHTML(x){
   return `<button class="tit" type="button" data-titre="${esc(x.k)}" aria-label="${esc(x.titre)}${x.an ? ', ' + x.an : ''}">
     <span class="poster">${x.affiche ? `<img src="${IMG(x.affiche, 'w185')}" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : `<span class="noimg">${esc(x.titre)}</span>`}
       ${neu ? '<span class="bd">Nouveau</span>' : ''}${LISTE.has(x.k) ? '<span class="mk" aria-hidden="true">＋</span>' : VUS.has(x.k) ? '<span class="mk" aria-hidden="true">✓</span>' : ''}
-      ${x.note ? `<span class="nt">★ ${x.note.toLocaleString('fr-FR')}</span>` : ''}
       <span class="pls">${pls.map(p => `<i class="pl${ABOS.has(p.id) ? '' : ' off'}" style="--pc:${p.coul}" title="${esc(p.nom)}">${esc(p.court)}</i>`).join('')}</span></span>
-    <b>${esc(x.titre)}</b><small>${x.t === 'film' ? 'Film' : 'Série'}${x.an ? ' · ' + x.an : ''}</small></button>`;
+    <b>${esc(x.titre)}</b><small>${x.t === 'film' ? 'Film' : 'Série'}${x.an ? ' · ' + x.an : ''}${x.note ? ` · ★ ${x.note.toLocaleString('fr-FR')}` : ''}</small></button>`;
 }
 function ficheSheet(k){
   const x = CAT.titres.find(t => t.k === k); if (!x) return;
@@ -481,6 +490,21 @@ function ficheSheet(k){
     <button class="btn" type="button" data-act="close">Fermer</button>`);
 }
 
+/* Filtres rangés dans une feuille : plateforme, type, genre, déjà vus (le haut de page reste compact) */
+function filtresSheet(){
+  const C = CAT; if (!C || !C.titres.length) return;
+  const genres = [...new Set(C.titres.flatMap(x => x.genres || []))].sort((a, b) => a.localeCompare(b, 'fr'));
+  const dispo = PLATEFORMES.filter(p => (C.plateformes || {})[p.id] && C.plateformes[p.id].n);
+  const chip = (k, v, t) => `<button class="chip" type="button" data-f="${k}" data-v="${v}" aria-pressed="${F[k] === v}">${t}</button>`;
+  const n = filtrer(C).length;
+  openSheet(`<h2 id="sheetTitle">Filtres</h2>
+    <div class="fsec"><h3>Plateformes</h3><div class="chips">${chip('plat', 'abos', 'Mes abonnements')}${dispo.map(p => chip('plat', p.id, `<i class="pl" style="--pc:${p.coul}">${esc(p.court)}</i>${esc(p.nom)}`)).join('')}${chip('plat', 'toutes', 'Toutes')}
+      <button class="chip" type="button" data-act="abos">⚙︎ Choisir…</button></div></div>
+    <div class="fsec"><h3>Type</h3><div class="chips">${chip('type', 'tout', 'Tout')}${chip('type', 'film', 'Films')}${chip('type', 'serie', 'Séries')}</div></div>
+    <div class="fsec"><h3>Genre</h3><select class="chip sel" id="genre" aria-label="Genre" style="align-self:flex-start;min-width:60%"><option value="">Tous genres</option>${genres.map(g => `<option${F.genre === g ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select></div>
+    ${VUS.size ? `<label class="sw-row" style="margin-top:8px"><span>Afficher les déjà vus (${VUS.size})</span><input type="checkbox" class="sw" id="fVus"${F.vus ? ' checked' : ''}></label>` : ''}
+    <div class="row-btns" style="margin-top:14px"><button class="btn main" type="button" data-act="close">Voir ${n} titre${n > 1 ? 's' : ''}</button>${nFiltres() ? '<button class="btn" type="button" data-act="filtres-raz">Effacer</button>' : ''}</div>`);
+}
 function abosSheet(){
   openSheet(`<h2 id="sheetTitle">Mes abonnements</h2><p class="msg">Ils sont mis en avant et forment le filtre « Mes abonnements ».</p>
     ${PLATEFORMES.map(p => `<label class="sw-row"><span><i class="pl" style="--pc:${p.coul}">${esc(p.court)}</i> <b>${esc(p.nom)}</b></span><input type="checkbox" class="sw" data-abo="${p.id}"${ABOS.has(p.id) ? ' checked' : ''}></label>`).join('')}
@@ -541,7 +565,7 @@ document.addEventListener('click', e => {
   if (e.target === $('#sheetBg')){ closeSheet(); return; }
   const t = e.target.closest('[data-tab],[data-f],[data-titre],[data-act],[data-yt]'); if (!t) return;
   if (t.dataset.tab){ tab = t.dataset.tab; LS.set('videos:onglet', tab); shown = 60; render(); window.scrollTo({top:0}); return; }
-  if (t.dataset.f){ const k = t.dataset.f; F[k] = k === 'vus' ? true : t.dataset.v; shown = 60; render(); return; }
+  if (t.dataset.f){ const k = t.dataset.f; F[k] = k === 'vus' ? true : t.dataset.v; shown = 60; render(); if (t.closest('#sheet')) filtresSheet(); return; }
   if (t.dataset.titre){ ficheSheet(t.dataset.titre); return; }
   if (t.dataset.yt){ const v = (YT.chaines || []).flatMap(c => c.videos).find(x => x.id === t.dataset.yt);
     playing = v; YTVUS.add(v.id); saveSets(); render(); if (!document.documentElement.classList.contains('desk')) window.scrollTo({top:0, behavior:'smooth'}); return; }
@@ -551,6 +575,9 @@ document.addEventListener('click', e => {
   else if (a === 'more-yt'){ ytShown += 40; render(); }
   else if (a === 'yt-add') ytAddSheet();
   else if (a === 'abos') abosSheet();
+  else if (a === 'filtres') filtresSheet();
+  else if (a === 'filtres-raz'){ Object.assign(F, {plat:'abos', type:'tout', genre:'', vus:false}); shown = 60; render(); filtresSheet(); }
+  else if (a === 'cherche'){ if (qOuvert || F.q){ qOuvert = false; F.q = ''; } else qOuvert = true; shown = 60; render(); const q = $('#q'); if (q) q.focus(); }
   else if (a === 'abos-ok'){ ABOS = new Set([...document.querySelectorAll('[data-abo]:checked')].map(c => c.dataset.abo)); LS.set('videos:abos', [...ABOS]); closeSheet(); render(); }
   else if (a === 'ouvrir'){                 // l'appli ne sait pas recevoir un titre : on le copie, puis on l'ouvre
     const P = PBY[t.dataset.p], x = CAT.titres.find(y => y.k === t.dataset.k);
@@ -568,7 +595,8 @@ document.addEventListener('click', e => {
 });
 let qt = null;
 document.addEventListener('input', e => { if (e.target.id === 'q'){ clearTimeout(qt); qt = setTimeout(() => { F.q = e.target.value; shown = 60; if ($('#res')) $('#res').innerHTML = catRes(); }, 250); } });
-document.addEventListener('change', e => { if (e.target.id === 'genre'){ F.genre = e.target.value; shown = 60; render(); }
+document.addEventListener('change', e => { if (e.target.id === 'genre'){ F.genre = e.target.value; shown = 60; render(); filtresSheet(); }
+  if (e.target.id === 'fVus'){ F.vus = e.target.checked; shown = 60; render(); filtresSheet(); }
   if (e.target.id === 'ytChaine'){ YTCH = e.target.value; LS.set('videos:yt-chaine', YTCH); ytShown = 40; render(); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheetBg').hidden) closeSheet(); });
 $('#refreshBtn').addEventListener('click', () => load());

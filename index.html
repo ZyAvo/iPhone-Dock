@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="c17bf210">
+<meta name="mon-ecran-version" content="e5e340e5">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -757,7 +757,9 @@ document.addEventListener('click', e => {
 function tick(){
   const d = new Date();
   $('#clock').textContent = d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  $('#day').textContent = d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  const jr = d.toLocaleDateString('fr-FR', {weekday:'short'}).replace('.', '');            // « Ven 30/10 » : tient toujours sur une ligne
+  $('#day').textContent = `${jr[0].toUpperCase()}${jr.slice(1)} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+  $('#day').setAttribute('aria-label', 'Ouvrir Calendrier — ' + d.toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'}));
   if (headline) renderWidget();
 }
 
@@ -1456,7 +1458,8 @@ function renderBand(){
     .sort((a, b) => (L.ids.has(b.id) - L.ids.has(a.id)) || a.t - b.t).slice(0, 2);
   rows.innerHTML = list.length ? list.map(e => {
     const live = L.ids.has(e.id) || now >= e.t, sc = L.scores[e.id];
-    const titre = e.sp === 'racing' ? `${e.ln} · ${e.a}${e.h ? ' · ' + e.h : ''}` : `${e.hc || e.h} – ${e.ac || e.a}`;
+    const ses = String(e.a || '').replace(/^essais libres (\d)$/i, 'EL$1').replace(/^qualifications sprint$/i, 'QS').replace(/^qualifications (\d)$/i, 'Q$1').replace(/^qualifications$/i, 'Q').replace(/^warm-?up$/i, 'WU');
+    const titre = e.sp === 'racing' ? `${e.ln} · ${ses}${e.h ? ' · ' + e.h.replace(/^(Grand Prix|GP) (de |du |d'|des )?/i, '') : ''}` : `${e.hc || e.h} – ${e.ac || e.a}`;
     return `<span class="pr-row"><span class="pr-t${live ? ' live' : ''}">${live ? 'En cours' : quand(e.t)}</span><span class="pr-m">${esc(titre)}</span>${sc ? `<span class="pr-sc">${esc(sc)}</span>` : e.tv ? `<span class="pr-tv">${esc(e.tv)}</span>` : ''}</span>`; }).join('')
     : '<span class="sb-vide">Aucun match de tes favoris dans les 8 jours</span>';
 }

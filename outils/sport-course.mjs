@@ -1,4 +1,4 @@
-// mon-ecran-version: f0ac3670
+// mon-ecran-version: edd60ed7
 // Sports mécaniques pour la page Sport : Formule 1 et MotoGP (catégorie reine).
 // - F1 : base ouverte Jolpica (suite d'Ergast) → calendrier, horaires de chaque séance, résultats, classements.
 // - MotoGP : données publiques du site officiel (api.motogp.pulselive.com) → mêmes informations.
@@ -8,8 +8,8 @@ const JOL = 'https://api.jolpi.ca/ergast/f1';
 const MGP = 'https://api.motogp.pulselive.com/motogp/v1';
 
 export const LABEL = {
-  FP1:'Essais libres 1', FP2:'Essais libres 2', FP3:'Essais libres 3', SQ:'Qualifications sprint', S:'Sprint', Q:'Qualifications', R:'Course',
-  PR:'Essais', Q1:'Qualifications 1', Q2:'Qualifications 2', SPR:'Sprint', WUP:'Warm-up', RAC:'Course'
+  FP1:'EL1', FP2:'EL2', FP3:'EL3', SQ:'QS', S:'Sprint', Q:'Q', R:'Course',          // abrégés (EL1 = essais libres 1, QS = qualifications sprint…)
+  PR:'Essais', Q1:'Q1', Q2:'Q2', SPR:'Sprint', WUP:'WU', RAC:'Course'
 };
 const DUR = {f1:{FP1:60, FP2:60, FP3:60, SQ:45, S:60, Q:60, R:120}, motogp:{FP1:45, FP2:30, PR:60, Q1:15, Q2:15, SPR:45, WUP:10, RAC:60}};
 const RESULTS = {f1:['Q', 'S', 'R'], motogp:['Q2', 'SPR', 'RAC']};          // séances dont on garde le classement

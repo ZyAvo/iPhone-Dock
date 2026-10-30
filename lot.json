@@ -1,6 +1,6 @@
 {
- "lot": "v20",
- "date": "2026-10-29T20:50:44+00:00",
+ "lot": "v21",
+ "date": "2026-10-30T05:23:15+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/cotes.yml": "d2ab441c",
@@ -12,7 +12,7 @@
   "actus.html": "fd33d4e6",
   "cachee.html": "cda39371",
   "etat.html": "84c21c0c",
-  "index.html": "c17bf210",
+  "index.html": "e5e340e5",
   "invest.html": "7f5b2b87",
   "outils/actus-data.mjs": "77082673",
   "outils/cotes-data.mjs": "652c3f97",
@@ -20,15 +20,15 @@
   "outils/marches-data.mjs": "d70dd09f",
   "outils/publier-donnees.sh": "4834693d",
   "outils/reprendre-donnees.sh": "33373c10",
-  "outils/sport-course.mjs": "f0ac3670",
+  "outils/sport-course.mjs": "edd60ed7",
   "outils/sport-data.mjs": "03fefd81",
   "outils/tv-tri.mjs": "46c15f05",
   "outils/videos-data.mjs": "b4fa660a",
   "outils/yahoo.py": "103be76d",
-  "sport.html": "8db5c77c",
+  "sport.html": "b967fadd",
   "sw.js": "67a7ad44",
   "synchro.js": "efb67e18",
-  "videos.html": "5df972a6"
+  "videos.html": "b888a647"
  },
  "supprimer": [
   "tv.json",
