@@ -1,20 +1,20 @@
 {
- "date": "2026-10-30T06:50:44+00:00",
- "source": "configuration-v2.xlsx",
+ "date": "2026-10-30T07:12:13+00:00",
+ "source": "configuration.xlsx",
  "modules": {
   "sport": {
    "onglet": "Sport",
-   "coches": 40,
+   "coches": 41,
    "ajouts": 0
   },
   "equipes": {
    "onglet": "Équipes favorites",
-   "coches": 11,
+   "coches": 12,
    "ajouts": 0
   },
   "actus": {
    "onglet": "Actus",
-   "coches": 32,
+   "coches": 33,
    "ajouts": 0
   },
   "actus-en": {
@@ -63,13 +63,28 @@
    "ajouts": 0
   }
  },
- "tests": [],
+ "tests": [
+  {
+   "onglet": "Actus",
+   "ligne": 117,
+   "nom": "Ciel & Espace",
+   "statut": "ok",
+   "message": "20 articles dans le flux"
+  },
+  {
+   "onglet": "Sport",
+   "ligne": 88,
+   "nom": "IndyCar",
+   "statut": "info",
+   "message": "données disponibles, affichage à développer dans l'appli"
+  }
+ ],
  "erreurs": [],
  "resume": {
-  "ok": 0,
+  "ok": 1,
   "warn": 0,
   "ko": 0,
-  "info": 0
+  "info": 1
  },
- "teste": false
+ "teste": true
 }

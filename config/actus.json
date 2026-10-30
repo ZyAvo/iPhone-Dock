@@ -197,6 +197,21 @@
      "url": "https://france3-regions.franceinfo.fr/occitanie/rss"
     }
    ]
+  },
+  {
+   "id": "espace",
+   "label": "Astronomie et espace",
+   "feeds": [
+    {
+     "name": "Ciel & Espace",
+     "color": "#0b1e3f",
+     "url": "https://www.cieletespace.fr/rss",
+     "site": "https://www.cieletespace.fr/",
+     "alt": [
+      "https://news.google.com/rss/search?q=site:cieletespace.fr&hl=fr&gl=FR&ceid=FR:fr"
+     ]
+    }
+   ]
   }
  ],
  "autres": [
