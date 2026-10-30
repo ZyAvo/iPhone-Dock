@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="109f0971">
+<meta name="mon-ecran-version" content="968c5985">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -379,6 +379,7 @@ html.desk .kbd-help{display:block;font-size:.72rem;color:var(--ink-faint);text-a
 .bx-src{align-self:center;padding:6px}
 .src{color:var(--accent);font-weight:600}
 .top-actions{display:flex;gap:8px}
+@media (max-width:380px){ .top-actions{gap:5px} .top-actions .icon-btn{width:36px;height:36px} }
 .cs-back{padding:0 4px 0 0}
 .bx-comp{flex:1}
 .comp-head h2 button{font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;display:flex;align-items:center;gap:8px;min-width:0}
@@ -719,6 +720,7 @@ details.rk li em{grid-row:1;grid-column:3;font-style:normal;color:var(--ink-soft
       <span class="top-actions"><button class="icon-btn glass health" id="healthBtn" type="button" aria-label="État des données"><svg viewBox="0 0 24 24" id="healthIc"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2M12 7.8v.2"/></svg><b id="healthN" hidden></b></button>
       <button class="icon-btn glass" id="tablesBtn" type="button" aria-label="Classements"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5h18M4.5 20.5v-6h5v6M9.5 20.5V9h5v11.5M14.5 20.5v-8h5v8"/><path d="M12 3.2l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2-1.45-1.4 2-.3z"/></svg></button>
       <button class="icon-btn glass" id="calsBtn" type="button" aria-label="Calendriers"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 14h2M11 14h2M14.5 14h2M7.5 17.2h2M11 17.2h2"/></svg></button>
+      <a class="icon-btn glass" id="ecartsBtn" href="ecarts.html" aria-label="Écarts de cotes" title="Écarts de cotes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 20.5h17"/><path d="M5 16.5l4.5-5 3.5 3 6-7.5"/><path d="M15 7h4v4"/></svg></a>
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span>
     </div>
     <div class="title-row"><h1>Sport</h1><span class="live-count" id="liveCount" hidden><span class="pulse"></span><span id="liveN"></span></span>
@@ -847,7 +849,7 @@ const LEAGUES = CFG('sport.leagues', [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ]);
-const VERSION = '2026-10-30.3';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-30.4';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 

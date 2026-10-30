@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="874a3985">
+<meta name="mon-ecran-version" content="844850d2">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -209,11 +209,12 @@ html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);tra
 .sb-sub{font-size:.8rem;font-weight:700;font-style:italic;color:var(--accent)}
 .sb-etat{font-size:.72rem;color:var(--ink-soft)}
 .sb-etat.on{color:var(--ink);font-weight:600}
-.sb-rows{display:flex;flex-direction:column;gap:4px}
-.sb-vide{font-size:.82rem;color:var(--ink-soft)}
-.pr-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:baseline;font-size:.86rem}
-.pr-t{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;color:var(--accent);min-width:5.6em}
-.pr-t.live{color:#d6343c}
+.sb-rows{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;column-gap:8px;row-gap:4px;align-items:baseline;font-size:.86rem}   /* colonnes communes : jour, heure, match, chaîne */
+.sb-vide{font-size:.82rem;color:var(--ink-soft);grid-column:1 / -1}
+.pr-row{display:contents}
+.pr-t{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;color:var(--accent)}
+.pr-t.live{color:#d6343c;grid-column:span 2}
+.pr-h{text-align:right}
 .pr-m{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pr-tv{font-size:.72rem;color:var(--ink-soft);white-space:nowrap}
 .pr-sc{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
@@ -1601,7 +1602,7 @@ let PROCH = null, LIVE_NOW = {ids:new Set(), n:0, nFav:0, scores:{}, auto:true};
 const quand = t => { const d = new Date(t), j = Math.round((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 864e5);
   const h = d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
   const jour = j === 0 ? 'Auj.' : j === 1 ? 'Dem.' : (w => w[0].toUpperCase() + w.slice(1))(d.toLocaleDateString('fr-FR', {weekday:'short'}).replace('.', '')) + '.';
-  return jour + ' ' + h; };
+  return [jour, h]; };      // deux colonnes : jour puis heure, alignées d'une ligne à l'autre
 function renderBand(){
   const rows = $('#sbRows'), etat = $('#sbEtat'); if (!rows) return;
   const L = LIVE_NOW;
@@ -1615,7 +1616,8 @@ function renderBand(){
     const live = L.ids.has(e.id) || now >= e.t, sc = L.scores[e.id];
     const ses = String(e.a || '').replace(/^essais libres (\d)$/i, 'EL$1').replace(/^qualifications sprint$/i, 'QS').replace(/^qualifications (\d)$/i, 'Q$1').replace(/^qualifications$/i, 'Q').replace(/^warm-?up$/i, 'WU');
     const titre = e.sp === 'racing' ? `${e.ln} · ${ses}${e.h ? ' · ' + e.h.replace(/^(Grand Prix|GP) (de |du |d'|des )?/i, '') : ''}` : `${e.hc || e.h} – ${e.ac || e.a}`;
-    return `<span class="pr-row"><span class="pr-t${live ? ' live' : ''}">${live ? 'En cours' : quand(e.t)}</span><span class="pr-m">${esc(titre)}</span>${sc ? `<span class="pr-sc">${esc(sc)}</span>` : e.tv ? `<span class="pr-tv">${esc(e.tv)}</span>` : ''}</span>`; }).join('')
+    const [jr, hr] = quand(e.t);
+    return `<span class="pr-row">${live ? '<span class="pr-t live">En cours</span>' : `<span class="pr-t">${jr}</span><span class="pr-t pr-h">${hr}</span>`}<span class="pr-m">${esc(titre)}</span>${sc ? `<span class="pr-sc">${esc(sc)}</span>` : e.tv ? `<span class="pr-tv">${esc(e.tv)}</span>` : '<span></span>'}</span>`; }).join('')
     : '<span class="sb-vide">Aucun match de tes favoris dans les 8 jours</span>';
 }
 const renderProchains = renderBand;

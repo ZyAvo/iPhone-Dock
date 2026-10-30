@@ -1,6 +1,6 @@
 {
- "lot": "v29",
- "date": "2026-10-30T08:07:01+00:00",
+ "lot": "v31",
+ "date": "2026-10-30T08:20:55+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/configuration.yml": "8a219c5b",
@@ -14,7 +14,7 @@
   "cachee.html": "a90d0f52",
   "ecarts.html": "bdba5256",
   "etat.html": "82dea22a",
-  "index.html": "874a3985",
+  "index.html": "844850d2",
   "invest.html": "5426468b",
   "outils/actus-data.mjs": "8cec52a9",
   "outils/config-lire.mjs": "0bd1f840",
@@ -29,7 +29,7 @@
   "outils/tv-tri.mjs": "5f175f99",
   "outils/videos-data.mjs": "81465ebe",
   "outils/yahoo.py": "103be76d",
-  "sport.html": "109f0971",
+  "sport.html": "968c5985",
   "sw.js": "15ec7b46",
   "synchro.js": "48bd38f7",
   "videos.html": "fd240326"
