@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="27e3ae08">
+<meta name="mon-ecran-version" content="e092be64">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Actus</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,9 @@ body{margin:0;font-size:14px}
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
-<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
+<script src="config/config.js"></script>
+<script>/* réglages du classeur (config/config.js) : CFG('sport.leagues', valeur par défaut) ; {re, flags} redevient une expression régulière */window.CFG=function(c,d){try{var v=c.split('.').reduce(function(o,k){return o==null?o:o[k]},window.MON_ECRAN_CONFIG);if(v==null)return d;return(function r(x){if(Array.isArray(x))return x.map(r);if(x&&typeof x==='object'){var k=Object.keys(x);if(k.length===2&&'re' in x&&'flags' in x)return new RegExp(x.re,x.flags);var o={};k.forEach(function(n){o[n]=r(x[n])});return o}return x})(v)}catch(e){return d}};</script>
+<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette')||CFG('apparence.palette',''),m=localStorage.getItem('mode')||CFG('apparence.mode','');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
 <style>
@@ -481,7 +483,7 @@ html.desk .kbd-help{display:block;font-size:.72rem;color:var(--ink-soft);text-al
    (facultatif) site:'page du site' et hint:'mot' → sinon, la tâche cherche le bon flux sur cette page
    (la tâche GitHub « Actus » relit cette liste : rien d'autre à modifier)
    ====================================================== */
-const TABS_FR = [
+const TABS_FR = CFG('actus.fr', [
   { id:'une', label:'À la une', feeds:[
     {name:'France Info', color:'#f2b705', url:'https://www.francetvinfo.fr/titres.rss'},
     {name:'Le Monde',    color:'#2b2b2b',  url:'https://www.lemonde.fr/rss/une.xml'},
@@ -523,10 +525,10 @@ const TABS_FR = [
     {name:'La Dépêche Tarn',  color:'#d4021d', url:'https://www.ladepeche.fr/tarn/rss.xml', site:'https://www.ladepeche.fr/tarn/', hint:'tarn', alt:['https://news.google.com/rss/search?q=site:ladepeche.fr+Tarn&hl=fr&gl=FR&ceid=FR:fr']},
     {name:'France 3 Occitanie', color:'#1f5ba8', url:'https://france3-regions.franceinfo.fr/occitanie/rss'}
   ]}
-];
+]);
 /* Mode « International » (bulle 🇺🇸) : mêmes onglets, médias anglophones. Tarn n'existe qu'en français. */
 /* Onglets préparés pour d'autres pages (pas affichés ici) : « Marchés » sert à la page Investissements */
-const TABS_AUTRES = [
+const TABS_AUTRES = CFG('actus.autres', [
   { id:'marches', label:'Marchés', feeds:[
     {name:'Les Échos Marchés', color:'#8a1538', url:'https://syndication.lesechos.fr/rss/rss_finance-marches.xml', site:'https://www.lesechos.fr/finance-marches', alt:['https://news.google.com/rss/search?q=site:lesechos.fr/finance-marches&hl=fr&gl=FR&ceid=FR:fr']},
     {name:'Investir',          color:'#0f4c81', url:'https://investir.lesechos.fr/rss', site:'https://investir.lesechos.fr/', alt:['https://news.google.com/rss/search?q=site:investir.lesechos.fr&hl=fr&gl=FR&ceid=FR:fr']},
@@ -534,8 +536,8 @@ const TABS_AUTRES = [
     {name:'Zonebourse',        color:'#1f6f43', url:'https://www.zonebourse.com/rss/', site:'https://www.zonebourse.com/', alt:['https://news.google.com/rss/search?q=site:zonebourse.com&hl=fr&gl=FR&ceid=FR:fr']},
     {name:'AMF',               color:'#1d3c78', url:'https://www.amf-france.org/fr/flux-rss/display/22', site:'https://www.amf-france.org/fr/actualites-publications', alt:['https://news.google.com/rss/search?q=site:amf-france.org&hl=fr&gl=FR&ceid=FR:fr']}
   ]}
-];
-const TABS_EN = [
+]);
+const TABS_EN = CFG('actus.en', [
   { id:'une', label:'À la une', feeds:[
     {name:'BBC News',      color:'#bb1919', url:'https://feeds.bbci.co.uk/news/rss.xml'},
     {name:'Sky News',      color:'#c4122f', url:'https://feeds.skynews.com/feeds/rss/home.xml'},
@@ -573,7 +575,7 @@ const TABS_EN = [
     {name:'Ars Technica',  color:'#ff4e00', url:'https://feeds.arstechnica.com/arstechnica/index'},
     {name:'BBC News',      color:'#bb1919', url:'https://feeds.bbci.co.uk/news/technology/rss.xml'}
   ]}
-];
+]);
 const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';   // secours si les actus préparées manquent
 const PRE_URL = 'donnees/actus/actus.json';
 const PRE_MAX = 3 * 3600e3;    // au-delà, les actus préparées sont jugées trop vieilles

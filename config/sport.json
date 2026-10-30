@@ -70,7 +70,10 @@
    "tsdb": {
     "c": "France",
     "s": "Soccer",
-    "re": {}
+    "re": {
+     "re": "ligue 2",
+     "flags": "i"
+    }
    }
   },
   {
@@ -379,7 +382,10 @@
    "tsdb": {
     "c": "France",
     "s": "Rugby",
-    "re": {}
+    "re": {
+     "re": "top ?14",
+     "flags": "i"
+    }
    },
    "badges": true
   },

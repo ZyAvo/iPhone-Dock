@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="e305b8ea">
+<meta name="mon-ecran-version" content="5426468b">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Investissements</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,9 @@ body{margin:0;font-size:14px}
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
-<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
+<script src="config/config.js"></script>
+<script>/* réglages du classeur (config/config.js) : CFG('sport.leagues', valeur par défaut) ; {re, flags} redevient une expression régulière */window.CFG=function(c,d){try{var v=c.split('.').reduce(function(o,k){return o==null?o:o[k]},window.MON_ECRAN_CONFIG);if(v==null)return d;return(function r(x){if(Array.isArray(x))return x.map(r);if(x&&typeof x==='object'){var k=Object.keys(x);if(k.length===2&&'re' in x&&'flags' in x)return new RegExp(x.re,x.flags);var o={};k.forEach(function(n){o[n]=r(x[n])});return o}return x})(v)}catch(e){return d}};</script>
+<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette')||CFG('apparence.palette',''),m=localStorage.getItem('mode')||CFG('apparence.mode','');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
 <style>
@@ -551,7 +553,7 @@ html.desk .sheet{border-radius:28px;max-height:84vh}
    INDICES : le tableau « Marchés » (accueil:true → affiché aussi dans le widget de l'accueil).
    SUIVI   : tes placements à suivre, par code ISIN (ou symbole Yahoo dans « code » si l'ISIN n'est pas trouvé).
              Uniquement les codes : tes quantités et montants restent sur ton iPhone. */
-const INDICES = [
+const INDICES = CFG('marches.indices', [
   {id:'cac40',       code:'^FCHI',     nom:'CAC 40', accueil:true},
   {id:'eurostoxx50', code:'^STOXX50E', nom:'Euro Stoxx 50'},
   {id:'sp500',       code:'^GSPC',     nom:'S&P 500', accueil:true},
@@ -561,13 +563,13 @@ const INDICES = [
   {id:'or',          code:'GC=F',      nom:'Or', note:'en dollars'},
   {id:'brent',       code:'BZ=F',      nom:'Pétrole Brent', note:'en dollars'},
   {id:'eurusd',      code:'EURUSD=X',  nom:'EUR / USD', accueil:true, change:true}
-];
-const SUIVI = [
+]);
+const SUIVI = CFG('marches.suivi', [
   {isin:'IE00B4L5Y983', code:'EUNL.DE', nom:'iShares Core MSCI World (Acc)'},        // cours Xetra en euros
   {isin:'LU1681045370', code:'AEEM.PA', nom:'Amundi MSCI Emerging Markets (Acc)'},   // Euronext Paris
   {isin:'LU1681048804', code:'500.PA',  nom:'Amundi S&P 500 (Acc)'},                 // Euronext Paris
   // pour en ajouter : {isin:'…'}  (ajoute code:'SYMBOLE' si l'ISIN n'est pas reconnu)
-];
+]);
 /* Repères mis à jour à la main */
 const LIVRET_A = {taux:1.7, depuis:'2026-08-01'};
 const AGENDA = [

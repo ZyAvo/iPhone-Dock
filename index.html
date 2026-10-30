@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="536c50ef">
+<meta name="mon-ecran-version" content="a9a494e8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,7 +17,9 @@ body{margin:0;font-size:14px}
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
-<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
+<script src="config/config.js"></script>
+<script>/* réglages du classeur (config/config.js) : CFG('sport.leagues', valeur par défaut) ; {re, flags} redevient une expression régulière */window.CFG=function(c,d){try{var v=c.split('.').reduce(function(o,k){return o==null?o:o[k]},window.MON_ECRAN_CONFIG);if(v==null)return d;return(function r(x){if(Array.isArray(x))return x.map(r);if(x&&typeof x==='object'){var k=Object.keys(x);if(k.length===2&&'re' in x&&'flags' in x)return new RegExp(x.re,x.flags);var o={};k.forEach(function(n){o[n]=r(x[n])});return o}return x})(v)}catch(e){return d}};</script>
+<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette')||CFG('apparence.palette',''),m=localStorage.getItem('mode')||CFG('apparence.mode','');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
 <style>
@@ -728,7 +730,7 @@ const ICONS = {
   sport:'<circle cx="12" cy="12" r="8.5"/><path d="m12 7.6 4.2 3-1.6 4.9H9.4l-1.6-4.9z"/><path d="M12 3.5v4.1M16.2 10.6l3.9-1.3M14.6 15.5l2.4 3.4M9.4 15.5 7 18.9M7.8 10.6 3.9 9.3"/>'
 };
 
-const FOLDERS = {
+const FOLDERS = CFG('applis.dossiers', {
   finance:{ title:'Finance', items:[
     {label:'Trade Republic', mono:'TR', color:'--t-char',  store:'Trade Republic', app:'traderepublic://',  web:'https://app.traderepublic.com'},   // à tester
     {label:'BoursoBank',     mono:'Bo', color:'--t-rose',  store:'BoursoBank', app:sc('BoursoBank')},
@@ -761,41 +763,41 @@ const FOLDERS = {
     {label:'Authenticator',     mono:'Au', color:'--t-olive', store:'Microsoft Authenticator', app:'msauth://'},                                                 // à tester
     {label:'LinkedIn',          mono:'in', color:'--t-slate', store:'LinkedIn', app:'linkedin://', web:'https://www.linkedin.com'}
   ]}
-};
+});
 
 /* Accueil : les applis marquées star:true se placent juste après leur dossier */
-const HOME = [
+const HOME = CFG('applis.accueil', [
   {label:'Finance',         type:'folder', target:'finance'},
   {label:'Travail',         type:'folder', target:'travail'},
   {label:'Médias',          type:'folder', target:'medias'},
   {label:'Jeux',            type:'folder', target:'jeux'},
   {label:'Vidéos',          type:'page', url:'videos.html', icon:'play', color:'--t-brick'},   // Prime Video, Netflix… + YouTube
   {label:'Sports',          type:'page', url:'sport.html', live:true, color:'--t-plum'},   // tuile « LIVE Sports » : sur ordinateur seulement (sur iPhone, le bandeau Sports la remplace)
-];
+]);
 
 /* Bandeau du bas (gauche / droite) : petites icônes en verre, toutes dans le même style
    alt : nom d'un raccourci de l'appli Raccourcis, essayé si l'appli ne s'ouvre pas */
-const QUICK_LEFT = [
+const QUICK_LEFT = CFG('applis.bas_gauche', [
   {label:'Claude',    icon:'spark',  app:'claude://', alt:'Claude', web:'https://claude.ai'},   // si l'appli ne s'ouvre pas : raccourci « Claude »
   {label:'WhatsApp',  icon:'round',  app:'whatsapp://', web:'https://web.whatsapp.com'},
   {label:'Messenger', icon:'duo',    app:'fb-messenger://', web:'https://www.messenger.com'},
   {label:'X',         icon:'xmark',  app:'twitter://', web:'https://x.com'}
-];
-const QUICK_RIGHT = [
+]);
+const QUICK_RIGHT = CFG('applis.bas_droite', [
   {label:'Proton VPN', icon:'network', app:'protonvpn://', alt:'Proton VPN'},
   {label:'Bitwarden',  icon:'shield',  app:'bitwarden://', alt:'Bitwarden', web:'https://vault.bitwarden.eu'},
   {label:'Cartes',     icon:'card',    app:'shoebox://'},                     // Cartes (Wallet) : cartes bancaires, billets…
   {label:'Navigation', icon:'nav',     action:'nav'}                          // choix : Waze (par défaut), Plans, Google Maps
-];
+]);
 /* Applis proposées par le bouton Navigation (la première est mise en avant) */
-const NAV_APPS = [
+const NAV_APPS = CFG('applis.navigation', [
   {label:'Waze',        store:'Waze',        app:'waze://',        web:'https://www.waze.com/live-map'},
   {label:'Plans',       storeId:'915056765', app:'maps://',        web:'https://maps.apple.com'},
   {label:'Google Maps', store:'Google Maps', app:'comgooglemaps://', web:'https://maps.google.com'}
-];
+]);
 
 /* Widget « À la une » : reprend le titre chargé par la page Actus, sinon interroge ce flux */
-const WIDGET_FEED = {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/titres.rss'};
+const WIDGET_FEED = CFG('accueil.une', {name:'France Info', color:'--t-slate', url:'https://www.francetvinfo.fr/titres.rss'});
 const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
 
 /* ====================================================== */
@@ -997,13 +999,13 @@ async function loadWidget(){
 }
 
 /* ---------- Lieu et météo (Open-Meteo, sans clé) ---------- */
-const FAV_DEFAULT = [
+const FAV_DEFAULT = CFG('accueil.meteo', [
   {name:'Réalmont', region:'Tarn', lat:43.7767, lon:2.1897},
   {name:'Mazamet',  region:'Tarn', lat:43.4920, lon:2.3736},
   {name:'Castres',  region:'Tarn', lat:43.6060, lon:2.2400},
   {name:'Albi',     region:'Tarn', lat:43.9289, lon:2.1464},
   {name:'Toulouse', region:'Haute-Garonne', lat:43.6045, lon:1.4440}
-];
+]);
 const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } },
             set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }};
 let favs = LS.get('lieu:favoris', FAV_DEFAULT);
@@ -1344,7 +1346,8 @@ async function loadEtat(){
 loadEtat(); setInterval(() => { if (!document.hidden) loadEtat(); }, 15 * 60e3);
 
 /* ---------- Widget Investissements : lignes saisies sur la page Investissements (sur cet iPhone), cours préparés par la tâche « Marchés » ---------- */
-const INV_IDX = [['^FCHI', 'CAC 40'], ['^GSPC', 'S&P 500'], ['EUNL.DE', 'MSCI World'], ['EURUSD=X', 'EUR/USD']];
+const INV_IDX = (l => l ? l.map(c => [c, ((CFG('marches.indices', []).find(i => i.code === c) || {}).nom || c).replace(' / ', '/')])   // classeur : « Widget accueil » de l'onglet Marchés
+  : [['^FCHI', 'CAC 40'], ['^GSPC', 'S&P 500'], ['EUNL.DE', 'MSCI World'], ['EURUSD=X', 'EUR/USD']])(CFG('accueil.indices_widget', null));
 let invM = null, invAt = 0, invShow = false, invShowT = null;
 const invNum = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); return isFinite(n) ? n : null; };
 const invPct = (x, d = 2) => x == null || !isFinite(x) ? '—' : (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x * 100).toLocaleString('fr-FR', {minimumFractionDigits:d, maximumFractionDigits:d}) + ' %';
@@ -1561,7 +1564,7 @@ deskMQ.addEventListener && deskMQ.addEventListener('change', () => { if (DESK())
 setInterval(() => { if (DESK() && !document.hidden && autoOn('actus') && Date.now() - deskNewsAt > 15 * 60e3) loadDeskNews(); }, 60e3);
 
 /* ---------- Témoin LIVE Sports (matchs du jour préparés + vérification ESPN des matchs censés être en cours) ---------- */
-const SPORT_FAV = {equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']};
+const SPORT_FAV = CFG('sport.favoris', {equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']});
 const favWords = t => String(t || '').toLowerCase().replace(/[ßæœøłđðþıħ]/g, c => ({'ß':'ss', 'æ':'ae', 'œ':'oe', 'ø':'o', 'ł':'l', 'đ':'d', 'ð':'d', 'þ':'th', 'ı':'i', 'ħ':'h'})[c]).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ')
   .map(w => ({toulousain:'toulouse', rochelais:'rochelle', paloise:'pau', bayonnais:'bayonne'})[w] || w).filter(w => w.length >= 3 && !['stade', 'olympique', 'club', 'the', 'les'].includes(w));
 function favOf(){ try{ return JSON.parse(localStorage.getItem('sport:favoris')) || SPORT_FAV; }catch{ return SPORT_FAV; } }

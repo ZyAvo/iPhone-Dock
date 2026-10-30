@@ -1,4 +1,4 @@
-// mon-ecran-version: 652c3f97
+// mon-ecran-version: 1923f8c1
 // Cotes des matchs (lancé toutes les 10 min par la tâche GitHub « Cotes », avec le secret ODDS_API_KEY de The Odds API).
 // Plan (option 1) pour les 5 grands championnats et les 3 coupes d'Europe, cote 1 / N / 2 des sites français :
 //   - un relevé le matin (à partir de 8 h) pour chaque compétition qui joue ce jour-là ;
@@ -9,15 +9,16 @@
 // (les derniers crédits restent pour l'actualisation à la main depuis la page Sport).
 // Écrit donnees/cotes/cotes.json et indique au workflow s'il faut publier (CHANGE=1).
 import fs from 'node:fs';
+import {CFG} from './config-lire.mjs';
 
 const KEY = (process.env.ODDS_API_KEY || '').trim();
 const OUT = process.env.COTES_OUT || 'donnees/cotes';
 const NOW = Date.now(), MIN = 60e3, DAY = 864e5;
 const API = process.env.COTES_API || 'https://api.the-odds-api.com/v4';
-const BOOKS = ['winamax_fr', 'betclic_fr', 'unibet_fr', 'pmu_fr', 'netbet_fr'];     // sites français (moins de 10 : 1 crédit par demande)
+const BOOKS = CFG('cotes.sites', ['winamax_fr', 'betclic_fr', 'unibet_fr', 'pmu_fr', 'netbet_fr']);     // sites français (moins de 10 : 1 crédit par demande)
 const SEUIL_MT = 120, SEUIL_AUTO = 40;
 /* compétition ESPN → clé The Odds API (vérifiée avec la liste gratuite /sports ; à défaut, recherche par nom) */
-const COMPS = {
+const COMPS = CFG('cotes.comps', null) || {
   'fra.1':{cle:'soccer_france_ligue_one', re:/ligue 1/i},
   'eng.1':{cle:'soccer_epl', re:/^epl$|premier league/i},
   'esp.1':{cle:'soccer_spain_la_liga', re:/la ?liga/i},
@@ -93,7 +94,7 @@ const proche = (a, b) => { const A = mots(a), B = mots(b); return A.some(w => B.
     if (!st.cles._at || NOW - st.cles._at > DAY){
       const sports = await api('/sports');
       for (const [lg, c] of Object.entries(COMPS)){
-        const hit = sports.find(s => s.key === c.cle) || sports.find(s => s.group === 'Soccer' && c.re.test(s.title) && !/winner|qualif/i.test(s.title + ' ' + s.description));
+        const hit = sports.find(s => s.key === c.cle) || sports.find(s => s.group === 'Soccer' && c.re instanceof RegExp && c.re.test(s.title) && !/winner|qualif/i.test(s.title + ' ' + s.description));
         st.cles[lg] = hit ? hit.key : null;
       }
       st.cles._at = NOW;
@@ -123,6 +124,7 @@ const proche = (a, b) => { const A = mots(a), B = mots(b); return A.some(w => B.
         }
         if (!Object.keys(sites).length) continue;
         const rec = st.matchs[m.id] = st.matchs[m.id] || {t:m.t, lg, releves:[]};
+        rec.eq = [m.home.name, m.away.name];          // noms des équipes, pour la page « Écarts de cotes »
         rec.t = m.t; rec.dernier = {at:NOW, sites};
         for (const d of garder.filter(d => d.ids.includes(m.id))) rec.releves = [...rec.releves.filter(x => x.phase !== d.phase), {phase:d.phase, at:NOW, sites}];
         n++;

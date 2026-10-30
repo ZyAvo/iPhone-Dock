@@ -1,4 +1,4 @@
-// mon-ecran-version: b4fa660a
+// mon-ecran-version: 81465ebe
 // Prépare la page Vidéos (lancé par la tâche GitHub « Vidéos »).
 // Lit dans videos.html les plateformes (PLATEFORMES) et les chaînes YouTube (CHAINES_YT), puis écrit :
 //   donnees/videos/catalogue.json + resumes.json → titres disponibles en France sur les plateformes (données TMDB / JustWatch)
@@ -7,6 +7,7 @@
 // Le catalogue n'est relu qu'une fois par jour ; YouTube à chaque passage.
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {CFG, listePage} from './config-lire.mjs';
 
 const PAGE = process.env.VIDEOS_PAGE || 'videos.html';
 const OUT = process.env.VIDEOS_OUT || 'donnees/videos';
@@ -15,11 +16,8 @@ const TOKEN = (process.env.TMDB_TOKEN || '').trim();
 const PAGES = +(process.env.TMDB_PAGES || 8);                // 20 titres par page, films et séries, par plateforme
 
 const page = fs.readFileSync(PAGE, 'utf8');
-function list(name){
-  const a = page.indexOf(`const ${name} = [`), b = page.indexOf('\n];', a);
-  return a < 0 || b < 0 ? [] : vm.runInNewContext(page.slice(a + `const ${name} = `.length, b + 2));
-}
-const PLATEFORMES = list('PLATEFORMES'), CHAINES = list('CHAINES_YT');
+const list = name => listePage(page, name) || [];
+const PLATEFORMES = CFG('videos.plateformes', list('PLATEFORMES')), CHAINES = CFG('videos.chaines_yt', list('CHAINES_YT'));   // classeur, sinon videos.html
 const read = f => { try{ return JSON.parse(fs.readFileSync(f, 'utf8')); }catch{ return null; } };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 fs.mkdirSync(OUT, {recursive:true});

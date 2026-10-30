@@ -1,6 +1,6 @@
 {
- "date": "2026-10-30T06:26:21+00:00",
- "source": "configuration.xlsx",
+ "date": "2026-10-30T06:50:44+00:00",
+ "source": "configuration-v2.xlsx",
  "modules": {
   "sport": {
    "onglet": "Sport",
@@ -44,12 +44,17 @@
   },
   "cotes": {
    "onglet": "Cotes",
-   "coches": 13,
+   "coches": 15,
    "ajouts": 0
   },
   "accueil": {
    "onglet": "Accueil",
    "coches": 18,
+   "ajouts": 0
+  },
+  "applis": {
+   "onglet": "Applis",
+   "coches": 41,
    "ajouts": 0
   },
   "apparence": {
@@ -66,5 +71,5 @@
   "ko": 0,
   "info": 0
  },
- "teste": true
+ "teste": false
 }

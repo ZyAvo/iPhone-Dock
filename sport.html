@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="07319e9b">
+<meta name="mon-ecran-version" content="45ff4823">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,9 @@ body{margin:0;font-size:14px}
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
-<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
+<script src="config/config.js"></script>
+<script>/* réglages du classeur (config/config.js) : CFG('sport.leagues', valeur par défaut) ; {re, flags} redevient une expression régulière */window.CFG=function(c,d){try{var v=c.split('.').reduce(function(o,k){return o==null?o:o[k]},window.MON_ECRAN_CONFIG);if(v==null)return d;return(function r(x){if(Array.isArray(x))return x.map(r);if(x&&typeof x==='object'){var k=Object.keys(x);if(k.length===2&&'re' in x&&'flags' in x)return new RegExp(x.re,x.flags);var o={};k.forEach(function(n){o[n]=r(x[n])});return o}return x})(v)}catch(e){return d}};</script>
+<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette')||CFG('apparence.palette',''),m=localStorage.getItem('mode')||CFG('apparence.mode','');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
 <style>
@@ -248,6 +250,8 @@ section.comp{display:flex;flex-direction:column;gap:8px}
 .ct-h{display:flex;align-items:center;gap:8px}
 .ct-h b{font-size:.82rem;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft)}
 .ct-sous{font-size:.7rem;color:var(--ink-faint)}
+.ct-ecarts{margin-left:auto;font-size:.74rem;font-weight:600;color:var(--accent);padding:6px 2px}
+.ct-ecarts + .ct-maj{margin-left:0}
 .ct-maj{margin-left:auto;width:30px;height:30px;border-radius:50%;color:var(--accent);font-size:1rem;display:grid;place-items:center}
 .ct-maj:disabled{opacity:.35}
 .ct-maj.spin{animation:spin .8s linear infinite}
@@ -777,7 +781,7 @@ const SPORT_ICONS = {
   nfl:'<path d="M3.2 12c2.2-4.6 5.4-6.6 8.8-6.6s6.6 2 8.8 6.6c-2.2 4.6-5.4 6.6-8.8 6.6S5.4 16.6 3.2 12z"/><path d="M8.6 12h6.8M10 10.6v2.8M12 10.6v2.8M14 10.6v2.8"/>',
   hockey:'<path d="M14.5 3.5 9 16.5c-.4.9-1.2 1.5-2.2 1.5H3.5"/><path d="M3.5 18v2h4.2"/><ellipse cx="17" cy="18.5" rx="3.5" ry="1.6"/><path d="M13.5 18.5v.8c0 .9 1.6 1.6 3.5 1.6s3.5-.7 3.5-1.6v-.8"/>'
 };
-const REGIONS = [
+const REGIONS = CFG('sport.regions', [
   {id:'fr',    label:'France'},
   {id:'ec',    label:'Compétitions européennes'},
   {id:'intl',  label:'Football international'},
@@ -788,8 +792,8 @@ const REGIONS = [
   {id:'rintl', label:'Rugby · International'},
   {id:'us',    label:'Sports US'},
   {id:'moto',  label:'Sports mécaniques'}
-];
-const LEAGUES = [
+]);
+const LEAGUES = CFG('sport.leagues', [
   {id:'fra.1',               region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Ligue 1',             tv:['Ligue 1+'], rounds:true, of:'fr.1'},
   {id:'fra.2',               region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Ligue 2',             tv:['beIN Sports'], rounds:true, of:'fr.2', tsdb:{c:'France', s:'Soccer', re:/ligue 2/i}},
   {id:'fra.coupe_de_france', region:'fr',  flag:'🇫🇷', sport:'soccer', group:'foot', name:'Coupe de France',     tv:['beIN Sports']},
@@ -830,7 +834,7 @@ const LEAGUES = [
   {id:'nhl',                 region:'us',  flag:'🇺🇸', sport:'hockey',     group:'hockey', name:'NHL', tv:['beIN Sports','DAZN'], partial:true},
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
-];
+]);
 const VERSION = '2026-10-30.1';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
@@ -1234,7 +1238,7 @@ function statusHTML(m){
 /* ---------- Affichage ---------- */
 function plays(m, name){ return [m.home.full, m.home.name, m.away.full, m.away.name].some(n => n === name); }
 /* ---------- Favoris (gardés sur cet appareil) ---------- */
-const FAV_DEFAULT = {equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']};
+const FAV_DEFAULT = CFG('sport.favoris', {equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']});
 let FAV = store.get('sport:favoris') || FAV_DEFAULT;
 const saveFav = () => { store.set('sport:favoris', FAV); try{ localStorage.setItem('sport:favoris:maj', String(Date.now())); }catch{} };
 const favTok = name => tokens({full:name});
@@ -1380,8 +1384,9 @@ function moreHTML(m){
     ${m.link ? `<a class="src" href="${esc(m.link)}" target="_blank" rel="noopener">Voir le match sur ESPN</a>` : ''}</div>`;
 }
 /* ---------- Cotes 1 / N / 2 des sites français (tâche GitHub « Cotes », The Odds API, 500 crédits par mois) ---------- */
-const COTES_LG = ['fra.1', 'eng.1', 'esp.1', 'ita.1', 'ger.1', 'uefa.champions', 'uefa.europa', 'uefa.europa.conf'];
-const SITES = {winamax_fr:'Winamax', betclic_fr:'Betclic', unibet_fr:'Unibet', pmu_fr:'PMU', netbet_fr:'NetBet'};
+const COTES_LG = (c => c ? Object.keys(c) : ['fra.1', 'eng.1', 'esp.1', 'ita.1', 'ger.1', 'uefa.champions', 'uefa.europa', 'uefa.europa.conf'])(CFG('cotes.comps', null));   // compétitions relevées (classeur, onglet Cotes)
+const SITES_NOMS = {winamax_fr:'Winamax', betclic_fr:'Betclic', unibet_fr:'Unibet', pmu_fr:'PMU', netbet_fr:'NetBet', parionssport_fr:'Parions Sport'};
+const SITES = Object.fromEntries(CFG('cotes.sites', ['winamax_fr', 'betclic_fr', 'unibet_fr', 'pmu_fr', 'netbet_fr']).map(k => [k, SITES_NOMS[k] || k]));   // sites relevés (classeur, onglet Cotes)   // sites relevés (classeur, onglet Cotes)
 const PHASES = {matin:'le matin', avant:'15 min avant', 'mi-temps':'à la mi-temps', manuel:'à la main'};
 const MANUEL_MIN = 5;                                   // plus d'actualisation à la main sous 5 crédits restants
 let COTES = null, cotesAt = 0, cotesCache = null;
@@ -1406,14 +1411,14 @@ function cotesHTML(m){
   const q = L0.q, bloque = q && q.restants <= MANUEL_MIN, cle = L0.cle;
   const btn = `<button type="button" class="ct-maj" data-cotes-maj="${esc(m.id)}"${bloque || !cle ? ' disabled' : ''} aria-label="Actualiser les cotes (1 crédit)" title="${!cle ? 'Ajoute ta clé dans la page État' : bloque ? 'Plus assez de crédits' : 'Actualiser (1 crédit)'}">↻</button>`;
   const pied = `<span class="ct-pied">${dernier ? `Relevé ${new Date(dernier.at).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}${dernier.phase ? ' · ' + (PHASES[dernier.phase] || dernier.phase) : ''}` : 'Premier relevé le matin du match'}${q ? ` · ${q.restants} crédit${q.restants > 1 ? 's' : ''} restant${q.restants > 1 ? 's' : ''}` : ''}${bloque ? ' · actualisation bloquée' : ''}</span>`;
-  if (!dernier) return `<div class="cotes"><div class="ct-h"><b>Cotes</b>${btn}</div>${pied}</div>`;
+  if (!dernier) return `<div class="cotes"><div class="ct-h"><b>Cotes</b><a class="ct-ecarts" href="ecarts.html">Écarts ›</a>${btn}</div>${pied}</div>`;
   const sites = Object.entries(dernier.sites || {}).filter(([k]) => SITES[k]);
   const best = k => Math.max(...sites.map(([, o]) => o[k] || 0));
   const B = {h:best('h'), d:best('d'), a:best('a')};
   const cell = (o, k) => `<td class="${o[k] && o[k] === B[k] ? 'best' : ''}">${cote(o[k])}</td>`;
   const evo = (srv && srv.releves || []).filter(r => r.sites && Object.keys(r.sites).length);
   const bestOf = (r, k) => Math.max(...Object.values(r.sites).map(o => o[k] || 0));
-  return `<div class="cotes"><div class="ct-h"><b>Cotes</b>${btn}</div>
+  return `<div class="cotes"><div class="ct-h"><b>Cotes</b><a class="ct-ecarts" href="ecarts.html">Écarts ›</a>${btn}</div>
     <table class="ct-t"><thead><tr><th></th><th>${esc(m.home.name)}</th><th>Nul</th><th>${esc(m.away.name)}</th></tr></thead>
     <tbody>${sites.map(([k, o]) => `<tr><th>${SITES[k]}</th>${cell(o, 'h')}${cell(o, 'd')}${cell(o, 'a')}</tr>`).join('')}</tbody></table>
     ${evo.length > 1 ? `<div class="ct-evo">${['h', 'd', 'a'].map(k => `<span><b>${k === 'h' ? esc(m.home.name) : k === 'a' ? esc(m.away.name) : 'Nul'}</b> ${evo.map(r => `${cote(bestOf(r, k))} <small>${PHASES[r.phase] || r.phase}</small>`).join(' → ')}</span>`).join('')}</div>` : ''}
@@ -1426,6 +1431,7 @@ async function cotesMain(m, btn){
   // clé de la compétition chez The Odds API : celle vérifiée par la tâche « Cotes », sinon la clé connue (avant tout premier relevé)
   const CLES = {'fra.1':'soccer_france_ligue_one', 'eng.1':'soccer_epl', 'esp.1':'soccer_spain_la_liga', 'ita.1':'soccer_italy_serie_a', 'ger.1':'soccer_germany_bundesliga',
     'uefa.champions':'soccer_uefa_champs_league', 'uefa.europa':'soccer_uefa_europa_league', 'uefa.europa.conf':'soccer_uefa_europa_conference_league'};
+  Object.entries(CFG('cotes.comps', {})).forEach(([k, v]) => { if (v && v.cle) CLES[k] = v.cle; });   // clés du classeur
   const cle = store.get('cotes:cle'), sk = (COTES && COTES.cles && COTES.cles[m.league]) || CLES[m.league];
   if (!cle || !sk){ btn.title = !cle ? 'Ajoute ta clé dans la page État' : 'Compétition pas encore reconnue'; return; }
   const q = cotesQuota(); if (q && q.restants <= MANUEL_MIN) return;
@@ -1447,7 +1453,7 @@ async function cotesMain(m, btn){
       const inv = !procheEq(e.home_team, x.home.full || x.home.name), sites = {};
       (e.bookmakers || []).forEach(b => { const mk = (b.markets || []).find(y => y.key === 'h2h'); if (!mk) return; const o = nm => (mk.outcomes.find(y => y.name === nm) || {}).price;
         const h = o(e.home_team), a = o(e.away_team), d = o('Draw'); if (h && a) sites[b.key] = inv ? {h:a, d, a:h} : {h, d, a}; });
-      if (Object.keys(sites).length){ man[x.id] = {at:Date.now(), sites}; n++; }
+      if (Object.keys(sites).length){ man[x.id] = {at:Date.now(), sites, eq:[x.home.name, x.away.name], lg:x.league, t:x.t}; n++; }
     }
     store.set('cotes:manuel', man);
     btn.title = `${n} match${n > 1 ? 's' : ''} de la compétition mis à jour`;
@@ -2461,7 +2467,7 @@ async function tsdbLeagueId(L){
   if (ids[key]) return ids[key];
   const T = LBY[key].tsdb;
   const j = await getJSON(`${TSDB}/search_all_leagues.php?c=${encodeURIComponent(T.c)}&s=${encodeURIComponent(T.s)}`);
-  const hit = (j.countries || j.leagues || []).find(x => [x.strLeague, x.strLeagueAlternate].some(n => n && T.re.test(n)));
+  const hit = (j.countries || j.leagues || []).find(x => [x.strLeague, x.strLeagueAlternate].some(n => n && T.re instanceof RegExp && T.re.test(n)));
   if (!hit) throw 0;
   ids[key] = hit.idLeague; store.set('sport:tsdbid', ids);
   return hit.idLeague;

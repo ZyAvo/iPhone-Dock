@@ -1,4 +1,4 @@
-// mon-ecran-version: d70dd09f
+// mon-ecran-version: 5a7dad3f
 // Prépare les cours de la page Investissements (lancé par la tâche GitHub « Marchés »).
 // Lit dans invest.html la liste des indices (INDICES) et des placements suivis (SUIVI : codes ou ISIN seulement,
 // jamais de quantités ni de montants), télécharge les cours sur 1 an et quelques taux officiels, puis écrit :
@@ -6,6 +6,7 @@
 // Si une source ne répond pas, on garde la valeur du passage précédent.
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {CFG, listePage} from './config-lire.mjs';
 import {execFileSync} from 'node:child_process';
 
 const PAGE = process.env.INVEST_PAGE || 'invest.html';
@@ -15,12 +16,8 @@ const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15
 
 /* ---------- Réglages lus dans invest.html ---------- */
 const page = fs.readFileSync(PAGE, 'utf8');
-function list(name){
-  const a = page.indexOf(`const ${name} = [`), b = page.indexOf('\n];', a);
-  if (a < 0 || b < 0) return [];
-  return vm.runInNewContext(page.slice(a + `const ${name} = `.length, b + 2));
-}
-const INDICES = list('INDICES'), SUIVI = list('SUIVI');
+const list = name => listePage(page, name) || [];
+const INDICES = CFG('marches.indices', list('INDICES')), SUIVI = CFG('marches.suivi', list('SUIVI'));   // classeur, sinon invest.html
 const prev = (() => { try{ return JSON.parse(fs.readFileSync(`${OUT}/marches.json`, 'utf8')); }catch{ return null; } })();
 const diag = {ok:0, ko:[]};
 

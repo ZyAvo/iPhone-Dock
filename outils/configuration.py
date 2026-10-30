@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-# mon-ecran-version: ace0c17b
+# mon-ecran-version: 10b777ee
 # Lit le classeur de configuration (configuration.xlsx) et écrit les réglages du dock dans config/ :
-#   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json
+#   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json, applis.json
+#   config/config.js                     → les mêmes réglages en un seul fichier, chargé par les pages (window.MON_ECRAN_CONFIG)
+#   config/chaines-tv.xml                → liste des chaînes pour le programme TV (lue par la tâche « Programme TV sport »)
 #   config/rapport.json                  → résumé + résultat de chaque test (affiché dans la page État)
 #   config/configuration-resultat.xlsx   → copie du classeur avec la colonne « Résultat » remplie
 # Usage : python3 outils/configuration.py configuration.xlsx [--sortie config] [--tester]
@@ -47,6 +49,7 @@ def lire(wb):
                 continue
             t = json.loads(ws.cell(r, H['Technique']).value)
             sec['rows'].append(dict(id=i, r=r, oui=txt(ws.cell(r, H['Oui']).value), oui2=txt(ws.cell(r, c2).value) if c2 else '',
+                                    cells={h: txt(ws.cell(r, c).value) for h, c in H.items()},
                                     support=t.get('support', 'ok'), d=t.get('def'), nom=txt(ws.cell(r, 3).value),
                                     resultat=txt(ws.cell(r, H['Résultat']).value)))
         mods[mid] = m
@@ -293,12 +296,18 @@ def m_cotes(m):
         if s['id'] == 'sites': d = a['source'] or slug(a['nom'])
         else: d = {'id': a['source'] or slug(a['nom']), 'cle': a['source'], 're': {'re': re.escape(a['nom']), 'flags': 'i'}}
         s['rows'].append(dict(id='ajout', r=a['r'], oui='Oui', oui2='', support='ok', d=d, nom=a['nom'], resultat='à vérifier'))
-    sites, comps = [], {}
+    sites, comps, seuil, ref = [], {}, [], []
     for s, rows in selection(m, tst):
         for x in rows:
             if s['id'] == 'sites': sites.append(x['d'])
+            elif s['id'] == 'rapport_seuil': seuil.append(x['d'])
+            elif s['id'] == 'rapport_ref': ref.append(x['d'])
             else: d = dict(x['d']); comps[d.pop('id')] = d
-    return {'sites': sites, 'comps': comps}
+    for sid, l in (('rapport_seuil', seuil), ('rapport_ref', ref)):
+        if len(l) > 1:
+            x = next(x for s, rows in selection(m) if s['id'] == sid for x in rows)
+            note(m, x['r'], 'warn', 'un seul choix possible : le premier coché est gardé', x['nom'])
+    return {'sites': sites, 'comps': comps, 'rapport': {'seuil': (seuil or [0.05])[0], 'reference': (ref or ['moyenne'])[0]}}
 
 def m_accueil(m):
     for a in ajouts(m):
@@ -317,18 +326,50 @@ def m_accueil(m):
     return {'pages': [x['d'] for x in S['pages'][1]], 'widgets': [x['d'] for x in S['widgets'][1]], 'meteo': [x['d'] for x in S['meteo'][1]],
             'une': une[0] if une else None}
 
+def m_applis(m):
+    for a in ajouts(m):
+        s = section_pour(m, a['section'] or 'Mes ajouts')
+        if s.get('nouvelle'): s['tech'] = {'id': s['id'], 'label': a['section'] or 'Mes ajouts', 'type': 'dossier'}
+        if not a['source']: note(m, a['r'], 'warn', "indique au moins le lien iPhone (ex. spotify://) ou un lien web", a['nom']); continue
+        d = {'label': a['nom'], 'mono': a['nom'][:2], 'color': '--t-slate'}
+        d['app' if not a['source'].startswith('http') else 'web'] = a['source']
+        note(m, a['r'], 'ok', 'ajoutée (teste-la depuis le dock)', a['nom'])
+        s['rows'].append(dict(id='ajout', r=a['r'], oui='Oui', oui2='', support='ok', d=d, nom=a['nom'], resultat='', cells={}))
+    out = {'accueil': [], 'dossiers': {}, 'bas_gauche': [], 'bas_droite': [], 'navigation': []}
+    for s, rows in selection(m):
+        items = []
+        for x in rows:
+            d = dict(x['d']); c = x.get('cells') or {}
+            if not d.get('type') and not d.get('action') and c:          # liens modifiables dans le tableau
+                for k, h in (('app', 'Lien iPhone'), ('android', 'Lien Android'), ('web', 'Lien web')):
+                    v = c.get(h, '')
+                    if v: d[k] = v
+                    else: d.pop(k, None)
+            items.append(d)
+        t = s['tech']
+        if t.get('type') == 'dossier':
+            if items: out['dossiers'][t['id']] = {'title': t['label'], 'items': items}
+        else: out[t['id']] = items
+    for k in out['dossiers']:                                            # nouveau dossier : sa tuile sur l'accueil
+        if not any(a.get('target') == k for a in out['accueil']): out['accueil'].append({'label': out['dossiers'][k]['title'], 'type': 'folder', 'target': k})
+    out['accueil'] = [a for a in out['accueil'] if a.get('type') != 'folder' or a.get('target') in out['dossiers']]
+    return out
+
 def m_apparence(m):
     S = {s['id']: (s, rows) for s, rows in selection(m)}
     pal = [x['d'] for x in S['themes'][1]]
-    defaut = [x['d'] for s in m['sections'] if s['id'] == 'themes' for x in s['rows'] if oui(x['oui2'])]
+    defs = [x for s in m['sections'] if s['id'] == 'themes' for x in s['rows'] if oui(x['oui2'])]
+    defaut = [x['d'] for x in defs]
     modes = [x['d'] for x in S['mode'][1]]
+    if len(defs) > 1: note(m, defs[0]['r'], 'warn', f"{len(defs)} thèmes « Par défaut » : seul le premier ({defs[0]['nom']}) est gardé", defs[0]['nom'])
+    if len(S['mode'][1]) > 1: note(m, S['mode'][1][0]['r'], 'warn', 'plusieurs modes cochés : seul le premier est gardé', S['mode'][1][0]['nom'])
     return {'palettes': pal, 'palette': (defaut or pal or ['bleu'])[0], 'mode': (modes or ['auto'])[0]}
 
 # ---------- Programme principal ----------
 def main():
     wb = load_workbook(SRC)
     M = lire(wb)
-    manquants = [k for k in ('sport', 'equipes', 'actus', 'actus-en', 'marches', 'videos', 'youtube', 'tv', 'cotes', 'accueil', 'apparence') if k not in M]
+    manquants = [k for k in ('sport', 'equipes', 'actus', 'actus-en', 'marches', 'videos', 'youtube', 'tv', 'cotes', 'accueil', 'apparence', 'applis') if k not in M]
     if manquants: raise SystemExit(f'Onglets introuvables dans {SRC} : {", ".join(manquants)} (as-tu supprimé la colonne A ou renommé une ligne 1 ?)')
     fr, en = m_actus(M['actus']), m_actus(M['actus-en'])
     marches, widget = m_marches(M['marches'])
@@ -342,10 +383,22 @@ def main():
         'cotes': m_cotes(M['cotes']),
         'accueil': accueil,
         'apparence': m_apparence(M['apparence']),
+        'applis': m_applis(M['applis']),
     }
     os.makedirs(OUT, exist_ok=True)
     for k, v in cfg.items():
         json.dump(v, open(os.path.join(OUT, f'{k}.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    # un seul fichier pour les pages (chargé avant leur code ; en cas d'absence, elles gardent leurs réglages intégrés)
+    with open(os.path.join(OUT, 'config.js'), 'w', encoding='utf-8') as f:
+        f.write('// Réglages du dock, écrits par la tâche « Configuration » à partir de configuration.xlsx — ne pas modifier à la main.\n')
+        f.write('window.MON_ECRAN_CONFIG = ' + json.dumps(dict(cfg, genere=RAPPORT['date']), ensure_ascii=False, separators=(',', ':')) + ';\n')
+    # liste des chaînes pour le programme TV (même format que outils/chaines-tv.xml)
+    esc = lambda v: str(v).replace('&', '&amp;').replace('<', '&lt;').replace('"', '&quot;')
+    with open(os.path.join(OUT, 'chaines-tv.xml'), 'w', encoding='utf-8') as f:
+        f.write('<?xml version="1.0" encoding="UTF-8"?>\n<!-- écrit par la tâche « Configuration » (onglet Programme TV du classeur) -->\n<channels>\n')
+        for c in cfg['tv']['chaines']:
+            f.write(f'  <channel site="{esc(c["site"])}" site_id="{esc(c["site_id"])}" lang="{esc(c["lang"])}" xmltv_id="{esc(c["xmltv_id"])}">{esc(c["nom"])}</channel>\n')
+        f.write('</channels>\n')
     for mid, m in M.items():
         RAPPORT['modules'][mid] = {'onglet': m['ws'].title, 'coches': sum(1 for s in m['sections'] for x in s['rows'] if choisi(s, x)), 'ajouts': len(m['ajouts'])}
     st = [t['statut'] for t in RAPPORT['tests']]

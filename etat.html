@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="58413635">
+<meta name="mon-ecran-version" content="6605e8e2">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,9 @@ body{margin:0;font-size:14px}
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
-<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
+<script src="config/config.js"></script>
+<script>/* réglages du classeur (config/config.js) : CFG('sport.leagues', valeur par défaut) ; {re, flags} redevient une expression régulière */window.CFG=function(c,d){try{var v=c.split('.').reduce(function(o,k){return o==null?o:o[k]},window.MON_ECRAN_CONFIG);if(v==null)return d;return(function r(x){if(Array.isArray(x))return x.map(r);if(x&&typeof x==='object'){var k=Object.keys(x);if(k.length===2&&'re' in x&&'flags' in x)return new RegExp(x.re,x.flags);var o={};k.forEach(function(n){o[n]=r(x[n])});return o}return x})(v)}catch(e){return d}};</script>
+<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette')||CFG('apparence.palette',''),m=localStorage.getItem('mode')||CFG('apparence.mode','');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
 <style>
@@ -478,7 +480,7 @@ const chev = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="
 const part = (title, j, inner, open) => `<details class="part glass ${j.lvl}"${open ? ' open' : ''}><summary><span class="lamp"></span><span class="t"><b>${title}</b><small>${esc(j.msg)}</small></span>${chev}</summary><div class="body">${inner}</div></details>`;
 
 /* Thème de couleurs (gardé sur cet appareil, appliqué à toutes les pages) */
-const PALETTES = [
+const PALETTES_TOUTES = [
   {id:'bleu',    t:'Bleu',             d:'Le thème d\'origine',      c:['#e7ecef', '#a3cef1', '#6096ba', '#274c77', '#8b8c89']},
   {id:'gris',    t:'Gris',             d:'Icônes noires',            c:['#eef0f2', '#c6c7c4', '#a2999e', '#846a6a', '#353b3c']},
   {id:'ardoise', t:'Ardoise et corail', d:'Bleu nuit, touche orangée', c:['#2d3142', '#4f5d75', '#bfc0c0', '#ffffff', '#ef8354']},
@@ -487,8 +489,10 @@ const PALETTES = [
   {id:'petrole', t:'Pétrole et cuivre', d:'Bleu pétrole, crème, orange',   c:['#001524', '#15616d', '#ffecd1', '#ff7d00', '#78290f']},
   {id:'azur',    t:'Azur et mandarine', d:'Bleu roi, gris clair, orange',  c:['#ff6700', '#ebebeb', '#c0c0c0', '#3a6ea5', '#004e98']}
 ];
-const modeNow = () => { try{ return localStorage.getItem('mode') || 'auto'; }catch{ return 'auto'; } };
-const palNow = () => { try{ return localStorage.getItem('palette') || 'bleu'; }catch{ return 'bleu'; } };
+const PALETTES = (l => l ? PALETTES_TOUTES.filter(p => l.includes(p.id)) : PALETTES_TOUTES)(CFG('apparence.palettes', null));   // thèmes proposés (classeur, onglet Apparence)
+const PAL_DEF = CFG('apparence.palette', 'bleu'), MODE_DEF = CFG('apparence.mode', 'auto');   // choix de départ d'un nouvel appareil
+const modeNow = () => { try{ return localStorage.getItem('mode') || MODE_DEF; }catch{ return 'auto'; } };
+const palNow = () => { try{ return localStorage.getItem('palette') || PAL_DEF; }catch{ return 'bleu'; } };
 function themeHTML(){
   const cur = palNow();
   return `<div class="sum glass" style="flex-direction:column;align-items:stretch;gap:6px"><b>Thème</b>
@@ -609,6 +613,7 @@ function cotesPart(){
   return part('Cotes des matchs', {lvl, msg}, `
     ${Q ? `<div class="ct-jauge" role="img" aria-label="${pct} % des crédits utilisés"><i style="width:${pct}%"></i><span style="left:${100 - 120 / (Q.total || 500) * 100}%" title="mi-temps coupée"></span><span style="left:${100 - 40 / (Q.total || 500) * 100}%" title="relevés automatiques coupés"></span></div>
       <p class="note">${Q.restants} crédits restants sur ${Q.total}. Sous <b>120</b> : plus de relevé à la mi-temps. Sous <b>40</b> : plus de relevé automatique (gardés pour l'actualisation à la main). Sous <b>5</b> : tout est bloqué jusqu'au renouvellement mensuel.</p>` : ''}
+    <p class="note"><a href="ecarts.html" style="color:var(--accent);font-weight:600">Voir les écarts de cotes entre sites ›</a></p>
     <p class="note">Relevés automatiques : le matin, 15 min avant chaque coup d'envoi et à la mi-temps, pour la Ligue 1, la Premier League, la Liga, la Serie A, la Bundesliga et les 3 coupes d'Europe. Une demande = 1 crédit.</p>
     ${C && C.journal && C.journal.length ? `<p class="note"><b>Derniers relevés</b></p>${C.journal.slice(-6).reverse().map(l => `<div class="mono">${esc(l)}</div>`).join('')}` : ''}
     <form class="sv-form" id="ctForm"><label class="note">Ta clé The Odds API (pour le bouton ↻ des matchs, gardée sur cet appareil)<input name="cle" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(cle)}" placeholder="clé de the-odds-api.com"></label>
@@ -641,12 +646,12 @@ document.addEventListener('change', e => {
 document.addEventListener('click', e => {
   const m = e.target.closest('[data-mode]');
   if (m){ const v = m.dataset.mode, d = document.documentElement;
-    try{ if (v === 'auto') localStorage.removeItem('mode'); else localStorage.setItem('mode', v); }catch{}
+    try{ if (v === MODE_DEF) localStorage.removeItem('mode'); else localStorage.setItem('mode', v); }catch{}
     if (v === 'auto') delete d.dataset.theme; else d.dataset.theme = v === 'clair' ? 'light' : 'dark';
     document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-checked', x.dataset.mode === v)); return; }
   const b = e.target.closest('[data-pal]'); if (!b) return;
   const v = b.dataset.pal;
-  try{ if (v === 'bleu') localStorage.removeItem('palette'); else localStorage.setItem('palette', v); }catch{}
+  try{ if (v === PAL_DEF) localStorage.removeItem('palette'); else localStorage.setItem('palette', v); }catch{}
   if (v === 'bleu') delete document.documentElement.dataset.palette; else document.documentElement.dataset.palette = v;
   document.querySelectorAll('[data-pal]').forEach(x => x.setAttribute('aria-checked', x.dataset.pal === v));
 });

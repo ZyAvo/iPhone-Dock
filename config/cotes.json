@@ -9,35 +9,63 @@
  "comps": {
   "fra.1": {
    "cle": "soccer_france_ligue_one",
-   "re": {}
+   "re": {
+    "re": "ligue 1",
+    "flags": "i"
+   }
   },
   "eng.1": {
    "cle": "soccer_epl",
-   "re": {}
+   "re": {
+    "re": "^epl$|premier league",
+    "flags": "i"
+   }
   },
   "esp.1": {
    "cle": "soccer_spain_la_liga",
-   "re": {}
+   "re": {
+    "re": "la ?liga",
+    "flags": "i"
+   }
   },
   "ita.1": {
    "cle": "soccer_italy_serie_a",
-   "re": {}
+   "re": {
+    "re": "serie a",
+    "flags": "i"
+   }
   },
   "ger.1": {
    "cle": "soccer_germany_bundesliga",
-   "re": {}
+   "re": {
+    "re": "^bundesliga(?! 2)",
+    "flags": "i"
+   }
   },
   "uefa.champions": {
    "cle": "soccer_uefa_champs_league",
-   "re": {}
+   "re": {
+    "re": "champions league(?!.*qualif)",
+    "flags": "i"
+   }
   },
   "uefa.europa": {
    "cle": "soccer_uefa_europa_league",
-   "re": {}
+   "re": {
+    "re": "europa league",
+    "flags": "i"
+   }
   },
   "uefa.europa.conf": {
    "cle": "soccer_uefa_europa_conference_league",
-   "re": {}
+   "re": {
+    "re": "conference league",
+    "flags": "i"
+   }
   }
+ },
+ "rapport": {
+  "seuil": 0.05,
+  "reference": "moyenne"
  }
 }

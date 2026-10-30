@@ -1,10 +1,11 @@
-// mon-ecran-version: 77082673
+// mon-ecran-version: 8cec52a9
 // Prépare les actus de la page Actus (lancé par la tâche GitHub « Actus », toutes les 30 min).
 // Lit la liste des onglets et des flux directement dans actus.html, télécharge chaque flux RSS/Atom
 // sans passer par un service tiers, regroupe les mêmes infos venant de plusieurs sites et écrit :
 //   donnees/actus/actus.json → {updated, tabs:{id:{items}}, sources:[état de chaque flux]}
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {CFG, listePage} from './config-lire.mjs';
 
 const PAGE = process.env.ACTUS_PAGE || 'actus.html';
 const OUT = process.env.ACTUS_OUT || 'donnees/actus';
@@ -14,13 +15,14 @@ const MAX_AGE = 72 * H, MAX_ITEMS = 45, PER_FEED = 25;
 /* ---------- Onglets et flux : lus dans actus.html ---------- */
 const page = fs.readFileSync(PAGE, 'utf8');
 function list(name, required){
-  const a = page.indexOf(`const ${name} = [`), b = page.indexOf('\n];', a);
-  if (a < 0 || b < 0){ if (required) throw new Error(`Liste ${name} introuvable dans ${PAGE}`); return []; }
-  return vm.runInNewContext(page.slice(a + `const ${name} = `.length, b + 2));
+  const l = listePage(page, name);
+  if (!l){ if (required) throw new Error(`Liste ${name} introuvable dans ${PAGE}`); return []; }
+  return l;
 }
-const TABS_FR = [...(list('TABS_FR', false).length ? list('TABS_FR') : list('TABS', true)),   // français (ancien nom : TABS)
-  ...list('TABS_AUTRES', false)];                                                         // onglets lus par d'autres pages (ex. Marchés → Investissements)
-const TABS_EN = list('TABS_EN', false);                                                  // International (anglais)
+// réglages du classeur (config/actus.json) s'ils existent, sinon les listes écrites dans actus.html
+const TABS_FR = [...CFG('actus.fr', list('TABS_FR', false).length ? list('TABS_FR') : list('TABS', true)),   // français (ancien nom : TABS)
+  ...CFG('actus.autres', list('TABS_AUTRES', false))];                                                    // onglets lus par d'autres pages (ex. Marchés → Investissements)
+const TABS_EN = CFG('actus.en', list('TABS_EN', false));                                                 // International (anglais)
 const TABS = [...TABS_FR, ...TABS_EN];
 
 /* ---------- Lecture XML (RSS 2.0, RSS 1.0, Atom) ---------- */

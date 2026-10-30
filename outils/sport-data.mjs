@@ -1,4 +1,4 @@
-// mon-ecran-version: 03fefd81
+// mon-ecran-version: 88d60d6b
 // Prépare les données de la page Sport (lancé par la tâche GitHub « Programme TV sport »).
 // Lit la liste des compétitions et les fonctions de lecture directement dans sport.html,
 // interroge ESPN côté serveur, numérote les journées et écrit :
@@ -9,6 +9,8 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {racing} from './sport-course.mjs';
+import {CFG} from './config-lire.mjs';
+globalThis.CFG = CFG;          // les listes de sport.html passent par CFG('sport.…', valeurs de la page) : réglages du classeur s'ils existent
 
 const PAGE = process.env.SPORT_PAGE || 'sport.html';
 const OUT = process.env.SPORT_OUT || 'donnees/sport';
@@ -26,7 +28,7 @@ const grab = (a, b) => {
 };
 const fnBlock = name => { const i = page.indexOf(`function ${name}(`); if (i < 0) throw new Error(`Fonction introuvable : ${name}`); return page.slice(i, page.indexOf('\n}\n', i) + 3); };
 const shared = [
-  grab('const REGIONS = [', '\nconst VERSION'),
+  grab('const REGIONS = ', '\nconst VERSION'),
   grab('const LETTRES', 'async function loadTV'),
   grab('const same = ', '/* Numéros de journée'),
   fnBlock('applyRefs'), fnBlock('parseCalendar'), fnBlock('classify'), fnBlock('norm'), fnBlock('logosOf'),
@@ -173,7 +175,7 @@ async function thesportsdb(L, S, nRounds){
   if (cache && cache.season === S.label && NOW - cache.at < 3 * DAY) return cache.ref;
   try{
     const lj = await get(`${TSDB}/search_all_leagues.php?c=${encodeURIComponent(L.tsdb.c)}&s=${encodeURIComponent(L.tsdb.s)}`, 2);
-    const hit = ((lj || {}).countries || (lj || {}).leagues || []).find(x => [x.strLeague, x.strLeagueAlternate].some(n => n && L.tsdb.re.test(n)));
+    const hit = ((lj || {}).countries || (lj || {}).leagues || []).find(x => [x.strLeague, x.strLeagueAlternate].some(n => n && L.tsdb.re instanceof RegExp && L.tsdb.re.test(n)));
     if (!hit) return [];
     const season = `${S.y}-${S.y + 1}`, ref = [];
     for (let r = 1; r <= nRounds; r++){

@@ -1,4 +1,4 @@
-// mon-ecran-version: 46c15f05
+// mon-ecran-version: 5f175f99
 // Trie le programme TV (XMLTV) et ne garde que le sport -> tv.json
 import fs from 'node:fs';
 const [,, src = 'guide.xml', out = 'tv.json', logFile = ''] = process.argv;
@@ -63,6 +63,8 @@ const NAMES = {
   RMC1: 'RMC Sport 1',
   RMC2: 'RMC Sport 2'
 };
+// chaînes ajoutées dans le classeur (config/tv.json) : leur nom vient de là
+try{ for (const c of JSON.parse(fs.readFileSync('config/tv.json', 'utf8')).chaines || []){ const b = String(c.xmltv_id || '').replace(/_(S|E|W)$/, ''); if (b && !NAMES[b]) NAMES[b] = c.nom; } }catch{}
 const xml = fs.existsSync(src) ? fs.readFileSync(src, 'utf8') : '';
 const dec = s => s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).replace(/&amp;/g, '&').trim();
 const tag = (body, t) => { const m = body.match(new RegExp(`<${t}[^>]*>([\\s\\S]*?)</${t}>`)); return m ? dec(m[1]) : ''; };

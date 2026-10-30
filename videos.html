@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="37798e11">
+<meta name="mon-ecran-version" content="75d362d2">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vidéos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,9 @@ body{margin:0;font-size:14px}
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
-<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette'),m=localStorage.getItem('mode');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
+<script src="config/config.js"></script>
+<script>/* réglages du classeur (config/config.js) : CFG('sport.leagues', valeur par défaut) ; {re, flags} redevient une expression régulière */window.CFG=function(c,d){try{var v=c.split('.').reduce(function(o,k){return o==null?o:o[k]},window.MON_ECRAN_CONFIG);if(v==null)return d;return(function r(x){if(Array.isArray(x))return x.map(r);if(x&&typeof x==='object'){var k=Object.keys(x);if(k.length===2&&'re' in x&&'flags' in x)return new RegExp(x.re,x.flags);var o={};k.forEach(function(n){o[n]=r(x[n])});return o}return x})(v)}catch(e){return d}};</script>
+<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette')||CFG('apparence.palette',''),m=localStorage.getItem('mode')||CFG('apparence.mode','');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
 <style>
@@ -517,7 +519,7 @@ html.desk .ytplay:empty::after{content:"Choisis une vidéo dans la liste";margin
 /* ========== Réglages lus aussi par la tâche GitHub « Vidéos » (outils/videos-data.mjs) ==========
    PLATEFORMES : tmdb = nom de la plateforme chez TMDB ; app = ouverture de l'appli iPhone ; web = recherche sur le site (le titre est ajouté au bout).
    CHAINES_YT  : chaînes YouTube suivies (identifiant « UC… » de la chaîne). */
-const PLATEFORMES = [
+const PLATEFORMES = CFG('videos.plateformes', [
   {id:'netflix', nom:'Netflix',     court:'N',     coul:'#e50914', abo:true, tmdb:'^netflix',             app:'nflx://',       web:'https://www.netflix.com/search?q='},
   {id:'prime',   nom:'Prime Video', court:'prime', coul:'#1a98ff', abo:true, tmdb:'^amazon prime video',  app:'aiv://',        web:'https://www.primevideo.com/search/ref=atv_nb_sr?phrase='},
   {id:'disney',  nom:'Disney+',     court:'D+',    coul:'#113ccf',           tmdb:'^disney ?(plus|\\+)',  app:'disneyplus://', web:'https://www.disneyplus.com/search?q='},
@@ -525,11 +527,11 @@ const PLATEFORMES = [
   {id:'apple',   nom:'Apple TV',    court:'tv',    coul:'#1d1d1f',           tmdb:'^apple tv',            app:'videos://',     web:'https://tv.apple.com/fr/search?term='},
   {id:'canal',   nom:'Canal+',      court:'C+',    coul:'#111111',           tmdb:'^canal ?(\\+|plus)',   app:'mycanal://',    web:'https://www.canalplus.com/recherche/?q='},
   {id:'ocs',     nom:'OCS',         court:'OCS',   coul:'#f26522',           tmdb:'^ocs',                 app:'mycanal://',    web:'https://www.canalplus.com/recherche/?q='}
-];
-const CHAINES_YT = [
+]);
+const CHAINES_YT = CFG('videos.chaines_yt', [
   {id:'UCFKDEp9si4RmHFWJW1vYsMA', nom:'EthosLab'},
   {id:'UCTdicWbtwYfLyZ7S1M9XuIQ', nom:'Oliech'}
-];
+]);
 
 /* ========== Outils ========== */
 const $ = s => document.querySelector(s);

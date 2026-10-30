@@ -1,8 +1,9 @@
-// mon-ecran-version: 4efddaea
+// mon-ecran-version: cf04c5a9
 // Résumé « État des données » (etat.json) : un petit fichier lu par l'accueil (pastille) et par etat.html.
 // Lancé par la tâche « Publication », après la reprise des dernières données.
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {CFG, listePage} from './config-lire.mjs';
 
 const read = f => { try{ return JSON.parse(fs.readFileSync(f, 'utf8')); }catch{ return null; } };
 
@@ -10,8 +11,7 @@ const read = f => { try{ return JSON.parse(fs.readFileSync(f, 'utf8')); }catch{ 
 let LEAGUES = [], VERSION = '';
 try{
   const page = fs.readFileSync('sport.html', 'utf8');
-  const a = page.indexOf('const LEAGUES = ['), b = page.indexOf('\n];', a);
-  LEAGUES = vm.runInNewContext('(' + page.slice(a + 'const LEAGUES = '.length, b + 2) + ')');
+  LEAGUES = CFG('sport.leagues', listePage(page, 'LEAGUES') || []);
   VERSION = (page.match(/const VERSION = '([^']+)'/) || [])[1] || '';
 }catch{}
 const NAME = Object.fromEntries(LEAGUES.map(L => [L.id, L.name]));
