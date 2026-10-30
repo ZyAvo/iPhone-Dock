@@ -2196,12 +2196,6 @@
     "icon": "duo",
     "app": "fb-messenger://",
     "web": "https://www.messenger.com"
-   },
-   {
-    "label": "X",
-    "icon": "xmark",
-    "app": "twitter://",
-    "web": "https://x.com"
    }
   ],
   "bas_droite": [

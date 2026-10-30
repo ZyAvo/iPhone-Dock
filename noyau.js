@@ -1,4 +1,4 @@
-// mon-ecran-version: cf06040b
+// mon-ecran-version: f3ebf71f
 /* Mon Écran — noyau commun à toutes les pages, et base des futures applis dédiées (iPhone, Android, PC).
    Rien ici ne dépend d'une astuce de Safari : ce qui est propre à « l'iPhone en mode web » est rangé dans Noyau.iphoneWeb,
    et une appli dédiée pourra fournir window.MonEcranNatif (ouvrir un lien, garder la clé…) que le noyau utilisera en priorité.
@@ -10,7 +10,9 @@
    - Noyau.synchro                          accès à la synchronisation chiffrée (synchro.js), quand la page la charge
    - Noyau.catalogue                        config/catalogue.json : tout le catalogue du classeur et son état
    - Noyau.modifs                           choix faits dans l'appli → config/modifs.json ; la tâche « Configuration »
-                                            les reporte dans configuration.xlsx (le classeur reste la référence) */
+                                            les reporte dans configuration.xlsx (le classeur reste la référence)
+   - Noyau.accueil                          pages et widgets activés (config/accueil.json + choix en attente sur cet appareil),
+                                            garde des pages désactivées, disposition du widget resté seul (propre à l'appareil) */
 (() => {
 'use strict';
 const natif = () => window.MonEcranNatif || null;            // pont fourni par une future appli dédiée (absent sur le web)
@@ -188,10 +190,11 @@ const modifs = {
   effacer:(id, nom) => ajouterAttente({id, nom, effacer:true}),           // un de tes ajouts (id « ajout:module:n »)
   verifier:() => ajouterAttente({verif:true}),                            // essai de bout en bout : la tâche répond sans rien changer
   annuler(u){ stockage.ecrire(ATTENTE, stockage.lire(ATTENTE, []).filter(m => m.uid !== u)); signaler(); },
-  /* faites ici et pas encore reportées dans le classeur (envoyées ou non), dans l'ordre */
+  /* faites ici et pas encore reportées dans le classeur (envoyées ou non), dans l'ordre ; « traitée » d'après le catalogue chargé,
+     ou d'après config/config.js (modifs_traitees) pour les pages qui ne chargent pas le catalogue (l'accueil) */
   enAttente(){
-    const t = CAT && CAT.modifs && CAT.modifs.traitees || {};
-    return [...stockage.lire(ENVOYEES, []), ...stockage.lire(ATTENTE, []).map(m => ({...m, nonEnvoyee:true}))].filter(m => !t[m.uid]);
+    const t = CAT && CAT.modifs && CAT.modifs.traitees || {}, tc = new Set(config('modifs_traitees', []));
+    return [...stockage.lire(ENVOYEES, []), ...stockage.lire(ATTENTE, []).map(m => ({...m, nonEnvoyee:true}))].filter(m => !t[m.uid] && !tc.has(m.uid));
   },
   nonEnvoyees:() => stockage.lire(ATTENTE, []),
   /* oublie les modifications envoyées que la tâche a traitées (d'après le catalogue chargé) ; leur résultat est gardé dans modifs:reportees */
@@ -250,7 +253,60 @@ const modifs = {
   plusTard:() => tPlusTard !== null,
 };
 
-window.Noyau = {version:1, config, stockage, appareil, lien, iphoneWeb, depot, synchro, catalogue, modifs, MSG,
+/* ---------- Accueil : pages et widgets activés ----------
+   config/accueil.json (classeur, onglet Accueil) + les choix faits sur cet appareil pas encore reportés (pg:…, wg:…, un:…),
+   pour que le changement se voie tout de suite ici ; les autres appareils le voient après le report. Sans le catalogue (léger). */
+const PAGES = ['actus', 'sport', 'videos', 'invest', 'cachee'], TOUJOURS = ['etat', 'reglages'];
+const WIDGETS = ['meteo', 'une', 'invest', 'spotify', 'sport', 'live'];
+const NOMS_PAGES = {actus:'Actus', sport:'Sport', videos:'Vidéos', invest:'Investissements', cachee:'Coffre', etat:'État des données', reglages:'Réglages'};
+const UNE_CHOIX = 'accueil:une-choix', DISPOSITION = 'accueil:disposition';
+/* dernière valeur « Oui » en attente sur cet identifiant (undefined : aucun choix en attente) */
+const attenteOui = id => { let v; for (const m of modifs.enAttente()) if (m.id === id && m.champs && 'Oui' in m.champs && !m.effacer) v = m.champs.Oui; return v; };
+const actifDans = (cle, id) => { const L = config(cle, null); return Array.isArray(L) ? L.includes(id) : true; };   // sans config : tout est actif
+const accueil = {
+  PAGES, WIDGETS, TOUJOURS, NOMS_PAGES,
+  /* page activée ? (État et Réglages : toujours) */
+  page(id){ id = String(id).replace(/^pg:/, ''); if (TOUJOURS.includes(id)) return true;
+    const v = attenteOui('pg:' + id); return v !== undefined ? v === 'Oui' : actifDans('accueil.pages', id); },
+  widget(id){ id = String(id).replace(/^wg:/, '');
+    const v = attenteOui('wg:' + id); return v !== undefined ? v === 'Oui' : actifDans('accueil.widgets', id); },
+  /* source du widget « À la une » : {name, color, url} ; un choix en attente l'emporte (sa définition est gardée par Réglages) */
+  une(defaut = null){ const c = stockage.lire(UNE_CHOIX, null);
+    if (c && c.id && c.def && attenteOui(c.id) === 'Oui') return c.def;
+    return config('accueil.une', null) || defaut; },
+  choisirUne(id, def){ stockage.ecrire(UNE_CHOIX, {id, def}); },
+  /* téléphone : widget resté seul dans la rangée du haut, en « large » (pleine largeur) ou « carre » (même taille) ; propre à l'appareil */
+  disposition:() => stockage.lire(DISPOSITION, 'large') === 'carre' ? 'carre' : 'large',
+  choisirDisposition:d => stockage.ecrire(DISPOSITION, d === 'carre' ? 'carre' : 'large'),
+  /* résumé de tout ce qui change l'accueil (pour savoir s'il faut le recharger) */
+  signature:() => JSON.stringify([PAGES.filter(accueil.page), WIDGETS.filter(accueil.widget), (accueil.une() || {}).url || '', accueil.disposition()]),
+  /* en tête d'une page : si elle est désactivée, affiche « Page désactivée » à la place ; le reste du fichier n'est pas lu
+     (<plaintext> masqué : aucun script de la page ne s'exécute, aucune donnée n'est chargée), et la page se termine normalement */
+  garde(id){
+    if (accueil.page(id)) return true;
+    const d = document, nom = NOMS_PAGES[id] || id, attente = attenteOui('pg:' + id) !== undefined;
+    const retour = ['actus', 'sport', 'videos', 'invest'].includes(id) ? id : 'index';
+    const css = `:root{--pd-base:#e7ecef;--pd-ink:#10233a;--pd-soft:#56636f;--pd-acc:#274c77;--pd-on:#e7ecef;--pd-card:rgba(255,255,255,.6);--pd-line:rgba(39,76,119,.14);color-scheme:light}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--pd-base:#08121f;--pd-ink:#e7ecef;--pd-soft:#a7b6c4;--pd-acc:#a3cef1;--pd-on:#08121f;--pd-card:rgba(231,236,239,.07);--pd-line:rgba(231,236,239,.12);color-scheme:dark}}
+:root[data-theme="dark"]{--pd-base:#08121f;--pd-ink:#e7ecef;--pd-soft:#a7b6c4;--pd-acc:#a3cef1;--pd-on:#08121f;--pd-card:rgba(231,236,239,.07);--pd-line:rgba(231,236,239,.12);color-scheme:dark}
+body{margin:0;min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px 16px;box-sizing:border-box;font:15px/1.45 -apple-system,"SF Pro Text",system-ui,sans-serif;color:var(--pd-ink);
+background:radial-gradient(60% 45% at 10% 8%,color-mix(in oklab,var(--pd-acc) 30%,transparent),transparent 70%) fixed,var(--pd-base)}
+.pd{width:min(400px,100%);padding:26px 22px 22px;border-radius:28px;background:var(--pd-card);border:1px solid var(--pd-line);text-align:center;box-shadow:0 14px 34px -16px rgba(0,0,0,.35);box-sizing:border-box}
+.pd svg{width:44px;height:44px;fill:none;stroke:var(--pd-soft);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.pd h1{font-size:1.45rem;letter-spacing:-.02em;margin:10px 0 6px}.pd p{margin:0 0 18px;color:var(--pd-soft);font-size:.9rem}
+.pd a{display:block;padding:12px 14px;border-radius:14px;font-weight:600;text-decoration:none;margin-top:8px}
+.pd .main{background:var(--pd-acc);color:var(--pd-on)}.pd .sec{color:var(--pd-acc);border:1px solid var(--pd-line)}`;
+    const corps = `<main class="pd"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8.5 12h7"/></svg>
+      <h1>Page désactivée</h1><p>La page <b>${nom}</b> est retirée de ton écran d'accueil${attente ? ' (choix fait sur cet appareil, en attente de report dans le classeur)' : ''}.</p>
+      <a class="main" href="reglages.html?retour=${retour}#accueil">Réactiver dans Réglages</a><a class="sec" href="index.html">Accueil</a></main>`;
+    if (d.readyState === 'loading') d.write(`<style>${css}</style></head><body>${corps}<plaintext hidden style="display:none">`);
+    else { const st = d.createElement('style'); st.textContent = css; d.head.appendChild(st); d.body.innerHTML = corps; }
+    d.title = `${nom} · page désactivée`;
+    return false;
+  },
+};
+
+window.Noyau = {version:1, config, stockage, appareil, lien, iphoneWeb, depot, synchro, catalogue, modifs, accueil, MSG,
   message:code => MSG[String(code).replace(/^erreur:/, '')] || (window.Synchro && Synchro.MSG[String(code).replace(/^erreur:/, '')]) || String(code)};
 window.CFG = config;
 })();

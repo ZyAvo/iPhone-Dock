@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="22938ef5">
+<meta name="mon-ecran-version" content="b63182cd">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vidéos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,6 +19,7 @@ img{max-width:100%}
 <script src="config/config.js"></script>
 <script src="noyau.js"></script>
 <script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette')||CFG('apparence.palette',''),m=localStorage.getItem('mode')||CFG('apparence.mode','');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
+<script>/* page désactivée dans Réglages › Pages et widgets : on s'arrête là (aucun chargement) */Noyau.accueil.garde('videos');</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
 <style>
@@ -487,7 +488,7 @@ html.desk .ytplay:empty::after{content:"Choisis une vidéo dans la liste";margin
 .yt-open.muted{color:var(--ink-soft);font-weight:400}
 .yt-ch{color:var(--accent);font-weight:500}
 .more-yt{align-self:center}
-.yt-add{margin-left:auto}
+.yt-add{margin-left:auto;display:inline-flex;align-items:center;text-decoration:none}
 .etapes{margin:4px 0 8px;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:.9rem;line-height:1.4}
 .chan h2{margin:0;font-size:1.05rem}
 .chan a{font-size:.8rem;color:var(--accent);font-weight:500}
@@ -682,7 +683,7 @@ function ytHTML(){
       <option value="toutes"${!one ? ' selected' : ''}>Toutes les chaînes (${CH.length})</option>
       ${[...CH].sort((x, y) => String(x.nom).localeCompare(String(y.nom), 'fr')).map(c => `<option value="${esc(c.id)}"${one === c ? ' selected' : ''}>${esc(c.nom)}</option>`).join('')}</select>
     ${one ? `<a class="yt-open" href="https://www.youtube.com/channel/${esc(one.id)}" target="_blank" rel="noopener">Ouvrir la chaîne ›</a>` : '<span class="yt-open muted">Les plus récentes d’abord</span>'}
-    <button class="chip yt-add" type="button" data-act="yt-add" aria-label="Ajouter une chaîne">＋ Chaîne</button></div>`;
+    <a class="chip yt-add" href="reglages.html?retour=videos&amp;ajout=youtube#youtube" aria-label="Ajouter une chaîne">＋ Chaîne</a></div>`;
   const errs = CH.filter(c => c.erreur && !c.videos.length);
   const items = liste.map(v => { const seen = YTVUS.has(v.id), neu = !seen && v.date && Date.now() - v.date < 48 * 3600e3;
       return `<button class="v${seen ? ' seen' : ''}" type="button" data-yt="${esc(v.id)}"><span class="th"><img src="https://i.ytimg.com/vi/${esc(v.id)}/mqdefault.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">${neu ? '<span class="bd">Nouveau</span>' : v.short ? '<span class="bd">Short</span>' : ''}${seen ? '<span class="vu"></span>' : ''}</span>
@@ -696,22 +697,7 @@ function ytHTML(){
     <p class="credit">Lecture avec le lecteur officiel de YouTube. Certaines vidéos ne se lisent que sur YouTube : utilise alors « YouTube » ou « Ouvrir avec… ».</p></div></div>`;
 }
 
-/* Ajouter une chaîne : une ligne dans chaines.txt (à la racine du dépôt GitHub), lue par la tâche « Vidéos » */
-const DEPOT = 'https://github.com/ZyAvo/iPhone-Dock';
-function ytAddSheet(){
-  const existe = YT && YT.fichierChaines;
-  const url = existe ? `${DEPOT}/edit/main/chaines.txt` : `${DEPOT}/new/main?filename=chaines.txt&value=${encodeURIComponent('# Une chaîne YouTube par ligne : son lien (https://www.youtube.com/@nom), @nom ou identifiant UC…\n# Facultatif : | nom à afficher\n')}`;
-  const ajout = (YT && YT.chaines || []).filter(c => c.fichier);
-  openSheet(`<h2 id="sheetTitle">Ajouter une chaîne</h2>
-    <ol class="etapes">
-      <li>Sur YouTube, ouvre la chaîne puis <b>Partager → Copier le lien</b>.</li>
-      <li>Touche le bouton ci-dessous : le fichier <b>chaines.txt</b> s'ouvre sur GitHub${existe ? '' : ' (il sera créé)'}.</li>
-      <li>Colle le lien sur une nouvelle ligne, puis <b>Commit changes</b>.</li>
-    </ol>
-    <p class="credit">La chaîne apparaît ici quelques minutes plus tard, après le passage de la tâche « Vidéos ».</p>
-    <div class="row-btns"><a class="btn main" href="${esc(url)}" target="_blank" rel="noopener">Ouvrir chaines.txt sur GitHub</a><button class="btn" type="button" data-act="close">Fermer</button></div>
-    ${ajout.length ? `<p class="credit">Déjà ajoutées par toi : ${ajout.map(c => esc(c.nom)).join(', ')}.</p>` : ''}`);
-}
+/* Ajouter une chaîne : Réglages › Chaînes YouTube › Mes ajouts (formulaire ouvert) ; reportée dans le classeur par la tâche « Configuration » */
 
 /* ========== Fenêtre ========== */
 let lastFocus = null;
@@ -731,7 +717,6 @@ document.addEventListener('click', e => {
   if (a === 'close') closeSheet();
   else if (a === 'more'){ shown += 60; render(); }
   else if (a === 'more-yt'){ ytShown += 40; render(); }
-  else if (a === 'yt-add') ytAddSheet();
   else if (a === 'abos') abosSheet();
   else if (a === 'filtres') filtresSheet();
   else if (a === 'filtres-raz'){ Object.assign(F, {plat:'abos', type:'tout', genre:'', vus:false}); shown = 60; render(); filtresSheet(); }

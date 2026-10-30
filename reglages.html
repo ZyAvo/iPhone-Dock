@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="a7eebed2">
+<meta name="mon-ecran-version" content="a0c981b9">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Réglages</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -237,6 +237,14 @@ html.desk .ecr-t{display:block}
 .vide{padding:14px 16px;font-size:.84rem;color:var(--ink-soft)}
 .ajout-btn{display:flex;align-items:center;gap:8px;width:100%;padding:12px 14px;border-top:1px solid var(--line);color:var(--accent);font-weight:600;font-size:.88rem;text-align:left}
 .ajout-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+
+/* Pages et widgets */
+.sec-t.fixe{cursor:default;padding-left:12px}
+label.it{cursor:pointer}
+.it.dispo-l{flex-wrap:wrap;row-gap:8px}
+.it.dispo-l .it-t small,.it.acc-l .it-t small{white-space:normal}
+.it .seg.dispo{flex:1 1 100%}
+.it .seg.dispo button{min-height:30px;padding:5px 6px;font-size:.8rem}
 
 /* barre d'envoi (en bas) */
 .barre{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom, 0px));z-index:30;width:min(528px, calc(100% - 24px));
@@ -512,12 +520,15 @@ html.desk .ecr-t{display:block}
    - Mes choix personnels (favoris, abonnements, villes météo, Spotify, portefeuille) : raccourcis vers les fenêtres de leurs pages,
      rien ne change dans leur fonctionnement (ils restent sur l'appareil et dans la partie « prefs » de la synchro).
    Uniquement Noyau (pas d'astuce propre à Safari) : la même page servira aux applis dédiées.
-   Adresses : reglages.html#actus | #actus-en | #youtube | #sport | #marches ; ?retour=actus (page d'où l'on vient) */
+   - Pages et widgets (onglet Accueil) : activer / désactiver pages et widgets, source du widget « À la une » ; appliqués tout de suite
+     sur cet appareil par Noyau.accueil (choix en attente compris), sur les autres après le report.
+   Adresses : reglages.html#accueil | #actus | #actus-en | #youtube | #sport | #marches ; ?retour=actus (page d'où l'on vient) ;
+   ?ajout=youtube (Mes ajouts de ce module, formulaire ouvert) */
 'use strict';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const M = Noyau.modifs, C = Noyau.catalogue, S = Noyau.stockage;
+const M = Noyau.modifs, C = Noyau.catalogue, S = Noyau.stockage, A = Noyau.accueil;
 const SVG = p => `<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
 const ICO = {
   actus:'<path d="M5 4h11a2 2 0 0 1 2 2v13a1 1 0 0 0 2 0V8"/><path d="M5 4v15a1 1 0 0 0 1 1h14"/><path d="M8 8h6M8 12h6M8 16h4"/>',
@@ -533,9 +544,12 @@ const ICO = {
   synchro:'<path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/>',
   chev:'<path d="m9 6 6 6-6 6"/>', maison:'<path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/>',
   poub:'<path d="M4 7h16M9 7V5h6v2M6.5 7l1 12h9l1-12"/>', plus:'<path d="M12 5v14M5 12h14"/>',
+  pages:'<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><path d="M14 17h6M17 14v6"/>',
 };
 /* écrans de choix : modules du catalogue (config/catalogue.json) */
 const ECRANS = {
+  accueil:{titre:'Pages et widgets', modules:['accueil'], ico:'pages', special:true,
+           intro:'Désactive une page ou un widget : il disparaît de l\'écran d\'accueil et ne charge plus rien. Le changement se voit tout de suite sur cet appareil, sur tes autres appareils après le report dans le classeur.'},
   actus:{titre:'Médias d\'actus', modules:['actus', 'actus-en'], langues:['Français', 'International'], ico:'actus',
          intro:'Coche un média : sa rubrique apparaît dans la page Actus. « Toute la rubrique » prend tous ses médias, y compris ceux ajoutés plus tard au classeur.'},
   youtube:{titre:'Chaînes YouTube', modules:['youtube'], ico:'youtube',
@@ -545,14 +559,14 @@ const ECRANS = {
   marches:{titre:'Marchés et fonds', modules:['marches'], ico:'marches', widget:true,
            intro:'Coche ce que la page Investissements suit. La case maison l\'affiche aussi dans le widget de l\'écran d\'accueil (4 au plus conseillés).'},
 };
-const MOD_ECRAN = {actus:'actus', 'actus-en':'actus', youtube:'youtube', sport:'sport', marches:'marches'};
+const MOD_ECRAN = {accueil:'accueil', actus:'actus', 'actus-en':'actus', youtube:'youtube', sport:'sport', marches:'marches'};
 /* raccourcis vers les choix personnels, qui restent dans leurs pages */
 const PERSO = [
-  {ico:'etoile', t:'Équipes et compétitions favorites', d:'Page Sport, onglet Favoris (étoile sous un match)', url:'sport.html?ouvrir=favoris'},
-  {ico:'abos', t:'Mes abonnements vidéo', d:'Page Vidéos : plateformes auxquelles tu es abonné', url:'videos.html?ouvrir=abos'},
-  {ico:'meteo', t:'Villes météo', d:'Écran d\'accueil : lieux enregistrés', url:'index.html?ouvrir=villes'},
+  {ico:'etoile', t:'Équipes et compétitions favorites', d:'Page Sport, onglet Favoris (étoile sous un match)', url:'sport.html?ouvrir=favoris', page:'sport'},
+  {ico:'abos', t:'Mes abonnements vidéo', d:'Page Vidéos : plateformes auxquelles tu es abonné', url:'videos.html?ouvrir=abos', page:'videos'},
+  {ico:'meteo', t:'Villes météo', d:'Écran d\'accueil : lieux enregistrés', url:'index.html?ouvrir=villes', widget:'meteo'},
   {ico:'musique', t:'Spotify', d:'Écran d\'accueil : connexion du widget', url:'index.html?ouvrir=spotify', widget:'spotify'},
-  {ico:'porte', t:'Réglages du portefeuille', d:'Page Investissements : cible, fiscalité, code', url:'invest.html?ouvrir=reglages'},
+  {ico:'porte', t:'Réglages du portefeuille', d:'Page Investissements : cible, fiscalité, code', url:'invest.html?ouvrir=reglages', page:'invest'},
   {ico:'theme', t:'Thème, sauvegarde et synchronisation', d:'Page État', url:'etat.html'},
 ];
 const RETOURS = {index:['index.html', 'Accueil'], actus:['actus.html', 'Actus'], sport:['sport.html', 'Sport'], videos:['videos.html', 'Vidéos'],
@@ -703,10 +717,11 @@ function rendreMenu(){
     let d = 'catalogue pas encore chargé';
     if (CAT){ const its = E.modules.flatMap(mid => moduleDe(mid) ? itemsDe(moduleDe(mid)) : []), c = compte(its);
       const att = E.modules.reduce((a, mid) => a + M.enAttente().filter(m => (m.ajout && m.ajout.module === mid) || (m.id && C.element(m.id) && C.element(m.id).module === mid)).length, 0);
-      d = `${c.n} choisi${c.n > 1 ? 's' : ''} sur ${c.tot}${att ? ` · ${att} en attente` : ''}`; }
+      d = E.special ? resumeAccueil() : `${c.n} choisi${c.n > 1 ? 's' : ''} sur ${c.tot}`;
+      if (att) d += ` · ${att} en attente`; }
     return ligne('#' + (k === 'actus' && langue ? 'actus-en' : k), E.ico, E.titre, esc(d), route.replace('-en', '') === k);
   }).join('');
-  const perso = PERSO.filter(p => !p.widget || (CFG('accueil.widgets', ['spotify']) || []).includes(p.widget)).map(p => ligne(p.url, p.ico, p.t, esc(p.d), false)).join('');
+  const perso = PERSO.filter(p => (!p.widget || A.widget(p.widget)) && (!p.page || A.page(p.page))).map(p => ligne(p.url, p.ico, p.t, esc(p.d), false)).join('');
   const N = M.enAttente(), ne = N.filter(m => m.nonEnvoyee).length;
   const sy = !Noyau.synchro.actif() ? 'Synchronisation pas activée : les choix restent sur cet appareil'
     : N.length ? `${N.length} choix en attente de report${ne ? ` (dont ${ne} pas encore envoyé${ne > 1 ? 's' : ''})` : ''}` : 'Rien en attente : le classeur est à jour';
@@ -722,6 +737,7 @@ function rendreEcran(){
   if (!CAT){ out.innerHTML = `<div class="sec glass"><p class="vide">${esc(erreurCat || 'Chargement du catalogue…')}</p></div>`; return; }
   const mid = E.modules[E.langues ? langue : 0], mod = moduleDe(mid);
   if (!mod){ out.innerHTML = `<div class="sec glass"><p class="vide">L'onglet « ${esc(mid)} » n'est pas dans le classeur actuel.</p></div>`; return; }
+  if (E.special){ out.innerHTML = ecranAccueil(E, mod); return; }
   const nq = norm(q.trim());
   const trouve = it => !nq || norm([it.nom, ...Object.values(it.infos || {})].join(' ')).includes(nq);
   let h = `<h2 class="ecr-t">${esc(E.titre)}</h2><p class="intro">${esc(E.intro)}</p>`, rien = true;
@@ -800,20 +816,88 @@ function formulaire(mid, mod){
     <p class="note" style="margin:0">L'ajout est testé par la tâche « Configuration »${ecr.titre === 'Compétitions' ? ' (la clé ESPN est trouvée si possible)' : ''} ; le résultat s'affiche ici.</p></form>`;
 }
 
+/* ---------- Pages et widgets (onglet Accueil du classeur) ---------- */
+const secAccueil = cle => { const m = moduleDe('accueil'); return m && (m.sections || []).find(s => s.cle === cle) || null; };
+const toujours = it => A.TOUJOURS.includes(it.def) || it.id === 'pg:etat';
+const on = id => etat(id).choisi;
+function resumeAccueil(){
+  const P = (secAccueil('pages') || {items:[]}).items.filter(it => !toujours(it)), W = (secAccueil('widgets') || {items:[]}).items;
+  const n = L => L.filter(it => on(it.id)).length;
+  return `${n(P)} page${n(P) > 1 ? 's' : ''} sur ${P.length} · ${n(W)} widget${n(W) > 1 ? 's' : ''} sur ${W.length}`;
+}
+/* une seule source « À la une » : Oui sur la source choisie, les autres vides (ou « Non » si toute la section est cochée) */
+function choisirUne(id){
+  const e = C.element(id); if (!e || !e.section) return;
+  const secOui = etat(e.section.id).oui;
+  for (const it of e.section.items || []) if (it.id !== id && on(it.id)) changer(it.id, {Oui:secOui === 'Oui' ? 'Non' : ''});
+  if (etat(id).oui !== 'Oui') changer(id, {Oui:'Oui'});
+  A.choisirUne(id, e.item.def);                                           // l'accueil de cet appareil l'utilise sans attendre le report
+}
+/* ce que devient l'accueil quand un élément est coupé (d'après les choix actuels, en attente compris) */
+function noteAccueil(it){
+  const pg = p => on('pg:' + p), wg = w => on('wg:' + w), coupe = !on(it.id), n = [];
+  if (it.id.startsWith('wg:') && coupe){
+    if (it.def === 'une' && pg('actus')) n.push('une tuile Actus le remplace');
+    if (it.def === 'invest' && pg('invest')) n.push('une tuile Investissements le remplace');
+    if (it.def === 'sport' && pg('sport')) n.push(wg('live') ? 'une tuile Sport le remplace sur téléphone' : 'une tuile Sport le remplace');
+    if (it.def === 'meteo' && pg('cachee')) n.push('coffre : appui long sur le bouton État');
+  }
+  if (it.id.startsWith('pg:') && coupe){
+    const w = {actus:['une', 'À la une'], invest:['invest', 'Investissements'], sport:['sport', 'Bandeau Sports']}[it.def];
+    if (w && wg(w[0])) n.push(`le widget ${w[1]} reste, sans lien vers la page`);
+    if (it.def === 'cachee') n.push('plus d\'appui long pour l\'ouvrir');
+  }
+  return n.length ? `<span class="etq">${n.map(t => `<span class="bd gr">${esc(t)}</span>`).join('')}</span>` : '';
+}
+/* ce que chaque widget couvre selon l'appareil (le classeur ne dit que « sur iPhone ») */
+const DETAIL_ACC = {'wg:une':'carré sur téléphone, colonne d\'actus sur ordinateur', 'wg:sport':'bandeau sur téléphone, « Sports aujourd\'hui » sur ordinateur'};
+function ligneAccueil(it){
+  const e = etat(it.id), inf = DETAIL_ACC[it.id] || infoTxt(null, it);
+  return `<div class="it acc-l"><span class="it-t"><b>${esc(it.nom)}</b>${inf ? `<small>${esc(inf)}</small>` : ''}${badges(it.id, it)}${noteAccueil(it)}</span>
+    <input type="checkbox" class="sw" data-choisir="${esc(it.id)}" aria-label="${esc(it.nom)}"${e.choisi ? ' checked' : ''}></div>`;
+}
+function blocAccueil(titre, sous, corps, attente){
+  return `<div class="sec glass"><div class="sec-h"><span class="sec-t fixe"><span><b>${esc(titre)}</b><small>${esc(sous)}${attente ? ' · ⏳' : ''}</small></span></span></div><div class="sec-b">${corps}</div></div>`;
+}
+function ecranAccueil(E, mod){
+  const sP = secAccueil('pages'), sW = secAccueil('widgets'), sU = secAccueil('une');
+  const att = s => s && (attenteDe(s.id).length || (s.items || []).some(it => attenteDe(it.id).length));
+  let h = `<h2 class="ecr-t">${esc(E.titre)}</h2><p class="intro">${esc(E.intro)}</p>`;
+  if (sP){
+    const P = (sP.items || []).filter(it => !toujours(it));
+    const fixes = [A.NOMS_PAGES.etat, A.NOMS_PAGES.reglages].map(nom => `<div class="it gris"><span class="it-t"><b>${esc(nom)}</b><small>toujours active</small></span>
+      <input type="checkbox" class="sw" checked disabled aria-label="${esc(nom)} : toujours active"></div>`).join('');
+    h += blocAccueil(sP.label, `${P.filter(it => on(it.id)).length} sur ${P.length} · une page désactivée disparaît de l'accueil`, P.map(ligneAccueil).join('') + fixes, att(sP));
+  }
+  if (sW){
+    const d = A.disposition();
+    const dispo = `<div class="it dispo-l"><span class="it-t"><b>Widget seul en haut</b><small>Quand Horloge ou À la une est coupé : pleine largeur ou carré (sur cet appareil, format téléphone)</small></span>
+      <div class="seg dispo" role="group" aria-label="Widget seul en haut">${[['large', 'Large'], ['carre', 'Carré']].map(([k, l]) => `<button type="button" data-dispo="${k}" aria-pressed="${d === k}">${l}</button>`).join('')}</div></div>`;
+    h += blocAccueil(sW.label, `${(sW.items || []).filter(it => on(it.id)).length} sur ${(sW.items || []).length} · un widget coupé n'est ni affiché ni chargé`, (sW.items || []).map(ligneAccueil).join('') + dispo, att(sW));
+  }
+  if (sU){
+    const rows = (sU.items || []).map(it => { const e = etat(it.id), inf = infoTxt(null, it);
+      return `<label class="it"><span class="it-t"><b>${esc(it.nom)}</b>${inf ? `<small>${esc(inf)}</small>` : ''}${badges(it.id, it)}</span>
+        <input type="radio" name="une" class="ck" data-une="${esc(it.id)}" aria-label="${esc(it.nom)}"${e.choisi ? ' checked' : ''}></label>`; }).join('');
+    h += blocAccueil('Source du widget « À la une »', 'une seule · utilisée quand les actus préparées ne sont pas à jour', rows, att(sU));
+  }
+  return h;
+}
+
 function rendre(){
   const k = route.replace('-en', ''), E = ECRANS[k];
   $('#lay').classList.toggle('sur-ecran', !!E);
-  if (desk() && !E){ route = 'actus'; return rendre(); }
+  if (desk() && !E){ route = 'accueil'; return rendre(); }
   $('#titre').textContent = E && !desk() ? E.titre : 'Réglages';
   document.title = E ? `${E.titre} · Réglages` : 'Réglages';
   const [bh, bt] = E && !desk() && !RETOUR ? ['#', 'Réglages'] : RETOUR || ['index.html', 'Accueil'];
   $('#back').setAttribute('href', bh); $('#backT').textContent = bt;
-  $('#outils').hidden = !E;
+  $('#outils').hidden = !E || !!E.special;
   document.querySelector('header').classList.toggle('sur-ecran', !!E && !desk());
   const seg = $('#seg');
   seg.hidden = !(E && E.langues);
   if (E && E.langues) seg.innerHTML = E.langues.map((l, i) => `<button type="button" data-langue="${i}" aria-pressed="${i === langue}">${i ? '🇺🇸' : '🇫🇷'} ${esc(l)}</button>`).join('');
-  $('#q').placeholder = E ? `Rechercher ${{actus:'un média', youtube:'une chaîne', sport:'une compétition', marches:'un indice, un fonds…'}[k]}` : 'Rechercher';
+  $('#q').placeholder = E ? `Rechercher ${{actus:'un média', youtube:'une chaîne', sport:'une compétition', marches:'un indice, un fonds…'}[k] || ''}` : 'Rechercher';
   $('#qEff').hidden = !q;
   rendreMenu(); rendreEcran();
   $('#stamp').textContent = M.enAttente().length ? `${M.enAttente().length} en attente` : '';
@@ -836,7 +920,8 @@ $('#q').addEventListener('input', e => { q = e.target.value; $('#qEff').hidden =
 $('#qEff').addEventListener('click', () => { q = ''; $('#q').value = ''; $('#qEff').hidden = true; rendreEcran(); });
 $('#refreshBtn').addEventListener('click', async () => { const b = $('#refreshBtn'); b.classList.add('spin'); await charger(true); b.classList.remove('spin'); });
 $('#ecran').addEventListener('click', async e => {
-  const t = e.target.closest('[data-ouvrir],[data-acc],[data-effacer],[data-annuler],[data-form],[data-vu]'); if (!t) return;
+  const t = e.target.closest('[data-ouvrir],[data-acc],[data-effacer],[data-annuler],[data-form],[data-vu],[data-dispo]'); if (!t) return;
+  if (t.dataset.dispo){ A.choisirDisposition(t.dataset.dispo); rendreEcran(); return; }
   if (t.dataset.ouvrir){ const id = t.dataset.ouvrir; OUV.has(id) ? OUV.delete(id) : OUV.add(id); S.session.ecrire('reglages:ouverts', [...OUV]); if (formAjout && id === 'ajouts:' + formAjout) formAjout = null; rendreEcran(); return; }
   if (t.dataset.acc){ changer(t.dataset.acc, {'Widget accueil':t.getAttribute('aria-pressed') === 'true' ? '' : 'Oui'}); apresChangement(); return; }
   if (t.dataset.effacer){ const nom = t.dataset.nom || '';
@@ -851,6 +936,7 @@ $('#ecran').addEventListener('click', async e => {
 $('#ecran').addEventListener('change', e => {
   const t = e.target;
   if (t.dataset.choisir){ choisirItem(t.dataset.choisir, t.checked); apresChangement(); }
+  else if (t.dataset.une){ choisirUne(t.dataset.une); apresChangement(); }
   else if (t.dataset.tout){ choisirSection(t.dataset.tout, t.checked); OUV.add(t.dataset.tout); S.session.ecrire('reglages:ouverts', [...OUV]); apresChangement(); }
   else if (t.name === 'section' && t.form && t.form.id === 'ajF'){ $('#ajNouv').hidden = !!t.value; }
 });
@@ -872,11 +958,14 @@ async function charger(frais = false){
   rendre();
 }
 lireRoute();
+if (params.get('ajout')){ formAjout = params.get('ajout'); OUV.add('ajouts:' + formAjout);
+  try{ params.delete('ajout'); history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params : '') + location.hash); }catch{} }
 if (location.hash) history.replaceState('direct', '');
 rendre();
 (async () => {
   const frais = M.enAttente().some(m => !m.nonEnvoyee) && await Noyau.synchro.pret();    // des choix envoyés attendent : on lit la dernière version sur GitHub
   await charger(frais);
+  if (formAjout){ const f = $('#ajF'); if (f) f.scrollIntoView({block:'center'}); }      // venu de « ＋ Chaîne » : formulaire visible
   if (M.enAttente().some(m => !m.nonEnvoyee)) suivre();
   planifier();
 })();

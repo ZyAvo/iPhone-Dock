@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 84dbf6cd
+# mon-ecran-version: 8590f0b5
 # Lit le classeur de configuration (configuration.xlsx) et écrit les réglages du dock dans config/ :
 #   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json, applis.json
 #   config/config.js                     → les mêmes réglages en un seul fichier, chargé par les pages (window.MON_ECRAN_CONFIG)
@@ -559,9 +559,10 @@ def main():
     for k, v in cfg.items():
         json.dump(v, open(os.path.join(OUT, f'{k}.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     # un seul fichier pour les pages (chargé avant leur code ; en cas d'absence, elles gardent leurs réglages intégrés)
+    # modifs_traitees : choix de l'appli déjà traités, pour les pages qui ne chargent pas le catalogue (l'accueil, Noyau.accueil)
     with open(os.path.join(OUT, 'config.js'), 'w', encoding='utf-8') as f:
         f.write('// Réglages du dock, écrits par la tâche « Configuration » à partir de configuration.xlsx — ne pas modifier à la main.\n')
-        f.write('window.MON_ECRAN_CONFIG = ' + json.dumps(dict(cfg, genere=RAPPORT['date']), ensure_ascii=False, separators=(',', ':')) + ';\n')
+        f.write('window.MON_ECRAN_CONFIG = ' + json.dumps(dict(cfg, genere=RAPPORT['date'], modifs_traitees=sorted(modifs['traitees'])), ensure_ascii=False, separators=(',', ':')) + ';\n')
     # liste des chaînes pour le programme TV (même format que outils/chaines-tv.xml)
     esc = lambda v: str(v).replace('&', '&amp;').replace('<', '&lt;').replace('"', '&quot;')
     with open(os.path.join(OUT, 'chaines-tv.xml'), 'w', encoding='utf-8') as f:
