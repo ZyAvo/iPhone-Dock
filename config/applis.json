@@ -1,26 +1,31 @@
 {
  "accueil": [
   {
+   "id": "ap:accueil:finance",
    "label": "Finance",
    "type": "folder",
    "target": "finance"
   },
   {
+   "id": "ap:accueil:travail",
    "label": "Travail",
    "type": "folder",
    "target": "travail"
   },
   {
+   "id": "ap:accueil:medias",
    "label": "Médias",
    "type": "folder",
    "target": "medias"
   },
   {
+   "id": "ap:accueil:jeux",
    "label": "Jeux",
    "type": "folder",
    "target": "jeux"
   },
   {
+   "id": "ap:accueil:videos",
    "label": "Vidéos",
    "type": "page",
    "url": "videos.html",
@@ -28,6 +33,7 @@
    "color": "--t-brick"
   },
   {
+   "id": "ap:accueil:sports",
    "label": "Sports",
    "type": "page",
    "url": "sport.html",
@@ -38,8 +44,10 @@
  "dossiers": {
   "finance": {
    "title": "Finance",
+   "id": "sec:applis:dossier-finance",
    "items": [
     {
+     "id": "ap:finance:trade-republic",
      "label": "Trade Republic",
      "mono": "TR",
      "color": "--t-char",
@@ -49,6 +57,7 @@
      "android": "intent://#Intent;package=de.traderepublic.app;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dde.traderepublic.app;end"
     },
     {
+     "id": "ap:finance:boursobank",
      "label": "BoursoBank",
      "mono": "Bo",
      "color": "--t-rose",
@@ -57,6 +66,7 @@
      "android": "intent://#Intent;package=com.boursorama.android.clients;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.boursorama.android.clients;end"
     },
     {
+     "id": "ap:finance:cyberplus",
      "label": "Cyberplus",
      "mono": "BP",
      "color": "--t-brick",
@@ -66,6 +76,7 @@
      "android": "intent://#Intent;package=fr.banquepopulaire.cyberplus;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dfr.banquepopulaire.cyberplus;end"
     },
     {
+     "id": "ap:finance:swile",
      "label": "Swile",
      "mono": "Sw",
      "color": "--t-plum",
@@ -74,6 +85,7 @@
      "web": "https://app.swile.co"
     },
     {
+     "id": "ap:finance:esalia",
      "label": "Esalia",
      "mono": "Es",
      "color": "--t-teal",
@@ -84,8 +96,10 @@
   },
   "medias": {
    "title": "Médias",
+   "id": "sec:applis:dossier-medias",
    "items": [
     {
+     "id": "ap:medias:videolite",
      "label": "VideoLite",
      "mono": "VL",
      "color": "--t-plum",
@@ -94,6 +108,7 @@
      "alt": "VideoLite"
     },
     {
+     "id": "ap:medias:canal",
      "label": "Canal+",
      "mono": "C+",
      "color": "--t-char",
@@ -104,6 +119,7 @@
      "android": "intent://#Intent;package=com.canal.android.canal;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.canal.android.canal;end"
     },
     {
+     "id": "ap:medias:prime-video",
      "label": "Prime Video",
      "mono": "PV",
      "color": "--t-slate",
@@ -113,6 +129,7 @@
      "android": "intent://#Intent;package=com.amazon.avod.thirdpartyclient;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.amazon.avod.thirdpartyclient;end"
     },
     {
+     "id": "ap:medias:smartersplayerlite",
      "label": "SmartersPlayerLite",
      "mono": "SP",
      "color": "--t-teal",
@@ -124,8 +141,10 @@
   },
   "jeux": {
    "title": "Jeux",
+   "id": "sec:applis:dossier-jeux",
    "items": [
     {
+     "id": "ap:jeux:chess",
      "label": "Chess",
      "mono": "♞",
      "color": "--t-olive",
@@ -134,6 +153,7 @@
      "android": "intent://#Intent;package=com.chess;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.chess;end"
     },
     {
+     "id": "ap:jeux:brawl-stars",
      "label": "Brawl Stars",
      "mono": "BS",
      "color": "--t-ochre",
@@ -142,6 +162,7 @@
      "android": "intent://#Intent;package=com.supercell.brawlstars;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.supercell.brawlstars;end"
     },
     {
+     "id": "ap:jeux:songs-of-conquest",
      "label": "Songs of Conquest",
      "mono": "SC",
      "color": "--t-plum",
@@ -152,8 +173,10 @@
   },
   "travail": {
    "title": "Travail",
+   "id": "sec:applis:dossier-travail",
    "items": [
     {
+     "id": "ap:travail:outlook",
      "label": "Outlook",
      "mono": "O",
      "color": "--t-slate",
@@ -163,6 +186,7 @@
      "android": "intent://#Intent;package=com.microsoft.office.outlook;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.microsoft.office.outlook;end"
     },
     {
+     "id": "ap:travail:teams",
      "label": "Teams",
      "mono": "T",
      "color": "--t-plum",
@@ -172,6 +196,7 @@
      "android": "intent://#Intent;package=com.microsoft.teams;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.microsoft.teams;end"
     },
     {
+     "id": "ap:travail:word",
      "label": "Word",
      "mono": "W",
      "color": "--t-brick",
@@ -181,6 +206,7 @@
      "android": "intent://#Intent;package=com.microsoft.office.word;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.microsoft.office.word;end"
     },
     {
+     "id": "ap:travail:powerpoint",
      "label": "PowerPoint",
      "mono": "P",
      "color": "--t-rose",
@@ -190,6 +216,7 @@
      "android": "intent://#Intent;package=com.microsoft.office.powerpoint;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.microsoft.office.powerpoint;end"
     },
     {
+     "id": "ap:travail:onenote",
      "label": "OneNote",
      "mono": "N",
      "color": "--t-plum",
@@ -199,6 +226,7 @@
      "android": "intent://#Intent;package=com.microsoft.office.onenote;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.microsoft.office.onenote;end"
     },
     {
+     "id": "ap:travail:power-bi",
      "label": "Power BI",
      "mono": "BI",
      "color": "--t-ochre",
@@ -208,6 +236,7 @@
      "android": "intent://#Intent;package=com.microsoft.powerbim;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.microsoft.powerbim;end"
     },
     {
+     "id": "ap:travail:sap-concur",
      "label": "SAP Concur",
      "mono": "Cc",
      "color": "--t-teal",
@@ -216,6 +245,7 @@
      "android": "intent://#Intent;package=com.concur.breeze;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.concur.breeze;end"
     },
     {
+     "id": "ap:travail:fichiers",
      "label": "Fichiers",
      "icon": "folder",
      "color": "--t-slate",
@@ -224,6 +254,7 @@
      "android": "intent://#Intent;package=com.google.android.apps.nbu.files;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.google.android.apps.nbu.files;end"
     },
     {
+     "id": "ap:travail:proton-drive",
      "label": "Proton Drive",
      "mono": "PD",
      "color": "--t-char",
@@ -233,6 +264,7 @@
      "android": "intent://#Intent;package=me.proton.android.drive;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dme.proton.android.drive;end"
     },
     {
+     "id": "ap:travail:portail-entreprise",
      "label": "Portail Entreprise",
      "mono": "PE",
      "color": "--t-slate",
@@ -241,6 +273,7 @@
      "android": "intent://#Intent;package=com.microsoft.windowsintune.companyportal;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.microsoft.windowsintune.companyportal;end"
     },
     {
+     "id": "ap:travail:authenticator",
      "label": "Authenticator",
      "mono": "Au",
      "color": "--t-olive",
@@ -249,6 +282,7 @@
      "android": "intent://#Intent;package=com.azure.authenticator;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.azure.authenticator;end"
     },
     {
+     "id": "ap:travail:linkedin",
      "label": "LinkedIn",
      "mono": "in",
      "color": "--t-slate",
@@ -262,6 +296,7 @@
  },
  "bas_gauche": [
   {
+   "id": "ap:bas_gauche:claude",
    "label": "Claude",
    "icon": "spark",
    "app": "claude://",
@@ -270,6 +305,7 @@
    "android": "intent://#Intent;package=com.anthropic.claude;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.anthropic.claude;end"
   },
   {
+   "id": "ap:bas_gauche:whatsapp",
    "label": "WhatsApp",
    "icon": "round",
    "app": "whatsapp://",
@@ -277,6 +313,7 @@
    "android": "intent://#Intent;package=com.whatsapp;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.whatsapp;end"
   },
   {
+   "id": "ap:bas_gauche:messenger",
    "label": "Messenger",
    "icon": "duo",
    "app": "fb-messenger://",
@@ -286,6 +323,7 @@
  ],
  "bas_droite": [
   {
+   "id": "ap:bas_droite:proton-vpn",
    "label": "Proton VPN",
    "icon": "network",
    "app": "protonvpn://",
@@ -293,6 +331,7 @@
    "android": "intent://#Intent;package=ch.protonvpn.android;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dch.protonvpn.android;end"
   },
   {
+   "id": "ap:bas_droite:bitwarden",
    "label": "Bitwarden",
    "icon": "shield",
    "app": "bitwarden://",
@@ -301,12 +340,14 @@
    "android": "intent://#Intent;package=com.x8bit.bitwarden;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.x8bit.bitwarden;end"
   },
   {
+   "id": "ap:bas_droite:cartes",
    "label": "Cartes",
    "icon": "card",
    "app": "shoebox://",
    "android": "intent://#Intent;package=com.google.android.apps.walletnfcrel;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.google.android.apps.walletnfcrel;end"
   },
   {
+   "id": "ap:bas_droite:navigation",
    "label": "Navigation",
    "icon": "nav",
    "action": "nav"
@@ -314,6 +355,7 @@
  ],
  "navigation": [
   {
+   "id": "ap:navigation:waze",
    "label": "Waze",
    "store": "Waze",
    "app": "waze://",
@@ -321,17 +363,31 @@
    "android": "intent://#Intent;package=com.waze;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.waze;end"
   },
   {
+   "id": "ap:navigation:plans",
    "label": "Plans",
    "storeId": "915056765",
    "app": "maps://",
    "web": "https://maps.apple.com"
   },
   {
+   "id": "ap:navigation:google-maps",
    "label": "Google Maps",
    "store": "Google Maps",
    "app": "comgooglemaps://",
    "web": "https://maps.google.com",
    "android": "intent://#Intent;package=com.google.android.apps.maps;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.google.android.apps.maps;end"
   }
- ]
+ ],
+ "reserve": {
+  "ap:bas_gauche:x": {
+   "id": "ap:bas_gauche:x",
+   "label": "X",
+   "icon": "xmark",
+   "app": "twitter://",
+   "web": "https://x.com",
+   "android": "intent://#Intent;package=com.twitter.android;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.twitter.android;end",
+   "ou": "bas_gauche",
+   "apres": "ap:bas_gauche:messenger"
+  }
+ }
 }

@@ -1,5 +1,5 @@
 {
- "date": "2026-10-30T17:02:09+00:00",
+ "date": "2026-10-30T17:03:10+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -105,16 +105,7 @@
  "erreurs": [],
  "modifs": {
   "recues": 1,
-  "nouvelles": [
-   {
-    "uid": "mvv7z88r-0p0r176g5n",
-    "statut": "ok",
-    "message": "reporté dans l'onglet Actus, ligne 107 : Oui = Oui",
-    "id": "actus:sciences:le-monde-sciences",
-    "le": "2026-10-30T17:02:09+00:00",
-    "par": "iPhone"
-   }
-  ]
+  "nouvelles": []
  },
  "resume": {
   "ok": 4,
