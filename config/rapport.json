@@ -1,5 +1,5 @@
 {
- "date": "2026-10-31T08:11:09+00:00",
+ "date": "2026-10-31T08:16:21+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -29,7 +29,7 @@
   },
   "youtube": {
    "onglet": "YouTube",
-   "coches": 3,
+   "coches": 7,
    "ajouts": 0
   },
   "tv": {
@@ -96,6 +96,34 @@
   },
   {
    "onglet": "YouTube",
+   "ligne": 25,
+   "nom": "NASA",
+   "statut": "ok",
+   "message": "chaîne UC9SM7V7J1pAhPabOUST01fw · 15 vidéos récentes"
+  },
+  {
+   "onglet": "YouTube",
+   "ligne": 27,
+   "nom": "ESA",
+   "statut": "ok",
+   "message": "chaîne UCjajQVmLr2s8TX9OvirZn9A · 15 vidéos récentes"
+  },
+  {
+   "onglet": "YouTube",
+   "ligne": 31,
+   "nom": "Nota Bene",
+   "statut": "ok",
+   "message": "chaîne UCrbbgYjbrXVYRM_iRGEDqFw · 15 vidéos récentes"
+  },
+  {
+   "onglet": "YouTube",
+   "ligne": 32,
+   "nom": "Le Dessous des cartes",
+   "statut": "warn",
+   "message": "chaîne UC62Sw2sSA6W0_LMM3l0vDkQ trouvée, aucune vidéo récente"
+  },
+  {
+   "onglet": "YouTube",
    "ligne": 43,
    "nom": "Joueur du Grenier",
    "statut": "ok",
@@ -104,12 +132,45 @@
  ],
  "erreurs": [],
  "modifs": {
-  "recues": 3,
-  "nouvelles": []
+  "recues": 4,
+  "nouvelles": [
+   {
+    "uid": "mvw4mmg6-666p3y3367",
+    "statut": "ok",
+    "message": "reporté dans l'onglet YouTube, ligne 32 : Oui = Oui",
+    "id": "yt:@ledessousdescartes",
+    "le": "2026-10-31T08:16:21+00:00",
+    "par": "iPhone"
+   },
+   {
+    "uid": "mvw4mmll-096w6y7246",
+    "statut": "ok",
+    "message": "reporté dans l'onglet YouTube, ligne 31 : Oui = Oui",
+    "id": "yt:@notabenemovies",
+    "le": "2026-10-31T08:16:21+00:00",
+    "par": "iPhone"
+   },
+   {
+    "uid": "mvw4mqxq-1j0i5v6o2m",
+    "statut": "ok",
+    "message": "reporté dans l'onglet YouTube, ligne 25 : Oui = Oui",
+    "id": "yt:@nasa",
+    "le": "2026-10-31T08:16:21+00:00",
+    "par": "iPhone"
+   },
+   {
+    "uid": "mvw4mrwe-076m2e0c3s",
+    "statut": "ok",
+    "message": "reporté dans l'onglet YouTube, ligne 27 : Oui = Oui",
+    "id": "yt:@europeanspaceagency",
+    "le": "2026-10-31T08:16:21+00:00",
+    "par": "iPhone"
+   }
+  ]
  },
  "resume": {
-  "ok": 4,
-  "warn": 2,
+  "ok": 7,
+  "warn": 3,
   "ko": 0,
   "info": 0
  },
