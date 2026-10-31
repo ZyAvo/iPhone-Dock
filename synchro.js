@@ -1,4 +1,4 @@
-// mon-ecran-version: 70ce099a
+// mon-ecran-version: 2ef896b2
 /* Mon Écran — synchronisation chiffrée entre tes appareils (iPhone, PC…).
    - Un fichier chiffré (synchro/mon-ecran.json, branche « synchro » de ton dépôt GitHub) contient tes placements,
      versements, réglages d'investissement et le Coffre. Sans la phrase secrète, c'est un bloc illisible.
@@ -152,9 +152,9 @@ const MSG = {jeton:'clé GitHub refusée (expirée ou mal copiée)', droits:'la 
 const investLocal = () => { const { verrou, ...reglages } = LSg('invest:reglages', {}); return {lignes:LSg('invest:lignes', []), reglages, versements:LSg('invest:versements', [])}; };
 const investAppliquer = v => { const reg = LSg('invest:reglages', {}); LSs('invest:lignes', v.lignes || []); LSs('invest:reglages', {...(v.reglages || {}), verrou:reg.verrou}); LSs('invest:versements', v.versements || []); };
 /* partie « prefs » : tes choix personnels, réglés dans l'appli (plus dans le classeur) :
-   équipes et compétitions favorites (Sport), abonnements cochés (Vidéos), villes météo (Accueil), thème perso (État, v42) */
-const PREFS = {sport:'sport:favoris', abos:'videos:abos', villes:'lieu:favoris', theme:'theme:perso'};
-const PREFS_SI_PRESENT = ['theme'];      // absentes du contenu tant qu'elles sont vides : l'empreinte des favoris d'avant la v42 ne change pas
+   équipes et compétitions favorites (Sport), abonnements cochés (Vidéos), villes météo (Accueil), thème perso (État, v42), chaînes TV favorites (v44) */
+const PREFS = {sport:'sport:favoris', abos:'videos:abos', villes:'lieu:favoris', theme:'theme:perso', tv:'tv:favoris'};
+const PREFS_SI_PRESENT = ['theme', 'tv'];      // absentes du contenu tant qu'elles sont vides : l'empreinte des favoris d'avant la v42 ne change pas
 const prefsLocal = () => Object.fromEntries(Object.entries(PREFS).map(([k, c]) => [k, LSg(c, null)]).filter(([k, v]) => v != null || !PREFS_SI_PRESENT.includes(k)));
 const prefsAppliquer = v => {
   for (const [k, c] of Object.entries(PREFS)) if (v && v[k] != null) LSs(c, v[k]);
@@ -163,7 +163,7 @@ const prefsAppliquer = v => {
 };
 const prefsVide = p => !p || Object.values(p).every(x => x == null);
 const PREFS_OPTS = {local:prefsLocal, appliquer:prefsAppliquer,
-  choisir:(ici, ailleurs) => prefsVide(ici) ? 'ailleurs' : prefsVide(ailleurs) ? 'ici' : conflit('Tes favoris (sport, abonnements, villes, thème perso)')()};
+  choisir:(ici, ailleurs) => prefsVide(ici) ? 'ailleurs' : prefsVide(ailleurs) ? 'ici' : conflit('Tes favoris (sport, abonnements, villes, thème perso, chaînes TV)')()};
 const prefsSync = () => LSg('synchro:cfg', null) ? partie('prefs', PREFS_OPTS) : Promise.resolve('inactif');
 /* au chargement : si la session est déjà ouverte (code saisi), on échange les préférences sans rien demander */
 setTimeout(async () => { try{ if (LSg('synchro:cfg', null) && await sessionCle()) prefsSync(); }catch{} }, 2500);

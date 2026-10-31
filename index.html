@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="b95cc874">
+<meta name="mon-ecran-version" content="4b65be41">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -194,6 +194,36 @@ html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);tra
 .ds-l{display:block;font-size:.7rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ds-row.fav .ds-t::before{content:"★ ";color:#e0a100}
 .d-empty{font-size:.86rem;color:var(--ink-soft);margin:0}
+/* Mode TV (PC, v44) : lecteur à la place d'« À la une », chaînes en haut à droite, matchs en bas à droite, détail du match au centre, actus à gauche */
+.tvm{display:none}
+.d-tv{font-size:.8rem;font-weight:600;color:var(--accent);margin-left:auto}
+html.desk.tv-on #home{grid-template-columns:minmax(300px,340px) minmax(0,1fr) minmax(320px,380px)!important;
+  grid-template-areas:"clock lecteur chaines" "inv lecteur chaines" "spot detail matchs" "actu detail matchs" "apps apps apps" "quick quick quick"!important;
+  grid-template-rows:auto auto auto minmax(380px,1fr) auto auto!important}
+html.desk.tv-on #deskNews,html.desk.tv-on #deskSport{display:none!important}
+html.desk.tv-on .tvm{display:flex}
+html.desk #tvLecteur{grid-area:lecteur;align-self:stretch}
+html.desk #tvChainesZ{grid-area:chaines}html.desk #tvMatchsZ{grid-area:matchs}html.desk #tvDetailZ{grid-area:detail}html.desk #tvActuZ{grid-area:actu}
+.tvm-b{position:relative;align-self:stretch;border-radius:28px;min-height:160px;overflow:hidden}
+.tvm-b > .tvm-in{position:absolute;inset:0;padding:16px 18px;display:flex;flex-direction:column;gap:10px;overflow:auto}
+#tvChainesZ > .tvm-in{overflow:hidden}
+#tvChainesZ .tv-l{flex:1}
+.tvd-sc{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;align-items:center;text-align:center}
+.tvd-eq{display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:600;font-size:.92rem;min-width:0}
+.tvd-eq img{width:44px;height:44px;object-fit:contain}
+.tvd-eq span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.tvd-s{font-size:2.2rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.tvd-st{font-size:.78rem;color:var(--ink-soft);text-align:center}
+.tvd-ev{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:.84rem}
+.tvd-ev b{font-variant-numeric:tabular-nums;color:var(--ink-soft);font-weight:600}
+.tvd-stat{display:grid;grid-template-columns:60px minmax(0,1fr) 60px;gap:8px;padding:5px 0;font-size:.82rem;text-align:center;border-top:1px solid var(--line)}
+.tvd-stat span:nth-child(2){color:var(--ink-soft)}
+.tvm-m{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);width:100%;text-align:left;cursor:pointer}
+.tvm-m[aria-current="true"] .ds-t{color:var(--accent)}
+.tvm-sc{font-size:.84rem;font-weight:700;font-variant-numeric:tabular-nums}
+.tvm-a{display:flex;flex-direction:column;gap:3px;padding:8px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none}
+.tvm-a b{font-size:.84rem;line-height:1.3;font-weight:600;overflow-wrap:anywhere}
+.tvm-a:hover b{text-decoration:underline;text-underline-offset:3px}
 .d-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;padding:9px 16px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:.84rem;font-weight:600;box-shadow:0 10px 26px -10px rgba(0,0,0,.5)}
 
 /* Widget Investissements (pleine largeur, montants masqués par défaut) */
@@ -435,6 +465,11 @@ html:not(.desk).haut-seul:not(.dispo-carre) .w-news .headline{-webkit-line-clamp
     </div>
     <section class="dn glass desk-only" id="deskNews" aria-label="À la une"></section>
     <section class="ds glass desk-only" id="deskSport" aria-label="Sports aujourd'hui"></section>
+    <section class="tv-z glass tvm" id="tvLecteur" aria-label="Lecteur TV"></section>
+    <section class="glass tvm tvm-b" id="tvChainesZ" aria-label="Chaînes"><div class="tvm-in"></div></section>
+    <section class="glass tvm tvm-b" id="tvMatchsZ" aria-label="Matchs"><div class="tvm-in"></div></section>
+    <section class="glass tvm tvm-b" id="tvDetailZ" aria-label="Détail du match"><div class="tvm-in"></div></section>
+    <section class="glass tvm tvm-b" id="tvActuZ" aria-label="Actus"><div class="tvm-in"></div></section>
     <section class="w-inv glass" id="inv" aria-label="Investissements"></section>
     <section class="w-spot glass" id="spot" aria-label="Spotify"></section>
     <div class="grid" id="grid"></div>
@@ -1101,6 +1136,7 @@ function spPanel(mode = 'setup'){
     const on = !!(spTok && spTok.refresh);
     box.innerHTML = `<h3 id="spTitle">${on ? 'Spotify' : 'Connecter Spotify'}</h3>
       ${on ? `<p class="pl-msg">Compte connecté. Le widget se met à jour pendant la lecture.</p>
+        ${!standalone() ? '<button type="button" class="sp-go" data-sp="transfert">Code pour l\'icône de l\'écran d\'accueil</button>' : ''}
         <button type="button" class="sp-go" data-sp="logout">Déconnecter</button>` : `
       <ol class="sp-steps">
         <li>Ouvre <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a>, connecte-toi avec ton compte Spotify et touche <b>Create app</b>.</li>
@@ -1128,6 +1164,7 @@ document.addEventListener('click', async e => {
   e.preventDefault(); e.stopPropagation();
   const what = b.dataset.sp, msg = t => { const m = $('#spMsg'); if (m) m.textContent = t; };
   if (what === 'setup') return spPanel();
+  if (what === 'transfert') return spPanel('transfert');
   if (what === 'close') return spClose();
   if (['toggle', 'next', 'prev'].includes(what)) return spCommand(what);
   if (what === 'copy'){
@@ -1379,12 +1416,13 @@ async function loadDeskNews(){
     const j = await r.json(), it = (((j.tabs || {}).une || {}).items || []).slice(0, 9);
     if (!it.length) throw 0;
     const [h, ...rest] = it, ext = 'target="_blank" rel="noopener"';
-    el.innerHTML = `<div class="d-head"><span class="w-label">À la une</span>${PG('actus') ? '<a href="actus.html">Toutes les actus ›</a>' : ''}</div>
+    el.innerHTML = `<div class="d-head"><span class="w-label">À la une</span><button type="button" class="d-tv" data-tvmode>Mode TV</button>${PG('actus') ? '<a href="actus.html">Toutes les actus ›</a>' : ''}</div>
       <a class="dn-hero" href="${esc(h.link)}" ${ext}>${h.img ? `<img src="${esc(String(h.img || '').replace(/^http:\/\//i, 'https://'))}" alt="" onerror="this.remove()">` : ''}<span><span class="dn-src"><i style="background:${esc(colD(h.color))}"></i>${esc(h.source)} · ${agoD(h.date)}</span><b>${esc(h.title)}</b>${h.desc ? `<p>${esc(h.desc)}</p>` : ''}</span></a>
       <div class="dn-list">${rest.map(i => `<a class="dn-it" href="${esc(i.link)}" ${ext}><span class="dn-src"><i style="background:${esc(colD(i.color))}"></i>${esc(i.source)} · ${agoD(i.date)}</span><b>${esc(i.title)}</b></a>`).join('')}</div>`;
-  }catch{ el.innerHTML = `<div class="d-head"><span class="w-label">À la une</span>${PG('actus') ? '<a href="actus.html">Actus ›</a>' : ''}</div><p class="d-empty">Les actus arrivent…</p>`; }
+  }catch{ el.innerHTML = `<div class="d-head"><span class="w-label">À la une</span><button type="button" class="d-tv" data-tvmode>Mode TV</button>${PG('actus') ? '<a href="actus.html">Actus ›</a>' : ''}</div><p class="d-empty">Les actus arrivent…</p>`; }
 }
 function renderDeskSport(events, live, F){
+  TVM.events = events; TVM.live = live; TVM.F = F; if (TVM.on) renderTvMatchs();
   const el = $('#deskSport'); if (!el || !DESK()) return;
   const now = Date.now(), fin = new Date(); fin.setHours(23, 59, 59, 999);
   const liveIds = new Set(live.map(e => e.id));
@@ -1399,8 +1437,77 @@ function renderDeskSport(events, live, F){
     ${liste.length ? `<span class="ds-sec">À venir</span>${liste.map(row).join('')}` : ''}
     ${!enDirect.length && !liste.length ? '<p class="d-empty">Plus de match prévu aujourd\'hui.</p>' : ''}`;
 }
+/* ---------- Mode TV (PC, v44) : tv.js (lecteur et chaînes via le relais du PC), matchs du jour et leur détail (ESPN), actus en liste ---------- */
+const TVM = {on:false, ui:null, events:[], live:[], F:null, sel:null, tDetail:0};
+const chargerJS = (src => { const vus = {}; return s => vus[s] || (vus[s] = new Promise((ok, ko) => { const e = document.createElement('script'); e.src = s; e.onload = ok; e.onerror = ko; document.head.appendChild(e); })); })();
+function modeTV(on){
+  TVM.on = !!on && DESK(); try{ on ? localStorage.setItem('accueil:tv', '1') : localStorage.removeItem('accueil:tv'); }catch{}
+  document.documentElement.classList.toggle('tv-on', TVM.on);
+  if (!TVM.on){ if (TVM.ui) TVM.ui.arreter(); clearTimeout(TVM.tDetail); return; }
+  chargerJS('tv.js').then(() => {
+    if (!TVM.ui) TVM.ui = TV.monter({lecteur:$('#tvLecteur'), chaines:$('#tvChainesZ .tvm-in'), quitter:() => modeTV(false)}); else TVM.ui.recharger();
+  }).catch(() => { $('#tvLecteur').innerHTML = '<p class="d-empty">Module TV introuvable.</p>'; });
+  renderTvActu(); renderTvMatchs();
+}
+async function renderTvActu(){
+  const el = $('#tvActuZ .tvm-in'); if (!el) return;
+  try{
+    let r = await fetch('donnees/actus/actus-fr.json', {cache:'no-cache'});
+    if (r.status === 404) r = await fetch('donnees/actus/actus.json', {cache:'no-cache'});
+    const j = await r.json(), it = (((j.tabs || {}).une || {}).items || []).slice(0, 14);
+    el.innerHTML = `<div class="d-head"><span class="w-label">À la une</span>${PG('actus') ? '<a href="actus.html">Actus ›</a>' : ''}</div>`
+      + it.map(i => `<a class="tvm-a" href="${esc(i.link)}" target="_blank" rel="noopener"><span class="dn-src"><i style="background:${esc(colD(i.color))}"></i>${esc(i.source)} · ${agoD(i.date)}</span><b>${esc(i.title)}</b></a>`).join('');
+  }catch{ el.innerHTML = '<p class="d-empty">Les actus arrivent…</p>'; }
+}
+function renderTvMatchs(){
+  const el = $('#tvMatchsZ .tvm-in'); if (!el || !TVM.on) return;
+  const now = Date.now(), fin = new Date(); fin.setHours(23, 59, 59, 999), liveIds = new Set(TVM.live.map(e => e.id)), F = TVM.F || {ligues:[], equipes:[]};
+  const enDirect = TVM.events.filter(e => liveIds.has(e.id));
+  const ensuite = TVM.events.filter(e => !liveIds.has(e.id) && e.s !== 'post' && e.t > now - 10 * 60e3 && e.t <= fin.getTime()).sort((a, b) => (isFavEv(b, F) - isFavEv(a, F)) || a.t - b.t).slice(0, 20).sort((a, b) => a.t - b.t);
+  const sc = e => (LIVE_NOW.scores || {})[e.id] || '';
+  const row = e => `<div class="tvm-m${isFavEv(e, F) ? ' fav' : ''}" role="button" tabindex="0" data-tvmatch="${esc(e.id)}"${TVM.sel === e.id ? ' aria-current="true"' : ''}><span class="ds-h">${liveIds.has(e.id) ? '<span class="ds-live">LIVE</span>' : hm(e.t)}</span>
+    <span><span class="ds-t">${esc(e.h)}${e.a ? ' – ' + esc(e.a) : ''}</span><span class="ds-l">${esc(e.ln || e.l)}</span></span><span class="tvm-sc">${esc(sc(e))}</span></div>`;
+  el.innerHTML = `<div class="d-head"><span class="w-label">Matchs</span>${PG('sport') ? '<a href="sport.html">Tous ›</a>' : ''}</div>
+    ${enDirect.length ? `<span class="ds-sec">En direct</span>${enDirect.map(row).join('')}` : ''}${ensuite.length ? `<span class="ds-sec">À venir</span>${ensuite.map(row).join('')}` : ''}
+    ${!enDirect.length && !ensuite.length ? '<p class="d-empty">Plus de match prévu aujourd\'hui.</p>' : ''}`;
+  if (!TVM.sel){ const p = enDirect.find(e => e.sp && e.sp !== 'racing') || enDirect[0] || ensuite[0]; if (p) renderTvDetail(p.id); else $('#tvDetailZ .tvm-in').innerHTML = '<div class="d-head"><span class="w-label">Détail du match</span></div><p class="d-empty">Aucun match aujourd\'hui.</p>'; }
+}
+async function renderTvDetail(id){
+  const el = $('#tvDetailZ .tvm-in'), e = TVM.events.find(x => x.id === id); if (!el || !e) return;
+  TVM.sel = id; clearTimeout(TVM.tDetail);
+  document.querySelectorAll('[data-tvmatch]').forEach(x => x.setAttribute('aria-current', x.dataset.tvmatch === id));
+  const tete = `<div class="d-head"><span class="w-label">Détail du match</span><span class="ds-l">${esc(e.ln || e.l)}</span></div>`;
+  if (!e.sp || e.sp === 'racing'){ el.innerHTML = tete + `<p class="d-empty"><b>${esc(e.h)}${e.a ? ' – ' + esc(e.a) : ''}</b> · ${hm(e.t)}</p><p class="d-empty">Détail non disponible pour cette compétition.</p>`; return; }
+  if (!el.dataset.m || el.dataset.m !== id) el.innerHTML = tete + '<p class="d-empty">Chargement…</p>';
+  el.dataset.m = id;
+  try{
+    const j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${e.sp}/${e.l}/summary?event=${encodeURIComponent(id)}`)).json();
+    if (TVM.sel !== id) return;
+    const comp = (((j.header || {}).competitions) || [])[0] || {}, cs = comp.competitors || [];
+    const H = cs.find(c => c.homeAway === 'home') || cs[0] || {}, A = cs.find(c => c.homeAway === 'away') || cs[1] || {};
+    const st = ((comp.status || {}).type || {}), etat = st.state;
+    const eq = c => `<span class="tvd-eq">${((c.team || {}).logos || [])[0] || (c.team || {}).logo ? `<img src="${esc(((c.team || {}).logos || [])[0] ? c.team.logos[0].href : c.team.logo)}" alt="" onerror="this.remove()">` : ''}<span>${esc((c.team || {}).displayName || '')}</span></span>`;
+    const evs = [...(j.keyEvents || []).filter(k => /goal|but|card|carton|penalty|substitution/i.test(((k.type || {}).text || '') + ' ' + ((k.type || {}).type || '')) && !/substitution/i.test((k.type || {}).text || '')),
+      ...(!(j.keyEvents || []).length ? (j.scoringPlays || []) : [])].slice(-14).reverse();
+    const sT = ((j.boxscore || {}).teams || []), stH = (sT.find(t => (t.team || {}).id === (H.team || {}).id) || sT[0] || {}).statistics || [], stA = (sT.find(t => (t.team || {}).id === (A.team || {}).id) || sT[1] || {}).statistics || [];
+    const stats = stH.filter(x => x.displayValue != null && x.label).slice(0, 8).map(x => { const y = stA.find(z => z.name === x.name) || {}; return `<div class="tvd-stat"><span>${esc(x.displayValue)}</span><span>${esc(x.label)}</span><span>${esc(y.displayValue ?? '')}</span></div>`; }).join('');
+    el.innerHTML = tete + `<div class="tvd-sc">${eq(H)}<span class="tvd-s">${etat === 'pre' ? '–' : `${esc(H.score ?? '')} – ${esc(A.score ?? '')}`}</span>${eq(A)}</div>
+      <div class="tvd-st">${esc(st.shortDetail || st.detail || (etat === 'pre' ? 'À venir · ' + hm(e.t) : ''))}</div>
+      ${evs.length ? `<span class="ds-sec">Faits du match</span>${evs.map(k => `<div class="tvd-ev"><b>${esc(((k.clock || {}).displayValue) || '')}</b><span>${esc(k.text || k.shortText || ((k.type || {}).text) || '')}</span></div>`).join('')}` : ''}
+      ${stats ? `<span class="ds-sec">Statistiques</span>${stats}` : ''}
+      ${!evs.length && !stats && etat !== 'pre' ? '<p class="d-empty">Pas encore de détail fourni pour ce match.</p>' : ''}`;
+    if (etat === 'in' && TVM.on) TVM.tDetail = setTimeout(() => renderTvDetail(id), 60e3);
+  }catch{ if (TVM.sel === id) el.innerHTML = tete + '<p class="d-empty">Détail injoignable pour l\'instant.</p>'; }
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-tvmode]')){ modeTV(true); return; }
+  const m = e.target.closest('[data-tvmatch]'); if (m) renderTvDetail(m.dataset.tvmatch);
+});
+document.addEventListener('keydown', e => { const m = (e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('[data-tvmatch]'); if (m){ e.preventDefault(); renderTvDetail(m.dataset.tvmatch); } });
 const deskMQ = matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');
-deskMQ.addEventListener && deskMQ.addEventListener('change', () => { grilleDesk(); if (DESK()){ loadDeskNews(); loadLive(); } });
+deskMQ.addEventListener && deskMQ.addEventListener('change', () => { grilleDesk(); if (DESK()){ loadDeskNews(); loadLive(); } modeTV(TVM.on || (() => { try{ return localStorage.getItem('accueil:tv') === '1'; }catch{ return false; } })()); });
+if (DESK() && (() => { try{ return localStorage.getItem('accueil:tv') === '1'; }catch{ return false; } })()) setTimeout(() => modeTV(true), 0);
+setInterval(() => { if (TVM.on && !document.hidden) renderTvActu(); }, 15 * 60e3);
 setInterval(() => { if (DESK() && W('une') && !document.hidden && autoOn('actus') && Date.now() - deskNewsAt > 15 * 60e3) loadDeskNews(); }, 60e3);
 
 /* ---------- Témoin LIVE Sports (matchs du jour préparés + vérification ESPN des matchs censés être en cours) ---------- */

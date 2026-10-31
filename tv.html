@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="mon-ecran-version" content="ca2769bf">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TV</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<script src="config/config.js"></script>
+<script src="noyau.js"></script>
+<script src="themes.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
+<style>
+/* Page TV (v44) : lecteur (avec le relais du PC) et liste des chaînes ; styles des zones : tv.js */
+:root{
+  --base:#e7ecef;
+  --blob-1:rgba(163,206,241,.95); --blob-2:rgba(96,150,186,.55); --blob-3:rgba(39,76,119,.35);
+  --ink:#10233a; --ink-soft:#56636f;
+  --glass:rgba(255,255,255,.22); --glass-tint:rgba(163,206,241,.10);
+  --rim-1:rgba(255,255,255,.95); --rim-2:rgba(255,255,255,.12); --rim-3:rgba(255,255,255,.6);
+  --spec:rgba(255,255,255,.55);
+  --shadow:0 14px 34px -16px rgba(39,76,119,.45);
+  --head:rgba(231,236,239,.72);
+  --card:rgba(255,255,255,.6); --line:rgba(39,76,119,.12);
+  --accent:#274c77; --on-accent:#e7ecef;
+  --t-brick:#274c77; --t-slate:#6096ba; --t-olive:#3d6b97; --t-plum:#1b3656;
+  --t-teal:#4c86b0; --t-ochre:#8b8c89; --t-char:#2f3e50; --t-rose:#7fb0d8;
+  --f-ui:"Geist", -apple-system, "SF Pro Text", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --base:#08121f;
+  --blob-1:rgba(39,76,119,.85); --blob-2:rgba(96,150,186,.45); --blob-3:rgba(163,206,241,.22);
+  --ink:#e7ecef; --ink-soft:#a7b6c4;
+  --glass:rgba(231,236,239,.07); --glass-tint:rgba(163,206,241,.06);
+  --rim-1:rgba(231,236,239,.55); --rim-2:rgba(231,236,239,.04); --rim-3:rgba(163,206,241,.35);
+  --spec:rgba(231,236,239,.16);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(8,18,31,.66);
+  --card:rgba(231,236,239,.06); --line:rgba(231,236,239,.1); --accent:#a3cef1; --on-accent:#08121f;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --base:#08121f;
+  --blob-1:rgba(39,76,119,.85); --blob-2:rgba(96,150,186,.45); --blob-3:rgba(163,206,241,.22);
+  --ink:#e7ecef; --ink-soft:#a7b6c4;
+  --glass:rgba(231,236,239,.07); --glass-tint:rgba(163,206,241,.06);
+  --rim-1:rgba(231,236,239,.55); --rim-2:rgba(231,236,239,.04); --rim-3:rgba(163,206,241,.35);
+  --spec:rgba(231,236,239,.16);
+  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
+  --head:rgba(8,18,31,.66);
+  --card:rgba(231,236,239,.06); --line:rgba(231,236,239,.1); --accent:#a3cef1; --on-accent:#08121f;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;font-family:var(--f-ui);color:var(--ink);
+  background-color:var(--base);
+  -webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--head);
+  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px)}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:12px}
+
+/* verre */
+.glass{position:relative;isolation:isolate;background:linear-gradient(160deg, var(--glass), var(--glass-tint));box-shadow:var(--shadow);
+  backdrop-filter:blur(30px) saturate(1.8) brightness(1.05);-webkit-backdrop-filter:blur(30px) saturate(1.8) brightness(1.05)}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  background:radial-gradient(120% 70% at 15% 0%, var(--spec), transparent 55%)}
+.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+  background:linear-gradient(145deg, var(--rim-1), var(--rim-2) 35%, var(--rim-2) 65%, var(--rim-3));
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+
+.wrap{max-width:560px;margin:0 auto;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+
+html.desk .wrap{max-width:860px}
+/* ---------- En-tête ---------- */
+header{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--head);
+  backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
+  border-bottom:1px solid var(--line)}
+header .wrap{padding-block:10px 12px;display:flex;flex-direction:column;gap:10px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.back{display:flex;align-items:center;gap:2px;color:var(--accent);font-weight:500;font-size:1rem;padding-block:6px}
+.back svg,.icon-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn{color:var(--accent);width:38px;height:38px;display:grid;place-items:center;border-radius:50%}
+.icon-btn.spin svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.title-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:1}
+.stamp{font-size:.74rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+
+main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:14px}
+#tvLecteur:empty{display:none}
+html.desk .wrap{max-width:1360px}
+html.desk main .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,400px);align-items:start}
+html.desk #tvChaines{position:sticky;top:120px;max-height:calc(100vh - 140px)}
+#tvChaines .tv-l{max-height:none}
+html.desk #tvChaines .tv-l{max-height:calc(100vh - 260px)}
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
+.tap-dot{position:fixed;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;pointer-events:none;z-index:9999;
+  background:radial-gradient(circle, color-mix(in oklab, var(--accent) 45%, transparent), color-mix(in oklab, var(--accent) 22%, transparent) 55%, rgba(255,255,255,.15) 72%);
+  box-shadow:0 0 0 2.5px rgba(255,255,255,.9), 0 0 0 4px color-mix(in oklab, var(--accent) 45%, transparent), 0 4px 16px rgba(0,0,0,.22);animation:tapdot .6s ease-out forwards}
+.maj-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:9998;
+  padding:10px 16px;border-radius:999px;background:var(--accent, #274c77);color:var(--on-accent, #e7ecef);font:600 .85rem/1.2 var(--f-ui, system-ui);box-shadow:0 10px 26px -10px rgba(0,0,0,.5);
+  animation:majin .3s ease-out}
+@keyframes majin{from{opacity:0;transform:translate(-50%, 10px)}}
+@keyframes tapdot{from{transform:scale(.55);opacity:1}to{transform:scale(1.45);opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+/* Thèmes de couleurs et fond dégradé : themes.js (v42) */
+</style>
+<script src="synchro.js"></script>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
+    </div>
+    <div class="title-row"><h1><span class="app-logo" data-logo-app aria-hidden="true"></span>TV</h1><span class="stamp" id="stamp"></span></div>
+  </div>
+</header>
+<main>
+  <div class="wrap">
+    <section class="tv-z glass" id="tvLecteur" aria-label="Lecteur"></section>
+    <section class="tv-z glass" id="tvChaines" aria-label="Chaînes"></section>
+  </div>
+</main>
+<script src="tv.js"></script>
+<script>
+/* Page TV : lecteur seulement quand le relais du PC répond (sinon liste des favoris et ouverture dans Infuse / VLC) */
+TV.monter({lecteur:TV.ios ? null : document.getElementById('tvLecteur'), chaines:document.getElementById('tvChaines')});
+</script>
+<script>
+/* Toucher visible : un rond qui s'efface là où le doigt appuie */
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  const d = document.createElement('span'); d.className = 'tap-dot';
+  d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
+  document.body.appendChild(d); setTimeout(() => d.remove(), 650);
+}, {passive:true});
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 Un écran d'accueil façon iPhone, dans le navigateur : applis et dossiers, horloge et météo, « À la une », investissements, musique,
 et des pages **Actus**, **Sport** (matchs, classements, programme TV, écarts de cotes), **Vidéos** (films, séries, YouTube),
-**Investissements**, un **coffre** chiffré et une page **État** (santé des données, thème, synchronisation).
+**Investissements**, un **coffre** chiffré une page **TV** (chaînes de ton abonnement, avec un petit relais sur le PC pour la lecture) et une page **État** (santé des données, thème, synchronisation).
 Tout tourne sur GitHub : des tâches automatiques récupèrent les données, GitHub Pages publie le site. Rien à installer, rien de payant.
 
 - **iPhone** : ouvrir l'adresse du dock dans Safari → Partager → « Sur l'écran d'accueil ».
@@ -27,8 +27,8 @@ Aucun secret dans le dépôt : codes, montants, clés restent sur l'appareil ou 
 ```
 (racine du dépôt)
 ├── index.html                 ← écran d'accueil
-├── actus.html, sport.html, ecarts.html, videos.html, invest.html, cachee.html, etat.html, reglages.html
-├── noyau.js, themes.js, synchro.js, sw.js   ← noyau commun, thèmes, synchronisation, mise en mémoire
+├── actus.html, sport.html, ecarts.html, videos.html, tv.html, invest.html, cachee.html, etat.html, reglages.html
+├── noyau.js, themes.js, tv.js, synchro.js, sw.js   ← noyau commun, thèmes, TV, synchronisation, mise en mémoire
 ├── configuration.xlsx         ← tes réglages (classeur)
 ├── config/                    ← réglages produits depuis le classeur (tâche « Configuration »)
 ├── outils/                    ← scripts des tâches (outils/dev : notes techniques)

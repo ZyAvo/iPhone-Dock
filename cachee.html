@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="1ac001d5">
+<meta name="mon-ecran-version" content="7f60c9da">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Coffre</title>
 <meta name="robots" content="noindex, nofollow">
@@ -280,6 +280,8 @@ function render(){
   SS.set('coffre:ok', String(Date.now()));       // chaque action prolonge l'ouverture
   $('#lockBtn').hidden = false;
   const liens = ITEMS.map((x, i) => ({...x, i})).filter(x => x.type === 'lien'), notes = ITEMS.map((x, i) => ({...x, i})).filter(x => x.type === 'note');
+  const tv = ITEMS.map((x, i) => ({...x, i})).find(x => x.type === 'tv');
+  const hote = u => { try{ return new URL(/^https?:/i.test(u) ? u : 'http://' + u).host; }catch{ return String(u || ''); } };
   const ini = t => esc((String(t || '?').trim()[0] || '?').toUpperCase());
   $('#out').innerHTML = `
     <div class="sec-h"><span class="k">Liens</span><button class="add" type="button" data-add="lien">+ Ajouter</button></div>
@@ -288,7 +290,10 @@ function render(){
     <div class="sec-h"><span class="k">Notes</span><button class="add" type="button" data-add="note">+ Ajouter</button></div>
     ${notes.length ? `<div class="notes">${notes.map(x => `<button type="button" class="note-c glass" data-i="${x.i}">${x.titre ? `<b>${esc(x.titre)}</b>` : ''}<p>${esc(x.texte)}</p></button>`).join('')}</div>`
       : '<div class="vide glass">Aucune note.</div>'}
-    <p class="edit-hint">Appui long sur un lien, ou touche une note, pour modifier ou supprimer. Tout reste sur cet iPhone.</p>`;
+    <div class="sec-h"><span class="k">Accès TV</span>${tv ? '' : '<button class="add" type="button" data-add="tv">+ Ajouter</button>'}</div>
+    ${tv ? `<button type="button" class="note-c glass" data-i="${tv.i}"><b>${esc(tv.titre || 'Accès TV')}</b><p>${esc(hote(tv.serveur))} · ${esc(tv.identifiant)} · mot de passe masqué</p></button>`
+      : '<div class="vide glass">Ton abonnement TV (Xtream) : adresse du serveur, identifiant et mot de passe. Utilisés par la page TV, jamais publiés.</div>'}
+    <p class="edit-hint">Appui long sur un lien, ou touche une note, pour modifier ou supprimer. Tout reste chiffré avec ton code (et passe chiffré par la synchronisation).</p>`;
 }
 function lockScreen(){
   $('#out').innerHTML = `<form class="lock glass" id="pinF"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2.5"/></svg>
@@ -314,7 +319,8 @@ function lockScreen(){
   });
 }
 function editer(i, type){
-  const x = i != null ? ITEMS[i] : {type, titre:'', url:'', texte:''};
+  const x = i != null ? ITEMS[i] : {type, titre:type === 'tv' ? 'Accès TV' : '', url:'', texte:'', serveur:'', identifiant:'', motdepasse:''};
+  if (x.type === 'tv') return editerTV(i, x);
   const box = document.createElement('div'); box.className = 'scrim';
   box.innerHTML = `<form class="panel glass" role="dialog" aria-modal="true" aria-label="${x.type === 'lien' ? 'Lien' : 'Note'}"><h3>${i != null ? 'Modifier' : 'Ajouter'} ${x.type === 'lien' ? 'un lien' : 'une note'}</h3>
     <label>Titre<input name="titre" value="${esc(x.titre)}" autocomplete="off"></label>
@@ -333,6 +339,28 @@ function editer(i, type){
     else if (!(d.texte || '').trim() && !(d.titre || '').trim()){ f.querySelector('.msg').textContent = 'Note vide.'; return; }
     const y = x.type === 'lien' ? {type:'lien', titre:(d.titre || '').trim(), url} : {type:'note', titre:(d.titre || '').trim(), texte:d.texte || ''};
     if (i != null) ITEMS[i] = y; else ITEMS.push(y);
+    save(); box.remove(); render(); });
+}
+/* fiche « Accès TV » (abonnement Xtream) : lue par la page TV (tv.js) */
+function editerTV(i, x){
+  const box = document.createElement('div'); box.className = 'scrim';
+  box.innerHTML = `<form class="panel glass" role="dialog" aria-modal="true" aria-label="Accès TV"><h3>${i != null ? 'Modifier' : 'Ajouter'} l'accès TV</h3>
+    <label>Adresse du serveur<input name="serveur" value="${esc(x.serveur)}" placeholder="http://exemple.tv:8080" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url"></label>
+    <label>Identifiant<input name="identifiant" value="${esc(x.identifiant)}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <label>Mot de passe<input name="motdepasse" type="password" value="${esc(x.motdepasse)}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <p class="msg" aria-live="polite"></p>
+    <div class="row">${i != null ? '<button type="button" class="btn del" data-x="del">Supprimer</button>' : ''}<button type="button" class="btn" data-x="close">Annuler</button><button type="submit" class="btn main">Enregistrer</button></div></form>`;
+  document.body.appendChild(box);
+  const f = box.querySelector('form'); setTimeout(() => f.querySelector('input').focus(), 50);
+  box.addEventListener('click', e => { const a = e.target.closest('[data-x]');
+    if (e.target === box || (a && a.dataset.x === 'close')) box.remove();
+    else if (a && a.dataset.x === 'del'){ ITEMS.splice(i, 1); SS.set('tv:acces', null); save(); box.remove(); render(); } });
+  f.addEventListener('submit', e => { e.preventDefault();
+    const d = Object.fromEntries(new FormData(f)), serveur = (d.serveur || '').trim().replace(/\/+$/, ''), id = (d.identifiant || '').trim();
+    if (!serveur || !id){ f.querySelector('.msg').textContent = 'Adresse du serveur et identifiant nécessaires.'; return; }
+    const y = {type:'tv', titre:'Accès TV', serveur:/^https?:\/\//i.test(serveur) ? serveur : 'http://' + serveur, identifiant:id, motdepasse:d.motdepasse || ''};
+    if (i != null) ITEMS[i] = y; else ITEMS.push(y);
+    SS.set('tv:acces', null); SS.set('tv:liste', null);      // la page TV relira les nouveaux accès
     save(); box.remove(); render(); });
 }
 document.addEventListener('click', e => {

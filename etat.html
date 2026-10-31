@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="1044c5c9">
+<meta name="mon-ecran-version" content="d448772b">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -501,7 +501,7 @@ document.addEventListener('click', e => {
 /* ---------- Sauvegarde : tes réglages et données personnelles dans un code à garder (Notes…), chiffré avec ton code ---------- */
 const REGLAGES = ['cotes:cle', 'synchro:cfg', 'synchro:etat', 'invest:lignes', 'invest:reglages', 'invest:pin', 'invest:perimetre', 'invest:widget-per', 'invest:versements', 'coffre:chiffre', 'coffre:items',
   'sport:favoris', 'sport:reduites', 'actus:langue', 'videos:abos', 'videos:liste', 'videos:vus', 'videos:yt-chaine',
-  'lieu:favoris', 'lieu:actuel', 'palette', 'mode', 'theme:perso', 'logo', 'rafraichissement', 'spotify:client', 'musique:source'];
+  'lieu:favoris', 'lieu:actuel', 'palette', 'mode', 'theme:perso', 'logo', 'tv:favoris', 'tv:cat', 'tv:relais', 'accueil:tv', 'rafraichissement', 'spotify:client', 'musique:source'];
 const B64 = {de:u => { let t = ''; for (let i = 0; i < u.length; i += 8192) t += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(t); }, vers:s => Uint8Array.from(atob(s), c => c.charCodeAt(0))};
 async function cleDe(pin, sel){
   const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey']);

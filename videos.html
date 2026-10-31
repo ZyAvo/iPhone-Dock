@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="751ccb60">
+<meta name="mon-ecran-version" content="46f8a3c9">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vidéos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -338,7 +338,8 @@ let playing = null;
 
 /* ========== Rendu ========== */
 function render(){
-  $('#tabs').innerHTML = TABS.map(t => `<button class="tab" role="tab" type="button" data-tab="${t.id}" aria-selected="${t.id === tab}">${esc(t.nom)}</button>`).join('');
+  $('#tabs').innerHTML = TABS.map(t => `<button class="tab" role="tab" type="button" data-tab="${t.id}" aria-selected="${t.id === tab}">${esc(t.nom)}</button>`).join('')
+    + '<a class="tab" href="tv.html">TV</a>';      // chaînes de l'abonnement TV (v44)
   $('#out').innerHTML = tab === 'youtube' ? ytHTML() : catHTML();
   const d = tab === 'youtube' ? YT : CAT;
   const st = $('#stamp'); if (st) st.textContent = d && d.updated ? `à jour ${ago(Date.parse(d.updated))}` : '';
