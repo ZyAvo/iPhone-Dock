@@ -1,3 +1,4 @@
+// mon-ecran-version: 61b15059
 // Mon Écran — test de la TV depuis GitHub (ne publie rien, n'écrit rien sur le dépôt).
 // Question : le serveur Xtream accepte-t-il une connexion depuis les serveurs de GitHub, et que contient l'abonnement ?
 // Accès lus dans les secrets GitHub XT_SERVEUR, XT_IDENTIFIANT, XT_MOTDEPASSE (Settings → Secrets and variables → Actions).

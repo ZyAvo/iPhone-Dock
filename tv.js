@@ -1,12 +1,15 @@
-// mon-ecran-version: 27abc74b
-/* Mon Écran — TV (v44) : chaînes d'un abonnement Xtream.
+// mon-ecran-version: 5130474e
+/* Mon Écran — TV (v44, films et séries v45) : abonnement Xtream.
    - Accès (serveur, identifiant, mot de passe) : fiche « Accès TV » du Coffre, chiffrée avec ton code et partagée chiffrée par la
      synchronisation ; jamais dans le dépôt, le classeur ou la configuration (publics). Lus une fois par session (code demandé si le
      Coffre n'est pas ouvert), gardés en mémoire de session (« tv:acces ») le temps de l'onglet / de l'appli.
    - Les serveurs Xtream sont en http : une page en https ne peut ni les interroger ni lire leurs flux. Sur le PC, le relais
      (outils/tv-relais.mjs, lancé sur la machine, http://127.0.0.1:8765) fait l'intermédiaire : liste des chaînes, programme, lecture.
      Sans relais (ou sur iPhone) : chaînes favorites, ouverture dans Infuse (iPhone) ou VLC (fichier .m3u d'une chaîne).
-   - Favoris : « tv:favoris » [{id, nom, icone, cat}], partagés par la partie « prefs » de la synchro.
+   - Catalogue (v45) : donnees/tv/catalogue.json, fait chaque jour par la tâche « TV » (outils/tv-catalogue.mjs), compressé puis chiffré
+     (AES-GCM) avec la clé de la fiche Accès TV (« cle », aussi en secret GitHub TV_CLE) ; il ne contient aucun accès. Directs, films et
+     séries sans le PC ; l'appareil reconstruit chaque adresse de flux avec les accès du Coffre.
+   - Favoris (directs) « tv:favoris », liste « À regarder » « tv:liste », séries vues « tv:vus » : partie « prefs » de la synchro.
    API : window.TV = {monter(zones), acces(pin), relaisOK(), favoris(), ...}. Utilisé par tv.html et le mode TV de l'accueil (PC). */
 (function(){
 if (window.TV) return;
@@ -39,7 +42,7 @@ async function lireCoffre(pin){
   return JSON.parse(new TextDecoder().decode(pt));
 }
 const serveurNet = s => { s = String(s || '').trim().replace(/\/+$/, ''); return s && !/^https?:\/\//i.test(s) ? 'http://' + s : s; };
-/* → {serveur, u, p} | null (pas de fiche) ; lève 'verrou' (code nécessaire) ou 'code' (code incorrect) */
+/* → {serveur, u, p, cle} | null (pas de fiche) ; lève 'verrou' (code nécessaire) ou 'code' (code incorrect) */
 async function acces(pin){
   const a = SSg('tv:acces', null); if (a && a.serveur) return a;
   let items;
@@ -47,7 +50,7 @@ async function acces(pin){
   if (items == null){ if (LSg('coffre:chiffre', null)) throw new Error('verrou'); return null; }
   const f = (items || []).find(x => x && x.type === 'tv');
   if (!f || !f.serveur || !f.identifiant) return null;
-  const r = {serveur:serveurNet(f.serveur), u:String(f.identifiant).trim(), p:String(f.motdepasse || '')};
+  const r = {serveur:serveurNet(f.serveur), u:String(f.identifiant).trim(), p:String(f.motdepasse || ''), cle:String(f.cle || '')};
   SSs('tv:acces', r); return r;
 }
 const oublier = () => SSs('tv:acces', null);
@@ -68,19 +71,45 @@ async function api(a, action, extra){
   if (!r.ok) throw new Error('serveur ' + r.status);
   return r.json();
 }
-const urlFlux = (a, id, ext) => `${a.serveur}/live/${enc(a.u)}/${enc(a.p)}/${id}.${ext}`;
+/* adresse d'un élément : direct (d), film (f), épisode (e) — reconstruite ici avec les accès du Coffre */
+function urlDe(a, it, pourNavigateur){
+  const base = `${a.serveur}/%s/${enc(a.u)}/${enc(a.p)}/${it.id}`;
+  if (it.k === 'f') return base.replace('%s', 'movie') + '.' + (it.ext || 'mp4');
+  if (it.k === 'e') return base.replace('%s', 'series') + '.' + (it.ext || 'mp4');
+  return base.replace('%s', 'live') + (pourNavigateur ? '.m3u8' : '.ts');
+}
 
-/* ---------- liste des chaînes (mémoire de session ; noms et numéros seulement, aucun accès) ---------- */
+/* ---------- catalogue chiffré (v45) ---------- */
+let CATA = null, CATA_ERR = '';
+async function catalogue(a, force){
+  if (CATA && !force) return CATA;
+  CATA_ERR = '';
+  if (!a || !a.cle){ CATA_ERR = 'cle'; return null; }
+  try{
+    const r = await fetch('donnees/tv/catalogue.json', {cache:'no-cache'}); if (!r.ok){ CATA_ERR = 'absent'; return null; }
+    const j = await r.json();
+    const k = await crypto.subtle.importKey('raw', unb64(a.cle), 'AES-GCM', false, ['decrypt']);
+    let gz; try{ gz = await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(j.iv)}, k, unb64(j.ct)); }catch{ CATA_ERR = 'mauvaise-cle'; return null; }
+    const c = JSON.parse(await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+    const cats = l => (l || []).map(([id, nom]) => ({id:String(id), nom}));
+    CATA = {genere:c.genere, fin:c.fin,
+      d:{cats:cats(c.d.cats), l:(c.d.ch || []).map(([id, nom, icone, cat, epg]) => ({k:'d', id, nom, icone, cat:String(cat || ''), epg}))},
+      f:{cats:cats(c.f.cats), l:(c.f.f || []).map(([id, nom, icone, cat, ext, note, an, tmdb, ajout]) => ({k:'f', id, nom, icone, cat:String(cat || ''), ext, note, an, tmdb, ajout}))},
+      s:{cats:cats(c.s.cats), l:(c.s.s || []).map(([id, nom, icone, cat, note, an, genre, eps]) => ({k:'s', id, nom, icone, cat:String(cat || ''), note, an, genre, eps:eps || []}))}};
+    return CATA;
+  }catch{ CATA_ERR = 'lecture'; return null; }
+}
+
+/* ---------- directs par le relais (sans catalogue) ---------- */
 let LISTE = null;
 async function liste(a, force){
   if (LISTE && !force) return LISTE;
-  const c = !force && SSg('tv:liste', null); if (c && c.ch){ LISTE = c; return LISTE; }
+  const c = !force && SSg('tv:liste', null); if (c && c.l){ LISTE = c; return LISTE; }
   const info = await api(a, '');
   if (info && info.user_info && (info.user_info.auth === 0 || info.user_info.auth === '0')) throw new Error('acces');
   const [cats, ch] = await Promise.all([api(a, 'get_live_categories'), api(a, 'get_live_streams')]);
-  LISTE = {at:Date.now(), fin:info && info.user_info && info.user_info.exp_date ? +info.user_info.exp_date * 1000 : null,
-    cats:(cats || []).map(x => ({id:String(x.category_id), nom:x.category_name || '?'})),
-    ch:(ch || []).map(x => ({id:x.stream_id, nom:String(x.name || '').trim(), icone:x.stream_icon || '', cat:String(x.category_id), num:x.num}))};
+  LISTE = {cats:(cats || []).map(x => ({id:String(x.category_id), nom:x.category_name || '?'})),
+    l:(ch || []).map(x => ({k:'d', id:x.stream_id, nom:String(x.name || '').trim(), icone:x.stream_icon || '', cat:String(x.category_id)}))};
   SSs('tv:liste', LISTE); return LISTE;
 }
 async function epg(a, id){
@@ -89,16 +118,26 @@ async function epg(a, id){
   catch{ return []; }
 }
 
-/* ---------- favoris ---------- */
+/* ---------- favoris, « À regarder », séries vues (partagés par la synchro) ---------- */
+const prefs = () => { try{ window.Synchro && Synchro.prefsPlusTard && Synchro.prefsPlusTard(); }catch{} };
 const favoris = () => LSg('tv:favoris', []);
 function basculerFavori(ch){
   const l = favoris(), i = l.findIndex(x => String(x.id) === String(ch.id));
   if (i >= 0) l.splice(i, 1); else l.push({id:ch.id, nom:ch.nom, icone:ch.icone || '', cat:ch.cat || ''});
-  LSs('tv:favoris', l.length ? l : null);
-  try{ window.Synchro && Synchro.prefsPlusTard && Synchro.prefsPlusTard(); }catch{}
-  return i < 0;
+  LSs('tv:favoris', l.length ? l : null); prefs(); return i < 0;
 }
 const estFavori = id => favoris().some(x => String(x.id) === String(id));
+const aRegarder = () => LSg('tv:liste', []);
+const cleIt = it => it.k + ':' + it.id;
+const dansListe = it => aRegarder().some(x => cleIt(x) === cleIt(it));
+function basculerListe(it){
+  const l = aRegarder(), i = l.findIndex(x => cleIt(x) === cleIt(it));
+  if (i >= 0) l.splice(i, 1);
+  else l.unshift(it.k === 's' ? {k:'s', id:it.id, nom:it.nom, icone:it.icone || ''} : {k:it.k, id:it.id, nom:it.nom, icone:it.icone || '', ext:it.ext || '', an:it.an || 0, sid:it.sid, s:it.s, e:it.e});
+  LSs('tv:liste', l.length ? l.slice(0, 200) : null); prefs(); return i < 0;
+}
+const vus = () => LSg('tv:vus', {});
+function noterVu(sid, s, e, id, ext){ const v = vus(); v[sid] = [s, e, id, ext]; LSs('tv:vus', v); prefs(); }
 
 /* ---------- lecture ---------- */
 let hlsCharge = null, HLS = null;
@@ -107,10 +146,11 @@ function chargerHls(){
     s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js'; s.onload = () => ok(window.Hls); s.onerror = () => { hlsCharge = null; ko(new Error('lecteur')); };
     document.head.appendChild(s); }));
 }
-async function lire(video, a, id, surErreur){
+async function lire(video, a, it, surErreur){
   if (HLS){ try{ HLS.destroy(); }catch{} HLS = null; }
-  const src = viaRelais('flux', urlFlux(a, id, 'm3u8'));
   video.onerror = () => surErreur && surErreur('flux');
+  if (it.k !== 'd'){ video.src = viaRelais('flux', urlDe(a, it)); video.play().catch(() => {}); return; }   // film, épisode : fichier (avance rapide par le relais)
+  const src = viaRelais('flux', urlDe(a, it, true));
   if (video.canPlayType('application/vnd.apple.mpegurl')){ video.src = src; video.play().catch(() => {}); return; }
   const Hls = await chargerHls();
   if (!Hls || !Hls.isSupported()){ surErreur && surErreur('lecteur'); return; }
@@ -121,10 +161,11 @@ async function lire(video, a, id, surErreur){
 }
 function arreter(video){ if (HLS){ try{ HLS.destroy(); }catch{} HLS = null; } if (video){ video.pause(); video.removeAttribute('src'); video.load(); } }
 /* lecteur externe : Infuse (iPhone / iPad), sinon un petit fichier .m3u (VLC ou le lecteur associé) */
-function externe(a, ch){
-  if (IOS){ location.href = 'infuse://x-callback-url/play?url=' + enc(urlFlux(a, ch.id, 'ts')); return; }
-  const f = new Blob([`#EXTM3U\n#EXTINF:-1,${ch.nom}\n${urlFlux(a, ch.id, 'ts')}\n`], {type:'audio/x-mpegurl'});
-  const l = document.createElement('a'); l.href = URL.createObjectURL(f); l.download = (ch.nom || 'chaine').replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.m3u';
+function externe(a, it){
+  const url = urlDe(a, it);
+  if (IOS){ location.href = 'infuse://x-callback-url/play?url=' + enc(url); return; }
+  const f = new Blob([`#EXTM3U\n#EXTINF:-1,${it.nom}\n${url}\n`], {type:'audio/x-mpegurl'});
+  const l = document.createElement('a'); l.href = URL.createObjectURL(f); l.download = (it.nom || 'video').replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.m3u';
   document.body.appendChild(l); l.click(); setTimeout(() => { URL.revokeObjectURL(l.href); l.remove(); }, 2000);
 }
 
@@ -140,92 +181,161 @@ const CSS = `
 .tv-btn.main{background:var(--accent);color:var(--on-accent);border-color:transparent}
 .tv-row-b{display:flex;flex-wrap:wrap;gap:8px}
 .tv-video{width:100%;aspect-ratio:16/9;background:#000;border-radius:18px;display:block}
-.tv-now{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tv-now{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .tv-now b{font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tv-now small{font-size:.78rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tv-bar{height:3px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:4px}.tv-bar i{display:block;height:100%;background:var(--accent)}
+.tv-o{display:flex;gap:2px;padding:3px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+.tv-o button{flex:1;padding:7px 4px;border-radius:11px;font-size:.8rem;font-weight:500;color:var(--ink-soft);min-height:34px;white-space:nowrap}
+.tv-o button[aria-selected="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
 .tv-f{display:flex;gap:8px}
-.tv-f select,.tv-f input,.tv-pin input{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px;min-width:0}
+.tv-f select,.tv-f input,.tv-pin input,.tv-sa{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px;min-width:0}
 .tv-f select{flex:0 1 46%}.tv-f input{flex:1}
 .tv-l{display:flex;flex-direction:column;overflow:auto;min-height:0;margin:0 -6px;padding:0 6px}
 .tv-c{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);width:100%;text-align:left;cursor:pointer}
+.tv-c.p{grid-template-columns:40px minmax(0,1fr) auto}
 .tv-c[aria-current="true"] .tv-cn{color:var(--accent)}
 .tv-ic{width:36px;height:36px;border-radius:9px;background:var(--card) center / contain no-repeat;display:grid;place-items:center;font-size:.7rem;font-weight:700;color:var(--ink-soft);overflow:hidden}
+.tv-c.p .tv-ic{width:40px;height:60px;border-radius:7px;background-size:cover}
+.tv-t{display:flex;flex-direction:column;gap:2px;min-width:0}
 .tv-cn{font-size:.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-cs{font-size:.72rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tv-st{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;color:var(--ink-soft);font-size:1.05rem}
 .tv-st[aria-pressed="true"]{color:#e0a100}
+.tv-fi{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:start}
+.tv-po{width:96px;aspect-ratio:2/3;border-radius:12px;background:var(--card) center / cover no-repeat;box-shadow:0 8px 18px -12px rgba(0,0,0,.5)}
+.tv-fi h3{margin:0;font-size:1.1rem;line-height:1.25}
+.tv-fi p{margin:4px 0 0;font-size:.8rem;color:var(--ink-soft)}
+.tv-ep{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);width:100%;text-align:left;cursor:pointer;font-size:.86rem}
+.tv-ep b{font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+.tv-ep.vu b{color:var(--accent)}
 .tv-pin{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .tv-pin input{width:9em}
 .tv-ol{margin:0;padding-left:20px;font-size:.84rem;line-height:1.5;display:flex;flex-direction:column;gap:6px}
 .tv-ol code{font-size:.78rem;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 5px;overflow-wrap:anywhere}`;
 function styles(){ if (document.getElementById('tv-css')) return; const s = document.createElement('style'); s.id = 'tv-css'; s.textContent = CSS; document.head.appendChild(s); }
 
-/* ---------- interface : monter({lecteur, chaines}) — deux éléments (le lecteur peut manquer : liste seule) ---------- */
-const STAR = '★';
+/* ---------- interface : monter({lecteur, chaines, quitter}) ---------- */
+const ONGLETS = [['d', 'Directs'], ['f', 'Films'], ['s', 'Séries'], ['l', 'À regarder']];
+const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const https = u => String(u || '').replace(/^http:\/\//i, 'https://');
+const ini = t => esc((String(t || '?').replace(/^[^a-z0-9]+/i, '')[0] || '?').toUpperCase());
+const se = (s, e) => `S${String(s).padStart(2, '0')}E${String(e).padStart(2, '0')}`;
 function monter(Z){
   styles();
-  const S = {a:null, relais:false, cat:LSg('tv:cat', 'fav'), q:'', cur:null, err:''};
+  const S = {a:null, relais:false, onglet:LSg('tv:onglet', 'd'), cat:LSg('tv:cats', {d:'fav', f:'tout', s:'tout'}), q:{d:'', f:'', s:'', l:''}, cur:null, err:'', vue:null};
   const EL = Z.chaines, LE = Z.lecteur;
-  const rendreLecteur = (ch, info) => {
+  const quitter = Z.quitter ? `<button type="button" class="tv-a" data-tv="quitter">Quitter le mode TV</button>` : '';
+  const lecteurDispo = () => S.relais && !!LE;
+  /* ---- lecteur ---- */
+  const rendreLecteur = (it, info) => {
     if (!LE) return;
-    if (!S.relais){
-      LE.innerHTML = `<div class="tv-h"><span class="tv-k">TV</span>${Z.quitter ? `<button type="button" class="tv-a" data-tv="quitter">Quitter le mode TV</button>` : ''}</div>
-        ${relaisAide()}`;
-      return;
-    }
-    if (!LE.querySelector('video')) LE.innerHTML = `<div class="tv-h"><span class="tv-k">En lecture</span>${Z.quitter ? `<button type="button" class="tv-a" data-tv="quitter">Quitter le mode TV</button>` : ''}</div>
+    if (!S.relais){ LE.innerHTML = `<div class="tv-h"><span class="tv-k">TV</span>${quitter}</div>${relaisAide()}`; return; }
+    if (!LE.querySelector('video')) LE.innerHTML = `<div class="tv-h"><span class="tv-k">En lecture</span>${quitter}</div>
       <video class="tv-video" controls playsinline></video>
-      <div class="tv-h"><span class="tv-now" id="tvNow"><b>Choisis une chaîne</b><small>dans la liste</small></span><span class="tv-row-b" id="tvAct"></span></div>`;
+      <div class="tv-h"><span class="tv-now" id="tvNow"><b>Choisis une chaîne, un film ou un épisode</b><small>dans la liste</small></span><span class="tv-row-b" id="tvAct"></span></div>`;
     const now = LE.querySelector('#tvNow'), act = LE.querySelector('#tvAct');
-    if (!ch) return;
-    const e = (info || [])[0], n = (info || [])[1], t = Date.now();
-    const pct = e && e.fin > e.debut ? Math.max(0, Math.min(100, (t - e.debut) / (e.fin - e.debut) * 100)) : 0;
+    if (!it) return;
     const hm = d => new Date(d).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
-    now.innerHTML = `<b>${esc(ch.nom)}${e ? ' · ' + esc(e.titre) : ''}</b><small>${S.err ? esc(S.err) : e ? `${hm(e.debut)}–${hm(e.fin)}${n ? ` · ensuite ${hm(n.debut)} ${esc(n.titre)}` : ''}` : 'programme non fourni'}</small>${e ? `<span class="tv-bar"><i style="width:${pct.toFixed(0)}%"></i></span>` : ''}`;
-    act.innerHTML = `<button type="button" class="tv-btn" data-tv="fav" aria-pressed="${estFavori(ch.id)}">${estFavori(ch.id) ? '★ Favori' : '☆ Favori'}</button><button type="button" class="tv-btn" data-tv="ext">${IOS ? 'Infuse' : 'VLC'}</button>`;
+    if (it.k === 'd'){
+      const e = (info || [])[0], n = (info || [])[1], t = Date.now(), pct = e && e.fin > e.debut ? Math.max(0, Math.min(100, (t - e.debut) / (e.fin - e.debut) * 100)) : 0;
+      now.innerHTML = `<b>${esc(it.nom)}${e ? ' · ' + esc(e.titre) : ''}</b><small>${S.err ? esc(S.err) : e ? `${hm(e.debut)}–${hm(e.fin)}${n ? ` · ensuite ${hm(n.debut)} ${esc(n.titre)}` : ''}` : 'programme non fourni'}</small>${e ? `<span class="tv-bar"><i style="width:${pct.toFixed(0)}%"></i></span>` : ''}`;
+      act.innerHTML = `<button type="button" class="tv-btn" data-tv="fav" aria-pressed="${estFavori(it.id)}">${estFavori(it.id) ? '★ Favori' : '☆ Favori'}</button><button type="button" class="tv-btn" data-tv="ext">${IOS ? 'Infuse' : 'VLC'}</button>`;
+    } else {
+      now.innerHTML = `<b>${esc(it.titreLong || it.nom)}</b><small>${S.err ? esc(S.err) : `${it.k === 'f' ? 'Film' : 'Épisode'} · ${esc((it.ext || '').toUpperCase())}${/^(mkv|avi)$/i.test(it.ext || '') ? ' · si l\'image ne vient pas : VLC' : ''}`}</small>`;
+      act.innerHTML = `<button type="button" class="tv-btn" data-tv="ext">${IOS ? 'Infuse' : 'VLC'}</button>`;
+    }
   };
-  const relaisAide = () => `<p class="tv-msg"><b>Lecture dans le dock : lance le relais sur ton PC.</b> Les chaînes de ton abonnement sont en http : une page sécurisée ne peut pas les lire seule.</p>
+  const relaisAide = () => `<p class="tv-msg"><b>Lecture dans le dock : lance le relais sur ton PC.</b> Les flux de ton abonnement sont en http : une page sécurisée ne peut pas les lire seule.</p>
     <ol class="tv-ol"><li>Installe <b>Node.js</b> (version LTS, nodejs.org), une seule fois.</li>
       <li>Télécharge <a class="tv-a" href="outils/tv-relais.mjs" download>tv-relais.mjs</a> et <a class="tv-a" href="outils/tv-relais.cmd" download>tv-relais.cmd</a> dans un même dossier.</li>
       <li>Double-clique <code>tv-relais.cmd</code> (laisse la fenêtre ouverte). Pour qu'il démarre avec Windows : place un raccourci de ce fichier dans <code>shell:startup</code> (Win + R).</li>
       <li>Reviens ici et touche <b>Réessayer</b>. Si Chrome demande l'accès aux appareils du réseau local, accepte.</li></ol>
     <div class="tv-row-b"><button type="button" class="tv-btn main" data-tv="relais">Réessayer</button></div>
-    <p class="tv-msg">En attendant (et sur iPhone) : tes chaînes favorites s'ouvrent dans ${IOS ? 'Infuse' : 'VLC'}.</p>`;
-  const rendreListe = () => {
-    if (!S.a){ return; }
-    const favs = favoris();
-    let L = S.relais && LISTE ? LISTE.ch : favs;
-    if (S.relais && LISTE){
-      if (S.cat === 'fav') L = favs.map(f => LISTE.ch.find(c => String(c.id) === String(f.id)) || f);
-      else if (S.cat !== 'tout') L = L.filter(c => c.cat === S.cat);
-    }
-    const q = S.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    if (q) L = (S.relais && LISTE ? LISTE.ch : favs).filter(c => c.nom.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q));
-    const tot = L.length; L = L.slice(0, 400);
-    const ini = t => esc((String(t || '?').replace(/^[^a-z0-9]+/i, '')[0] || '?').toUpperCase());
-    const opts = S.relais && LISTE ? `<select data-tv="cat" aria-label="Catégorie"><option value="fav"${S.cat === 'fav' ? ' selected' : ''}>★ Favoris (${favs.length})</option><option value="tout"${S.cat === 'tout' ? ' selected' : ''}>Toutes (${LISTE.ch.length})</option>${LISTE.cats.map(c => `<option value="${esc(c.id)}"${S.cat === c.id ? ' selected' : ''}>${esc(c.nom)}</option>`).join('')}</select>` : '';
-    EL.innerHTML = `<div class="tv-h"><span class="tv-k">Chaînes${S.relais && LISTE ? '' : ' favorites'}</span>${S.relais ? '<button type="button" class="tv-a" data-tv="maj">Actualiser</button>' : ''}</div>
-      <div class="tv-f">${opts}<input type="search" data-tv="q" placeholder="Chercher une chaîne" value="${esc(S.q)}" aria-label="Chercher une chaîne"></div>
-      <div class="tv-l">${L.map(c => `<div class="tv-c" role="button" tabindex="0" data-ch="${esc(c.id)}"${S.cur && String(S.cur.id) === String(c.id) ? ' aria-current="true"' : ''}>
-          <span class="tv-ic"${c.icone ? ` style="background-image:url(&quot;${esc(String(c.icone).replace(/^http:\/\//i, 'https://'))}&quot;)"` : ''}>${c.icone ? '' : ini(c.nom)}</span>
-          <span class="tv-cn">${esc(c.nom)}</span>
-          <button type="button" class="tv-st" data-fav="${esc(c.id)}" aria-pressed="${estFavori(c.id)}" aria-label="${estFavori(c.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}">${estFavori(c.id) ? STAR : '☆'}</button></div>`).join('')
-        || `<p class="tv-msg" style="padding:10px 0">${S.relais ? (q ? 'Aucune chaîne trouvée.' : S.cat === 'fav' ? 'Aucun favori : choisis « Toutes » et touche ☆ à côté des chaînes que tu regardes.' : 'Aucune chaîne.') : 'Aucun favori pour l\'instant. Choisis-les sur le PC (relais lancé) : ils arrivent ici par la synchronisation.'}</p>`}
-        ${tot > L.length ? `<p class="tv-msg" style="padding:8px 0">${tot - L.length} autres : affine la recherche.</p>` : ''}</div>`;
+    <p class="tv-msg">En attendant, les chaînes, films et épisodes s'ouvrent dans ${IOS ? 'Infuse' : 'VLC'}.</p>`;
+  /* ---- données de l'onglet ---- */
+  const source = o => o === 'd' ? (CATA ? CATA.d : S.relais && LISTE ? LISTE : null) : o === 'f' ? (CATA && CATA.f) : o === 's' ? (CATA && CATA.s) : null;
+  const trouver = (k, id) => { const s = source(k === 'e' ? 's' : k); return s && s.l.find(x => String(x.id) === String(id)); };
+  const ligne = (it, droite) => {
+    const p = it.k === 'f' || it.k === 's' || (it.k === 'e' && it.icone);
+    const sous = it.k === 'f' ? [it.an || '', it.note ? '★ ' + it.note : '', (it.ext || '').toUpperCase()].filter(Boolean).join(' · ')
+      : it.k === 's' ? [it.an || '', `${new Set((it.eps || []).map(e => e[0])).size} saison(s)`, vus()[it.id] ? 'vu jusqu\'à ' + se(vus()[it.id][0], vus()[it.id][1]) : ''].filter(Boolean).join(' · ')
+      : it.k === 'e' ? 'Épisode' : '';
+    return `<div class="tv-c${p ? ' p' : ''}" role="button" tabindex="0" data-it="${esc(it.k)}:${esc(it.id)}"${S.cur && cleIt(S.cur) === cleIt(it) ? ' aria-current="true"' : ''}>
+      <span class="tv-ic"${it.icone ? ` style="background-image:url(&quot;${esc(https(it.icone))}&quot;)"` : ''}>${it.icone ? '' : ini(it.nom)}</span>
+      <span class="tv-t"><span class="tv-cn">${esc(it.nom)}</span>${sous ? `<span class="tv-cs">${esc(sous)}</span>` : ''}</span>${droite}</div>`;
   };
+  const etoile = it => `<button type="button" class="tv-st" data-fav="${esc(it.id)}" aria-pressed="${estFavori(it.id)}" aria-label="${estFavori(it.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}">${estFavori(it.id) ? '★' : '☆'}</button>`;
+  const plus = it => `<button type="button" class="tv-st" data-liste="${esc(it.k)}:${esc(it.id)}" aria-pressed="${dansListe(it)}" aria-label="${dansListe(it) ? 'Retirer de À regarder' : 'Ajouter à À regarder'}">${dansListe(it) ? '✓' : '＋'}</button>`;
+  /* ---- liste de l'onglet ---- */
+  const rendreListe = () => {
+    if (!S.a) return;
+    if (S.vue) return rendreVue();
+    const o = S.onglet, src = source(o), q = norm(S.q[o]);
+    let L = [], opts = '', vide = '';
+    if (o === 'l'){ L = aRegarder(); vide = 'Rien pour l\'instant : touche ＋ à côté d\'un film ou d\'une série.'; }
+    else if (o === 'd'){
+      const favs = favoris();
+      if (src){
+        L = S.cat.d === 'fav' ? favs.map(f => src.l.find(c => String(c.id) === String(f.id)) || {...f, k:'d'}) : S.cat.d === 'tout' ? src.l : src.l.filter(c => c.cat === S.cat.d);
+        opts = `<select data-tv="cat" aria-label="Catégorie"><option value="fav"${S.cat.d === 'fav' ? ' selected' : ''}>★ Favoris (${favs.length})</option><option value="tout"${S.cat.d === 'tout' ? ' selected' : ''}>Toutes (${src.l.length})</option>${src.cats.map(c => `<option value="${esc(c.id)}"${S.cat.d === c.id ? ' selected' : ''}>${esc(c.nom)}</option>`).join('')}</select>`;
+        vide = S.cat.d === 'fav' ? 'Aucun favori : choisis « Toutes » et touche ☆ à côté des chaînes que tu regardes.' : 'Aucune chaîne.';
+      } else { L = favs.map(f => ({...f, k:'d'})); vide = 'Aucun favori pour l\'instant.'; }
+      if (q && src) L = src.l;
+    } else {
+      if (!src){ EL.innerHTML = entete() + `<p class="tv-msg">${messageCatalogue()}</p>`; return; }
+      const c = S.cat[o] || 'tout';
+      L = c === 'tout' ? src.l : c === 'recent' ? [...src.l].sort((a, b) => (b.ajout || 0) - (a.ajout || 0)).slice(0, 200) : src.l.filter(x => x.cat === c);
+      opts = `<select data-tv="cat" aria-label="Catégorie"><option value="tout"${c === 'tout' ? ' selected' : ''}>Tout (${src.l.length})</option>${o === 'f' ? `<option value="recent"${c === 'recent' ? ' selected' : ''}>Ajouts récents</option>` : ''}${src.cats.map(x => `<option value="${esc(x.id)}"${c === x.id ? ' selected' : ''}>${esc(x.nom)}</option>`).join('')}</select>`;
+      vide = 'Rien dans cette catégorie.';
+      if (q) L = src.l;
+    }
+    if (q) L = L.filter(x => norm(x.nom).includes(q));
+    const tot = L.length; L = L.slice(0, 300);
+    EL.innerHTML = entete() + `<div class="tv-f">${opts}<input type="search" data-tv="q" placeholder="Chercher" value="${esc(S.q[o])}" aria-label="Chercher"></div>
+      <div class="tv-l">${L.map(it => ligne(it, it.k === 'd' ? etoile(it) : plus(it))).join('') || `<p class="tv-msg" style="padding:10px 0">${q ? 'Aucun résultat.' : vide}</p>`}
+      ${tot > L.length ? `<p class="tv-msg" style="padding:8px 0">${tot - L.length} autres : affine la recherche.</p>` : ''}</div>`;
+  };
+  const entete = () => `<div class="tv-o" role="tablist" aria-label="TV">${ONGLETS.map(([k, t]) => `<button type="button" role="tab" data-onglet="${k}" aria-selected="${S.onglet === k}">${t}</button>`).join('')}</div>`;
+  const messageCatalogue = () => CATA_ERR === 'cle' ? '<b>Films et séries : clé du catalogue manquante.</b> Ouvre le Coffre, fiche Accès TV, touche « Générer » puis copie la clé dans le secret GitHub <b>TV_CLE</b> et lance la tâche « TV ».'
+    : CATA_ERR === 'absent' ? '<b>Catalogue pas encore publié.</b> Lance la tâche « TV » sur GitHub (Actions › TV › Run workflow) ; il se met ensuite à jour chaque nuit.'
+    : CATA_ERR === 'mauvaise-cle' ? '<b>La clé du Coffre ne correspond pas au catalogue.</b> Vérifie que le secret GitHub TV_CLE est bien la clé de ta fiche Accès TV, puis relance la tâche « TV ».'
+    : '<b>Catalogue illisible pour l\'instant.</b> Réessaie plus tard.';
+  /* ---- fiches film et série ---- */
+  const rendreVue = () => {
+    const v = S.vue, it = v.it, retour = entete() + `<div class="tv-h"><button type="button" class="tv-a" data-tv="retour">‹ Retour</button></div>`;
+    const po = `<span class="tv-po"${it.icone ? ` style="background-image:url(&quot;${esc(https(it.icone))}&quot;)"` : ''}></span>`;
+    if (v.t === 'f'){
+      EL.innerHTML = retour + `<div class="tv-fi">${po}<div><h3>${esc(it.nom)}</h3><p>${[it.an || '', it.note ? '★ ' + it.note + '/10' : '', (it.ext || '').toUpperCase()].filter(Boolean).join(' · ')}</p>
+        <div class="tv-row-b" style="margin-top:10px"><button type="button" class="tv-btn main" data-tv="lire">${lecteurDispo() ? 'Regarder' : IOS ? 'Regarder dans Infuse' : 'Ouvrir dans VLC'}</button>
+        <button type="button" class="tv-btn" data-liste="f:${esc(it.id)}" aria-pressed="${dansListe(it)}">${dansListe(it) ? '✓ À regarder' : '＋ À regarder'}</button>
+        ${lecteurDispo() ? `<button type="button" class="tv-btn" data-tv="ext">VLC</button>` : ''}</div></div></div>`;
+      return;
+    }
+    const saisons = [...new Set(it.eps.map(e => e[0]))].sort((a, b) => a - b), vu = vus()[it.id];
+    if (v.saison == null) v.saison = vu ? vu[0] : saisons[0];
+    const eps = it.eps.filter(e => e[0] === v.saison), suite = vu ? it.eps[it.eps.findIndex(e => e[0] === vu[0] && e[1] === vu[1]) + 1] : it.eps[0];
+    EL.innerHTML = retour + `<div class="tv-fi">${po}<div><h3>${esc(it.nom)}</h3><p>${[it.an || '', it.note ? '★ ' + it.note + '/10' : '', it.genre || '', `${it.eps.length} épisodes`].filter(Boolean).join(' · ')}</p>
+      <div class="tv-row-b" style="margin-top:10px">${suite ? `<button type="button" class="tv-btn main" data-ep="${esc(suite[2])}">${vu ? 'Reprendre ' : 'Commencer '}${se(suite[0], suite[1])}</button>` : ''}
+      <button type="button" class="tv-btn" data-liste="s:${esc(it.id)}" aria-pressed="${dansListe(it)}">${dansListe(it) ? '✓ À regarder' : '＋ À regarder'}</button></div></div></div>
+      ${saisons.length > 1 ? `<select class="tv-sa" data-tv="saison" aria-label="Saison">${saisons.map(s => `<option value="${s}"${s === v.saison ? ' selected' : ''}>Saison ${s}</option>`).join('')}</select>` : ''}
+      <div class="tv-l">${eps.map(e => { const estVu = vu && (e[0] < vu[0] || (e[0] === vu[0] && e[1] <= vu[1]));
+        return `<div class="tv-ep${estVu ? ' vu' : ''}" role="button" tabindex="0" data-ep="${esc(e[2])}"><b>${se(e[0], e[1])}</b><span>${esc(e[4] || 'Épisode ' + e[1])}</span><span class="tv-cs">${estVu ? 'vu' : (e[3] || '').toUpperCase()}</span></div>`; }).join('') || '<p class="tv-msg">Aucun épisode.</p>'}</div>`;
+  };
+  /* ---- accès et démarrage ---- */
   const etatAcces = async (pin) => {
     try{ S.a = await acces(pin); }
     catch(e){
       const code = e.message === 'code';
-      const html = `<div class="tv-h"><span class="tv-k">TV</span></div><form class="tv-pin" data-tv="pin"><p class="tv-msg" style="flex-basis:100%"><b>${code ? 'Code incorrect.' : 'Code du Coffre'}</b> ${code ? '' : 'pour lire tes accès TV.'}</p>
+      EL.innerHTML = `<div class="tv-h"><span class="tv-k">TV</span></div><form class="tv-pin" data-tv="pin"><p class="tv-msg" style="flex-basis:100%"><b>${code ? 'Code incorrect.' : 'Code du Coffre'}</b> ${code ? '' : 'pour lire tes accès TV.'}</p>
         <input type="password" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="Code"><button class="tv-btn main" type="submit">Ouvrir</button></form>`;
-      EL.innerHTML = html; if (LE) LE.innerHTML = `<div class="tv-h"><span class="tv-k">TV</span>${Z.quitter ? `<button type="button" class="tv-a" data-tv="quitter">Quitter le mode TV</button>` : ''}</div><p class="tv-msg">Déverrouille avec ton code (dans la liste).</p>`;
+      if (LE) LE.innerHTML = `<div class="tv-h"><span class="tv-k">TV</span>${quitter}</div><p class="tv-msg">Déverrouille avec ton code (dans la liste).</p>`;
       setTimeout(() => { const i = EL.querySelector('input'); i && i.focus(); }, 50); return false;
     }
     if (!S.a){
-      const html = `<div class="tv-h"><span class="tv-k">TV</span></div><p class="tv-msg"><b>Pas encore d'accès TV.</b> Ouvre le <b>Coffre</b> (appui long sur l'horloge de l'accueil, ou État) et ajoute la fiche <b>Accès TV</b> : adresse du serveur (http://…:port), identifiant, mot de passe. Elle reste chiffrée avec ton code.</p>
+      EL.innerHTML = `<div class="tv-h"><span class="tv-k">TV</span></div><p class="tv-msg"><b>Pas encore d'accès TV.</b> Ouvre le <b>Coffre</b> et ajoute la fiche <b>Accès TV</b> : adresse du serveur (http://…:port), identifiant, mot de passe. Elle reste chiffrée avec ton code.</p>
         <div class="tv-row-b"><a class="tv-btn main" href="cachee.html">Ouvrir le Coffre</a><button type="button" class="tv-btn" data-tv="relais">Réessayer</button></div>`;
-      EL.innerHTML = html; if (LE) LE.innerHTML = `<div class="tv-h"><span class="tv-k">TV</span>${Z.quitter ? `<button type="button" class="tv-a" data-tv="quitter">Quitter le mode TV</button>` : ''}</div><p class="tv-msg">Ajoute tes accès dans le Coffre pour commencer.</p>`;
+      if (LE) LE.innerHTML = `<div class="tv-h"><span class="tv-k">TV</span>${quitter}</div><p class="tv-msg">Ajoute tes accès dans le Coffre pour commencer.</p>`;
       return false;
     }
     return true;
@@ -233,36 +343,56 @@ function monter(Z){
   const demarrer = async (force) => {
     EL.innerHTML = '<p class="tv-msg">Chargement…</p>';
     if (!(await etatAcces())) return;
-    S.relais = await relaisOK(force);
-    if (S.relais){ try{ await liste(S.a, force === 'liste'); S.err = ''; }catch(e){ S.relais = !!LISTE; S.err = e.message === 'acces' ? 'Identifiants refusés par le serveur (fiche Accès TV du Coffre).' : 'Serveur TV injoignable via le relais.'; } }
+    const [rel] = await Promise.all([relaisOK(force === true), catalogue(S.a, force === 'maj')]);
+    S.relais = rel; S.err = '';
+    if (S.relais && !CATA){ try{ await liste(S.a, force === 'maj'); }catch(e){ S.err = e.message === 'acces' ? 'Identifiants refusés par le serveur (fiche Accès TV du Coffre).' : 'Serveur TV injoignable via le relais.'; } }
     rendreLecteur(S.cur); rendreListe();
-    if (S.err){ EL.insertAdjacentHTML('afterbegin', `<p class="tv-msg"><b>${esc(S.err)}</b></p>`); }
+    if (S.err) EL.insertAdjacentHTML('afterbegin', `<p class="tv-msg"><b>${esc(S.err)}</b></p>`);
   };
-  const choisir = async id => {
-    const c = (LISTE && LISTE.ch.find(x => String(x.id) === String(id))) || favoris().find(x => String(x.id) === String(id)); if (!c) return;
-    S.cur = c; S.err = ''; LSs('tv:derniere', String(c.id));
-    if (!S.relais || !LE){ externe(S.a, c); rendreListe(); return; }
-    rendreLecteur(c, []); rendreListe();
-    await lire(LE.querySelector('video'), S.a, c.id, k => { S.err = k === 'lecteur' ? 'Ce navigateur ne sait pas lire ce flux : essaie VLC.' : 'Flux illisible ici (format ou serveur) : essaie VLC.'; rendreLecteur(c, []); });
-    epg(S.a, c.id).then(info => { if (S.cur === c) rendreLecteur(c, info); });
+  /* ---- actions ---- */
+  const jouer = async it => {
+    S.cur = it; S.err = '';
+    if (!lecteurDispo()){ externe(S.a, it); rendreListe(); return; }
+    rendreLecteur(it, []); if (!S.vue) rendreListe();
+    await lire(LE.querySelector('video'), S.a, it, k => { S.err = k === 'lecteur' ? 'Ce navigateur ne sait pas lire ce flux : essaie VLC.' : 'Flux illisible ici (format ou serveur) : essaie VLC.'; rendreLecteur(it, []); });
+    if (it.k === 'd') epg(S.a, it.id).then(info => { if (S.cur === it) rendreLecteur(it, info); });
   };
-  const racine = [EL, LE].filter(Boolean);
+  const ouvrir = (k, id) => {
+    if (k === 'd'){ const c = trouver('d', id) || favoris().map(f => ({...f, k:'d'})).find(x => String(x.id) === String(id)); if (c) jouer(c); return; }
+    if (k === 'e'){ const x = aRegarder().find(y => y.k === 'e' && String(y.id) === String(id)); if (x) jouer(x); return; }
+    const it = trouver(k, id); if (!it){ EL.insertAdjacentHTML('afterbegin', '<p class="tv-msg"><b>Plus dans le catalogue.</b></p>'); return; }
+    S.vue = {t:k, it}; rendreVue();
+  };
+  const episode = id => {
+    const s = S.vue && S.vue.it; if (!s) return; const e = s.eps.find(x => String(x[2]) === String(id)); if (!e) return;
+    noterVu(s.id, e[0], e[1], e[2], e[3]);
+    jouer({k:'e', id:e[2], ext:e[3], nom:`${s.nom} ${se(e[0], e[1])}`, titreLong:`${s.nom} · ${se(e[0], e[1])}${e[4] ? ' · ' + e[4] : ''}`, icone:s.icone, sid:s.id, s:e[0], e:e[1]});
+    S.vue.saison = e[0]; rendreVue();
+  };
   const clic = e => {
     const f = e.target.closest('[data-fav]');
-    if (f){ e.stopPropagation(); const c = (LISTE && LISTE.ch.find(x => String(x.id) === f.dataset.fav)) || favoris().find(x => String(x.id) === f.dataset.fav); if (c){ basculerFavori(c); rendreListe(); if (S.cur) rendreLecteur(S.cur); } return; }
+    if (f){ e.stopPropagation(); const c = trouver('d', f.dataset.fav) || favoris().find(x => String(x.id) === f.dataset.fav); if (c){ basculerFavori(c); rendreListe(); if (S.cur) rendreLecteur(S.cur); } return; }
+    const l = e.target.closest('[data-liste]');
+    if (l){ e.stopPropagation(); const [k, id] = l.dataset.liste.split(/:(.*)/s); const it = (S.vue && cleIt(S.vue.it) === l.dataset.liste) ? S.vue.it : trouver(k, id) || aRegarder().find(x => cleIt(x) === l.dataset.liste); if (it){ basculerListe(it); rendreListe(); } return; }
+    const og = e.target.closest('[data-onglet]'); if (og){ S.onglet = og.dataset.onglet; S.vue = null; LSs('tv:onglet', S.onglet); rendreListe(); return; }
+    const ep = e.target.closest('[data-ep]'); if (ep){ episode(ep.dataset.ep); return; }
     const t = e.target.closest('[data-tv]'), a = t && t.dataset.tv;
     if (a === 'relais'){ relaisEtat = null; demarrer(true); return; }
-    if (a === 'maj'){ SSs('tv:liste', null); LISTE = null; demarrer('liste'); return; }
+    if (a === 'retour'){ S.vue = null; rendreListe(); return; }
+    if (a === 'lire' && S.vue){ jouer(S.vue.it); return; }
     if (a === 'fav' && S.cur){ basculerFavori(S.cur); rendreListe(); rendreLecteur(S.cur); return; }
-    if (a === 'ext' && S.cur){ externe(S.a, S.cur); return; }
+    if (a === 'ext'){ const it = S.vue && S.vue.t === 'f' ? S.vue.it : S.cur; if (it) externe(S.a, it); return; }
     if (a === 'quitter'){ arreter(LE && LE.querySelector('video')); Z.quitter && Z.quitter(); return; }
-    const c = e.target.closest('[data-ch]'); if (c) choisir(c.dataset.ch);
+    const c = e.target.closest('[data-it]'); if (c){ const [k, id] = c.dataset.it.split(/:(.*)/s); ouvrir(k, id); }
   };
-  racine.forEach(r => {
+  [EL, LE].filter(Boolean).forEach(r => {
     r.addEventListener('click', clic);
-    r.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-ch]')){ e.preventDefault(); choisir(e.target.dataset.ch); } });
-    r.addEventListener('change', e => { if (e.target.matches('[data-tv="cat"]')){ S.cat = e.target.value; LSs('tv:cat', S.cat); S.q = ''; rendreListe(); } });
-    r.addEventListener('input', e => { if (e.target.matches('[data-tv="q"]')){ S.q = e.target.value; const pos = e.target.selectionStart; rendreListe(); const i = EL.querySelector('[data-tv="q"]'); if (i){ i.focus(); try{ i.setSelectionRange(pos, pos); }catch{} } } });
+    r.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-it],[data-ep]')){ e.preventDefault(); e.target.click(); } });
+    r.addEventListener('change', e => {
+      if (e.target.matches('[data-tv="cat"]')){ S.cat[S.onglet] = e.target.value; LSs('tv:cats', S.cat); S.q[S.onglet] = ''; rendreListe(); }
+      if (e.target.matches('[data-tv="saison"]') && S.vue){ S.vue.saison = +e.target.value; rendreVue(); }
+    });
+    r.addEventListener('input', e => { if (e.target.matches('[data-tv="q"]')){ S.q[S.onglet] = e.target.value; const pos = e.target.selectionStart; rendreListe(); const i = EL.querySelector('[data-tv="q"]'); if (i){ i.focus(); try{ i.setSelectionRange(pos, pos); }catch{} } } });
     r.addEventListener('submit', async e => { if (!e.target.matches('[data-tv="pin"]')) return; e.preventDefault(); const v = e.target.querySelector('input').value; if (await etatAcces(v)) demarrer(); });
   });
   window.addEventListener('synchro:prefs', () => { if (S.a) rendreListe(); });
@@ -270,5 +400,5 @@ function monter(Z){
   return {arreter:() => arreter(LE && LE.querySelector('video')), recharger:() => demarrer(true)};
 }
 
-window.TV = {monter, acces, oublier, relaisOK, liste:() => LISTE, favoris, basculerFavori, externe, ios:IOS, styles};
+window.TV = {monter, acces, oublier, relaisOK, catalogue, favoris, basculerFavori, aRegarder, externe, ios:IOS, styles};
 })();

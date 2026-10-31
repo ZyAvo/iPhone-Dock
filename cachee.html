@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="7f60c9da">
+<meta name="mon-ecran-version" content="6e22eea1">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Coffre</title>
 <meta name="robots" content="noindex, nofollow">
@@ -291,7 +291,7 @@ function render(){
     ${notes.length ? `<div class="notes">${notes.map(x => `<button type="button" class="note-c glass" data-i="${x.i}">${x.titre ? `<b>${esc(x.titre)}</b>` : ''}<p>${esc(x.texte)}</p></button>`).join('')}</div>`
       : '<div class="vide glass">Aucune note.</div>'}
     <div class="sec-h"><span class="k">Accès TV</span>${tv ? '' : '<button class="add" type="button" data-add="tv">+ Ajouter</button>'}</div>
-    ${tv ? `<button type="button" class="note-c glass" data-i="${tv.i}"><b>${esc(tv.titre || 'Accès TV')}</b><p>${esc(hote(tv.serveur))} · ${esc(tv.identifiant)} · mot de passe masqué</p></button>`
+    ${tv ? `<button type="button" class="note-c glass" data-i="${tv.i}"><b>${esc(tv.titre || 'Accès TV')}</b><p>${esc(hote(tv.serveur))} · ${esc(tv.identifiant)} · mot de passe masqué · ${tv.cle ? 'clé du catalogue prête' : 'pas de clé du catalogue'}</p></button>`
       : '<div class="vide glass">Ton abonnement TV (Xtream) : adresse du serveur, identifiant et mot de passe. Utilisés par la page TV, jamais publiés.</div>'}
     <p class="edit-hint">Appui long sur un lien, ou touche une note, pour modifier ou supprimer. Tout reste chiffré avec ton code (et passe chiffré par la synchronisation).</p>`;
 }
@@ -348,17 +348,23 @@ function editerTV(i, x){
     <label>Adresse du serveur<input name="serveur" value="${esc(x.serveur)}" placeholder="http://exemple.tv:8080" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url"></label>
     <label>Identifiant<input name="identifiant" value="${esc(x.identifiant)}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
     <label>Mot de passe<input name="motdepasse" type="password" value="${esc(x.motdepasse)}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <label>Clé du catalogue (films et séries)<span class="row" style="gap:6px;margin:0"><input name="cle" value="${esc(x.cle || '')}" readonly placeholder="touche Générer" style="flex:1;font:12px ui-monospace, Menlo, monospace"><button type="button" class="btn" data-x="gen">${x.cle ? 'Nouvelle' : 'Générer'}</button><button type="button" class="btn" data-x="copie">Copier</button></span></label>
+    <p class="note" style="margin:0;font-size:.78rem;opacity:.8">Copie cette clé dans le secret GitHub <b>TV_CLE</b> (Settings › Secrets and variables › Actions), puis lance la tâche « TV ». Une nouvelle clé oblige à mettre à jour le secret.</p>
     <p class="msg" aria-live="polite"></p>
     <div class="row">${i != null ? '<button type="button" class="btn del" data-x="del">Supprimer</button>' : ''}<button type="button" class="btn" data-x="close">Annuler</button><button type="submit" class="btn main">Enregistrer</button></div></form>`;
   document.body.appendChild(box);
   const f = box.querySelector('form'); setTimeout(() => f.querySelector('input').focus(), 50);
   box.addEventListener('click', e => { const a = e.target.closest('[data-x]');
     if (e.target === box || (a && a.dataset.x === 'close')) box.remove();
-    else if (a && a.dataset.x === 'del'){ ITEMS.splice(i, 1); SS.set('tv:acces', null); save(); box.remove(); render(); } });
+    else if (a && a.dataset.x === 'del'){ ITEMS.splice(i, 1); SS.set('tv:acces', null); save(); box.remove(); render(); }
+    else if (a && a.dataset.x === 'gen'){ const c = f.querySelector('[name=cle]'); if (c.value && !confirm('Remplacer la clé ? Il faudra aussi mettre à jour le secret TV_CLE sur GitHub.')) return;
+      const u = crypto.getRandomValues(new Uint8Array(32)); c.value = btoa(String.fromCharCode(...u)); a.textContent = 'Nouvelle'; }
+    else if (a && a.dataset.x === 'copie'){ const c = f.querySelector('[name=cle]'); if (!c.value) return;
+      (navigator.clipboard ? navigator.clipboard.writeText(c.value) : Promise.reject()).then(() => { f.querySelector('.msg').textContent = 'Clé copiée.'; }, () => { c.select(); f.querySelector('.msg').textContent = 'Sélectionnée : copie-la.'; }); } });
   f.addEventListener('submit', e => { e.preventDefault();
     const d = Object.fromEntries(new FormData(f)), serveur = (d.serveur || '').trim().replace(/\/+$/, ''), id = (d.identifiant || '').trim();
     if (!serveur || !id){ f.querySelector('.msg').textContent = 'Adresse du serveur et identifiant nécessaires.'; return; }
-    const y = {type:'tv', titre:'Accès TV', serveur:/^https?:\/\//i.test(serveur) ? serveur : 'http://' + serveur, identifiant:id, motdepasse:d.motdepasse || ''};
+    const y = {type:'tv', titre:'Accès TV', serveur:/^https?:\/\//i.test(serveur) ? serveur : 'http://' + serveur, identifiant:id, motdepasse:d.motdepasse || '', cle:(d.cle || '').trim()};
     if (i != null) ITEMS[i] = y; else ITEMS.push(y);
     SS.set('tv:acces', null); SS.set('tv:liste', null);      // la page TV relira les nouveaux accès
     save(); box.remove(); render(); });
