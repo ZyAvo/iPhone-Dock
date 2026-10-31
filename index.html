@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="9f400b08">
+<meta name="mon-ecran-version" content="fea0a4e1">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -155,7 +155,7 @@ a{color:inherit;text-decoration:none}
 .desk-only{display:none}
 html.desk body{overflow:auto}
 html.desk .app{max-width:1440px;height:auto;min-height:100%}
-html.desk #home{display:grid;grid-template-columns:minmax(300px,340px) minmax(0,1fr) minmax(320px,380px);
+html.desk #home{display:grid;grid-template-columns:minmax(276px,304px) minmax(0,1fr) minmax(340px,400px);
   grid-template-areas:"clock news sport" "inv news sport" "spot news sport" "apps apps apps" "quick quick quick";
   grid-template-rows:auto auto 1fr auto auto;gap:18px;padding:28px 8px 20px;align-items:start}
 html.desk .widgets{display:contents}
@@ -165,7 +165,21 @@ html.desk #newsWidget{display:none}
 html.desk .w-inv{grid-area:inv;margin-top:0}
 html.desk .w-spot{grid-area:spot;margin-top:0}
 html.desk #deskNews{grid-area:news;display:flex;align-self:stretch}
-html.desk #deskSport{grid-area:sport;display:flex;align-self:stretch}
+html.desk #deskSport{grid-area:sport;display:flex;align-self:stretch;position:relative;min-height:640px;padding:0}
+/* colonne de droite (v47) : écarts de cotes en haut, matchs au milieu, détail du match touché en bas */
+#deskSport > .ds-in{position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;padding:18px 20px;overflow:hidden}
+.ds-cotes{flex:none;display:flex;flex-direction:column;gap:2px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.ds-cotes:empty{display:none}
+.dc-r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:baseline;padding:5px 0;color:inherit;text-decoration:none;font-size:.8rem}
+.dc-r b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dc-r .dc-p{font-weight:800;color:#1f9d55;font-variant-numeric:tabular-nums}
+.dc-r .ds-l{grid-column:1/-1}
+.ds-list{flex:1 1 0;min-height:140px;overflow:auto;display:flex;flex-direction:column;margin:0 -6px;padding:0 6px}
+.ds-det{flex:1.25 1 0;min-height:200px;overflow:auto;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.ds-det[hidden]{display:none}
+.ds-x{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--ink);font-size:1rem;line-height:1;margin-left:8px;flex:none}
+#deskSport .ds-row{cursor:pointer}
+#deskSport .ds-row[aria-current="true"]{background:var(--accent-soft);border-radius:12px;border-top-color:transparent;padding-left:6px;padding-right:6px;margin:0 -6px}
 html.desk .grid{grid-area:apps;display:flex;flex-wrap:wrap;justify-content:center;gap:18px 28px;margin-top:4px}
 html.desk .grid .app-btn{width:92px}
 html.desk .spacer{display:none}
@@ -284,6 +298,7 @@ html:not(.desk) .app-btn.live-app:not(.live-tel){display:none}
 .inv-r{display:flex;flex-direction:column;justify-content:center;gap:4px;padding-left:12px;border-left:1px solid var(--line);font-size:.78rem;font-variant-numeric:tabular-nums}
 .inv-r div{display:flex;justify-content:space-between;gap:6px}
 .inv-r span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.desk .inv-r{padding-left:10px;font-size:.74rem}html.desk .inv-r b,html.desk .inv-r em,html.desk .inv-r div > :last-child{white-space:nowrap;flex:none}
 .inv-up{color:#1e7a46}.inv-down{color:#b4442c}.inv-flat{color:var(--ink-soft)}
 :root[data-theme="dark"] .inv-up{color:#5fd08e} :root[data-theme="dark"] .inv-down{color:#ff8a70}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .inv-up{color:#5fd08e} :root:not([data-theme="light"]) .inv-down{color:#ff8a70} }
@@ -653,7 +668,7 @@ function grilleDesk(){
   else {
     const C = [...(G.length ? ['G'] : []), ...(news ? ['news'] : []), ...(sport ? ['sport'] : [])];
     rows = Array.from({length:Math.max(1, G.length)}, (_, i) => C.map(c => c === 'G' ? G[i] || G[G.length - 1] : c).join(' '));
-    cols = C.map(c => c === 'G' ? 'minmax(300px,340px)' : c === 'news' || !news ? 'minmax(0,1fr)' : 'minmax(320px,380px)');
+    cols = C.map(c => c === 'G' ? 'minmax(276px,304px)' : c === 'news' || !news ? 'minmax(0,1fr)' : 'minmax(340px,400px)');
   }
   const n = Math.max(1, cols.length), tout = z => Array(n).fill(z).join(' ');
   st.gridTemplateColumns = cols.length ? cols.join(' ') : 'minmax(0,1fr)';
@@ -1432,25 +1447,60 @@ async function loadDeskNews(){
 function renderDeskSport(events, live, F){
   TVM.events = events; TVM.live = live; TVM.F = F; if (TVM.on) renderTvMatchs();
   const el = $('#deskSport'); if (!el || !DESK()) return;
+  if (!el.querySelector('.ds-in')){ el.innerHTML = '<div class="ds-in"><div class="ds-cotes" id="dsCotes"></div><div class="ds-list" id="dsList"></div><div class="ds-det" id="dsDet" hidden></div></div>'; chargerCotes(); }
   const now = Date.now(), fin = new Date(); fin.setHours(23, 59, 59, 999);
   const liveIds = new Set(live.map(e => e.id));
-  const row = e => `<a class="ds-row${isFavEv(e, F) ? ' fav' : ''}"${PG('sport') ? ' href="sport.html"' : ''}>${ligneMatch(e, liveIds, F)}</a>`;
+  const row = e => `<div class="ds-row${isFavEv(e, F) ? ' fav' : ''}" role="button" tabindex="0" data-dsmatch="${esc(e.id)}"${DET.ds.sel === e.id ? ' aria-current="true"' : ''}>${ligneMatch(e, liveIds, F)}</div>`;
   const enDirect = events.filter(e => liveIds.has(e.id));
   const ensuite = events.filter(e => !liveIds.has(e.id) && e.s !== 'post' && e.t > now - 10 * 60e3 && e.t <= fin.getTime());
   const favs = ensuite.filter(e => isFavEv(e, F)), autres = ensuite.filter(e => !isFavEv(e, F));
-  const liste = [...favs, ...autres].slice(0, Math.max(0, 14 - enDirect.length)).sort((a, b) => a.t - b.t);
-  el.innerHTML = `<div class="d-head"><span class="w-label">Sports aujourd'hui</span>${PG('sport') ? '<a href="sport.html">Tous les matchs ›</a>' : ''}</div>
+  const liste = [...favs, ...autres].slice(0, Math.max(0, 20 - enDirect.length)).sort((a, b) => a.t - b.t);
+  const L = $('#dsList'), haut = L.scrollTop;
+  L.innerHTML = `<div class="d-head"><span class="w-label">Sports aujourd'hui</span>${PG('sport') ? '<a href="sport.html">Tous les matchs ›</a>' : ''}</div>
     ${enDirect.length ? `<span class="ds-sec">En direct</span>${enDirect.map(row).join('')}` : ''}
     ${liste.length ? `<span class="ds-sec">À venir</span>${liste.map(row).join('')}` : ''}
     ${!enDirect.length && !liste.length ? '<p class="d-empty">Plus de match prévu aujourd\'hui.</p>' : ''}`;
+  L.scrollTop = haut;
 }
+/* rapport des écarts de cotes (accueil PC, v47) : même calcul que la page Écarts, sur le dernier relevé des matchs à venir */
+let cotesAt = 0;
+async function chargerCotes(){
+  const el = $('#dsCotes'); if (!el) return; cotesAt = Date.now();
+  try{
+    const j = await (await fetch('donnees/cotes/cotes.json', {cache:'no-cache'})).json();
+    const R = CFG('cotes.rapport', {seuil:0.05, reference:'moyenne'}) || {}, SEUIL = +R.seuil || 0.05, med = R.reference === 'mediane';
+    const NOMS_S = {winamax_fr:'Winamax', betclic_fr:'Betclic', unibet_fr:'Unibet', pmu_fr:'PMU', netbet_fr:'NetBet', parionssport_fr:'Parions Sport'};
+    const moy = l => l.reduce((a, b) => a + b, 0) / l.length, mdn = l => { const x = [...l].sort((a, b) => a - b), n = x.length; return n % 2 ? x[(n - 1) / 2] : (x[n / 2 - 1] + x[n / 2]) / 2; };
+    const out = [], now = Date.now();
+    for (const [id, m] of Object.entries(j.matchs || {})){
+      if (!m.t || m.t < now - 2 * 3600e3 || !m.eq) continue;
+      const rel = (m.releves || []).filter(r => r.sites).sort((a, b) => a.at - b.at), r = rel[rel.length - 1] || m.dernier; if (!r || !r.sites) continue;
+      for (const k of ['h', 'd', 'a']){
+        const vals = Object.entries(r.sites).map(([s, o]) => [s, +(o || {})[k]]).filter(([, v]) => v > 1); if (vals.length < 3) continue;
+        for (const [s, v] of vals){ const au = vals.filter(([x]) => x !== s).map(([, x]) => x), ref = med ? mdn(au) : moy(au), e = v / ref - 1; if (e >= SEUIL) out.push({id, m, k, s, v, e}); }
+      }
+    }
+    out.sort((a, b) => b.e - a.e);
+    const vus = new Set(), top = out.filter(x => !vus.has(x.id) && vus.add(x.id)).slice(0, 4);
+    const c = v => Number(v).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2});
+    const issue = x => x.k === 'd' ? 'Nul' : x.m.eq[x.k === 'h' ? 0 : 1];
+    const jour = t => { const d = new Date(t), a = new Date(); return d.toDateString() === a.toDateString() ? hm(t) : d.toLocaleDateString('fr-FR', {weekday:'short'}).replace('.', '') + ' ' + hm(t); };
+    el.innerHTML = `<div class="d-head"><span class="w-label">Écarts de cotes</span><a href="ecarts.html">Rapport ›</a></div>`
+      + (top.length ? top.map(x => `<a class="dc-r" href="ecarts.html"><b>${esc(issue(x))} · ${c(x.v)} chez ${esc(NOMS_S[x.s] || x.s)}</b><span class="dc-p">+${Math.round(x.e * 100)} %</span><span class="ds-l">${esc(x.m.eq.join(' – '))} · ${jour(x.m.t)}</span></a>`).join('')
+        : `<p class="d-empty">Aucun site ne s'écarte d'au moins ${Math.round(SEUIL * 100)} % des autres.</p>`);
+  }catch{ el.innerHTML = ''; }
+}
+setInterval(() => { if (DESK() && !TVM.on && !document.hidden && Date.now() - cotesAt > 30 * 60e3) chargerCotes(); }, 60e3);
 /* ---------- Mode TV (PC, v44) : tv.js (lecteur et chaînes via le relais du PC), matchs du jour et leur détail (ESPN), actus en liste ---------- */
-const TVM = {on:false, ui:null, events:[], live:[], F:null, sel:null, tDetail:0};
+const TVM = {on:false, ui:null, events:[], live:[], F:null};
+/* détail d'un match : une zone pour le mode TV, une pour la colonne de droite de l'accueil (v47) */
+const DET = {tv:{sel:null, t:0, el:() => $('#tvDetailZ .tvm-in'), attr:'tvmatch', actif:() => TVM.on},
+  ds:{sel:null, t:0, el:() => $('#dsDet'), attr:'dsmatch', actif:() => DESK() && !TVM.on && !$('#dsDet').hidden}};
 const chargerJS = (src => { const vus = {}; return s => vus[s] || (vus[s] = new Promise((ok, ko) => { const e = document.createElement('script'); e.src = s; e.onload = ok; e.onerror = ko; document.head.appendChild(e); })); })();
 function modeTV(on){
   TVM.on = !!on && DESK(); try{ on ? localStorage.setItem('accueil:tv', '1') : localStorage.removeItem('accueil:tv'); }catch{}
   document.documentElement.classList.toggle('tv-on', TVM.on);
-  if (!TVM.on){ if (TVM.ui) TVM.ui.arreter(); clearTimeout(TVM.tDetail); return; }
+  if (!TVM.on){ if (TVM.ui) TVM.ui.arreter(); clearTimeout(DET.tv.t); return; }
   chargerJS('tv.js').then(() => {
     if (!TVM.ui) TVM.ui = TV.monter({lecteur:$('#tvLecteur'), chaines:$('#tvChainesZ .tvm-in'), quitter:() => modeTV(false)}); else TVM.ui.recharger();
   }).catch(() => { $('#tvLecteur').innerHTML = '<p class="d-empty">Module TV introuvable.</p>'; });
@@ -1471,23 +1521,24 @@ function renderTvMatchs(){
   const now = Date.now(), fin = new Date(); fin.setHours(23, 59, 59, 999), liveIds = new Set(TVM.live.map(e => e.id)), F = TVM.F || {ligues:[], equipes:[]};
   const enDirect = TVM.events.filter(e => liveIds.has(e.id));
   const ensuite = TVM.events.filter(e => !liveIds.has(e.id) && e.s !== 'post' && e.t > now - 10 * 60e3 && e.t <= fin.getTime()).sort((a, b) => (isFavEv(b, F) - isFavEv(a, F)) || a.t - b.t).slice(0, 20).sort((a, b) => a.t - b.t);
-  const row = e => `<div class="tvm-m${isFavEv(e, F) ? ' fav' : ''}" role="button" tabindex="0" data-tvmatch="${esc(e.id)}"${TVM.sel === e.id ? ' aria-current="true"' : ''}>${ligneMatch(e, liveIds, F)}</div>`;
+  const row = e => `<div class="tvm-m${isFavEv(e, F) ? ' fav' : ''}" role="button" tabindex="0" data-tvmatch="${esc(e.id)}"${DET.tv.sel === e.id ? ' aria-current="true"' : ''}>${ligneMatch(e, liveIds, F)}</div>`;
   el.innerHTML = `<div class="d-head"><span class="w-label">Matchs</span>${PG('sport') ? '<a href="sport.html">Tous ›</a>' : ''}</div>
     ${enDirect.length ? `<span class="ds-sec">En direct</span>${enDirect.map(row).join('')}` : ''}${ensuite.length ? `<span class="ds-sec">À venir</span>${ensuite.map(row).join('')}` : ''}
     ${!enDirect.length && !ensuite.length ? '<p class="d-empty">Plus de match prévu aujourd\'hui.</p>' : ''}`;
-  if (!TVM.sel){ const p = enDirect.find(e => e.sp && e.sp !== 'racing') || enDirect[0] || ensuite[0]; if (p) renderTvDetail(p.id); else $('#tvDetailZ .tvm-in').innerHTML = '<div class="d-head"><span class="w-label">Détail du match</span></div><p class="d-empty">Aucun match aujourd\'hui.</p>'; }
+  if (!DET.tv.sel){ const p = enDirect.find(e => e.sp && e.sp !== 'racing') || enDirect[0] || ensuite[0]; if (p) renderDetail(p.id, 'tv'); else $('#tvDetailZ .tvm-in').innerHTML = '<div class="d-head"><span class="w-label">Détail du match</span></div><p class="d-empty">Aucun match aujourd\'hui.</p>'; }
 }
-async function renderTvDetail(id){
-  const el = $('#tvDetailZ .tvm-in'), e = TVM.events.find(x => x.id === id); if (!el || !e) return;
-  TVM.sel = id; clearTimeout(TVM.tDetail);
-  document.querySelectorAll('[data-tvmatch]').forEach(x => x.setAttribute('aria-current', x.dataset.tvmatch === id));
-  const tete = `<div class="d-head"><span class="w-label">Détail du match</span><span class="ds-l">${esc(e.ln || e.l)}</span></div>`;
+async function renderDetail(id, z){
+  const Z = DET[z], el = Z.el(), e = TVM.events.find(x => x.id === id); if (!el || !e) return;
+  if (z === 'ds') el.hidden = false;
+  Z.sel = id; clearTimeout(Z.t);
+  document.querySelectorAll(`[data-${Z.attr}]`).forEach(x => x.setAttribute('aria-current', x.dataset[Z.attr] === id));
+  const tete = `<div class="d-head"><span class="w-label">Détail du match</span><span class="ds-l">${esc(e.ln || e.l)}</span>${z === 'ds' ? '<button type="button" class="ds-x" data-dsclose aria-label="Fermer le détail">×</button>' : ''}</div>`;
   if (!e.sp || e.sp === 'racing'){ el.innerHTML = tete + `<p class="d-empty"><b>${esc(e.h)}${e.a ? ' – ' + esc(e.a) : ''}</b> · ${hm(e.t)}</p><p class="d-empty">Détail non disponible pour cette compétition.</p>`; return; }
   if (!el.dataset.m || el.dataset.m !== id) el.innerHTML = tete + '<p class="d-empty">Chargement…</p>';
   el.dataset.m = id;
   try{
     const j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${e.sp}/${e.l}/summary?event=${encodeURIComponent(id)}`)).json();
-    if (TVM.sel !== id) return;
+    if (Z.sel !== id) return;
     const comp = (((j.header || {}).competitions) || [])[0] || {}, cs = comp.competitors || [];
     const H = cs.find(c => c.homeAway === 'home') || cs[0] || {}, A = cs.find(c => c.homeAway === 'away') || cs[1] || {};
     const st = ((comp.status || {}).type || {}), etat = st.state;
@@ -1501,14 +1552,19 @@ async function renderTvDetail(id){
       ${evs.length ? `<span class="ds-sec">Faits du match</span>${evs.map(k => `<div class="tvd-ev"><b>${esc(((k.clock || {}).displayValue) || '')}</b><span>${esc(k.text || k.shortText || ((k.type || {}).text) || '')}</span></div>`).join('')}` : ''}
       ${stats ? `<span class="ds-sec">Statistiques</span>${stats}` : ''}
       ${!evs.length && !stats && etat !== 'pre' ? '<p class="d-empty">Pas encore de détail fourni pour ce match.</p>' : ''}`;
-    if (etat === 'in' && TVM.on) TVM.tDetail = setTimeout(() => renderTvDetail(id), 60e3);
-  }catch{ if (TVM.sel === id) el.innerHTML = tete + '<p class="d-empty">Détail injoignable pour l\'instant.</p>'; }
+    if (etat === 'in' && Z.actif()) Z.t = setTimeout(() => { if (Z.sel === id && Z.actif()) renderDetail(id, z); }, 60e3);
+  }catch{ if (Z.sel === id) el.innerHTML = tete + '<p class="d-empty">Détail injoignable pour l\'instant.</p>'; }
 }
 document.addEventListener('click', e => {
   if (e.target.closest('[data-tvmode]')){ modeTV(true); return; }
-  const m = e.target.closest('[data-tvmatch]'); if (m) renderTvDetail(m.dataset.tvmatch);
+  if (e.target.closest('[data-dsclose]')){ const d = $('#dsDet'); d.hidden = true; DET.ds.sel = null; clearTimeout(DET.ds.t); document.querySelectorAll('[data-dsmatch]').forEach(x => x.removeAttribute('aria-current')); return; }
+  const m = e.target.closest('[data-tvmatch]'); if (m) renderDetail(m.dataset.tvmatch, 'tv');
+  const d = e.target.closest('[data-dsmatch]'); if (d) renderDetail(d.dataset.dsmatch, 'ds');
 });
-document.addEventListener('keydown', e => { const m = (e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('[data-tvmatch]'); if (m){ e.preventDefault(); renderTvDetail(m.dataset.tvmatch); } });
+document.addEventListener('keydown', e => {
+  const t = (e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('[data-tvmatch],[data-dsmatch]'); if (!t) return;
+  e.preventDefault(); t.dataset.tvmatch ? renderDetail(t.dataset.tvmatch, 'tv') : renderDetail(t.dataset.dsmatch, 'ds');
+});
 const deskMQ = matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');
 deskMQ.addEventListener && deskMQ.addEventListener('change', () => { grilleDesk(); if (DESK()){ loadDeskNews(); loadLive(); } modeTV(TVM.on || (() => { try{ return localStorage.getItem('accueil:tv') === '1'; }catch{ return false; } })()); });
 if (DESK() && (() => { try{ return localStorage.getItem('accueil:tv') === '1'; }catch{ return false; } })()) setTimeout(() => modeTV(true), 0);

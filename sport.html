@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="80192285">
+<meta name="mon-ecran-version" content="b651a7d1">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -317,6 +317,20 @@ html.desk .sheet{inset:0 0 0 auto;width:min(540px,42vw);background:none;backdrop
 html.desk .panel{max-width:none;max-height:none;height:100%;border-radius:0;border-left:1px solid var(--line);box-shadow:-24px 0 48px -32px rgba(0,0,0,.45);animation:side .25s cubic-bezier(.2,.9,.3,1)}
 html.desk .bx-bar::before{display:none}
 html.desk body:has(.sheet:not([hidden])){padding-right:min(540px,42vw);overflow:auto!important}
+/* PC, match touché (v47) : classement (provisoire en direct) et journée à gauche, détail du match à droite, la liste reste au milieu */
+html.desk #csheet.gauche{inset:0 auto 0 0;width:min(420px,29vw)}
+html.desk #csheet.gauche .panel{border-left:0;border-right:1px solid var(--line);box-shadow:24px 0 48px -32px rgba(0,0,0,.45);animation-name:sideg}
+html.desk #dsheet{width:min(480px,33vw)}
+html.desk body:has(#csheet.gauche:not([hidden])){padding-left:min(420px,29vw)}
+html.desk body:has(#csheet.gauche:not([hidden])):not(:has(#sheet:not([hidden]),#dsheet:not([hidden]),#csheet:not(.gauche):not([hidden]))){padding-right:0}
+html.desk body:has(#dsheet:not([hidden])){padding-right:min(480px,33vw)}
+html.desk .match.sel{outline:2px solid var(--accent);outline-offset:-2px}
+.ds-detail{list-style:none;margin:0}
+.ds-detail .more[hidden]{display:flex!important}
+.ds-detail .match .row{cursor:default}
+.duo-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.st-tbl tr.joue .tn::after{content:" ●";color:#d6343c;font-size:.7em;vertical-align:2px}
+@keyframes sideg{from{transform:translateX(-30px);opacity:0}}
 @keyframes side{from{transform:translateX(30px);opacity:0}}
 .kbd-help{display:none}
 html.desk .kbd-help{display:block;font-size:.72rem;color:var(--ink-faint);text-align:center;margin:0}
@@ -513,6 +527,13 @@ details.rk li em{grid-row:1;grid-column:3;font-style:normal;color:var(--ink-soft
   <div class="wrap reg-lien"><a href="reglages.html?retour=sport#sport">Choisir les compétitions affichées ›</a></div>
 </main>
 
+<div class="sheet" id="dsheet" hidden>
+  <div class="panel" role="dialog" aria-label="Détail du match">
+    <div class="bx-bar"><div class="bx-comp" id="dsheetTitle"></div>
+      <button type="button" class="close" id="dsheetClose" aria-label="Fermer"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <ul id="dsheetBody" class="sheet-body ds-detail"></ul>
+  </div>
+</div>
 <div class="sheet" id="csheet" hidden>
   <div class="panel" role="dialog" aria-modal="true" aria-label="Compétition">
     <div class="bx-bar"><button type="button" class="back cs-back" id="csheetBack" hidden><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -623,7 +644,7 @@ const LEAGUES = CFG('sport.leagues', [
   {id:'f1',                  region:'moto', flag:'🏁', sport:'racing',     group:'f1',     name:'Formule 1', tv:['Canal+']},
   {id:'motogp',              region:'moto', flag:'🏁', sport:'racing',     group:'motogp', name:'MotoGP',    tv:['Canal+']}
 ]);
-const VERSION = '2026-10-30.7';          // numéro de version de la page (visible dans « État des données »)
+const VERSION = '2026-10-31.1';          // numéro de version de la page (visible dans « État des données »)
 const API = 'https://site.api.espn.com/apis/site/v2/sports';
 const CACHE = 'sport:v3:';
 
@@ -1646,6 +1667,7 @@ function render(){
   box.innerHTML = html;
   updateReset();
   if (RESTORE_Y != null && evs.length){ const y = RESTORE_Y; RESTORE_Y = null; requestAnimationFrame(() => window.scrollTo(0, y)); }
+  if (typeof suivreDuo === 'function') suivreDuo();
 }
 
 /* ---------- Mémoire de la page : sport, jour, compétitions réduites (par jour) et position ---------- */
@@ -1685,6 +1707,7 @@ function matchClick(e, extra = []){
   const hit = e.target.closest('.row, .bx-link'); if (!hit) return;
   const li = hit.closest('.match'), id = li.dataset.id, row = li.querySelector('.row');
   const m = [...extra, ...Object.values(DATA).flatMap(d => d.events)].find(x => String(x.id) === id);
+  if (m && DESKP() && !hit.closest('#dsheet')){ ouvrirDuo(m); return; }
   if (m && isUS(m) && m.state !== 'pre'){ openBox(m); return; }
   open.has(id) ? open.delete(id) : open.add(id);
   row.setAttribute('aria-expanded', open.has(id)); li.classList.toggle('ouvert', open.has(id));
@@ -1895,7 +1918,7 @@ $('#sheetBody').addEventListener('click', e => {
 $('#sheetClose').addEventListener('click', closeBox);
 $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeBox(); });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape'){ if (box) closeBox(); else closeComp(); return; }
+  if (e.key === 'Escape'){ if (box) closeBox(); else if (DUO) fermerDuo(); else closeComp(); return; }
   /* Clavier sur PC : ← → jours, Maj + ← → sports */
   if (!['ArrowLeft', 'ArrowRight'].includes(e.key) || e.altKey || e.ctrlKey || e.metaKey || /input|select|textarea/i.test((e.target.tagName || ''))) return;
   const b = document.querySelector(`[data-arr="${e.shiftKey ? 'grp' : 'day'}"][data-d="${e.key === 'ArrowLeft' ? -1 : 1}"]`);
@@ -1963,14 +1986,90 @@ function openCompList(tab = 'table'){
   csheet = {mode:'list', tab, focus:document.activeElement};      // la compétition choisie s'ouvre sur le classement ou le calendrier
   showCsheet();
 }
-function openComp(L, fromList = false, tab = 'table', at = null){
+function openComp(L, fromList = false, tab = 'table', at = null, duo = false){
   const focus = csheet ? csheet.focus : document.activeElement;
   const mode = L.rounds ? 'round' : 'week';
-  csheet = {mode:'comp', L, fromList, focus, tab, table:null,
+  csheet = {mode:'comp', L, fromList, focus, tab, table:null, duo,
             cal:{mode, view:mode === 'round' ? 'round' : 'week', start:null, week:null, events:null, cache:{}, err:false, at, round:null, rounds:null}};
-  showCsheet();
+  $('#csheet').classList.toggle('gauche', !!duo);
+  if (duo){ $('#csheet').hidden = false; renderCsheet(); } else showCsheet();
   loadTable();
-  if (tab === 'cal') loadCal();
+  if (tab === 'cal' || duo) loadCal();
+}
+/* ---------- PC (v47) : un match touché ouvre le classement et la journée à gauche, le détail à droite ---------- */
+const DESKP = () => document.documentElement.classList.contains('desk');
+let DUO = null;
+function ouvrirDuo(m){
+  const L = LBY[m.league]; if (!L) return;
+  DUO = {id:m.id};
+  document.querySelectorAll('#content .match.sel').forEach(x => x.classList.remove('sel'));
+  document.querySelector(`#content .match[data-id="${CSS.escape(String(m.id))}"]`)?.classList.add('sel');
+  if (!(csheet && csheet.duo && csheet.L === L)) openComp(L, false, 'table', m.t, true);
+  else { const c = csheet.cal; if (c.round != null || c.week){ c.at = m.t; c.round = null; c.week = null; c.start = null; c.events = null; loadCal(); } }
+  if (isUS(m) && m.state !== 'pre'){ $('#dsheet').hidden = true; openBox(m); return; }
+  if (box) closeBox();
+  rendreDetail(m);
+}
+function rendreDetail(m){
+  const dl = $('#dsheet'); dl.hidden = false; document.body.classList.add('locked');
+  const L = LBY[m.league];
+  $('#dsheetTitle').innerHTML = `${compBadge(L)}<span>${esc(L.name)}</span>`;
+  const deja = open.has(m.id); open.add(m.id);
+  $('#dsheetBody').innerHTML = matchHTML(m, false);
+  if (!deja) open.delete(m.id);
+  const li = $('#dsheetBody .match');
+  if (COTES_LG.includes(m.league)) loadCotes();
+  if (['rugby', 'soccer'].includes(L.sport) && m.state !== 'pre') loadFull(m, li);
+}
+function fermerDuo(){
+  DUO = null; $('#dsheet').hidden = true;
+  document.querySelectorAll('#content .match.sel').forEach(x => x.classList.remove('sel'));
+  if (csheet && csheet.duo) closeComp();
+  if (!box && !csheet) document.body.classList.remove('locked');
+}
+$('#dsheetClose').addEventListener('click', fermerDuo);
+$('#dsheetBody').addEventListener('click', e => {
+  const cm = e.target.closest('[data-cotes-maj]'); if (cm){ const m = Object.values(DATA).flatMap(d => d.events).find(x => String(x.id) === cm.dataset.cotesMaj); if (m) cotesMain(m, cm); return; }
+  const ft = e.target.closest('[data-favt]'); if (ft){ toggleTeamFav(ft.dataset.favt); render(); return; }
+  const op = e.target.closest('[data-open]'); if (op){ openComp(LBY[op.dataset.cl], false, op.dataset.open, +op.dataset.t || null, DESKP()); return; }
+});
+/* après chaque mise à jour des scores : détail, sélection et classement provisoire suivent */
+function suivreDuo(){
+  if (!DUO) return;
+  document.querySelector(`#content .match[data-id="${CSS.escape(String(DUO.id))}"]`)?.classList.add('sel');
+  const m = Object.values(DATA).flatMap(d => d.events).find(x => String(x.id) === String(DUO.id));
+  if (m && !$('#dsheet').hidden){ const y = $('#dsheet .panel').scrollTop; rendreDetail(m); $('#dsheet .panel').scrollTop = y; }
+  if (csheet && csheet.duo){ const y = $('#csheet .panel').scrollTop; renderCsheet(); $('#csheet .panel').scrollTop = y; }
+}
+/* classement provisoire : le classement ESPN n'est mis à jour qu'après les matchs, on y ajoute les scores en cours (sans les bonus) */
+function provisoire(L, data){
+  if (!data || data === 'err' || !['soccer', 'rugby'].includes(L.sport)) return {data, live:[]};
+  const live = ((DATA[L.id] || {}).events || []).filter(m => m.state === 'in' && m.home.score !== '' && m.away.score !== '');
+  if (!live.length) return {data, live};
+  const pts = L.sport === 'rugby' ? [4, 2, 0] : [3, 1, 0];
+  const nrm = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const trouve = (entries, t) => entries.find(e => e.id && t.id && e.id === String(t.id)) || entries.find(e => [e.name, e.abbr].map(nrm).filter(Boolean).some(x => x === nrm(t.name) || x === nrm(t.full) || x === nrm(t.abbr)));
+  const S = (e, names) => (e.stats || []).find(s => names.includes(s.name) || names.includes(s.type));
+  const add = (e, names, d) => { const s = S(e, names); if (s){ const v = num(s.v) + d; s.v = names[0] === 'pointDifferential' && v > 0 ? '+' + v : String(v); } };
+  const out = JSON.parse(JSON.stringify(data));
+  let touche = false;
+  for (const t of out.tables){
+    for (const m of live){
+      const H = trouve(t.entries, m.home), A = trouve(t.entries, m.away); if (!H || !A) continue;
+      const h = +m.home.score || 0, a = +m.away.score || 0, r = h > a ? [0, 2] : h < a ? [2, 0] : [1, 1];
+      [[H, h, a, r[0]], [A, a, h, r[1]]].forEach(([e, p, c, k]) => {
+        add(e, ['gamesPlayed'], 1); add(e, [['wins'], ['ties', 'draws'], ['losses']][k], 1);
+        add(e, ['pointDifferential', 'pointsDifference', 'differential'], p - c); add(e, ['pointsFor'], p); add(e, ['pointsAgainst'], c); add(e, ['points'], pts[k]);
+        e.joue = true; });
+      touche = true;
+    }
+    if (!touche) continue;
+    const v = (e, n) => num((S(e, n) || {}).v), zones = t.entries.map(e => e.note);   // les zones (montée, relégation…) restent attachées aux places
+    t.entries.sort((x, y) => v(y, ['points']) - v(x, ['points']) || v(y, ['pointDifferential', 'pointsDifference', 'differential']) - v(x, ['pointDifferential', 'pointsDifference', 'differential']) || v(y, ['pointsFor']) - v(x, ['pointsFor']));
+    t.entries.forEach((e, i) => { const r = S(e, ['rank']); if (r) r.v = String(i + 1); e.note = zones[i]; });
+  }
+  if (!touche) return {data, live:[]};
+  return {data:out, live};
 }function showCsheet(){
   $('#csheet').hidden = false; document.body.classList.add('locked');
   renderCsheet(); $('#csheetClose').focus();
@@ -2002,7 +2101,7 @@ function sortEntries(entries){
 }
 function tableFrom(j){
   return {season:(j.season || {}).displayName || '', tables:tablesOf(j).map(t => ({title:t.title, entries:sortEntries(t.entries).map(e => ({
-    name:(e.team || {}).shortDisplayName || (e.team || {}).displayName || '?', abbr:(e.team || {}).abbreviation || '',
+    id:String((e.team || {}).id ?? ''), name:(e.team || {}).shortDisplayName || (e.team || {}).displayName || '?', abbr:(e.team || {}).abbreviation || '',
     logo:((e.team || {}).logos || [])[0]?.href || (e.team || {}).logo || '',
     note:e.note ? {color:e.note.color, text:e.note.description} : null,
     stats:(e.stats || []).map(s => ({name:s.name, type:s.type, v:s.displayValue ?? s.value ?? '', abbr:s.abbreviation || s.shortDisplayName || s.displayName || s.name}))
@@ -2060,7 +2159,7 @@ function tableHTML(L, data){
     const rows = t.entries.map((e, i) => {
       const z = zone(e.note); if (z) notes.set(z.label, z.color);
       const rk = statOf(e, ['rank', 'playoffSeed']);
-      return `<tr${z ? ` style="--nc:${esc(z.color)}" title="${esc(z.label)}"` : ''} class="${z ? 'noted' : ''}">
+      return `<tr${z ? ` style="--nc:${esc(z.color)}" title="${esc(z.label)}"` : ''} class="${z ? 'noted' : ''}${e.joue ? ' joue' : ''}">
         <th class="pl" scope="row"><span class="tc"><span class="rk">${esc(rk ? rk.v : i + 1)}</span>${e.logo ? `<img class="tlg" ${imgSrc(e.logo, 72)} decoding="async" alt="" loading="lazy" onerror="this.remove()">` : ''}<span class="tn">${esc(e.name)}</span></span></th>
         ${tc.map(([n], k) => { const s = statOf(e, n); return `<td class="${k === tc.length - 1 ? 'key' : ''}">${esc(s ? s.v : '')}</td>`; }).join('')}</tr>`;
     }).join('');
@@ -2571,6 +2670,14 @@ function renderCsheet(){
   $('#csheetTitle').innerHTML = `${compBadge(L)}<span>${esc(L.name)}</span><button type="button" class="fav-l" data-favl="${esc(L.id)}" aria-pressed="${FAV.ligues.includes(L.id)}">${FAV.ligues.includes(L.id) ? '★ Favori' : '☆ Favori'}</button>`;
   let h = '';
   if (sample) h += `<div class="notice">Exemple de ${c.tab === 'table' ? 'classement' : 'calendrier'} : sur ta page hébergée, les vraies données ESPN s'affichent.</div>`;
+  if (c.duo){
+    const P = provisoire(L, c.table);
+    h += `<h3 class="bx-h duo-h"><span>${P.live.length ? 'Classement provisoire' : 'Classement'}</span></h3>`;
+    if (P.live.length) h += `<p class="hint">En direct : ${P.live.length} match${P.live.length > 1 ? 's' : ''} en cours compté${P.live.length > 1 ? 's' : ''} avec le score actuel (sans les bonus) · ● équipe en train de jouer.</p>`;
+    const tb = tableHTML(L, P.data);
+    h += tb + `<h3 class="bx-h">Calendrier</h3>` + calHTML(L, c.cal);
+    $('#csheetBody').innerHTML = h; return;
+  }
   h += `<div class="seg2 glass" role="tablist" aria-label="Vue">
       <button type="button" role="tab" data-tab="table" aria-selected="${c.tab === 'table'}"><span>Classement</span></button>
       <button type="button" role="tab" data-tab="cal" aria-selected="${c.tab === 'cal'}"><span>Calendrier</span></button></div>`;
@@ -2591,6 +2698,7 @@ $('#csheetBody').addEventListener('click', e => {
   const c = csheet; if (!c) return;
   const ft = e.target.closest('[data-favt]'); if (ft){ toggleTeamFav(ft.dataset.favt); renderCsheet(); render(); return; }
   if (c.mode === 'favcal'){ matchClick(e, []); return; }
+  if (c.duo && e.target.closest('.match .row, .bx-link')){ matchClick(e, (c.cal && c.cal.events) || []); return; }
   const it = e.target.closest('[data-league]');
   if (it){ const L = LBY[it.dataset.league], t = c.tab || 'table'; openComp(L, true, t); return; }
   const tab = e.target.closest('[data-tab]');
