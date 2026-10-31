@@ -1,4 +1,4 @@
-// mon-ecran-version: 5130474e
+// mon-ecran-version: 5093939e
 /* Mon Écran — TV (v44, films et séries v45) : abonnement Xtream.
    - Accès (serveur, identifiant, mot de passe) : fiche « Accès TV » du Coffre, chiffrée avec ton code et partagée chiffrée par la
      synchronisation ; jamais dans le dépôt, le classeur ou la configuration (publics). Lus une fois par session (code demandé si le
@@ -240,12 +240,13 @@ function monter(Z){
     if (it.k === 'd'){
       const e = (info || [])[0], n = (info || [])[1], t = Date.now(), pct = e && e.fin > e.debut ? Math.max(0, Math.min(100, (t - e.debut) / (e.fin - e.debut) * 100)) : 0;
       now.innerHTML = `<b>${esc(it.nom)}${e ? ' · ' + esc(e.titre) : ''}</b><small>${S.err ? esc(S.err) : e ? `${hm(e.debut)}–${hm(e.fin)}${n ? ` · ensuite ${hm(n.debut)} ${esc(n.titre)}` : ''}` : 'programme non fourni'}</small>${e ? `<span class="tv-bar"><i style="width:${pct.toFixed(0)}%"></i></span>` : ''}`;
-      act.innerHTML = `<button type="button" class="tv-btn" data-tv="fav" aria-pressed="${estFavori(it.id)}">${estFavori(it.id) ? '★ Favori' : '☆ Favori'}</button><button type="button" class="tv-btn" data-tv="ext">${IOS ? 'Infuse' : 'VLC'}</button>`;
+      act.innerHTML = `<button type="button" class="tv-btn" data-tv="fav" aria-pressed="${estFavori(it.id)}">${estFavori(it.id) ? '★ Favori' : '☆ Favori'}</button>${pip()}<button type="button" class="tv-btn" data-tv="ext">${IOS ? 'Infuse' : 'VLC'}</button>`;
     } else {
       now.innerHTML = `<b>${esc(it.titreLong || it.nom)}</b><small>${S.err ? esc(S.err) : `${it.k === 'f' ? 'Film' : 'Épisode'} · ${esc((it.ext || '').toUpperCase())}${/^(mkv|avi)$/i.test(it.ext || '') ? ' · si l\'image ne vient pas : VLC' : ''}`}</small>`;
-      act.innerHTML = `<button type="button" class="tv-btn" data-tv="ext">${IOS ? 'Infuse' : 'VLC'}</button>`;
+      act.innerHTML = `${pip()}<button type="button" class="tv-btn" data-tv="ext">${IOS ? 'Infuse' : 'VLC'}</button>`;
     }
   };
+  const pip = () => document.pictureInPictureEnabled ? '<button type="button" class="tv-btn" data-tv="pip" title="Garder la vidéo visible par-dessus les autres fenêtres">Image dans l\'image</button>' : '';
   const relaisAide = () => `<p class="tv-msg"><b>Lecture dans le dock : lance le relais sur ton PC.</b> Les flux de ton abonnement sont en http : une page sécurisée ne peut pas les lire seule.</p>
     <ol class="tv-ol"><li>Installe <b>Node.js</b> (version LTS, nodejs.org), une seule fois.</li>
       <li>Télécharge <a class="tv-a" href="outils/tv-relais.mjs" download>tv-relais.mjs</a> et <a class="tv-a" href="outils/tv-relais.cmd" download>tv-relais.cmd</a> dans un même dossier.</li>
@@ -292,9 +293,11 @@ function monter(Z){
     }
     if (q) L = L.filter(x => norm(x.nom).includes(q));
     const tot = L.length; L = L.slice(0, 300);
+    const pos = (EL.querySelector('.tv-l') || {}).scrollTop || 0, memeVue = S.derniereVue === o + '|' + (S.cat[o] || '') + '|' + q; S.derniereVue = o + '|' + (S.cat[o] || '') + '|' + q;
     EL.innerHTML = entete() + `<div class="tv-f">${opts}<input type="search" data-tv="q" placeholder="Chercher" value="${esc(S.q[o])}" aria-label="Chercher"></div>
       <div class="tv-l">${L.map(it => ligne(it, it.k === 'd' ? etoile(it) : plus(it))).join('') || `<p class="tv-msg" style="padding:10px 0">${q ? 'Aucun résultat.' : vide}</p>`}
       ${tot > L.length ? `<p class="tv-msg" style="padding:8px 0">${tot - L.length} autres : affine la recherche.</p>` : ''}</div>`;
+    if (memeVue && pos){ const l = EL.querySelector('.tv-l'); if (l) l.scrollTop = pos; }   // la liste reste où elle était (v46)
   };
   const entete = () => `<div class="tv-o" role="tablist" aria-label="TV">${ONGLETS.map(([k, t]) => `<button type="button" role="tab" data-onglet="${k}" aria-selected="${S.onglet === k}">${t}</button>`).join('')}</div>`;
   const messageCatalogue = () => CATA_ERR === 'cle' ? '<b>Films et séries : clé du catalogue manquante.</b> Ouvre le Coffre, fiche Accès TV, touche « Générer » puis copie la clé dans le secret GitHub <b>TV_CLE</b> et lance la tâche « TV ».'
@@ -356,6 +359,9 @@ function monter(Z){
     rendreLecteur(it, []); if (!S.vue) rendreListe();
     await lire(LE.querySelector('video'), S.a, it, k => { S.err = k === 'lecteur' ? 'Ce navigateur ne sait pas lire ce flux : essaie VLC.' : 'Flux illisible ici (format ou serveur) : essaie VLC.'; rendreLecteur(it, []); });
     if (it.k === 'd') epg(S.a, it.id).then(info => { if (S.cur === it) rendreLecteur(it, info); });
+    else { const v = LE.querySelector('video');                 // son AC3 / DTS : Chrome lit l'image sans le son (Edge, lui, lit souvent l'AC3)
+      setTimeout(() => { if (S.cur === it && v && !v.paused && v.currentTime > 2 && 'webkitAudioDecodedByteCount' in v && v.webkitAudioDecodedByteCount === 0){
+        S.err = 'Pas de son ici (format AC3/DTS) : ouvre le dock dans Microsoft Edge, ou utilise VLC.'; rendreLecteur(it, []); } }, 6000); }
   };
   const ouvrir = (k, id) => {
     if (k === 'd'){ const c = trouver('d', id) || favoris().map(f => ({...f, k:'d'})).find(x => String(x.id) === String(id)); if (c) jouer(c); return; }
@@ -380,6 +386,7 @@ function monter(Z){
     if (a === 'relais'){ relaisEtat = null; demarrer(true); return; }
     if (a === 'retour'){ S.vue = null; rendreListe(); return; }
     if (a === 'lire' && S.vue){ jouer(S.vue.it); return; }
+    if (a === 'pip'){ const v = LE && LE.querySelector('video'); if (v){ (document.pictureInPictureElement ? document.exitPictureInPicture() : v.requestPictureInPicture()).catch(() => {}); } return; }
     if (a === 'fav' && S.cur){ basculerFavori(S.cur); rendreListe(); rendreLecteur(S.cur); return; }
     if (a === 'ext'){ const it = S.vue && S.vue.t === 'f' ? S.vue.it : S.cur; if (it) externe(S.a, it); return; }
     if (a === 'quitter'){ arreter(LE && LE.querySelector('video')); Z.quitter && Z.quitter(); return; }

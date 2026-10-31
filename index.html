@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="4b65be41">
+<meta name="mon-ecran-version" content="9f400b08">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -189,6 +189,9 @@ html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);tra
 .ds-sec{font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-top:4px}
 .ds-row{display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none}
 .ds-h{font-size:.82rem;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+.ds-min{display:block;margin-top:3px;font-size:.66rem;font-weight:700;color:#d6343c;font-variant-numeric:tabular-nums}
+.ds-sc{display:inline-block;padding:0 3px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent)}
+.ds-lg{width:14px;height:14px;object-fit:contain;vertical-align:-3px;margin-right:4px}
 .ds-live{display:inline-block;padding:2px 6px;border-radius:6px;font-size:.62rem;font-weight:800;letter-spacing:.06em;background:#d6343c;color:#fff}
 .ds-t{display:block;font-size:.86rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ds-l{display:block;font-size:.7rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -198,8 +201,11 @@ html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);tra
 .tvm{display:none}
 .d-tv{font-size:.8rem;font-weight:600;color:var(--accent);margin-left:auto}
 html.desk.tv-on #home{grid-template-columns:minmax(300px,340px) minmax(0,1fr) minmax(320px,380px)!important;
-  grid-template-areas:"clock lecteur chaines" "inv lecteur chaines" "spot detail matchs" "actu detail matchs" "apps apps apps" "quick quick quick"!important;
-  grid-template-rows:auto auto auto minmax(380px,1fr) auto auto!important}
+  grid-template-areas:"clock lecteur chaines" "spot lecteur chaines" "actu lecteur chaines" "actu detail matchs" "apps apps apps" "quick quick quick"!important;
+  grid-template-rows:auto auto minmax(160px,1fr) minmax(420px,auto) auto auto!important}
+html.desk.tv-on #inv{display:none!important}
+html.desk.tv-on .w-clock{min-height:0;padding:14px 18px}
+html.desk.tv-on .w-clock .time{font-size:3.1rem}
 html.desk.tv-on #deskNews,html.desk.tv-on #deskSport{display:none!important}
 html.desk.tv-on .tvm{display:flex}
 html.desk #tvLecteur{grid-area:lecteur;align-self:stretch}
@@ -218,7 +224,7 @@ html.desk #tvChainesZ{grid-area:chaines}html.desk #tvMatchsZ{grid-area:matchs}ht
 .tvd-ev b{font-variant-numeric:tabular-nums;color:var(--ink-soft);font-weight:600}
 .tvd-stat{display:grid;grid-template-columns:60px minmax(0,1fr) 60px;gap:8px;padding:5px 0;font-size:.82rem;text-align:center;border-top:1px solid var(--line)}
 .tvd-stat span:nth-child(2){color:var(--ink-soft)}
-.tvm-m{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);width:100%;text-align:left;cursor:pointer}
+.tvm-m{display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);width:100%;text-align:left;cursor:pointer}
 .tvm-m[aria-current="true"] .ds-t{color:var(--accent)}
 .tvm-sc{font-size:.84rem;font-weight:700;font-variant-numeric:tabular-nums}
 .tvm-a{display:flex;flex-direction:column;gap:3px;padding:8px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none}
@@ -657,7 +663,9 @@ function grilleDesk(){
 grilleDesk();
 /* retour sur l'accueil après un changement dans Réglages (ou depuis un autre onglet) : on recharge pour l'appliquer */
 const SIG_ACCUEIL = ACC.signature();
-const verifAccueil = () => { if (ACC.signature() !== SIG_ACCUEIL) location.reload(); };
+/* une vidéo en cours (mode TV) n'est jamais coupée par un rechargement automatique (v46) */
+const enLecture = () => { const v = document.querySelector('#tvLecteur video'); return !!(document.pictureInPictureElement || (v && !v.paused && !v.ended)); };
+const verifAccueil = () => { if (ACC.signature() !== SIG_ACCUEIL && !enLecture()) location.reload(); };
 window.addEventListener('pageshow', e => { if (e.persisted) verifAccueil(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) verifAccueil(); });
 Noyau.stockage.ecouter('modifs:attente', verifAccueil); Noyau.stockage.ecouter('accueil:disposition', verifAccueil);
@@ -1426,8 +1434,7 @@ function renderDeskSport(events, live, F){
   const el = $('#deskSport'); if (!el || !DESK()) return;
   const now = Date.now(), fin = new Date(); fin.setHours(23, 59, 59, 999);
   const liveIds = new Set(live.map(e => e.id));
-  const row = e => `<a class="ds-row${isFavEv(e, F) ? ' fav' : ''}"${PG('sport') ? ' href="sport.html"' : ''}><span class="ds-h">${liveIds.has(e.id) ? '<span class="ds-live">LIVE</span>' : hm(e.t)}</span>
-      <span><span class="ds-t">${esc(e.h)}${e.a ? ' – ' + esc(e.a) : ''}</span><span class="ds-l">${esc(e.ln || e.l)}</span></span></a>`;
+  const row = e => `<a class="ds-row${isFavEv(e, F) ? ' fav' : ''}"${PG('sport') ? ' href="sport.html"' : ''}>${ligneMatch(e, liveIds, F)}</a>`;
   const enDirect = events.filter(e => liveIds.has(e.id));
   const ensuite = events.filter(e => !liveIds.has(e.id) && e.s !== 'post' && e.t > now - 10 * 60e3 && e.t <= fin.getTime());
   const favs = ensuite.filter(e => isFavEv(e, F)), autres = ensuite.filter(e => !isFavEv(e, F));
@@ -1464,9 +1471,7 @@ function renderTvMatchs(){
   const now = Date.now(), fin = new Date(); fin.setHours(23, 59, 59, 999), liveIds = new Set(TVM.live.map(e => e.id)), F = TVM.F || {ligues:[], equipes:[]};
   const enDirect = TVM.events.filter(e => liveIds.has(e.id));
   const ensuite = TVM.events.filter(e => !liveIds.has(e.id) && e.s !== 'post' && e.t > now - 10 * 60e3 && e.t <= fin.getTime()).sort((a, b) => (isFavEv(b, F) - isFavEv(a, F)) || a.t - b.t).slice(0, 20).sort((a, b) => a.t - b.t);
-  const sc = e => (LIVE_NOW.scores || {})[e.id] || '';
-  const row = e => `<div class="tvm-m${isFavEv(e, F) ? ' fav' : ''}" role="button" tabindex="0" data-tvmatch="${esc(e.id)}"${TVM.sel === e.id ? ' aria-current="true"' : ''}><span class="ds-h">${liveIds.has(e.id) ? '<span class="ds-live">LIVE</span>' : hm(e.t)}</span>
-    <span><span class="ds-t">${esc(e.h)}${e.a ? ' – ' + esc(e.a) : ''}</span><span class="ds-l">${esc(e.ln || e.l)}</span></span><span class="tvm-sc">${esc(sc(e))}</span></div>`;
+  const row = e => `<div class="tvm-m${isFavEv(e, F) ? ' fav' : ''}" role="button" tabindex="0" data-tvmatch="${esc(e.id)}"${TVM.sel === e.id ? ' aria-current="true"' : ''}>${ligneMatch(e, liveIds, F)}</div>`;
   el.innerHTML = `<div class="d-head"><span class="w-label">Matchs</span>${PG('sport') ? '<a href="sport.html">Tous ›</a>' : ''}</div>
     ${enDirect.length ? `<span class="ds-sec">En direct</span>${enDirect.map(row).join('')}` : ''}${ensuite.length ? `<span class="ds-sec">À venir</span>${ensuite.map(row).join('')}` : ''}
     ${!enDirect.length && !ensuite.length ? '<p class="d-empty">Plus de match prévu aujourd\'hui.</p>' : ''}`;
@@ -1516,6 +1521,15 @@ const favWords = t => String(t || '').toLowerCase().replace(/[ßæœøłđðþı
   .map(w => ({toulousain:'toulouse', rochelais:'rochelle', paloise:'pau', bayonnais:'bayonne'})[w] || w).filter(w => w.length >= 3 && !['stade', 'olympique', 'club', 'the', 'les'].includes(w));
 function favOf(){ try{ return JSON.parse(localStorage.getItem('sport:favoris')) || SPORT_FAV; }catch{ return SPORT_FAV; } }
 const isFavEv = (e, F) => F.ligues.includes(e.l) || F.equipes.some(n => { const f = favWords(n); return f.length && [e.h, e.a].some(x => { const w = favWords(x); return f.every(t => w.includes(t)); }); });
+let minutes = {}, logosL = {};
+/* une ligne de match (accueil PC et mode TV) : LIVE + minute, équipes et score, drapeau et logo de la compétition (v46) */
+const DRAPEAU = (() => { try{ return Object.fromEntries((CFG('sport.leagues', []) || []).map(l => [l.id, l.flag || ''])); }catch{ return {}; } })();
+function ligneMatch(e, liveIds, F, attrs){
+  const enDirect = liveIds.has(e.id), sc = enDirect ? (LIVE_NOW.scores || {})[e.id] || '' : '', mn = enDirect ? (LIVE_NOW.minutes || {})[e.id] || minutes[e.id] || '' : '';
+  const lg = (LIVE_NOW.logos || logosL || {})[e.sp + '/' + e.l] || logosL[e.sp + '/' + e.l];
+  return `<span class="ds-h">${enDirect ? `<span class="ds-live">LIVE</span>${mn ? `<span class="ds-min">${esc(mn)}</span>` : ''}` : hm(e.t)}</span>
+    <span><span class="ds-t">${esc(e.h)}${e.a ? (sc ? ` <span class="ds-sc">${esc(sc)}</span> ` : ' – ') + esc(e.a) : ''}</span><span class="ds-l">${DRAPEAU[e.l] ? DRAPEAU[e.l] + ' ' : ''}${lg ? `<img class="ds-lg" src="${esc(lg)}" alt="" onerror="this.remove()">` : ''}${esc(e.ln || e.l)}</span></span>`;
+}
 async function loadLive(){
   const dots = document.querySelectorAll('[data-livedot]'); if (!dots.length) return;
   const auto = autoOn('sport'); const scores = {};
@@ -1525,10 +1539,12 @@ async function loadLive(){
     let live = (j.events || []).filter(e => e.s !== 'post' && now >= e.t && now < e.t + e.d * 60e3);
     if (auto){                                            // confirmation auprès d'ESPN (pas pour F1 / MotoGP : horaires officiels)
       const leagues = [...new Set(live.filter(e => e.sp && e.sp !== 'racing').map(e => e.sp + '/' + e.l))];
-      const states = {};
+      const states = {}; minutes = {}; logosL = {};
       await Promise.all(leagues.map(async k => { try{
         const s = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${k}/scoreboard`)).json();
+        const lg = (((s.leagues || [])[0] || {}).logos || [])[0]; if (lg && lg.href) logosL[k] = lg.href;
         (s.events || []).forEach(ev => { states[ev.id] = ((ev.status || {}).type || {}).state;
+          const st = ev.status || {}, ty = st.type || {}; if (ty.state === 'in') minutes[ev.id] = /'|\d/.test(st.displayClock || '') && k.startsWith('soccer') ? st.displayClock : (ty.shortDetail || st.displayClock || '');
           const cs = ((ev.competitions || [])[0] || {}).competitors || [], h = cs.find(c => c.homeAway === 'home'), a = cs.find(c => c.homeAway === 'away');
           if (h && a && h.score != null && a.score != null) scores[ev.id] = `${h.score}–${a.score}`; });
       }catch{} }));
@@ -1539,7 +1555,7 @@ async function loadLive(){
     window.liveCls = 'live-dot' + (!auto ? ' paused' : fav.length ? ' fav' : live.length ? ' on' : '');
     const lab = `Sports — ${live.length ? `${live.length} en direct${fav.length ? `, dont ${fav.length} de tes favoris` : ''}` : 'aucun direct'}${auto ? '' : ' (mise à jour auto coupée)'}`;
     dots.forEach(dot => { dot.className = window.liveCls; const btn = dot.closest('.app-btn, .w-sport'); if (btn) btn.setAttribute('aria-label', lab); });
-    LIVE_NOW = {ids:new Set(live.map(e => e.id)), n:live.length, nFav:fav.length, scores, auto}; renderBand();
+    LIVE_NOW = {ids:new Set(live.map(e => e.id)), n:live.length, nFav:fav.length, scores, minutes, logos:logosL, auto}; renderBand();
   }catch{}
 }
 /* Bandeau Sports (iPhone) : témoin de direct + tes favoris en cours puis à venir (8 jours) */
@@ -1615,7 +1631,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   navigator.serviceWorker.addEventListener('message', e => {
     if (!e.data || e.data.type !== 'nouvelle-version') return;
     majDispo = true;
-    if (Date.now() - t0 < 8000){ location.reload(); return; }         // page tout juste ouverte : on passe directement à la nouvelle version
+    if (Date.now() - t0 < 8000 && !enLecture()){ location.reload(); return; }         // page tout juste ouverte : on passe directement à la nouvelle version
     if (document.querySelector('.maj-toast')) return;
     const b = document.createElement('button'); b.type = 'button'; b.className = 'maj-toast'; b.textContent = 'Nouvelle version — toucher pour l\'afficher';
     b.addEventListener('click', () => location.reload()); document.body.appendChild(b);
@@ -1624,7 +1640,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   /* Retour sur l'appli : nouvelle version déjà prête → rechargement ; sinon on vérifie s'il y en a une (au plus toutes les 2 min) */
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
-    if (majDispo){ location.reload(); return; }
+    if (majDispo && !enLecture()){ location.reload(); return; }
     if (Date.now() - cacheAt < 120e3) return;
     cacheAt = Date.now();
     navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
