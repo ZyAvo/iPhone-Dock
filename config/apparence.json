@@ -8,6 +8,15 @@
   "petrole",
   "azur"
  ],
+ "palettes_connues": [
+  "bleu",
+  "gris",
+  "ardoise",
+  "minuit",
+  "encre",
+  "petrole",
+  "azur"
+ ],
  "palette": "bleu",
  "mode": "auto"
 }

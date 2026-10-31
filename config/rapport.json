@@ -1,5 +1,5 @@
 {
- "date": "2026-10-30T17:30:59+00:00",
+ "date": "2026-10-31T08:11:09+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -105,16 +105,7 @@
  "erreurs": [],
  "modifs": {
   "recues": 3,
-  "nouvelles": [
-   {
-    "uid": "mvv90agz-51283f2j5s",
-    "statut": "ok",
-    "message": "reporté dans l'onglet Sport, ligne 91 : Oui = Oui",
-    "id": "sp:sco.1",
-    "le": "2026-10-30T17:30:59+00:00",
-    "par": "iPhone"
-   }
-  ]
+  "nouvelles": []
  },
  "resume": {
   "ok": 4,
