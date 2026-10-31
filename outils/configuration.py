@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: ec3bb1d1
+# mon-ecran-version: 577d9714
 # Lit le classeur de configuration (configuration.xlsx) et écrit les réglages du dock dans config/ :
 #   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json, applis.json
 #   config/config.js                     → les mêmes réglages en un seul fichier, chargé par les pages (window.MON_ECRAN_CONFIG)
@@ -383,7 +383,8 @@ def m_apparence(m):
     modes = [x['d'] for x in S['mode'][1]]
     if len(defs) > 1: note(m, defs[0]['r'], 'warn', f"{len(defs)} thèmes « Par défaut » : seul le premier ({defs[0]['nom']}) est gardé", defs[0]['nom'])
     if len(S['mode'][1]) > 1: note(m, S['mode'][1][0]['r'], 'warn', 'plusieurs modes cochés : seul le premier est gardé', S['mode'][1][0]['nom'])
-    return {'palettes': pal, 'palette': (defaut or pal or ['bleu'])[0], 'mode': (modes or ['auto'])[0]}
+    connus = [x['d'] for s in m['sections'] if s['id'] == 'themes' for x in s['rows']]   # v42 : un thème absent du classeur reste proposé (themes.js)
+    return {'palettes': pal, 'palettes_connues': connus, 'palette': (defaut or pal or ['bleu'])[0], 'mode': (modes or ['auto'])[0]}
 
 # ---------- Choix faits dans l'appli (config/modifs.json) → classeur ----------
 # Format écrit par l'appli (noyau.js) : {"v":1, "modifs":[{uid, at, par, id, champs:{"Oui":"Non"}}, {uid, ajout:{module, section, nom, source}, champs},
@@ -803,7 +804,9 @@ def main():
     # modifs_traitees : choix de l'appli déjà traités, pour les pages qui ne chargent pas le catalogue (l'accueil, Noyau.accueil)
     with open(os.path.join(OUT, 'config.js'), 'w', encoding='utf-8') as f:
         f.write('// Réglages du dock, écrits par la tâche « Configuration » à partir de configuration.xlsx — ne pas modifier à la main.\n')
-        f.write('window.MON_ECRAN_CONFIG = ' + json.dumps(dict(cfg, genere=RAPPORT['date'], modifs_traitees=sorted(modifs['traitees'])), ensure_ascii=False, separators=(',', ':')) + ';\n')
+        # depot : nom du dépôt GitHub (v42), pour une page ouverte ailleurs que sur pseudo.github.io/depot/ (fichier sur PC…) : suit un renommage
+        depot = {'nom': os.environ['GITHUB_REPOSITORY']} if re.fullmatch(r'[\w.-]+/[\w.-]+', os.environ.get('GITHUB_REPOSITORY', '')) else None
+        f.write('window.MON_ECRAN_CONFIG = ' + json.dumps(dict(cfg, genere=RAPPORT['date'], modifs_traitees=sorted(modifs['traitees']), **({'depot': depot} if depot else {})), ensure_ascii=False, separators=(',', ':')) + ';\n')
     # liste des chaînes pour le programme TV (même format que outils/chaines-tv.xml)
     esc = lambda v: str(v).replace('&', '&amp;').replace('<', '&lt;').replace('"', '&quot;')
     with open(os.path.join(OUT, 'chaines-tv.xml'), 'w', encoding='utf-8') as f:

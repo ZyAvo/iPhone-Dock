@@ -1,4 +1,4 @@
-// mon-ecran-version: 784cf12d
+// mon-ecran-version: 762bca59
 /* Mon Écran — mise en mémoire sur l'iPhone pour un démarrage instantané, même sans réseau.
    - Pages (accueil, actus, sport, état) : dernière version si le réseau répond en moins de 1,5 s,
      sinon la version en mémoire tout de suite, mise à jour en arrière-plan (la page se recharge seule
@@ -7,7 +7,7 @@
    - Polices Google : gardées en mémoire.
    Les sites extérieurs (ESPN, Spotify, flux RSS…) ne passent pas par ici. */
 const PAGES = 'pages-v1', DATA = 'donnees-v1', FONTS = 'polices-v1';
-const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'reglages.html', 'noyau.js', 'synchro.js', 'manifest.json', 'apple-touch-icon.png'];
+const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'reglages.html', 'noyau.js', 'themes.js', 'synchro.js', 'manifest.json', 'apple-touch-icon.png', 'icone-192.png', 'icone-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(PAGES).then(c => Promise.all(SHELL.map(u => c.add(new Request(u, {cache:'reload'})).catch(() => {})))).then(() => self.skipWaiting()));
@@ -16,7 +16,7 @@ self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => ![PAGES, DATA, FONTS].includes(k)).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
-const isPage = (req, url) => req.mode === 'navigate' || /\.html$|\/$|\/(noyau|synchro)\.js$|\/config\/config\.js$/.test(url.pathname);   // noyau.js, synchro.js : même règle que les pages
+const isPage = (req, url) => req.mode === 'navigate' || /\.html$|\/$|\/(noyau|themes|synchro)\.js$|\/config\/config\.js$/.test(url.pathname);   // noyau.js, themes.js, synchro.js : même règle que les pages
 const pageKey = url => { const p = url.pathname.replace(/\/$/, '/index.html'); return new URL(p, url.origin).href; };   // sans « ?code=… » etc.
 
 /* Pages : réseau d'abord s'il répond vite (1,5 s), sinon la version en mémoire (affichage immédiat),

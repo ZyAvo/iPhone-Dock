@@ -1,34 +1,49 @@
-# Mon Écran — comment intervenir
+# Mon Écran
 
-Ce dépôt contient la page d'accueil « Mon Écran » et ses pages Actus et Sport.
-Tu peux compléter deux types de données sans toucher au code : **les calendriers** et **les logos**.
+Un écran d'accueil façon iPhone, dans le navigateur : applis et dossiers, horloge et météo, « À la une », investissements, musique,
+et des pages **Actus**, **Sport** (matchs, classements, programme TV, écarts de cotes), **Vidéos** (films, séries, YouTube),
+**Investissements**, un **coffre** chiffré et une page **État** (santé des données, thème, synchronisation).
+Tout tourne sur GitHub : des tâches automatiques récupèrent les données, GitHub Pages publie le site. Rien à installer, rien de payant.
+
+- **iPhone** : ouvrir l'adresse du dock dans Safari → Partager → « Sur l'écran d'accueil ».
+- **Android, PC** : Chrome ou Edge → « Installer l'appli » (menu ⋮ ou icône dans la barre d'adresse).
+
+## Avoir son propre dock
+
+Tout est expliqué pas à pas dans l'onglet **Tuto** du classeur `configuration.xlsx` (30 à 45 minutes, une seule fois) :
+copie du dépôt (Fork), activation des tâches et de GitHub Pages, clés facultatives (TMDB pour Vidéos, The Odds API pour les cotes, Spotify).
+
+## Régler son dock
+
+- **Dans l'appli** : roue ⚙︎ en bas de l'accueil → Réglages (pages et widgets, écran d'accueil, médias, chaînes, compétitions, marchés).
+  Thème de couleurs et mode clair/sombre : page **État** (on peut aussi y créer son propre thème à partir d'une palette coolors.co).
+- **Dans le classeur** `configuration.xlsx` : tout ce que le dock affiche, coché ligne par ligne ; le déposer à la racine du dépôt suffit.
+- **Choix personnels** (équipes favorites, abonnements vidéo, villes météo) : dans l'appli ; ils passent d'un appareil à l'autre par la synchronisation chiffrée.
+
+Aucun secret dans le dépôt : codes, montants, clés restent sur l'appareil ou dans les secrets GitHub.
+
+## Organisation du dépôt
 
 ```
 (racine du dépôt)
-├── index.html              ← écran d'accueil (applis, dossiers, dock)
-├── actus.html              ← actualités par thème
-├── sport.html              ← matchs, classements, calendriers
-├── manifest.json, apple-touch-icon.png
-├── tv.json                 ← créé automatiquement (programme TV)
-├── fichiers.json           ← créé automatiquement (index des logos et calendriers)
-├── donnees/sport/          ← créé automatiquement (matchs, journées, classements)
-├── outils/                 ← scripts utilisés par la tâche automatique (ne pas modifier)
-├── .github/workflows/programme-tv.yml   ← la tâche automatique (toutes les 2 heures)
-├── calendriers/
-│   └── 2026-27/            ← un dossier par saison
-│       └── top-14.txt      ← un fichier texte par compétition
-└── logos/
-    ├── competitions/       ← logos des compétitions : ligue-1.png, top-14.png…
-    └── clubs/
-        ├── france/         ← castres.png, stade-toulousain.png…
-        ├── angleterre/
-        ├── espagne/
-        ├── italie/
-        ├── allemagne/
-        ├── etats-unis/
-        ├── selections/
-        └── autres/
+├── index.html                 ← écran d'accueil
+├── actus.html, sport.html, ecarts.html, videos.html, invest.html, cachee.html, etat.html, reglages.html
+├── noyau.js, themes.js, synchro.js, sw.js   ← noyau commun, thèmes, synchronisation, mise en mémoire
+├── configuration.xlsx         ← tes réglages (classeur)
+├── config/                    ← réglages produits depuis le classeur (tâche « Configuration »)
+├── outils/                    ← scripts des tâches (outils/dev : notes techniques)
+├── .github/workflows/         ← tâches automatiques
+├── calendriers/2026-27/       ← calendriers fournis à la main (voir plus bas)
+└── logos/                     ← logos de clubs et de compétitions (voir plus bas)
 ```
+Les données récupérées par les tâches sont publiées sur la branche `donnees`.
+
+Mises à jour du dock : déposer `mise-a-jour-vNN.zip` à la racine ; la tâche « Mise à jour » l'installe.
+Les fichiers de `.github/workflows` éventuellement fournis sont à déposer à la main (GitHub interdit aux tâches de les modifier).
+
+---
+
+Tu peux aussi compléter deux types de données sans toucher au code : **les calendriers** et **les logos**.
 
 ## Ajouter un calendrier
 

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="683bd036">
+<meta name="mon-ecran-version" content="5e60550e">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,7 +18,7 @@ img{max-width:100%}
 </style>
 <script src="config/config.js"></script>
 <script src="noyau.js"></script>
-<script>/* thème, mode clair/sombre (choisis dans État) et mise en page PC, avant l'affichage */try{const d=document.documentElement,p=localStorage.getItem('palette')||CFG('apparence.palette',''),m=localStorage.getItem('mode')||CFG('apparence.mode','');if(p&&p!=='bleu')d.dataset.palette=p;if(m==='clair')d.dataset.theme='light';else if(m==='sombre')d.dataset.theme='dark';const q=matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');d.classList.toggle('desk',q.matches);q.addEventListener&&q.addEventListener('change',e=>d.classList.toggle('desk',e.matches))}catch(e){}</script>
+<script src="themes.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
 <style>
@@ -68,11 +68,6 @@ img{max-width:100%}
 body{
   margin:0;font-family:var(--f-ui);color:var(--ink);
   background-color:var(--base);
-  background-image:
-    radial-gradient(60% 45% at 10% 8%, var(--blob-1), transparent 70%),
-    radial-gradient(55% 45% at 95% 35%, var(--blob-2), transparent 70%),
-    radial-gradient(70% 50% at 30% 100%, var(--blob-3), transparent 70%);
-  background-attachment:fixed;
   -webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;
   overflow-x:hidden;
 }
@@ -116,6 +111,16 @@ html.desk .wrap{max-width:860px}
 .pl-row[aria-checked="true"]{background:var(--accent-soft, rgba(127,127,127,.08))}
 .pal{display:flex;height:24px;border-radius:8px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)}
 .pal i{flex:1}
+.pl-add .pl-plus{flex:none;width:78px;height:24px;border-radius:8px;display:grid;place-items:center;font-size:1rem;color:var(--accent);border:1.5px dashed color-mix(in oklab, var(--accent) 55%, transparent)}
+.pz{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.pz label{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.pz input[type=text]{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%;min-width:0}
+.pz-c{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:10px}
+.pz-c input{width:100%;height:42px;padding:0;border:1px solid var(--line);border-radius:12px;background:none;cursor:pointer}
+.pz-c input::-webkit-color-swatch-wrapper{padding:3px}
+.pz-c input::-webkit-color-swatch{border:0;border-radius:9px}
+.pz .actions{margin-top:12px}
+.pz-del{color:#c0392b}
 /* ---------- Interrupteurs ---------- */
 .sw-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .sw-row small{display:block;color:var(--ink-soft);font-size:.78rem;margin-top:2px}
@@ -195,237 +200,7 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 @keyframes majin{from{opacity:0;transform:translate(-50%, 10px)}}
 @keyframes tapdot{from{transform:scale(.55);opacity:1}to{transform:scale(1.45);opacity:0}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
-/* ==PALETTES== Thèmes de couleurs (choix dans la page État, gardé sur l'appareil). « Bleu » = valeurs ci-dessus. */
-:root[data-palette="gris"]{
-  --base:#eef0f2;
-  --blob-1:rgba(198,199,196,.9); --blob-2:rgba(162,153,158,.45); --blob-3:rgba(132,106,106,.28);
-  --ink:#1c1f20; --ink-soft:#5b5557; --ink-faint:#8f8a8c;
-  --glass:rgba(255,255,255,.28); --glass-tint:rgba(198,199,196,.12);
-  --shadow:0 14px 34px -16px rgba(53,59,60,.42);
-  --head:rgba(238,240,242,.74); --panel:#eef0f2;
-  --card:rgba(255,255,255,.62); --line:rgba(53,59,60,.13);
-  --accent:#353b3c; --on-accent:#eef0f2; --accent-soft:rgba(53,59,60,.09);
-  --sheet:rgba(240,241,243,.95); --sheet-solid:#f0f1f3; --scrim:rgba(28,31,32,.3);
-  --t-brick:#c6c7c4; --t-slate:#d8d9d6; --t-olive:#a2999e; --t-plum:#b8b0b4;
-  --t-teal:#cfd0cd; --t-ochre:#c9b8b8; --t-char:#9a9497; --t-rose:#e3e4e2;
-  --glyph:#111111; --sport-accent:#6b4f4f;
-}
-:root[data-palette="ardoise"]{
-  --base:#f4f4f4;
-  --blob-1:rgba(191,192,192,.85); --blob-2:rgba(79,93,117,.32); --blob-3:rgba(239,131,84,.24);
-  --ink:#2d3142; --ink-soft:#5d6273; --ink-faint:#8e93a0;
-  --glass:rgba(255,255,255,.3); --glass-tint:rgba(191,192,192,.12);
-  --shadow:0 14px 34px -16px rgba(45,49,66,.42);
-  --head:rgba(244,244,244,.76); --panel:#f4f4f4;
-  --card:rgba(255,255,255,.66); --line:rgba(45,49,66,.12);
-  --accent:#2d3142; --on-accent:#ffffff; --accent-soft:rgba(45,49,66,.08);
-  --sheet:rgba(246,246,246,.95); --sheet-solid:#f6f6f6; --scrim:rgba(45,49,66,.3);
-  --t-brick:#e0703c; --t-slate:#4f5d75; --t-olive:#2d3142; --t-plum:#3b4256;
-  --t-teal:#6b7891; --t-ochre:#ef8354; --t-char:#2d3142; --t-rose:#8a96ab;
-  --glyph:#ffffff; --sport-accent:#ef8354;
-}
-@media (prefers-color-scheme: dark){
-  :root[data-palette="gris"]:not([data-theme="light"]){
-    --base:#1b1e1f;
-    --blob-1:rgba(53,59,60,.9); --blob-2:rgba(132,106,106,.38); --blob-3:rgba(162,153,158,.2);
-    --ink:#eef0f2; --ink-soft:#b5b0b2; --ink-faint:#8f8a8c;
-    --glass:rgba(238,240,242,.07); --glass-tint:rgba(198,199,196,.05);
-    --rim-1:rgba(238,240,242,.5); --rim-2:rgba(238,240,242,.04); --rim-3:rgba(198,199,196,.3); --spec:rgba(238,240,242,.14);
-    --shadow:0 14px 34px -14px rgba(0,0,0,.75);
-    --head:rgba(27,30,31,.7); --panel:#1b1e1f;
-    --card:rgba(238,240,242,.06); --line:rgba(238,240,242,.1);
-    --accent:#c6c7c4; --on-accent:#1b1e1f; --accent-soft:rgba(198,199,196,.12);
-    --sheet:rgba(30,33,34,.95); --sheet-solid:#1e2122; --scrim:rgba(0,0,0,.45);
-  }
-  :root[data-palette="ardoise"]:not([data-theme="light"]){
-    --base:#1f2230;
-    --blob-1:rgba(45,49,66,.95); --blob-2:rgba(79,93,117,.5); --blob-3:rgba(239,131,84,.2);
-    --ink:#f4f4f4; --ink-soft:#bfc0c0; --ink-faint:#8e93a0;
-    --glass:rgba(255,255,255,.07); --glass-tint:rgba(191,192,192,.05);
-    --rim-1:rgba(255,255,255,.5); --rim-2:rgba(255,255,255,.04); --rim-3:rgba(239,131,84,.3); --spec:rgba(255,255,255,.14);
-    --shadow:0 14px 34px -14px rgba(0,0,0,.75);
-    --head:rgba(31,34,48,.72); --panel:#1f2230;
-    --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.1);
-    --accent:#ef8354; --on-accent:#1f2230; --accent-soft:rgba(239,131,84,.14);
-    --sheet:rgba(34,37,52,.95); --sheet-solid:#222534; --scrim:rgba(0,0,0,.45);
-  }
-}
-:root[data-palette="gris"][data-theme="dark"]{
-  --base:#1b1e1f;
-  --blob-1:rgba(53,59,60,.9); --blob-2:rgba(132,106,106,.38); --blob-3:rgba(162,153,158,.2);
-  --ink:#eef0f2; --ink-soft:#b5b0b2; --ink-faint:#8f8a8c;
-  --glass:rgba(238,240,242,.07); --glass-tint:rgba(198,199,196,.05);
-  --rim-1:rgba(238,240,242,.5); --rim-2:rgba(238,240,242,.04); --rim-3:rgba(198,199,196,.3); --spec:rgba(238,240,242,.14);
-  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
-  --head:rgba(27,30,31,.7); --panel:#1b1e1f;
-  --card:rgba(238,240,242,.06); --line:rgba(238,240,242,.1);
-  --accent:#c6c7c4; --on-accent:#1b1e1f; --accent-soft:rgba(198,199,196,.12);
-  --sheet:rgba(30,33,34,.95); --sheet-solid:#1e2122; --scrim:rgba(0,0,0,.45);
-}
-:root[data-palette="ardoise"][data-theme="dark"]{
-  --base:#1f2230;
-  --blob-1:rgba(45,49,66,.95); --blob-2:rgba(79,93,117,.5); --blob-3:rgba(239,131,84,.2);
-  --ink:#f4f4f4; --ink-soft:#bfc0c0; --ink-faint:#8e93a0;
-  --glass:rgba(255,255,255,.07); --glass-tint:rgba(191,192,192,.05);
-  --rim-1:rgba(255,255,255,.5); --rim-2:rgba(255,255,255,.04); --rim-3:rgba(239,131,84,.3); --spec:rgba(255,255,255,.14);
-  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
-  --head:rgba(31,34,48,.72); --panel:#1f2230;
-  --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.1);
-  --accent:#ef8354; --on-accent:#1f2230; --accent-soft:rgba(239,131,84,.14);
-  --sheet:rgba(34,37,52,.95); --sheet-solid:#222534; --scrim:rgba(0,0,0,.45);
-}
-/* Palettes ajoutées le 30/10 (coolors) */
-:root[data-palette="minuit"]{
-  --base:#eef2f7;
-  --blob-1:rgba(255,214,10,0.38); --blob-2:rgba(0,53,102,0.34); --blob-3:rgba(0,29,61,0.26);
-  --ink:#001d3d; --ink-soft:#46566b; --ink-faint:#8794a6;
-  --glass:rgba(255,255,255,.28); --glass-tint:rgba(238,242,247,0.12);
-  --shadow:0 14px 34px -16px rgba(0,29,61,0.42);
-  --head:rgba(238,242,247,0.76); --panel:#eef2f7;
-  --card:rgba(255,255,255,.64); --line:rgba(0,29,61,0.12);
-  --accent:#003566; --on-accent:#ffffff; --accent-soft:rgba(0,53,102,0.09);
-  --sheet:rgba(238,242,247,0.95); --sheet-solid:#eef2f7; --scrim:rgba(0,29,61,0.3);
-  --t-brick:#003566; --t-slate:#0d2b52; --t-olive:#0a3d73; --t-plum:#1a3a63; --t-teal:#00467f; --t-ochre:#24456b; --t-char:#123257; --t-rose:#2d5585;
-  --glyph:#ffd60a; --sport-accent:#ffc300;
-}
-:root[data-palette="encre"]{
-  --base:#f3f3f3;
-  --blob-1:rgba(229,229,229,0.95); --blob-2:rgba(20,33,61,0.26); --blob-3:rgba(252,163,17,0.26);
-  --ink:#14213d; --ink-soft:#525a69; --ink-faint:#8b919c;
-  --glass:rgba(255,255,255,.28); --glass-tint:rgba(243,243,243,0.12);
-  --shadow:0 14px 34px -16px rgba(20,33,61,0.42);
-  --head:rgba(243,243,243,0.76); --panel:#f3f3f3;
-  --card:rgba(255,255,255,.64); --line:rgba(20,33,61,0.12);
-  --accent:#14213d; --on-accent:#ffffff; --accent-soft:rgba(20,33,61,0.09);
-  --sheet:rgba(243,243,243,0.95); --sheet-solid:#f3f3f3; --scrim:rgba(20,33,61,0.3);
-  --t-brick:#14213d; --t-slate:#2e2e2e; --t-olive:#24365e; --t-plum:#3a3a3a; --t-teal:#33487a; --t-ochre:#474747; --t-char:#1d2c4f; --t-rose:#46557a;
-  --glyph:#fca311; --sport-accent:#fca311;
-}
-:root[data-palette="petrole"]{
-  --base:#fff5e8;
-  --blob-1:rgba(255,236,209,0.95); --blob-2:rgba(21,97,109,0.34); --blob-3:rgba(255,125,0,0.22);
-  --ink:#001524; --ink-soft:#4c5b5f; --ink-faint:#8b9496;
-  --glass:rgba(255,255,255,.28); --glass-tint:rgba(255,245,232,0.12);
-  --shadow:0 14px 34px -16px rgba(0,21,36,0.42);
-  --head:rgba(255,245,232,0.76); --panel:#fff5e8;
-  --card:rgba(255,255,255,.64); --line:rgba(0,21,36,0.12);
-  --accent:#15616d; --on-accent:#ffffff; --accent-soft:rgba(21,97,109,0.09);
-  --sheet:rgba(255,245,232,0.95); --sheet-solid:#fff5e8; --scrim:rgba(0,21,36,0.3);
-  --t-brick:#15616d; --t-slate:#78290f; --t-olive:#001524; --t-plum:#b35400; --t-teal:#0f4a54; --t-ochre:#9a3a17; --t-char:#002a40; --t-rose:#1d7a88;
-  --glyph:#ffecd1; --sport-accent:#ff7d00;
-}
-:root[data-palette="azur"]{
-  --base:#f1f1f1;
-  --blob-1:rgba(192,192,192,0.85); --blob-2:rgba(58,110,165,0.38); --blob-3:rgba(255,103,0,0.22);
-  --ink:#0a2a4f; --ink-soft:#56616d; --ink-faint:#8e959e;
-  --glass:rgba(255,255,255,.28); --glass-tint:rgba(241,241,241,0.12);
-  --shadow:0 14px 34px -16px rgba(10,42,79,0.42);
-  --head:rgba(241,241,241,0.76); --panel:#f1f1f1;
-  --card:rgba(255,255,255,.64); --line:rgba(10,42,79,0.12);
-  --accent:#004e98; --on-accent:#ffffff; --accent-soft:rgba(0,78,152,0.09);
-  --sheet:rgba(241,241,241,0.95); --sheet-solid:#f1f1f1; --scrim:rgba(10,42,79,0.3);
-  --t-brick:#004e98; --t-slate:#3a6ea5; --t-olive:#003a72; --t-plum:#2b5a8a; --t-teal:#4f82b8; --t-ochre:#d65600; --t-char:#23364d; --t-rose:#6c8fb8;
-  --glyph:#ffffff; --sport-accent:#ff6700;
-}
-@media (prefers-color-scheme: dark){
-  :root[data-palette="minuit"]:not([data-theme="light"]){
-  --base:#000814;
-  --blob-1:rgba(0,53,102,0.9); --blob-2:rgba(0,29,61,0.7); --blob-3:rgba(255,195,0,0.16);
-  --ink:#f2f5f9; --ink-soft:#a9b6c8; --ink-faint:#7d8aa0;
-  --glass:rgba(242,245,249,0.07); --glass-tint:rgba(255,195,0,0.05);
-  --rim-1:rgba(242,245,249,0.5); --rim-2:rgba(242,245,249,0.04); --rim-3:rgba(255,195,0,0.3); --spec:rgba(242,245,249,0.14);
-  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
-  --head:rgba(0,8,20,0.72); --panel:#000814;
-  --card:rgba(242,245,249,0.06); --line:rgba(242,245,249,0.1);
-  --accent:#ffc300; --on-accent:#000814; --accent-soft:rgba(255,195,0,0.14);
-  --sheet:rgba(0,8,20,0.95); --sheet-solid:#000814; --scrim:rgba(0,0,0,.45);
-  }
-  :root[data-palette="encre"]:not([data-theme="light"]){
-  --base:#030407;
-  --blob-1:rgba(20,33,61,0.95); --blob-2:rgba(20,33,61,0.55); --blob-3:rgba(252,163,17,0.17);
-  --ink:#ffffff; --ink-soft:#bcbcbc; --ink-faint:#8a8a8a;
-  --glass:rgba(255,255,255,0.07); --glass-tint:rgba(252,163,17,0.05);
-  --rim-1:rgba(255,255,255,0.5); --rim-2:rgba(255,255,255,0.04); --rim-3:rgba(252,163,17,0.3); --spec:rgba(255,255,255,0.14);
-  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
-  --head:rgba(3,4,7,0.72); --panel:#030407;
-  --card:rgba(255,255,255,0.06); --line:rgba(255,255,255,0.1);
-  --accent:#fca311; --on-accent:#000000; --accent-soft:rgba(252,163,17,0.14);
-  --sheet:rgba(3,4,7,0.95); --sheet-solid:#030407; --scrim:rgba(0,0,0,.45);
-  }
-  :root[data-palette="petrole"]:not([data-theme="light"]){
-  --base:#001524;
-  --blob-1:rgba(21,97,109,0.8); --blob-2:rgba(120,41,15,0.45); --blob-3:rgba(255,125,0,0.16);
-  --ink:#ffecd1; --ink-soft:#c9baa5; --ink-faint:#8f8676;
-  --glass:rgba(255,236,209,0.07); --glass-tint:rgba(255,125,0,0.05);
-  --rim-1:rgba(255,236,209,0.5); --rim-2:rgba(255,236,209,0.04); --rim-3:rgba(255,125,0,0.3); --spec:rgba(255,236,209,0.14);
-  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
-  --head:rgba(0,21,36,0.72); --panel:#001524;
-  --card:rgba(255,236,209,0.06); --line:rgba(255,236,209,0.1);
-  --accent:#ff7d00; --on-accent:#001524; --accent-soft:rgba(255,125,0,0.14);
-  --sheet:rgba(0,21,36,0.95); --sheet-solid:#001524; --scrim:rgba(0,0,0,.45);
-  }
-  :root[data-palette="azur"]:not([data-theme="light"]){
-  --base:#0a1622;
-  --blob-1:rgba(0,78,152,0.75); --blob-2:rgba(58,110,165,0.4); --blob-3:rgba(255,103,0,0.18);
-  --ink:#ebebeb; --ink-soft:#b2bac4; --ink-faint:#848c96;
-  --glass:rgba(235,235,235,0.07); --glass-tint:rgba(255,122,31,0.05);
-  --rim-1:rgba(235,235,235,0.5); --rim-2:rgba(235,235,235,0.04); --rim-3:rgba(255,122,31,0.3); --spec:rgba(235,235,235,0.14);
-  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
-  --head:rgba(10,22,34,0.72); --panel:#0a1622;
-  --card:rgba(235,235,235,0.06); --line:rgba(235,235,235,0.1);
-  --accent:#ff7a1f; --on-accent:#0a1622; --accent-soft:rgba(255,122,31,0.14);
-  --sheet:rgba(10,22,34,0.95); --sheet-solid:#0a1622; --scrim:rgba(0,0,0,.45);
-  }
-}
-:root[data-palette="minuit"][data-theme="dark"]{
-  --base:#000814;
-  --blob-1:rgba(0,53,102,0.9); --blob-2:rgba(0,29,61,0.7); --blob-3:rgba(255,195,0,0.16);
-  --ink:#f2f5f9; --ink-soft:#a9b6c8; --ink-faint:#7d8aa0;
-  --glass:rgba(242,245,249,0.07); --glass-tint:rgba(255,195,0,0.05);
-  --rim-1:rgba(242,245,249,0.5); --rim-2:rgba(242,245,249,0.04); --rim-3:rgba(255,195,0,0.3); --spec:rgba(242,245,249,0.14);
-  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
-  --head:rgba(0,8,20,0.72); --panel:#000814;
-  --card:rgba(242,245,249,0.06); --line:rgba(242,245,249,0.1);
-  --accent:#ffc300; --on-accent:#000814; --accent-soft:rgba(255,195,0,0.14);
-  --sheet:rgba(0,8,20,0.95); --sheet-solid:#000814; --scrim:rgba(0,0,0,.45);
-}
-:root[data-palette="encre"][data-theme="dark"]{
-  --base:#030407;
-  --blob-1:rgba(20,33,61,0.95); --blob-2:rgba(20,33,61,0.55); --blob-3:rgba(252,163,17,0.17);
-  --ink:#ffffff; --ink-soft:#bcbcbc; --ink-faint:#8a8a8a;
-  --glass:rgba(255,255,255,0.07); --glass-tint:rgba(252,163,17,0.05);
-  --rim-1:rgba(255,255,255,0.5); --rim-2:rgba(255,255,255,0.04); --rim-3:rgba(252,163,17,0.3); --spec:rgba(255,255,255,0.14);
-  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
-  --head:rgba(3,4,7,0.72); --panel:#030407;
-  --card:rgba(255,255,255,0.06); --line:rgba(255,255,255,0.1);
-  --accent:#fca311; --on-accent:#000000; --accent-soft:rgba(252,163,17,0.14);
-  --sheet:rgba(3,4,7,0.95); --sheet-solid:#030407; --scrim:rgba(0,0,0,.45);
-}
-:root[data-palette="petrole"][data-theme="dark"]{
-  --base:#001524;
-  --blob-1:rgba(21,97,109,0.8); --blob-2:rgba(120,41,15,0.45); --blob-3:rgba(255,125,0,0.16);
-  --ink:#ffecd1; --ink-soft:#c9baa5; --ink-faint:#8f8676;
-  --glass:rgba(255,236,209,0.07); --glass-tint:rgba(255,125,0,0.05);
-  --rim-1:rgba(255,236,209,0.5); --rim-2:rgba(255,236,209,0.04); --rim-3:rgba(255,125,0,0.3); --spec:rgba(255,236,209,0.14);
-  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
-  --head:rgba(0,21,36,0.72); --panel:#001524;
-  --card:rgba(255,236,209,0.06); --line:rgba(255,236,209,0.1);
-  --accent:#ff7d00; --on-accent:#001524; --accent-soft:rgba(255,125,0,0.14);
-  --sheet:rgba(0,21,36,0.95); --sheet-solid:#001524; --scrim:rgba(0,0,0,.45);
-}
-:root[data-palette="azur"][data-theme="dark"]{
-  --base:#0a1622;
-  --blob-1:rgba(0,78,152,0.75); --blob-2:rgba(58,110,165,0.4); --blob-3:rgba(255,103,0,0.18);
-  --ink:#ebebeb; --ink-soft:#b2bac4; --ink-faint:#848c96;
-  --glass:rgba(235,235,235,0.07); --glass-tint:rgba(255,122,31,0.05);
-  --rim-1:rgba(235,235,235,0.5); --rim-2:rgba(235,235,235,0.04); --rim-3:rgba(255,122,31,0.3); --spec:rgba(235,235,235,0.14);
-  --shadow:0 14px 34px -14px rgba(0,0,0,.75);
-  --head:rgba(10,22,34,0.72); --panel:#0a1622;
-  --card:rgba(235,235,235,0.06); --line:rgba(235,235,235,0.1);
-  --accent:#ff7a1f; --on-accent:#0a1622; --accent-soft:rgba(255,122,31,0.14);
-  --sheet:rgba(10,22,34,0.95); --sheet-solid:#0a1622; --scrim:rgba(0,0,0,.45);
-}
-/* ==FIN PALETTES== */
+/* Thèmes de couleurs et fond dégradé : themes.js (v42) */
 </style>
 <script src="synchro.js"></script>
 </head>
@@ -479,28 +254,50 @@ function judge(e){
 const chev = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
 const part = (title, j, inner, open) => `<details class="part glass ${j.lvl}"${open ? ' open' : ''}><summary><span class="lamp"></span><span class="t"><b>${title}</b><small>${esc(j.msg)}</small></span>${chev}</summary><div class="body">${inner}</div></details>`;
 
-/* Thème de couleurs (gardé sur cet appareil, appliqué à toutes les pages) */
-const PALETTES_TOUTES = [
-  {id:'bleu',    t:'Bleu',             d:'Le thème d\'origine',      c:['#e7ecef', '#a3cef1', '#6096ba', '#274c77', '#8b8c89']},
-  {id:'gris',    t:'Gris',             d:'Icônes noires',            c:['#eef0f2', '#c6c7c4', '#a2999e', '#846a6a', '#353b3c']},
-  {id:'ardoise', t:'Ardoise et corail', d:'Bleu nuit, touche orangée', c:['#2d3142', '#4f5d75', '#bfc0c0', '#ffffff', '#ef8354']},
-  {id:'minuit',  t:'Minuit et or',      d:'Marine profond, icônes dorées', c:['#000814', '#001d3d', '#003566', '#ffc300', '#ffd60a']},
-  {id:'encre',   t:'Encre et ambre',    d:'Noir et marine, icônes ambre',  c:['#000000', '#14213d', '#fca311', '#e5e5e5', '#ffffff']},
-  {id:'petrole', t:'Pétrole et cuivre', d:'Bleu pétrole, crème, orange',   c:['#001524', '#15616d', '#ffecd1', '#ff7d00', '#78290f']},
-  {id:'azur',    t:'Azur et mandarine', d:'Bleu roi, gris clair, orange',  c:['#ff6700', '#ebebeb', '#c0c0c0', '#3a6ea5', '#004e98']}
-];
-const PALETTES = (l => l ? PALETTES_TOUTES.filter(p => l.includes(p.id)) : PALETTES_TOUTES)(CFG('apparence.palettes', null));   // thèmes proposés (classeur, onglet Apparence)
-const PAL_DEF = CFG('apparence.palette', 'bleu'), MODE_DEF = CFG('apparence.mode', 'auto');   // choix de départ d'un nouvel appareil
+/* Thème de couleurs (gardé sur cet appareil, appliqué à toutes les pages) — liste, calcul et thème perso : themes.js */
+const MODE_DEF = CFG('apparence.mode', 'auto');   // choix de départ d'un nouvel appareil (le thème de départ : Themes.defaut())
 const modeNow = () => { try{ return localStorage.getItem('mode') || MODE_DEF; }catch{ return 'auto'; } };
-const palNow = () => { try{ return localStorage.getItem('palette') || PAL_DEF; }catch{ return 'bleu'; } };
+const PZ = {ouvert:false, c:null, nom:''};          // formulaire « Créer mon thème »
+const PZ_DEPART = ['#ff6b6b', '#ffa36c', '#c06c84', '#6c5b7b', '#355c7d'];
 function themeHTML(){
-  const cur = palNow();
-  return `<div class="sum glass" style="flex-direction:column;align-items:stretch;gap:6px"><b>Thème</b>
+  const cur = Themes.actuel(), p = Themes.perso();
+  return `<div class="sum glass" id="themeCard" style="flex-direction:column;align-items:stretch;gap:6px"><b>Thème</b>
     <div class="modes" role="radiogroup" aria-label="Mode clair ou sombre">${[['auto', 'Défaut'], ['clair', 'Clair'], ['sombre', 'Sombre']].map(([v, t]) => `<button type="button" role="radio" aria-checked="${v === modeNow()}" data-mode="${v}"${v === 'auto' ? ' title="Suit le réglage de l\'iPhone"' : ''}>${t}</button>`).join('')}</div>
-    <div class="pals" role="radiogroup" aria-label="Thème de couleurs">${PALETTES.map(p => `<button type="button" class="pl-row" role="radio" aria-checked="${p.id === cur}" data-pal="${p.id}">
-      <span class="pal" aria-hidden="true">${p.c.map(c => `<i style="background:${c}"></i>`).join('')}</span><span class="pl-t"><b>${p.t}</b><small>${p.d}</small></span><span class="ok" aria-hidden="true"></span></button>`).join('')}</div>
-    <p class="note" style="margin:2px 0 0">Appliqué à toutes les pages de cet appareil.</p></div>`;
+    <div class="pals" role="radiogroup" aria-label="Thème de couleurs">${Themes.liste().map(t => `<button type="button" class="pl-row" role="radio" aria-checked="${t.id === cur}" data-pal="${t.id}">
+      <span class="pal" aria-hidden="true">${t.c.map(c => `<i style="background:${esc(c)}"></i>`).join('')}</span><span class="pl-t"><b>${esc(t.nom)}</b><small>${esc(t.d)}</small></span><span class="ok" aria-hidden="true"></span></button>`).join('')}
+      ${PZ.ouvert ? '' : `<button type="button" class="pl-row pl-add" data-perso="ouvrir"><span class="pl-plus" aria-hidden="true">${p ? '✎' : '＋'}</span><span class="pl-t"><b>${p ? 'Modifier mon thème' : 'Créer mon thème'}</b><small>À partir d'une palette coolors.co ou de 5 couleurs</small></span></button>`}</div>
+    ${PZ.ouvert ? persoHTML(p) : ''}
+    <p class="note" style="margin:2px 0 0">Appliqué à toutes les pages de cet appareil.${p ? ' Ton thème perso est partagé avec tes autres appareils par la synchronisation.' : ''}</p></div>`;
 }
+function persoHTML(p){
+  const c = PZ.c || (p ? p.c : PZ_DEPART);
+  return `<div class="pz" id="pz"><b>${p ? 'Modifier mon thème' : 'Créer mon thème'}</b>
+    <label class="note">Lien coolors.co ou codes couleur<input id="pzTxt" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://coolors.co/ff6b6b-ffa36c-c06c84-…"></label>
+    <div class="pz-c" role="group" aria-label="Couleurs du thème">${[0, 1, 2, 3, 4].map(i => `<input type="color" data-pzc="${i}" value="${esc(c[i] || c[i % c.length])}" aria-label="Couleur ${i + 1}">`).join('')}</div>
+    <label class="note">Nom<input id="pzNom" type="text" maxlength="30" autocomplete="off" value="${esc(PZ.nom || (p ? p.nom : 'Mon thème'))}"></label>
+    <div class="actions"><button type="button" class="btn main" data-perso="garder">Enregistrer</button><button type="button" class="btn" data-perso="annuler">Annuler</button>${p ? '<button type="button" class="btn pz-del" data-perso="effacer">Supprimer</button>' : ''}</div>
+    <p class="note">Aperçu en direct sur cette page (clair et sombre sont calculés à partir des couleurs). Sur coolors.co : « Generate » jusqu'à une palette qui te plaît, puis copie l'adresse de la page.</p></div>`;
+}
+const pzCouleurs = () => [...document.querySelectorAll('[data-pzc]')].map(i => i.value);
+function themeRedessiner(focus){
+  const el = $('#themeCard'); if (!el) return; const tmp = document.createElement('div'); tmp.innerHTML = themeHTML(); el.replaceWith(tmp.firstElementChild);
+  if (focus){ const f = document.querySelector(focus); if (f) f.focus(); }
+}
+document.addEventListener('input', e => {
+  if (e.target.id === 'pzTxt'){ const l = Themes.lireCouleurs(e.target.value); if (l.length < 2) return;
+    document.querySelectorAll('[data-pzc]').forEach((x, i) => { x.value = l[i % l.length]; }); PZ.c = pzCouleurs(); Themes.apercu(PZ.c); return; }
+  if (e.target.matches('[data-pzc]')){ PZ.c = pzCouleurs(); Themes.apercu(PZ.c); return; }
+  if (e.target.id === 'pzNom') PZ.nom = e.target.value;
+});
+document.addEventListener('click', e => {
+  const z = e.target.closest('[data-perso]'); if (!z) return;
+  const a = z.dataset.perso;
+  if (a === 'ouvrir'){ PZ.ouvert = true; PZ.c = null; PZ.nom = ''; themeRedessiner('#pzTxt'); Themes.apercu(pzCouleurs()); return; }
+  if (a === 'annuler'){ PZ.ouvert = false; PZ.c = null; Themes.apercu(null); themeRedessiner(); return; }
+  if (a === 'garder'){ Themes.enregistrerPerso(($('#pzNom') || {}).value || 'Mon thème', pzCouleurs()); PZ.ouvert = false; PZ.c = null; themeRedessiner(); return; }
+  if (a === 'effacer'){ if (!confirm('Supprimer ton thème perso (sur tous tes appareils synchronisés) ?')) return; Themes.effacerPerso(); PZ.ouvert = false; PZ.c = null; themeRedessiner(); }
+});
+window.addEventListener('synchro:prefs', () => { if (!PZ.ouvert) themeRedessiner(); });
 
 /* Rafraîchissement automatique sur cet iPhone (les tâches GitHub, elles, continuent de tourner) */
 const AUTO = [
@@ -580,7 +377,7 @@ function render(e){
   }
 
   h += cotesPart() + confPart() + themeHTML() + autoHTML() + syncHTML() + sauvHTML();
-  h += `<div class="actions"><a class="btn main" href="https://github.com/ZyAvo/iPhone-Dock/actions" target="_blank" rel="noopener">Voir les tâches GitHub</a>
+  h += `<div class="actions"><a class="btn main" href="https://github.com/${esc(Noyau.depot.nom)}/actions" target="_blank" rel="noopener">Voir les tâches GitHub</a>
     <button type="button" class="btn" id="resetBtn">Vider la mémoire de l'appli</button></div>
     <p class="note" id="resetMsg">« Vider la mémoire » efface les données gardées sur cet appareil (matchs, actus, pages) ; tes réglages (lieu météo, Spotify, favoris, langue des actus, placements, rafraîchissement) sont conservés.</p>`;
   $('#out').innerHTML = h;
@@ -683,15 +480,15 @@ document.addEventListener('click', e => {
     if (v === 'auto') delete d.dataset.theme; else d.dataset.theme = v === 'clair' ? 'light' : 'dark';
     document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-checked', x.dataset.mode === v)); return; }
   const b = e.target.closest('[data-pal]'); if (!b) return;
-  const v = b.dataset.pal;
-  try{ if (v === PAL_DEF) localStorage.removeItem('palette'); else localStorage.setItem('palette', v); }catch{}
-  if (v === 'bleu') delete document.documentElement.dataset.palette; else document.documentElement.dataset.palette = v;
+  const v = b.dataset.pal; PZ.ouvert = false; PZ.c = null;
+  Themes.choisir(v);
   document.querySelectorAll('[data-pal]').forEach(x => x.setAttribute('aria-checked', x.dataset.pal === v));
+  if (!document.querySelector('[data-perso="ouvrir"]')) themeRedessiner();
 });
 /* ---------- Sauvegarde : tes réglages et données personnelles dans un code à garder (Notes…), chiffré avec ton code ---------- */
 const REGLAGES = ['cotes:cle', 'synchro:cfg', 'synchro:etat', 'invest:lignes', 'invest:reglages', 'invest:pin', 'invest:perimetre', 'invest:widget-per', 'invest:versements', 'coffre:chiffre', 'coffre:items',
   'sport:favoris', 'sport:reduites', 'actus:langue', 'videos:abos', 'videos:liste', 'videos:vus', 'videos:yt-chaine',
-  'lieu:favoris', 'lieu:actuel', 'palette', 'mode', 'rafraichissement', 'spotify:client'];
+  'lieu:favoris', 'lieu:actuel', 'palette', 'mode', 'theme:perso', 'rafraichissement', 'spotify:client', 'musique:source'];
 const B64 = {de:u => { let t = ''; for (let i = 0; i < u.length; i += 8192) t += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(t); }, vers:s => Uint8Array.from(atob(s), c => c.charCodeAt(0))};
 async function cleDe(pin, sel){
   const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey']);

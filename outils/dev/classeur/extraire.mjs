@@ -1,4 +1,4 @@
-// mon-ecran-version: 28b97a58
+// mon-ecran-version: eb5e9d83
 // Extrait les réglages actuels écrits dans le code des pages → reference.json (état « avant »)
 import fs from 'node:fs'; import vm from 'node:vm';
 const D = process.argv[2], OUT = process.argv[3];
@@ -25,7 +25,7 @@ function brut(src, name){
   throw new Error('expression illisible ' + name);
 }
 const one = lit;
-const sport = rd('sport.html'), actus = rd('actus.html'), invest = rd('invest.html'), videos = rd('videos.html'), index = rd('index.html'), cotes = rd('outils/cotes-data.mjs'), tvxml = rd('outils/chaines-tv.xml'), etat = rd('etat.html');
+const sport = rd('sport.html'), actus = rd('actus.html'), invest = rd('invest.html'), videos = rd('videos.html'), index = rd('index.html'), cotes = rd('outils/cotes-data.mjs'), tvxml = rd('outils/chaines-tv.xml'), themes = rd('themes.js');
 const ref = {
   sport:{regions:lit(sport, 'REGIONS'), leagues:lit(sport, 'LEAGUES'), favoris:one(sport, 'FAV_DEFAULT')},
   actus:{fr:lit(actus, 'TABS_FR'), autres:lit(actus, 'TABS_AUTRES'), en:lit(actus, 'TABS_EN')},
@@ -34,7 +34,7 @@ const ref = {
   tv:{chaines:[...tvxml.matchAll(/<channel site="([^"]*)" site_id="([^"]*)" lang="([^"]*)" xmltv_id="([^"]*)">([^<]*)<\/channel>/g)].map(m => ({site:m[1], site_id:m[2], lang:m[3], xmltv_id:m[4], nom:m[5]}))},
   cotes:{sites:one(cotes, 'BOOKS'), comps:lit(cotes, 'COMPS')},
   accueil:{meteo:lit(index, 'FAV_DEFAULT'), une:one(index, 'WIDGET_FEED'), indices_widget:lit(index, 'INV_IDX').map(x => x[0])},
-  apparence:{palettes:lit(etat, 'PALETTES').map(p => p.id), palette:'bleu', mode:'auto'},
+  apparence:{palettes:lit(themes, 'THEMES').map(p => p.id), noms:lit(themes, 'THEMES').map(p => [p.id, p.nom]), palette:'bleu', mode:'auto'},
   applis:{dossiers:lit(index, 'FOLDERS'), accueil:lit(index, 'HOME'), bas_gauche:lit(index, 'QUICK_LEFT'), bas_droite:lit(index, 'QUICK_RIGHT'), navigation:lit(index, 'NAV_APPS')}
 };
 fs.writeFileSync(OUT, JSON.stringify(ref, null, 1));

@@ -1,4 +1,4 @@
-# mon-ecran-version: a2873760
+# mon-ecran-version: 4fb89deb
 # Vérification « avant / après » : la configuration produite par le classeur pré-coché doit être identique aux réglages du code.
 import json, sys
 ref = json.load(open('reference.json')); D = sys.argv[1]
@@ -10,7 +10,7 @@ attendu = {
   'accueil': {'pages': ['actus', 'sport', 'videos', 'invest', 'cachee', 'etat'], 'widgets': ['meteo', 'une', 'invest', 'spotify', 'sport', 'live'],
               'une': ref['accueil']['une'], 'indices_widget': ref['accueil']['indices_widget']},
   'applis': ref.get('applis'),
-  'apparence': {'palettes': ref['apparence']['palettes'], 'palette': ref['apparence']['palette'], 'mode': ref['apparence']['mode']},
+  'apparence': {'palettes': ref['apparence']['palettes'], 'palettes_connues': ref['apparence']['palettes'], 'palette': ref['apparence']['palette'], 'mode': ref['apparence']['mode']},
 }
 for x in ref['tv']['chaines']: x.pop('ordre', None)
 if 'cotes' in c: c['cotes'].pop('rapport', None)

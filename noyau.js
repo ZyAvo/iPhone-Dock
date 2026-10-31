@@ -1,4 +1,4 @@
-// mon-ecran-version: af240f8f
+// mon-ecran-version: bdd7c8a4
 /* Mon Écran — noyau commun à toutes les pages, et base des futures applis dédiées (iPhone, Android, PC).
    Rien ici ne dépend d'une astuce de Safari : ce qui est propre à « l'iPhone en mode web » est rangé dans Noyau.iphoneWeb,
    et une appli dédiée pourra fournir window.MonEcranNatif (ouvrir un lien, garder la clé…) que le noyau utilisera en priorité.
@@ -90,8 +90,11 @@ const lien = {
 };
 
 /* ---------- Dépôt GitHub (même clé que la synchronisation, gardée chiffrée avec ton code) ---------- */
+/* déduit de l'adresse (pseudo.github.io/depot/), sinon le nom écrit par la tâche Configuration (config.js), sinon celui d'origine :
+   un dépôt renommé continue de fonctionner sans retoucher le code (v42) */
+const DEPOT_ORIGINE = 'ZyAvo/iPhone-Dock';
 const DEPOT = (() => { const h = location.hostname.match(/^([\w-]+)\.github\.io$/), p = location.pathname.split('/').filter(Boolean)[0];
-  return h && p ? `${h[1]}/${p}` : 'ZyAvo/iPhone-Dock'; })();
+  const c = config('depot.nom', ''); return h && p ? `${h[1]}/${p}` : /^[\w.-]+\/[\w.-]+$/.test(c) ? c : DEPOT_ORIGINE; })();
 const API = `https://api.github.com/repos/${DEPOT}`;
 const b64 = s => { const u = new TextEncoder().encode(s); let t = ''; for (let i = 0; i < u.length; i += 8192) t += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(t); };
 const deb64 = s => new TextDecoder().decode(Uint8Array.from(atob(String(s).replace(/\s+/g, '')), c => c.charCodeAt(0)));
@@ -454,7 +457,16 @@ const applis = {
 const PAGES = ['actus', 'sport', 'videos', 'invest', 'cachee'], TOUJOURS = ['etat', 'reglages'];
 const WIDGETS = ['meteo', 'une', 'invest', 'spotify', 'sport', 'live'];
 const NOMS_PAGES = {actus:'Actus', sport:'Sport', videos:'Vidéos', invest:'Investissements', cachee:'Coffre', etat:'État des données', reglages:'Réglages'};
-const UNE_CHOIX = 'accueil:une-choix', DISPOSITION = 'accueil:disposition';
+const UNE_CHOIX = 'accueil:une-choix', DISPOSITION = 'accueil:disposition', MUSIQUE = 'musique:source';
+/* source du widget musique (v42), propre à l'appareil. Spotify : lecture en cours et commandes (API Spotify) ; les autres n'offrent
+   pas d'équivalent simple depuis une page web : widget raccourci qui ouvre l'appli (iPhone : app, Android : android, PC : web) */
+const MUSIQUES = [
+  {id:'spotify', nom:'Spotify',       coul:'#1db954', app:'spotify://',                 android:'spotify://',       web:'https://open.spotify.com'},
+  {id:'deezer',  nom:'Deezer',        coul:'#a238ff', app:'deezer://www.deezer.com',    android:'deezer://www.deezer.com', web:'https://www.deezer.com'},
+  {id:'apple',   nom:'Apple Music',   coul:'#fa2d48', app:'music://',                   android:'https://music.apple.com', web:'https://music.apple.com'},
+  {id:'youtube', nom:'YouTube Music', coul:'#ff0033', app:'youtubemusic://',            android:'https://music.youtube.com', web:'https://music.youtube.com'},
+  {id:'amazon',  nom:'Amazon Music',  coul:'#25d1da', app:'amznmp3://',                 android:'https://music.amazon.fr', web:'https://music.amazon.fr'}
+];
 /* dernière valeur « Oui » en attente sur cet identifiant (undefined : aucun choix en attente) */
 const attenteOui = id => { let v; for (const m of modifs.enAttente()) if (m.id === id && m.champs && 'Oui' in m.champs && !m.effacer) v = m.champs.Oui; return v; };
 const actifDans = (cle, id) => { const L = config(cle, null); return Array.isArray(L) ? L.includes(id) : true; };   // sans config : tout est actif
@@ -480,8 +492,11 @@ const accueil = {
   /* téléphone : widget resté seul dans la rangée du haut, en « large » (pleine largeur) ou « carre » (même taille) ; propre à l'appareil */
   disposition:() => stockage.lire(DISPOSITION, 'large') === 'carre' ? 'carre' : 'large',
   choisirDisposition:d => stockage.ecrire(DISPOSITION, d === 'carre' ? 'carre' : 'large'),
+  musiques:MUSIQUES,
+  musique:() => MUSIQUES.find(m => m.id === stockage.lire(MUSIQUE, 'spotify')) || MUSIQUES[0],
+  choisirMusique:id => stockage.ecrire(MUSIQUE, id === 'spotify' || !MUSIQUES.some(m => m.id === id) ? null : id),
   /* résumé de tout ce qui change l'accueil (pour savoir s'il faut le recharger) */
-  signature:() => JSON.stringify([PAGES.filter(accueil.page), WIDGETS.filter(accueil.widget), (accueil.uneChoisie() || {}).url || 'auto', accueil.disposition(),
+  signature:() => JSON.stringify([PAGES.filter(accueil.page), WIDGETS.filter(accueil.widget), (accueil.uneChoisie() || {}).url || 'auto', accueil.disposition(), accueil.musique().id,
     modifs.enAttente().filter(applis.concerne).map(m => [m.uid, m.champs || null, m.disposition || null, m.ajout || null, !!m.effacer])]),
   /* en tête d'une page : si elle est désactivée, affiche « Page désactivée » à la place ; le reste du fichier n'est pas lu
      (<plaintext> masqué : aucun script de la page ne s'exécute, aucune donnée n'est chargée), et la page se termine normalement */

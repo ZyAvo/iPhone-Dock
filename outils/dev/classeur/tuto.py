@@ -1,4 +1,4 @@
-# mon-ecran-version: 03ca2cee
+# mon-ecran-version: 8474672a
 # Textes des onglets « Lisez-moi » et « Tuto ».
 LISEZMOI = [
     ('h', 'À quoi sert ce classeur'),
@@ -24,7 +24,8 @@ LISEZMOI = [
           "sont repris automatiquement : tu n'as rien à recocher. Ne supprime pas les colonnes cachées A et « Technique »."),
 ]
 
-DEPOT = 'https://github.com/ZyAvo/iPhone-Dock'
+import os
+DEPOT = 'https://github.com/' + os.environ.get('MON_ECRAN_DEPOT', 'ZyAvo/iPhone-Dock')   # dépôt d'origine (lien « Copier le dépôt » du Tuto)
 TUTO_REMPLIR = [
     ('Partie 1 · Remplir et déposer le classeur', "Pour tout le monde, à chaque changement de réglages.", [
         ('Ouvrir le classeur', 'Excel, Numbers ou Google Sheets', "Sur iPhone, Numbers ou l'appli Excel conviennent. Les colonnes jaunes sont les seules à remplir.", None),
@@ -40,7 +41,7 @@ TUTO_REMPLIR = [
 TUTO_PRIVE = [
     ('Partie 2 · Installer sa propre version (une seule fois)', "Pour un ami qui veut son dock à lui. Compter 30 à 45 minutes. Rien de payant.", [
         ('Créer un compte GitHub', 'github.com', "Gratuit. Choisis un pseudo : il apparaîtra dans l'adresse du dock (https://pseudo.github.io/…).", 'https://github.com/signup'),
-        ('Copier le dépôt', "Dépôt d'origine (lien)", "Bouton « Fork » → garde le même nom → Create fork. Tu as maintenant ta propre copie.", DEPOT),
+        ('Copier le dépôt', "Dépôt d'origine (lien)", "Bouton « Fork » → Create fork (le nom proposé convient ; un autre nom marche aussi : le dock le lit dans son adresse). Tu as maintenant ta propre copie.", DEPOT),
         ('Activer les tâches', 'Ta copie → onglet Actions', "Sur une copie, GitHub les désactive : bouton « I understand my workflows, go ahead and enable them ».", None),
         ('Publier le site', 'Settings → Pages', "Source : GitHub Actions. Après la première tâche « Publication », le dock est en ligne à l'adresse affichée en haut de cette page.", None),
         ('Autoriser les tâches à écrire', 'Settings → Actions → General', "Tout en bas, Workflow permissions : « Read and write permissions » → Save. Sans ça, les données ne peuvent pas être enregistrées.", None),
@@ -51,7 +52,7 @@ TUTO_PRIVE = [
         ('Ajouter le dock à l\'iPhone', 'Safari, sur l\'adresse du dock', "Bouton Partager → « Sur l'écran d'accueil ». Le dock s'ouvre alors en plein écran comme une appli.", None),
         ('Choisir son code', 'Page Investissements ou Coffre', "Au premier usage, l'appli demande un code PIN : il chiffre tes montants et ton coffre sur l'appareil. Il n'est jamais envoyé nulle part.", None),
         ('Synchroniser ses appareils (facultatif)', 'État → Synchronisation', "Crée une clé GitHub « fine-grained » (Repository access : seulement ta copie ; Permissions → Contents : Read and write), puis suis l'assistant : il génère une phrase de 6 mots à garder précieusement. "
-         "Note : aujourd'hui l'adresse du dépôt de synchronisation est écrite dans synchro.js ; elle passera dans la configuration lors du branchement des pages.", 'https://github.com/settings/personal-access-tokens/new'),
+         "La même clé sert aussi à envoyer les choix faits dans Réglages vers le classeur.", 'https://github.com/settings/personal-access-tokens/new'),
         ('Spotify (facultatif)', 'developer.spotify.com', "Create app → coche Web API → Redirect URI = l'adresse de ton dock → copie le Client ID et colle-le dans le widget Spotify de l'accueil.", 'https://developer.spotify.com/dashboard'),
         ('Déposer ton classeur', 'Partie 1, étapes 5 à 8', "Décoche ce qui ne t'intéresse pas (les choix de départ sont ceux de Yoann), ajoute tes fonds, médias et chaînes, puis dépose configuration.xlsx. Tes équipes favorites, abonnements et villes se choisissent ensuite dans l'appli.", None),
     ]),

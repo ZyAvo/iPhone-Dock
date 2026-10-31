@@ -1,4 +1,4 @@
-# mon-ecran-version: 0985d878
+# mon-ecran-version: ecb4a8d8
 # Modèle du classeur : réglages actuels (reference.json, cochés « Oui ») + catalogue (non cochés).
 # Chaque module = un onglet ; chaque ligne a un identifiant fixe (colonne cachée) et sa définition technique (JSON caché).
 import json, re, unicodedata
@@ -213,8 +213,8 @@ def construire(ref):
         ajout=('Dossier (Finance, Travail… ou nouveau)', "Nom de l'appli", 'Lien iPhone (ex. spotify://)', 'Exemple', 'Spotify', 'spotify://')))
 
     # ================= APPARENCE =================
-    PAL = [('bleu', 'Bleu'), ('gris', 'Gris'), ('ardoise', 'Ardoise et corail'), ('minuit', 'Minuit et or'), ('encre', 'Encre et ambre'),
-           ('petrole', 'Pétrole et cuivre'), ('azur', 'Azur et mandarine')]
+    PAL = [tuple(x) for x in ref['apparence'].get('noms') or []] or [('bleu', 'Bleu'), ('gris', 'Gris'), ('ardoise', 'Ardoise et corail'), ('minuit', 'Minuit et or'),
+           ('encre', 'Encre et ambre'), ('petrole', 'Pétrole et cuivre'), ('azur', 'Azur et mandarine')]   # v42 : liste lue dans themes.js (extraire.mjs)
     secs = [section('themes', 'Thèmes proposés dans État', [row(f"th:{i}", {'nom': n, 'detail': i}, 'Oui' if i in ref['apparence']['palettes'] else '', i,
                                                                'Oui' if i == ref['apparence']['palette'] else '') for i, n in PAL]),
             section('mode', 'Mode clair / sombre par défaut', [row(f"md:{i}", {'nom': n, 'detail': d}, 'Oui' if i == ref['apparence']['mode'] else '', i) for i, n, d in

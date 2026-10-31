@@ -1,9 +1,10 @@
 # Mon Écran — notes techniques (pour reprendre le projet dans une nouvelle conversation)
 
-État au 30/10/2026 : **lot v40**, phase 2 terminée : lot 1 technique (report des choix de l'appli, catalogue, `noyau.js`), lot 2 (page Réglages, écrans à cocher), lot 3 (pages et widgets activables) et lot 4 (éditeur de l'écran d'accueil) faits.
+État au 31/10/2026 : **lot v42** (thèmes centralisés et thème perso, fond fixe, source musique, renommage du dépôt sans retoucher le code, installation Android/PC). Phase 2 terminée (v37 à v40) ; v41 : Écarts de cotes (jour du match, filtre « Aujourd'hui et demain »).
 
 ## Organisation du dépôt
-- Pages (racine) : `index.html` (accueil), `actus.html`, `sport.html`, `ecarts.html` (écarts de cotes), `invest.html`, `videos.html`, `etat.html`, `cachee.html` (coffre), `reglages.html` (réglages), `noyau.js` (noyau commun), `synchro.js` (synchro chiffrée), `sw.js` (service worker).
+- Pages (racine) : `index.html` (accueil), `actus.html`, `sport.html`, `ecarts.html` (écarts de cotes), `invest.html`, `videos.html`, `etat.html`, `cachee.html` (coffre), `reglages.html` (réglages), `noyau.js` (noyau commun), `themes.js` (thèmes et fond, v42), `synchro.js` (synchro chiffrée), `sw.js` (service worker).
+- Chaque page charge dans `<head>` : `config/config.js`, `noyau.js`, `themes.js` (dans cet ordre, avant ses styles).
 - `config/` : réglages écrits par la tâche **Configuration** depuis `configuration.xlsx` (racine). Chaque page charge `config/config.js` (`window.MON_ECRAN_CONFIG`) puis `noyau.js`, et lit ses réglages avec `CFG('module.clé', valeur par défaut)` (= `Noyau.config`) ; sans config, elle garde ses valeurs intégrées. Les expressions régulières sont stockées `{re, flags}`.
 - `outils/` : scripts des tâches GitHub (`*-data.mjs`, `tv-tri.mjs`, `etat.mjs`), lecteur de config commun `config-lire.mjs`, convertisseur du classeur `configuration.py`.
 - Branche `donnees` : données publiées par les tâches (`donnees/…`). Branche `synchro` : fichier chiffré de synchronisation.
@@ -69,6 +70,19 @@ Base des écrans de réglages et des futures applis dédiées. Rien de propre à
 - Accueil : `Noyau.accueil.applis(valeurs écrites dans la page)` remplace HOME, FOLDERS, QUICK_LEFT/RIGHT, NAV_APPS (les constantes `CFG('applis.…', […])` restent lisibles par `extraire.mjs`) ; tuiles de remplacement à leur emplacement s'il existe (sinon en fin de grille, comme avant) ; dossier vide : pas de tuile ; appli sans pictogramme dans le bandeau : ses initiales ; page dans le bandeau : même onglet.
 - « À la une » : Réglages › Pages et widgets propose **Automatique** (aucune source cochée : l'info la plus reprise, `une.json` « top ») ou une source, qui passe alors en premier : `une.json` « choix » (écrit par la tâche Actus pour `config/accueil.json` « une ») s'il vient de cette source et a moins de 3 h, sinon son flux direct (choix pas encore reporté), sinon « top ».
 
+## Thèmes (v42, `themes.js`)
+- `THEMES` : `{id, nom, d, c:[5 couleurs], accent?, glyphe?, clair?, sombre?}`. Les 7 thèmes d'avant gardent leurs valeurs écrites à la main (`clair`/`sombre`, noms des variables sans `--` ; `bleu` = valeurs des pages + taches du fond) ; les autres sont **calculés** depuis `c` (OKLCH : fond clair/sombre, encre, accent lisible, 4 taches, 8 teintes de tuiles). Ajouter un thème = une ligne. Les blocs `==PALETTES==` des 9 pages sont supprimés (seul reste à l'accueil `--sport-accent` du thème gris).
+- CSS écrit dans `<style id="themes-css">` : `:root[data-palette="x"]` (clair), même chose `:not([data-theme="light"])` sous `prefers-color-scheme: dark`, et `[data-theme="dark"]` ; bleu : `:root:not([data-palette])`. Fond : `body::after` fixe (`top/bottom:-12vh`, `z-index:-1`), 4 `radial-gradient` (en `oklab` si possible) + grain SVG ; les pages n'ont plus de `background-image` sur `body` (Safari iPhone ignorait `background-attachment:fixed` et étirait le dégradé). `body::before` reste la bande de la zone sûre.
+- Remplace le petit script de tête : thème (`palette`), mode (`mode`), classe `desk`. API `window.Themes` : `liste()` (proposés dans État : `apparence.palettes` du classeur + ceux absents de `apparence.palettes_connues`, + perso), `actuel()`, `choisir(id)`, `apercu(couleurs|null)`, `perso()`, `enregistrerPerso(nom, c)`, `effacerPerso()`, `lireCouleurs(texte)` (adresse coolors.co ou codes #rrggbb), `variables(t)`, `rafraichir()`.
+- Thème perso : `theme:perso` = `{nom, c}`, palette `perso` ; partagé par la partie « prefs » de la synchro (clé `theme`, absente du contenu tant qu'elle est vide : l'empreinte des favoris d'avant ne change pas) ; dans la sauvegarde. État › Thème › « Créer mon thème » : lien coolors ou 5 sélecteurs de couleur, aperçu en direct (palette `apercu`), Enregistrer / Annuler / Supprimer.
+- Classeur : `configuration.py` écrit aussi `apparence.palettes_connues` (toutes les lignes de l'onglet Apparence) ; `extraire.mjs` lit `THEMES` dans `themes.js` (ids et noms → `modele.py`).
+
+## Musique, dépôt, installation (v42)
+- `Noyau.accueil.musiques` / `musique()` / `choisirMusique(id)` (clé `musique:source`, propre à l'appareil, dans la sauvegarde, dans `signature()`) : Spotify (widget complet), Deezer, Apple Music, YouTube Music, Amazon Music (widget raccourci : `Noyau.lien.ouvrir` → app / android / web). Réglages › Pages et widgets : ligne « Source musique ».
+- Nom du dépôt : adresse `pseudo.github.io/<dépôt>/`, sinon `config.js` `depot.nom` (écrit par `configuration.py` depuis `GITHUB_REPOSITORY`), sinon `ZyAvo/iPhone-Dock`. État › lien Actions : `Noyau.depot.nom`. Procédure : `outils/dev/RENOMMER-LE-DEPOT.md`.
+- `manifest.json` : icônes `icone-192.png` et `icone-512.png` (maskable), `id`, `scope`, `lang` : installable sous Android et PC (Chrome, Edge). `sw.js` met `themes.js` et les icônes en mémoire.
+- Études et relectures : `outils/dev/ETUDE-EMPLOI.md` (sources d'offres d'emploi), `outils/dev/DOCK-PUBLIC.md` (rendre le dock public).
+
 ## Phase 2 (faite)
 1. ~~Lot technique~~ (v37).
 2. ~~Écrans à cocher : médias d'actus, chaînes YouTube, compétitions, marchés/fonds~~ (v38, page Réglages).
@@ -77,6 +91,7 @@ Base des écrans de réglages et des futures applis dédiées. Rien de propre à
 Anticiper des applis dédiées : `noyau.js` commun (config, stockage, synchro, lien selon l'appareil), écrans sans astuce propre à Safari, fonctions propres à l'iPhone web isolées.
 
 ## Tests
+Thèmes (v42) : capture de l'accueil pour chaque thème en clair et en sombre ; État : formulaire « Créer mon thème » (coller une adresse coolors, vérifier `data-palette` = `apercu`, Enregistrer → `perso`, Annuler → thème choisi) ; recherche « zéro différence » du classeur toujours à 0.
 Playwright + Chromium : servir une copie du dépôt avec `donnees/` (branche `donnees`) et `config/`, comparer le texte rendu des pages avant/après, capturer en 390×844 clair/sombre. Pages et widgets : mettre des modifs dans `modifs:attente` (localStorage) avant le chargement, vérifier le DOM et la liste des requêtes (aucune vers `donnees/…` pour un widget coupé, aucune pour une page coupée).
 Report des modifs : lancer `configuration.py` sur une copie du classeur avec un `modifs.json` d'essai, vérifier les messages, l'effet dans config/, puis relancer (rien ne doit changer). `noyau.js` : simuler l'API GitHub (interception des requêtes `api.github.com`) et `window.Synchro.jeton`.
 Écran d'accueil (v40) : glisser au doigt avec CDP `Input.dispatchTouchEvent` (Chromium mobile, `has_touch`), à la souris avec `page.mouse` ; vérifier que l'accueil de l'appareil (choix en attente) = l'accueil après la tâche (même affichage ; seule la clé interne d'un nouveau dossier change), que le catalogue après la tâche redonne le même affichage, et que `construire.py` reprend la disposition (config identique).
