@@ -1,32 +1,41 @@
 {
  "v": 1,
  "info": "Choix faits dans l'appli Mon Écran ; la tâche « Configuration » les reporte dans configuration.xlsx. Ne pas modifier à la main.",
- "maj": "2026-10-30T17:30:46.771Z",
+ "maj": "2026-10-31T08:16:12.378Z",
  "par": "iPhone",
  "modifs": [
   {
-   "uid": "mvv8zql7-5i4b2n141s",
-   "at": "2026-10-30T17:30:18.336Z",
+   "uid": "mvw4mmg6-666p3y3367",
+   "at": "2026-10-31T08:15:54.150Z",
    "par": "iPhone",
-   "id": "sp:ned.1",
-   "champs": {
-    "Oui": ""
-   }
-  },
-  {
-   "uid": "mvv8zru5-5q1s33434w",
-   "at": "2026-10-30T17:30:19.949Z",
-   "par": "iPhone",
-   "id": "sp:sco.1",
+   "id": "yt:@ledessousdescartes",
    "champs": {
     "Oui": "Oui"
    }
   },
   {
-   "uid": "mvv90agz-51283f2j5s",
-   "at": "2026-10-30T17:30:44.603Z",
+   "uid": "mvw4mmll-096w6y7246",
+   "at": "2026-10-31T08:15:54.345Z",
    "par": "iPhone",
-   "id": "sp:sco.1",
+   "id": "yt:@notabenemovies",
+   "champs": {
+    "Oui": "Oui"
+   }
+  },
+  {
+   "uid": "mvw4mqxq-1j0i5v6o2m",
+   "at": "2026-10-31T08:15:59.966Z",
+   "par": "iPhone",
+   "id": "yt:@nasa",
+   "champs": {
+    "Oui": "Oui"
+   }
+  },
+  {
+   "uid": "mvw4mrwe-076m2e0c3s",
+   "at": "2026-10-31T08:16:01.216Z",
+   "par": "iPhone",
+   "id": "yt:@europeanspaceagency",
    "champs": {
     "Oui": "Oui"
    }
