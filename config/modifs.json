@@ -1,43 +1,16 @@
 {
  "v": 1,
  "info": "Choix faits dans l'appli Mon Écran ; la tâche « Configuration » les reporte dans configuration.xlsx. Ne pas modifier à la main.",
- "maj": "2026-10-31T08:16:12.378Z",
- "par": "iPhone",
+ "maj": "2026-10-31T13:35:40.388Z",
+ "par": "ordinateur",
  "modifs": [
   {
-   "uid": "mvw4mmg6-666p3y3367",
-   "at": "2026-10-31T08:15:54.150Z",
-   "par": "iPhone",
-   "id": "yt:@ledessousdescartes",
+   "uid": "mvwg1scg-594f4z0v4w",
+   "at": "2026-10-31T13:35:37.408Z",
+   "par": "ordinateur",
+   "id": "un:france-info",
    "champs": {
-    "Oui": "Oui"
-   }
-  },
-  {
-   "uid": "mvw4mmll-096w6y7246",
-   "at": "2026-10-31T08:15:54.345Z",
-   "par": "iPhone",
-   "id": "yt:@notabenemovies",
-   "champs": {
-    "Oui": "Oui"
-   }
-  },
-  {
-   "uid": "mvw4mqxq-1j0i5v6o2m",
-   "at": "2026-10-31T08:15:59.966Z",
-   "par": "iPhone",
-   "id": "yt:@nasa",
-   "champs": {
-    "Oui": "Oui"
-   }
-  },
-  {
-   "uid": "mvw4mrwe-076m2e0c3s",
-   "at": "2026-10-31T08:16:01.216Z",
-   "par": "iPhone",
-   "id": "yt:@europeanspaceagency",
-   "champs": {
-    "Oui": "Oui"
+    "Oui": ""
    }
   }
  ]
