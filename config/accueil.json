@@ -15,11 +15,7 @@
   "sport",
   "live"
  ],
- "une": {
-  "name": "France Info",
-  "color": "--t-slate",
-  "url": "https://www.francetvinfo.fr/titres.rss"
- },
+ "une": null,
  "indices_widget": [
   "^FCHI",
   "^GSPC",
