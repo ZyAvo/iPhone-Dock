@@ -1,4 +1,4 @@
-// Mon Écran — test de faisabilité de l'agrégateur de prix (ne publie rien, n'écrit rien sur le dépôt).
+// Mon Écran — test de faisabilité de l'agrégateur de prix, v2 (ne publie rien, n'écrit rien sur le dépôt).
 // Deux pistes :
 //   1. Open Prices (Open Food Facts) : prix relevés par la communauté, API publique et gratuite.
 //   2. Sites drive des enseignes : la page s'ouvre-t-elle depuis ici, est-elle bloquée (protection anti-robots),
@@ -52,17 +52,26 @@ async function openPrices(){
   const tout = await opJson(`/prices?currency=EUR&date__gte=${jours(90)}&size=1`);
   if (tout.erreur){ R.erreur = tout.erreur; return R; }
   R.total90j = tout.total;
-  /* une enseigne peut avoir plusieurs noms de magasin (Super U, Hyper U, U Express) : les comptes sont additionnés */
-  const compter = async (noms, filtre) => { let tot = 0, err = null, dernier = null;
-    for (const nm of noms){ const j = await opJson(`/prices?currency=EUR&date__gte=${jours(90)}&location__osm_name__contains=${encodeURIComponent(nm)}${filtre}&size=1&order_by=-date`);
-      if (j.erreur){ err = j.erreur; continue; } tot += j.total || 0; const it = (j.items || [])[0]; if (it && (!dernier || it.date > dernier.date)) dernier = it; await attendre(200); }
-    return {tot, err, dernier}; };
+  /* v2 : le filtre par nom de magasin de l'API renvoyait 0 partout ; on lit plutôt les relevés récents (jusqu'à 2 000)
+     et on compte nous-mêmes par enseigne (marque ou nom OSM du magasin), en France, et dans la zone (distance calculée) */
+  const km = (a, b, c, d) => { const r = Math.PI / 180, x = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((d - b) * r / 2) ** 2; return 12742 * Math.asin(Math.sqrt(x)); };
+  const norm = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const echantillon = [];
+  for (let page = 1; page <= 20; page++){
+    const j = await opJson(`/prices?currency=EUR&date__gte=${jours(90)}&order_by=-date&size=100&page=${page}`);
+    if (j.erreur || !(j.items || []).length) break;
+    echantillon.push(...j.items); if (page >= (j.pages || 1)) break; await attendre(250);
+  }
+  const fr = echantillon.filter(it => /france/i.test(((it.location || {}).osm_address_country) || ''));
+  R.echantillon = {lus:echantillon.length, france:fr.length, du:echantillon.length ? echantillon[echantillon.length - 1].date : null};
   for (const e of ENSEIGNES){
-    const noms = [].concat(e.osm);
-    const nat = await compter(noms, ''), promo = await compter(noms, '&price_is_discounted=true'), zone = await compter(noms, `&lat=${LAT}&lon=${LON}&radius_km=${RAYON}`);
-    const d = nat.dernier;
-    R.enseignes.push({id:e.id, nom:e.nom, releves90j:nat.err && !nat.tot ? null : nat.tot, promos90j:promo.err && !promo.tot ? null : promo.tot, zone90j:zone.err && !zone.tot ? null : zone.tot,
-      dernier:d ? {date:d.date, magasin:(d.location || {}).osm_name || '', ville:(d.location || {}).osm_address_city || ''} : null, erreur:nat.err || zone.err || null});
+    const noms = [].concat(e.osm).map(norm);
+    const L = fr.filter(it => { const l = it.location || {}, t = norm(l.osm_brand) + ' | ' + norm(l.osm_name); return noms.some(n => n.length <= 2 ? new RegExp(`(^|[^a-z])${n}([^a-z]|$)`).test(t) : t.includes(n)); });
+    const zone = L.filter(it => { const l = it.location || {}; return l.osm_lat != null && km(LAT, LON, +l.osm_lat, +l.osm_lon) <= RAYON; });
+    const d = L[0];
+    R.enseignes.push({id:e.id, nom:e.nom, releves90j:L.length, promos90j:L.filter(it => it.price_is_discounted).length, zone90j:zone.length,
+      magasins:new Set(L.map(it => it.location_id)).size,
+      dernier:d ? {date:d.date, magasin:(d.location || {}).osm_name || '', ville:(d.location || {}).osm_address_city || ''} : null, erreur:null});
   }
   for (const ean of EANS){
     const p = await opJson(`/prices?product_code=${ean}&currency=EUR&date__gte=${jours(180)}&size=100&order_by=-date`);
@@ -79,7 +88,7 @@ async function openPrices(){
 
 /* ---------- 2. Sites drive ---------- */
 function analyser(r, mot){
-  const t = r.texte || '', protections = PROTECTIONS.filter(([, re]) => re.test(t.slice(0, 200000))).map(([n]) => n);
+  const t = r.texte || '', protections = r.ok ? [] : PROTECTIONS.filter(([, re]) => re.test(t.slice(0, 200000))).map(([n]) => n);   // page servie normalement : un mot « captcha » dans ses scripts ne compte pas
   const prixEuro = (t.match(/\d{1,3}[,.]\d{2}\s?(€|&euro;|\\u20ac)/g) || []).length;
   const jsonLd = (t.match(/"@type"\s*:\s*"(Product|Offer|AggregateOffer)"/g) || []).length;
   const champsPrix = (t.match(/"(price|prix|unitPrice|salePrice|currentPrice)"\s*:\s*"?\d/gi) || []).length;
@@ -114,9 +123,11 @@ function rapport(R){
   const O = R.openPrices;
   if (O.erreur) L.push(`❌ API injoignable : ${O.erreur}`, ``);
   else {
-    L.push(`Relevés en euros sur 90 jours (toutes enseignes) : **${n(O.total90j)}**. Zone : ${O.zone.perso ? `ta zone (${O.zone.lat}, ${O.zone.lon})` : 'Paris (défaut)'}, rayon ${O.zone.rayon} km.`, ``,
-      `| Enseigne | Relevés 90 j (France) | dont promos | Dans la zone | Dernier relevé |`, `|---|---:|---:|---:|---|`);
-    for (const e of O.enseignes) L.push(`| ${e.nom} | ${n(e.releves90j)} | ${n(e.promos90j)} | ${n(e.zone90j)} | ${e.dernier ? `${e.dernier.date} · ${e.dernier.magasin}${e.dernier.ville ? ' (' + e.dernier.ville + ')' : ''}` : '—'}${e.erreur ? ' ⚠️ ' + e.erreur : ''} |`);
+    const E = O.echantillon || {};
+    L.push(`Relevés en euros sur 90 jours (tous pays) : **${n(O.total90j)}**. Analysés : les ${n(E.lus)} plus récents (depuis le ${E.du || '—'}), dont **${n(E.france)} en France**.`,
+      `Zone : ${O.zone.perso ? `ta zone (${O.zone.lat}, ${O.zone.lon})` : 'Paris (défaut)'}, rayon ${O.zone.rayon} km.`, ``,
+      `| Enseigne | Relevés (France) | Magasins | dont promos | Dans la zone | Dernier relevé |`, `|---|---:|---:|---:|---:|---|`);
+    for (const e of O.enseignes) L.push(`| ${e.nom} | ${n(e.releves90j)} | ${n(e.magasins)} | ${n(e.promos90j)} | ${n(e.zone90j)} | ${e.dernier ? `${e.dernier.date} · ${e.dernier.magasin}${e.dernier.ville ? ' (' + e.dernier.ville + ')' : ''}` : '—'}${e.erreur ? ' ⚠️ ' + e.erreur : ''} |`);
     L.push(``, `Produits témoins (180 jours) :`, ``, `| Code-barres | Produit | Relevés | Enseignes (nb · min–max) | Dernier |`, `|---|---|---:|---|---|`);
     for (const p of O.produits) L.push(`| ${p.ean} | ${p.nom || '?'} | ${n(p.releves180j)} | ${p.enseignes.map(x => `${x.n} (${x.nb} · ${eur(x.min)}–${eur(x.max)})`).join(', ') || '—'} | ${p.dernier || '—'}${p.erreur ? ' ⚠️ ' + p.erreur : ''} |`);
     L.push(``, `_Lecture : Open Prices est fiable et gratuit, mais ne contient que ce que des contributeurs ont photographié. Peu de relevés dans ta zone = alertes rares._`, ``);
