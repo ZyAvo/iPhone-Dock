@@ -1,0 +1,42 @@
+# mon-ecran-version: 9dc6fd36
+name: TV
+
+# Catalogue TV (directs, films, séries) de l'abonnement Xtream, une fois par jour, publié CHIFFRÉ sur la branche « donnees ».
+# Réglages nécessaires (Settings → Secrets and variables → Actions) : XT_SERVEUR, XT_IDENTIFIANT, XT_MOTDEPASSE, et TV_CLE
+# (la clé générée dans la fiche « Accès TV » du Coffre). Le catalogue ne contient aucun accès ; les journaux n'affichent que des nombres.
+on:
+  schedule:
+    - cron: '23 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: tv
+  cancel-in-progress: true
+
+jobs:
+  tv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Catalogue
+        env:
+          XT_SERVEUR: ${{ secrets.XT_SERVEUR }}
+          XT_IDENTIFIANT: ${{ secrets.XT_IDENTIFIANT }}
+          XT_MOTDEPASSE: ${{ secrets.XT_MOTDEPASSE }}
+          TV_CLE: ${{ secrets.TV_CLE }}
+        run: node outils/tv-catalogue.mjs
+      - name: Envoi des données
+        run: bash outils/publier-donnees.sh donnees/tv
+      - name: Mise en ligne
+        if: hashFiles('donnees/tv/catalogue.json') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run publication.yml --ref "${GITHUB_REF_NAME}"
