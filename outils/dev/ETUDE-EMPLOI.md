@@ -12,6 +12,25 @@ Rien n'est développé dans la v42 : ce document sert à choisir.
 | **Indeed** | API « Publisher » fermée (plus d'inscription depuis 2020, plus de réponse depuis 2024) ; les API actuelles servent aux employeurs | — | — | **Non** (seul le scraping resterait, contraire à leurs conditions). |
 | **LinkedIn, Welcome to the Jungle, Apec, HelloWork** | Pas d'API publique de recherche pour un particulier | — | — | **Non** en direct ; une partie de leurs offres arrive via France Travail ou Adzuna. Possible : lien « Chercher aussi sur… » qui ouvre leur site avec les mêmes mots. |
 
+## Postes de cadres supérieurs (31/10/2026)
+
+| Site | Accès automatique | Comment l'intégrer |
+|---|---|---|
+| France Travail | ✅ API officielle gratuite | Tâche « Emploi » (filtres mots-clés, métier ROME, lieu, contrat) |
+| Adzuna | ✅ API officielle, quota gratuit (≈ 250 appels/jour) | Tâche « Emploi » ; agrège sites privés et cabinets |
+| Jooble | ⚠️ API, mais 500 requêtes **au total** par clé en gratuit | Écarté |
+| **Apec** | ❌ CGU (art. 7.4) : robots et extraction interdits | **Alertes e-mail Apec** lues par la tâche (voir ci-dessous) + lien « Voir sur Apec » |
+| Cadremploi | ❌ pas d'API publique | Alertes e-mail + lien direct |
+| LinkedIn Jobs | ❌ pas d'API, robots interdits | Alertes e-mail + lien direct |
+| Welcome to the Jungle, HelloWork, Indeed | ❌ pas d'API de recherche pour un particulier | Alertes e-mail + lien direct |
+| Cabinets : Michael Page / Page Executive, Robert Walters, Hays, Robert Half, Expectra, Spring | ❌ (sites de cabinet) | Alertes e-mail (Michael Page a une page « Alerte emploi ») |
+| Chasseurs (Korn Ferry, Spencer Stuart, Egon Zehnder, Heidrick & Struggles, Russell Reynolds) | — publient très peu | Hors agrégateur : réseau, candidatures |
+| Postes de direction publics : Choisir le service public | à étudier | Lien direct |
+
+**Alertes e-mail** : créer sur Apec, Cadremploi, LinkedIn… des alertes envoyées vers une adresse Gmail dédiée (ou un libellé) ; la tâche lit cette boîte
+(IMAP + mot de passe d'application en secret GitHub), extrait intitulé / entreprise / lieu / lien, dédoublonne avec France Travail et Adzuna, puis chiffre
+le résultat. On ne navigue jamais sur leurs sites. Limite : chaque format d'e-mail est à décoder (et peut changer).
+
 ## Fonctionnement proposé
 
 - Une tâche GitHub « Emploi » (2 à 4 fois par jour) interroge France Travail (+ Adzuna si retenu) pour chaque recherche enregistrée, dédoublonne

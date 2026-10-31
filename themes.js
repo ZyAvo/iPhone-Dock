@@ -1,4 +1,4 @@
-// mon-ecran-version: f3584874
+// mon-ecran-version: f98bb157
 /* Mon Écran — thèmes de couleurs (v42), communs à toutes les pages.
    Chargé dans <head> juste après noyau.js : applique le thème et le mode choisis dans État avant l'affichage,
    écrit les couleurs du thème et le fond dégradé (calque fixe : sur iPhone, Safari ignore « background-attachment:fixed »
@@ -10,7 +10,8 @@
    sont calculés à partir d'elles. Options : accent (couleur des boutons), glyphe (pictogrammes des tuiles), et clair/sombre
    pour imposer des valeurs (noms des variables sans « -- »). L'identifiant ne doit plus changer ensuite (il est gardé sur
    les appareils). Un thème que le classeur ne connaît pas encore est proposé dans État ; le classeur sert à en masquer.
-   Thème perso : créé dans État › Thème › « Créer mon thème », gardé sous « theme:perso » et partagé par la synchro. */
+   Thème perso : créé dans État › Thème › « Créer mon thème », gardé sous « theme:perso » et partagé par la synchro.
+   Logos de l'appli (v43) : LOGOS plus bas ; après l'ajout d'un thème, relancer outils/dev/icones.py (images de l'écran d'accueil). */
 (function(){
 const THEMES = [
   {id:'bleu', nom:"Bleu", d:"Le thème d'origine", c:["#e7ecef", "#a3cef1", "#6096ba", "#274c77", "#8b8c89"],
@@ -127,7 +128,8 @@ const taches = esp => `radial-gradient(${esp}62% 44% at 6% 4%, var(--blob-1), tr
   + `radial-gradient(${esp}56% 40% at 100% 28%, var(--blob-2), transparent 72%),`
   + `radial-gradient(${esp}60% 40% at 0% 68%, var(--blob-4, transparent), transparent 72%),`
   + `radial-gradient(${esp}78% 48% at 86% 102%, var(--blob-3), transparent 72%)`;
-const FOND = `body::after{content:"";position:fixed;left:0;right:0;top:-12vh;bottom:-12vh;z-index:-1;pointer-events:none;background-image:${GRAIN},${taches('')};background-size:160px 160px,auto,auto,auto,auto}\n`
+const FOND = `.app-logo{display:inline-block;width:.9em;height:.9em;border-radius:22%;overflow:hidden;line-height:0;vertical-align:-.08em;margin-right:.28em;box-shadow:0 2px 6px rgba(0,0,0,.18)}.app-logo svg{display:block;width:100%;height:100%}\n`
+  + `body::after{content:"";position:fixed;left:0;right:0;top:-12vh;bottom:-12vh;z-index:-1;pointer-events:none;background-image:${GRAIN},${taches('')};background-size:160px 160px,auto,auto,auto,auto}\n`
   + `@supports (background-image:radial-gradient(in oklab, red, blue)){body::after{background-image:${GRAIN},${taches('in oklab ')}}}\n`;
 
 /* ---------- thème perso ---------- */
@@ -159,22 +161,112 @@ function liste(){
   const p = perso(); return p ? [...l, p] : l;
 }
 
+
+/* ---------- logos de l'appli (v43) : 7 dessins, aux couleurs du thème ----------
+   Dans l'appli (onglet du navigateur, titres d'État et de Réglages) : dessinés en direct. Icône de l'écran d'accueil : figée par
+   l'iPhone (ou Android, PC) au moment de l'ajout ; elle vient de icones/<logo>-<thème>-180.png (+ manifest-<logo>-<thème>.json pour
+   192 et 512 px), images faites à l'avance par outils/dev/icones.py — à relancer après l'ajout d'un thème. Thème perso : image
+   dessinée sur l'appareil (si le navigateur l'accepte). Choix gardé sur l'appareil (« logo »). */
+const LOGO_DEF = 'origine';
+const BLEU_BASE = {clair:{base:'#e7ecef', accent:'#274c77', 't-slate':'#6096ba', 't-ochre':'#8b8c89'}, sombre:{base:'#08121f', accent:'#a3cef1'}};
+const enHex = v => { const t = String(v || '').trim(), m = t.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (m) return '#' + [m[1], m[2], m[3]].map(x => (+x).toString(16).padStart(2, '0')).join(''); return HEX.test(t) ? (t.startsWith('#') ? t : '#' + t) : null; };
+const auMoins = (hex, L) => { const o = oklch(hex); return o[0] >= L ? hex : couleur(L, o[1], o[2]); };
+const proches = (x, y) => { const a = oklch(x), b = oklch(y), r = Math.PI / 180;
+  return Math.hypot(a[0] - b[0], a[1] * Math.cos(a[2] * r) - b[1] * Math.cos(b[2] * r), a[1] * Math.sin(a[2] * r) - b[1] * Math.sin(b[2] * r)) < .09; };
+function themeDe(id){ return id === 'perso' ? perso() : id === 'apercu' ? apercu : THEMES.find(t => t.id === id) || THEMES[0]; }
+function logoCouleurs(t){
+  t = t || THEMES[0];
+  const V = variables(t), c = {...(t.id === 'bleu' ? BLEU_BASE.clair : {}), ...V.clair}, s = {...(t.id === 'bleu' ? BLEU_BASE.sombre : {}), ...V.sombre};
+  const encre = enHex(c.accent) || '#274c77', oA = oklch(encre);
+  const f1 = couleur(Math.min(Math.max(oA[0] + .08, .42), .55), oA[1], oA[2]);
+  const oB = oklch(enHex(s.base) || '#08121f'), f2 = couleur(Math.max(oB[0], .2), oB[1], oB[2]);
+  const clair = enHex(c.base) || '#e7ecef', sa = enHex(s.accent);
+  const vif = sa && oklch(sa)[1] > .1 ? sa : '#ff9f43';
+  let b = auMoins(enHex(c['t-slate']) || encre, .6); { const o = oklch(b); if (o[0] > .78) b = couleur(.62, o[1], o[2]); }   // tuile moyenne, distincte des claires
+  let a = auMoins(enHex(c['blob-1']) || '#a3cef1', .74); if (proches(a, vif) || proches(a, b)) a = auMoins(b, .84);
+  const gris = auMoins(enHex(c['t-ochre']) || '#8b8c89', .55);
+  const oC = oklch(clair), oV = oklch(vif);
+  return {f1, f2, encre, a, b, clair, vif, gris, fondClair:couleur(Math.max(oC[0] - .1, .82), oC[1] < .008 ? oC[1] : Math.max(oC[1], .02), oC[2]), soleil:couleur(Math.min(oV[0] + .12, .92), oV[1], oV[2] + 12)};
+}
+let nLogo = 0;
+const deg = (u, x1, y1, x2, y2, a, b) => `<linearGradient id="${u}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;
+const ray = (u, cx, cy, r, c, o) => `<radialGradient id="${u}" cx="${cx}" cy="${cy}" r="${r}"><stop offset="0" stop-color="${c}" stop-opacity="${o}"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient>`;
+const LOGOS = [
+  {id:'origine', nom:"D'origine", svg:(P, u) => `<defs>${deg(u + 'f', 0, 0, 0, 1, P.encre, P.f2)}</defs><rect width="512" height="512" fill="url(#${u}f)"/>`
+    + `<rect x="105" y="105" width="131" height="131" rx="40" fill="${P.a}"/><rect x="276" y="105" width="131" height="131" rx="40" fill="${P.b}"/>`
+    + `<rect x="105" y="276" width="131" height="131" rx="40" fill="${P.clair}"/><rect x="276" y="276" width="131" height="131" rx="40" fill="${P.gris}"/>`},
+  {id:'grille', nom:'Grille', svg:(P, u) => `<defs>${deg(u + 'f', 0, 0, 0, 1, P.f1, P.f2)}</defs><rect width="512" height="512" fill="url(#${u}f)"/>`
+    + `<rect x="112" y="112" width="128" height="128" rx="34" fill="${P.a}"/><rect x="272" y="112" width="128" height="128" rx="34" fill="${P.b}"/>`
+    + `<rect x="112" y="272" width="128" height="128" rx="34" fill="${P.clair}"/><rect x="272" y="272" width="128" height="128" rx="34" fill="${P.vif}"/>`
+    + `<circle cx="336" cy="336" r="22" fill="#fff"/><circle cx="336" cy="336" r="40" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="8"/>`},
+  {id:'monogramme', nom:'Monogramme', svg:(P, u) => `<defs>${deg(u + 'f', 0, 0, 1, 1, P.f1, P.f2)}${ray(u + 'h', .25, .15, .7, P.a, .35)}</defs><rect width="512" height="512" fill="url(#${u}f)"/><rect width="512" height="512" fill="url(#${u}h)"/>`
+    + `<polyline points="140,356 140,156 256,292 372,156 372,356" fill="none" stroke="#fff" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>`
+    + `<rect x="176" y="404" width="160" height="24" rx="12" fill="${P.vif}"/>`},
+  {id:'ecran', nom:'Écran', svg:(P, u) => `<defs>${deg(u + 'f', 0, 0, 0, 1, P.clair, P.fondClair)}</defs><rect width="512" height="512" fill="url(#${u}f)"/>`
+    + `<rect x="136" y="76" width="240" height="360" rx="52" fill="#fff" stroke="${P.encre}" stroke-width="16"/>`
+    + `<rect x="172" y="116" width="168" height="92" rx="22" fill="${P.encre}"/><rect x="194" y="140" width="72" height="14" rx="7" fill="${P.a}"/><rect x="194" y="166" width="112" height="14" rx="7" fill="#fff" fill-opacity=".5"/>`
+    + `<rect x="172" y="232" width="72" height="72" rx="20" fill="${P.a}"/><rect x="268" y="232" width="72" height="72" rx="20" fill="${P.b}"/>`
+    + `<rect x="172" y="328" width="72" height="72" rx="20" fill="${P.fondClair}"/><rect x="268" y="328" width="72" height="72" rx="20" fill="${P.vif}"/>`},
+  {id:'horizon', nom:'Horizon', svg:(P, u) => `<defs>${deg(u + 'f', 0, 0, 0, 1, P.f2, P.f1)}${deg(u + 's', 0, 0, 0, 1, P.soleil, P.vif)}${ray(u + 'l', .5, .57, .45, P.vif, .35)}</defs>`
+    + `<rect width="512" height="512" fill="url(#${u}f)"/><rect width="512" height="512" fill="url(#${u}l)"/><path d="M140,290 A116,116 0 0 1 372,290 Z" fill="url(#${u}s)"/>`
+    + `<rect x="108" y="322" width="296" height="28" rx="14" fill="${P.a}" fill-opacity=".95"/><rect x="152" y="372" width="208" height="28" rx="14" fill="${P.a}" fill-opacity=".7"/><rect x="200" y="422" width="112" height="28" rx="14" fill="${P.a}" fill-opacity=".45"/>`},
+  {id:'cadran', nom:'Cadran', svg:(P, u) => `<defs><radialGradient id="${u}f" cx=".3" cy=".2" r=".9"><stop offset="0" stop-color="${P.f1}"/><stop offset="1" stop-color="${P.f2}"/></radialGradient></defs><rect width="512" height="512" fill="url(#${u}f)"/>`
+    + [P.vif, P.b, P.clair, P.a].map((c, i) => `<circle cx="256" cy="256" r="123" fill="none" stroke="${c}" stroke-width="90" stroke-dasharray="177.2 595.6" transform="rotate(${-86.27 + 90 * i} 256 256)"/>`).join('')
+    + `<circle cx="256" cy="256" r="26" fill="#fff"/>`},
+  {id:'point', nom:'Point live', svg:(P, u) => `<defs>${deg(u + 'f', 0, 0, 0, 1, P.f1, P.f2)}${ray(u + 'h', .73, .73, .35, P.vif, .4)}</defs><rect width="512" height="512" fill="url(#${u}f)"/><rect width="512" height="512" fill="url(#${u}h)"/>`
+    + [[136, 136, P.a, 1], [256, 136, P.clair, .85], [376, 136, P.clair, .85], [136, 256, P.clair, .85], [256, 256, P.b, 1], [376, 256, P.clair, .85], [136, 376, P.clair, .85], [256, 376, P.clair, .85]]
+      .map(([x, y, c, o]) => `<circle cx="${x}" cy="${y}" r="32" fill="${c}" fill-opacity="${o}"/>`).join('')
+    + `<circle cx="376" cy="376" r="56" fill="none" stroke="${P.vif}" stroke-opacity=".5" stroke-width="10"/><circle cx="376" cy="376" r="34" fill="${P.vif}"/>`},
+];
+/* dessin SVG (carré, 512 × 512) d'un logo aux couleurs d'un thème (objet ou identifiant ; défaut : le thème affiché) */
+function logoSVG(id, theme){
+  const L = LOGOS.find(x => x.id === id) || LOGOS[0], t = typeof theme === 'object' && theme ? theme : themeDe(theme || actuel());
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true">${L.svg(logoCouleurs(t), 'lg' + (++nLogo))}</svg>`;
+}
+const logoActuel = () => { const l = LS.lire('logo'); return LOGOS.some(x => x.id === l) ? l : LOGO_DEF; };
+function lien(rel, href, type){
+  let el = document.querySelector(`link[rel="${rel}"]`);
+  if (!el){ el = document.createElement('link'); el.rel = rel; (document.head || document.documentElement).appendChild(el); }
+  if (type) el.type = type; if (el.getAttribute('href') !== href) el.setAttribute('href', href);
+}
+/* image PNG dessinée sur l'appareil (thème perso) ; null si le navigateur refuse */
+function dessinerPNG(svg, px){
+  return new Promise(res => { try{
+    const img = new Image(); img.onload = () => { try{ const c = document.createElement('canvas'); c.width = c.height = px; c.getContext('2d').drawImage(img, 0, 0, px, px); res(c.toDataURL('image/png')); }catch{ res(null); } };
+    img.onerror = () => res(null); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg.replace('width="100%" height="100%"', `width="${px}" height="${px}"`));
+  }catch{ res(null); } });
+}
+function poserIcones(){
+  try{
+    const l = logoActuel(), pal = document.documentElement.dataset.palette || 'bleu', svg = logoSVG(l, pal);
+    lien('icon', 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg), 'image/svg+xml');
+    if (l === LOGO_DEF && pal === 'bleu'){ lien('apple-touch-icon', 'apple-touch-icon.png'); lien('manifest', 'manifest.json'); }
+    else if (pal === 'perso' || pal === 'apercu'){ lien('manifest', `icones/manifest-${l}-bleu.json`); dessinerPNG(svg, 180).then(u => lien('apple-touch-icon', u || `icones/${l}-bleu-180.png`)); }
+    else { lien('apple-touch-icon', `icones/${l}-${pal}-180.png`); lien('manifest', `icones/manifest-${l}-${pal}.json`); }
+    document.querySelectorAll('[data-logo-app]').forEach(el => { el.innerHTML = logoSVG(l, pal); });
+  }catch(e){}
+}
+
 window.Themes = {
   toutes:THEMES, liste, actuel, defaut:DEF, perso, lireCouleurs,
+  logos:LOGOS.map(({id, nom}) => ({id, nom})), logoSVG, logoActuel, logoCouleurs:t => logoCouleurs(typeof t === 'object' ? t : themeDe(t)),
+  choisirLogo(id){ LS.ecrire('logo', id === LOGO_DEF || !LOGOS.some(x => x.id === id) ? null : id); poserIcones(); },
   variables:t => variables(t),
-  choisir(id){ LS.ecrire('palette', id === DEF() ? null : id); apercu = null; ecrireCSS(); poser(actuel()); },
+  choisir(id){ LS.ecrire('palette', id === DEF() ? null : id); apercu = null; ecrireCSS(); poser(actuel()); poserIcones(); },
   /* aperçu sans rien garder (État › Créer mon thème) ; Themes.apercu(null) revient au thème choisi */
-  apercu(c){ apercu = c && c.length >= 2 ? {id:'apercu', c} : null; ecrireCSS(); poser(apercu ? 'apercu' : actuel()); },
+  apercu(c){ apercu = c && c.length >= 2 ? {id:'apercu', c} : null; ecrireCSS(); poser(apercu ? 'apercu' : actuel()); poserIcones(); },
   enregistrerPerso(nom, c){ LS.ecrire('theme:perso', JSON.stringify({nom:String(nom || 'Mon thème').slice(0, 30), c:c.slice(0, 5)})); apercu = null; this.choisir('perso');
     try{ window.Synchro && Synchro.prefsPlusTard && Synchro.prefsPlusTard(); }catch{} },
-  effacerPerso(){ LS.ecrire('theme:perso', null); if (LS.lire('palette') === 'perso') LS.ecrire('palette', null); apercu = null; ecrireCSS(); poser(actuel());
+  effacerPerso(){ LS.ecrire('theme:perso', null); if (LS.lire('palette') === 'perso') LS.ecrire('palette', null); apercu = null; ecrireCSS(); poser(actuel()); poserIcones();
     try{ window.Synchro && Synchro.prefsPlusTard && Synchro.prefsPlusTard(); }catch{} },
-  rafraichir(){ ecrireCSS(); poser(actuel()); }
+  rafraichir(){ ecrireCSS(); poser(actuel()); poserIcones(); }
 };
 
 /* au chargement : thème, mode clair/sombre et mise en page PC, avant l'affichage */
 try{
-  ecrireCSS(); poser(actuel());
+  ecrireCSS(); poser(actuel()); poserIcones();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', poserIcones, {once:true});
   const d = document.documentElement, m = LS.lire('mode') || CFGv('apparence.mode', '');
   if (m === 'clair') d.dataset.theme = 'light'; else if (m === 'sombre') d.dataset.theme = 'dark';
   const q = matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');
@@ -182,5 +274,5 @@ try{
 }catch(e){}
 /* thème perso arrivé par la synchro, ou changé dans un autre onglet */
 window.addEventListener('synchro:prefs', () => Themes.rafraichir());
-window.addEventListener('storage', e => { if (e.key === 'theme:perso' || e.key === 'palette') Themes.rafraichir(); });
+window.addEventListener('storage', e => { if (e.key === 'theme:perso' || e.key === 'palette' || e.key === 'logo') Themes.rafraichir(); });
 })();

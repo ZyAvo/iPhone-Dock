@@ -1,6 +1,6 @@
 {
- "lot": "v42",
- "date": "2026-10-31T08:08:10+00:00",
+ "lot": "v43",
+ "date": "2026-10-31T11:26:01+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/configuration.yml": "5c3df7af",
@@ -13,7 +13,7 @@
   "actus.html": "655766c5",
   "cachee.html": "1ac001d5",
   "ecarts.html": "b56b23a5",
-  "etat.html": "5e60550e",
+  "etat.html": "1044c5c9",
   "index.html": "b95cc874",
   "invest.html": "30a350e1",
   "noyau.js": "bdd7c8a4",
@@ -30,7 +30,8 @@
   "outils/dev/classeur/extraire.mjs": "eb5e9d83",
   "outils/dev/classeur/modele.py": "ecb4a8d8",
   "outils/dev/classeur/tuto.py": "8474672a",
-  "outils/dev/empaqueter.py": "4a5267a3",
+  "outils/dev/empaqueter.py": "e6df4ed2",
+  "outils/dev/icones.py": "69297db2",
   "outils/etat.mjs": "cf04c5a9",
   "outils/marches-data.mjs": "5a7dad3f",
   "outils/publier-donnees.sh": "4834693d",
@@ -40,15 +41,16 @@
   "outils/tv-tri.mjs": "5f175f99",
   "outils/videos-data.mjs": "81465ebe",
   "outils/yahoo.py": "103be76d",
-  "reglages.html": "e05ed3bd",
+  "reglages.html": "5dd77b1b",
   "sport.html": "80192285",
   "sw.js": "762bca59",
   "synchro.js": "70ce099a",
-  "themes.js": "f3584874",
+  "themes.js": "f98bb157",
   "videos.html": "751ccb60"
  },
  "supprimer": [
   "tv.json",
-  "donnees"
+  "donnees",
+  "outils/prix-test.mjs"
  ]
 }

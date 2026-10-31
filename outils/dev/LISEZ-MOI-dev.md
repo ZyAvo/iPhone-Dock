@@ -1,6 +1,6 @@
 # Mon Écran — notes techniques (pour reprendre le projet dans une nouvelle conversation)
 
-État au 31/10/2026 : **lot v42** (thèmes centralisés et thème perso, fond fixe, source musique, renommage du dépôt sans retoucher le code, installation Android/PC). Phase 2 terminée (v37 à v40) ; v41 : Écarts de cotes (jour du match, filtre « Aujourd'hui et demain »).
+État au 31/10/2026 : **lot v43** (logos de l'appli aux couleurs du thème) ; v42 (thèmes centralisés et thème perso, fond fixe, source musique, renommage du dépôt sans retoucher le code, installation Android/PC). Phase 2 terminée (v37 à v40) ; v41 : Écarts de cotes (jour du match, filtre « Aujourd'hui et demain »).
 
 ## Organisation du dépôt
 - Pages (racine) : `index.html` (accueil), `actus.html`, `sport.html`, `ecarts.html` (écarts de cotes), `invest.html`, `videos.html`, `etat.html`, `cachee.html` (coffre), `reglages.html` (réglages), `noyau.js` (noyau commun), `themes.js` (thèmes et fond, v42), `synchro.js` (synchro chiffrée), `sw.js` (service worker).
@@ -77,11 +77,20 @@ Base des écrans de réglages et des futures applis dédiées. Rien de propre à
 - Thème perso : `theme:perso` = `{nom, c}`, palette `perso` ; partagé par la partie « prefs » de la synchro (clé `theme`, absente du contenu tant qu'elle est vide : l'empreinte des favoris d'avant ne change pas) ; dans la sauvegarde. État › Thème › « Créer mon thème » : lien coolors ou 5 sélecteurs de couleur, aperçu en direct (palette `apercu`), Enregistrer / Annuler / Supprimer.
 - Classeur : `configuration.py` écrit aussi `apparence.palettes_connues` (toutes les lignes de l'onglet Apparence) ; `extraire.mjs` lit `THEMES` dans `themes.js` (ids et noms → `modele.py`).
 
+## Logos de l'appli (v43)
+- `themes.js` : `LOGOS` (7 dessins SVG 512 × 512 : origine, grille, monogramme, ecran, horizon, cadran, point), couleurs tirées du thème par `logoCouleurs(t)` (fond `f1`→`f2`, `encre`, tuiles `a`/`b`/`clair`/`gris`, accent `vif` — orange si l'accent sombre du thème est trop terne). API : `Themes.logos`, `logoSVG(id, thème?)`, `logoActuel()`, `choisirLogo(id)` (clé `logo`, sur l'appareil, dans la sauvegarde), `logoCouleurs(t)`.
+- `poserIcones()` (au chargement et à chaque changement de thème ou de logo) : favicon SVG en direct ; `apple-touch-icon` et `manifest` → `icones/<logo>-<thème>-180.png` et `icones/manifest-<logo>-<thème>.json` (192 et 512 px) ; logo d'origine + Bleu → fichiers de toujours ; thème perso → PNG dessiné sur l'appareil (repli : version Bleu). `[data-logo-app]` (titres d'État et de Réglages) rempli avec le logo.
+- **`outils/dev/icones.py <dépôt>`** fabrique les 77 jeux d'images (Playwright + Pillow, 256 couleurs tramées, ≈ 4 Mo) : à relancer après l'ajout ou la retouche d'un thème ou d'un logo, avant d'empaqueter.
+- État › Thème : « Icône de l'appli » (7 choix aux couleurs du thème) ; l'icône d'écran d'accueil ne change qu'en la supprimant puis en la rajoutant (nouvelle mémoire : sauvegarde ou synchro d'abord).
+
 ## Musique, dépôt, installation (v42)
 - `Noyau.accueil.musiques` / `musique()` / `choisirMusique(id)` (clé `musique:source`, propre à l'appareil, dans la sauvegarde, dans `signature()`) : Spotify (widget complet), Deezer, Apple Music, YouTube Music, Amazon Music (widget raccourci : `Noyau.lien.ouvrir` → app / android / web). Réglages › Pages et widgets : ligne « Source musique ».
 - Nom du dépôt : adresse `pseudo.github.io/<dépôt>/`, sinon `config.js` `depot.nom` (écrit par `configuration.py` depuis `GITHUB_REPOSITORY`), sinon `ZyAvo/iPhone-Dock`. État › lien Actions : `Noyau.depot.nom`. Procédure : `outils/dev/RENOMMER-LE-DEPOT.md`.
 - `manifest.json` : icônes `icone-192.png` et `icone-512.png` (maskable), `id`, `scope`, `lang` : installable sous Android et PC (Chrome, Edge). `sw.js` met `themes.js` et les icônes en mémoire.
 - Études et relectures : `outils/dev/ETUDE-EMPLOI.md` (sources d'offres d'emploi), `outils/dev/DOCK-PUBLIC.md` (rendre le dock public).
+
+## Idées abandonnées
+- **Agrégateur de prix des enseignes** (31/10/2026) : test `prix-test.mjs` lancé depuis GitHub et depuis le PC. Carrefour, Intermarché et Super U bloquent les robots (Cloudflare, DataDome) même depuis une connexion de particulier ; E.Leclerc et Auchan seulement depuis le PC ; Monoprix et Lidl lisibles partout. Open Prices : environ 1 500 relevés en France en deux semaines, concentrés sur peu de magasins. Jugé trop peu intéressant. Script retiré (liste `SUPPRIMER` d'`empaqueter.py`) ; `.github/workflows/prix-test.yml` à supprimer à la main.
 
 ## Phase 2 (faite)
 1. ~~Lot technique~~ (v37).

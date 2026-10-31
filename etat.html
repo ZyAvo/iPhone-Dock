@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="5e60550e">
+<meta name="mon-ecran-version" content="1044c5c9">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -121,6 +121,14 @@ html.desk .wrap{max-width:860px}
 .pz-c input::-webkit-color-swatch{border:0;border-radius:9px}
 .pz .actions{margin-top:12px}
 .pz-del{color:#c0392b}
+.logos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 8px;padding:10px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.lg{display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px 2px;border-radius:14px;min-height:44px}
+.lg-i{width:52px;height:52px;border-radius:22%;overflow:hidden;line-height:0;box-shadow:0 4px 10px -4px rgba(0,0,0,.35)}
+.lg-i svg{display:block;width:100%;height:100%}
+.lg small{font-size:.7rem;color:var(--ink-soft);text-align:center;line-height:1.2}
+.lg[aria-checked="true"]{background:var(--accent-soft, rgba(127,127,127,.1))}
+.lg[aria-checked="true"] .lg-i{box-shadow:0 0 0 2.5px var(--panel, #fff), 0 0 0 5px var(--accent)}
+.lg[aria-checked="true"] small{color:var(--ink);font-weight:600}
 /* ---------- Interrupteurs ---------- */
 .sw-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .sw-row small{display:block;color:var(--ink-soft);font-size:.78rem;margin-top:2px}
@@ -211,7 +219,7 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
       <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
     </div>
-    <div class="title-row"><h1>État des données</h1><span class="stamp" id="stamp"></span></div>
+    <div class="title-row"><h1><span class="app-logo" data-logo-app aria-hidden="true"></span>État des données</h1><span class="stamp" id="stamp"></span></div>
   </div>
 </header>
 <main><div class="wrap" id="out"><div class="sum glass none"><span class="lamp"></span><div><b>Chargement…</b></div></div></div></main>
@@ -267,6 +275,9 @@ function themeHTML(){
       <span class="pal" aria-hidden="true">${t.c.map(c => `<i style="background:${esc(c)}"></i>`).join('')}</span><span class="pl-t"><b>${esc(t.nom)}</b><small>${esc(t.d)}</small></span><span class="ok" aria-hidden="true"></span></button>`).join('')}
       ${PZ.ouvert ? '' : `<button type="button" class="pl-row pl-add" data-perso="ouvrir"><span class="pl-plus" aria-hidden="true">${p ? '✎' : '＋'}</span><span class="pl-t"><b>${p ? 'Modifier mon thème' : 'Créer mon thème'}</b><small>À partir d'une palette coolors.co ou de 5 couleurs</small></span></button>`}</div>
     ${PZ.ouvert ? persoHTML(p) : ''}
+    <b style="margin-top:8px">Icône de l'appli</b>
+    <div class="logos" role="radiogroup" aria-label="Icône de l'appli">${Themes.logos.map(l => `<button type="button" role="radio" class="lg" aria-checked="${l.id === Themes.logoActuel()}" data-logo="${l.id}"><span class="lg-i">${Themes.logoSVG(l.id)}</span><small>${esc(l.nom)}</small></button>`).join('')}</div>
+    <p class="note" style="margin:2px 0 0">Aux couleurs du thème choisi. Sur l'écran d'accueil, l'iPhone garde l'icône du jour où elle a été ajoutée : pour la changer, fais d'abord une sauvegarde (ou active la synchronisation), supprime l'icône, puis rajoute-la depuis Safari (Partager › Sur l'écran d'accueil) et restaure tes réglages.</p>
     <p class="note" style="margin:2px 0 0">Appliqué à toutes les pages de cet appareil.${p ? ' Ton thème perso est partagé avec tes autres appareils par la synchronisation.' : ''}</p></div>`;
 }
 function persoHTML(p){
@@ -479,16 +490,18 @@ document.addEventListener('click', e => {
     try{ if (v === MODE_DEF) localStorage.removeItem('mode'); else localStorage.setItem('mode', v); }catch{}
     if (v === 'auto') delete d.dataset.theme; else d.dataset.theme = v === 'clair' ? 'light' : 'dark';
     document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-checked', x.dataset.mode === v)); return; }
+  const lg = e.target.closest('[data-logo]');
+  if (lg){ Themes.choisirLogo(lg.dataset.logo); document.querySelectorAll('[data-logo]').forEach(x => x.setAttribute('aria-checked', x.dataset.logo === lg.dataset.logo)); return; }
   const b = e.target.closest('[data-pal]'); if (!b) return;
   const v = b.dataset.pal; PZ.ouvert = false; PZ.c = null;
   Themes.choisir(v);
   document.querySelectorAll('[data-pal]').forEach(x => x.setAttribute('aria-checked', x.dataset.pal === v));
-  if (!document.querySelector('[data-perso="ouvrir"]')) themeRedessiner();
+  themeRedessiner();
 });
 /* ---------- Sauvegarde : tes réglages et données personnelles dans un code à garder (Notes…), chiffré avec ton code ---------- */
 const REGLAGES = ['cotes:cle', 'synchro:cfg', 'synchro:etat', 'invest:lignes', 'invest:reglages', 'invest:pin', 'invest:perimetre', 'invest:widget-per', 'invest:versements', 'coffre:chiffre', 'coffre:items',
   'sport:favoris', 'sport:reduites', 'actus:langue', 'videos:abos', 'videos:liste', 'videos:vus', 'videos:yt-chaine',
-  'lieu:favoris', 'lieu:actuel', 'palette', 'mode', 'theme:perso', 'rafraichissement', 'spotify:client', 'musique:source'];
+  'lieu:favoris', 'lieu:actuel', 'palette', 'mode', 'theme:perso', 'logo', 'rafraichissement', 'spotify:client', 'musique:source'];
 const B64 = {de:u => { let t = ''; for (let i = 0; i < u.length; i += 8192) t += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(t); }, vers:s => Uint8Array.from(atob(s), c => c.charCodeAt(0))};
 async function cleDe(pin, sel){
   const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey']);
