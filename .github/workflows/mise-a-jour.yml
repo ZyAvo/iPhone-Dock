@@ -1,4 +1,4 @@
-# mon-ecran-version: 67446b98
+# mon-ecran-version: 6e6ba9fd
 # Mise à jour en un seul fichier : dépose « mise-a-jour-….zip » à la racine du dépôt (Add file → Upload files).
 # Cette tâche le décompresse, applique la liste de fichiers à retirer (lot.json), supprime le zip, enregistre
 # le tout puis relance la publication. Les fichiers de .github/workflows ne peuvent pas être modifiés par une
@@ -32,7 +32,7 @@ jobs:
           git config user.name "mon-ecran"
           git config user.email "mon-ecran@users.noreply.github.com"
           z=$(ls -t mise-a-jour*.zip 2>/dev/null | head -1 || true)
-          manuels=""; lot="?"
+          manuels=""; ignores=""; lot="?"
           if [ -n "$z" ]; then
             tmp=$(mktemp -d); unzip -q -o "$z" -d "$tmp"
             # zip fait à partir d'un dossier : on descend dans ce dossier
@@ -41,6 +41,8 @@ jobs:
               for f in $(cd "$tmp" && find .github -type f); do cmp -s "$tmp/$f" "$f" || manuels="$manuels $f"; done
               rm -rf "$tmp/.github"
             fi
+            # v51 : les réglages de l'utilisateur ne viennent jamais d'un zip (garde-fou en plus d'empaqueter.py)
+            for f in config configuration.xlsx; do [ -e "$tmp/$f" ] && { echo "Ignoré (réglages) : $f"; rm -rf "${tmp:?}/$f"; ignores="$ignores $f"; }; done
             cp -a "$tmp/." .
             git rm -q --cached -- mise-a-jour*.zip 2>/dev/null || true
             rm -f mise-a-jour*.zip
@@ -53,10 +55,20 @@ jobs:
           fi
           git add -A
           if git diff --cached --quiet; then echo "Rien de nouveau à enregistrer."; echo "change=0" >> "$GITHUB_OUTPUT"
-          else git commit -q -m "Mise à jour $lot" && git push -q && echo "change=1" >> "$GITHUB_OUTPUT"; fi
+          else
+            git commit -q -m "Mise à jour $lot"
+            # v51 : l'appli peut écrire config/modifs.json au même moment → on se replace après (fichiers différents), 3 essais
+            for i in 1 2 3; do
+              git push -q && break
+              [ $i = 3 ] && { echo "Envoi impossible après 3 essais : relance la tâche Mise à jour."; exit 1; }
+              git pull -q --rebase || { git rebase --abort; echo "Conflit avec un dépôt fait pendant la mise à jour : relance la tâche."; exit 1; }
+            done
+            echo "change=1" >> "$GITHUB_OUTPUT"
+          fi
           {
             echo "## Mise à jour $lot"
             git show --stat --format="" HEAD 2>/dev/null | tail -40 | sed 's/^/    /'
+            if [ -n "$ignores" ]; then echo; echo "Réglages présents dans le zip, ignorés :$ignores"; fi
             if [ -n "$manuels" ]; then
               echo; echo "### À déposer à la main (Add file → Upload files, dans le bon dossier)"
               for f in $manuels; do echo "- \`$f\`"; done
@@ -74,7 +86,8 @@ jobs:
           echo "$ch" | grep -qE '^(actus\.html|outils/actus-data\.mjs)$' && lance actus.yml || true
           echo "$ch" | grep -qE '^(invest\.html|outils/marches-data\.mjs|outils/yahoo\.py)$' && lance marches.yml || true
           echo "$ch" | grep -qE '^(videos\.html|outils/videos-data\.mjs|chaines\.txt)$' && lance videos.yml || true
-          echo "$ch" | grep -qE '^(sport\.html|outils/sport-[a-z]+\.mjs|outils/tv-tri\.mjs|logos/|calendriers/)' && lance programme-tv.yml || true
+          echo "$ch" | grep -qE '^(sport\.html|match\.js|outils/sport-[a-z]+\.mjs|logos/|calendriers/)' && lance sport.yml || true
+          echo "$ch" | grep -qE '^outils/tv-tri\.mjs$' && lance programme-tv.yml || true
           echo "$ch" | grep -qE '^outils/cotes-data\.mjs$' && lance cotes.yml || true
           # nouveau lecteur du classeur : la configuration est refaite (elle relance elle-même la publication)
           if echo "$ch" | grep -qE '^outils/configuration\.py$' && [ -f configuration.xlsx ]; then lance configuration.yml; else lance publication.yml; fi

@@ -1,4 +1,4 @@
-# mon-ecran-version: d2ab441c
+# mon-ecran-version: 98c5ad67
 name: Cotes
 
 # Cotes 1 / N / 2 des sites français (The Odds API), pour la page Sport.
@@ -8,7 +8,7 @@ name: Cotes
 # (matin, 15 min avant le coup d'envoi, mi-temps) ; elle ne republie le site que s'il y a du nouveau.
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/10 6-23 * * *'      # v51 : pas la nuit (aucun relevé prévu entre 0 h et 6 h UTC)
   workflow_dispatch:
   push:
     paths:

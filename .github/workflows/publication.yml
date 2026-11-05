@@ -1,4 +1,4 @@
-# mon-ecran-version: 0a1b11fe
+# mon-ecran-version: 4c40213c
 name: Publication
 
 # Met le site en ligne (GitHub Pages) en assemblant :
@@ -12,7 +12,7 @@ on:
     paths-ignore: ['config/modifs.json']     # réglages de l'appli : la tâche Configuration les reporte puis relance la publication
   workflow_dispatch:
   workflow_run:
-    workflows: ["Programme TV sport", "Actus", "Marchés", "Vidéos"]
+    workflows: ["Sport", "Programme TV sport", "Actus", "Marchés", "Vidéos"]
     types: [completed]
 
 permissions:
@@ -26,6 +26,8 @@ concurrency:
 
 jobs:
   publication:
+    # v51 : pas de mise en ligne après une tâche de données en échec (rien de neuf à montrer)
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
@@ -39,7 +41,7 @@ jobs:
           node-version: 22
 
       - name: Dernières données
-        run: bash outils/reprendre-donnees.sh
+        run: bash outils/reprendre-donnees.sh donnees donnees-tv      # donnees-tv : catalogue TV (v51)
 
       - name: Index des logos et calendriers
         run: |

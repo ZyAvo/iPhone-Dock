@@ -1,18 +1,14 @@
-# mon-ecran-version: 972cb9b5
+# mon-ecran-version: 3a0dff1e
 name: Programme TV sport
 
-# Toutes les 2 heures :
-#  1. récupère le programme des chaînes sport (Canal+, beIN, SFR…)       → tv.json
-#  2. prépare les matchs, journées et classements de la page Sport       → donnees/sport/
-#  Les données vont sur la branche « donnees » (sans historique), puis la tâche « Publication » met le site à jour.
+# Programme des chaînes sport (Canal+, beIN, SFR…) → tv.json.
+# v51 : 7 jours au passage de la nuit (01:17 UTC) ou lancé à la main, 2 jours aux autres passages (toutes les 4 h) ;
+# les jours suivants sont repris du passage précédent (outils/tv-tri.mjs). Les matchs ont leur propre tâche : « Sport ».
+# Les données vont sur la branche « donnees » (sans historique), puis la tâche « Publication » met le site à jour.
 on:
   schedule:
-    - cron: '17 */2 * * *'
-  workflow_dispatch:            # bouton « Run workflow » pour lancer à la main
-  push:                         # dès que tu ajoutes un logo ou un calendrier
-    paths:
-      - 'logos/**'
-      - 'calendriers/**'
+    - cron: '17 1,5,9,13,17,21 * * *'
+  workflow_dispatch:            # bouton « Run workflow » pour lancer à la main (7 jours)
 
 permissions:
   contents: write
@@ -37,35 +33,28 @@ jobs:
 
       # ---------- 1. Programme TV ----------
       - uses: actions/checkout@v4
-        if: github.event_name != 'push'
         with:
           repository: iptv-org/epg
           path: epg
 
       - name: Installation de l'outil de programme TV
-        if: github.event_name != 'push'
         working-directory: epg
         run: npm install --no-audit --no-fund
 
-      - name: Récupération du programme (7 jours)
-        if: github.event_name != 'push'
+      - name: Récupération du programme
         working-directory: epg
         continue-on-error: true
         run: |
           # chaînes choisies dans le classeur (config/chaines-tv.xml), sinon la liste d'origine
           ch=../config/chaines-tv.xml; [ -s "$ch" ] || ch=../outils/chaines-tv.xml
-          npm run grab --- --channels=$ch --output=../guide-tv.xml --days=7 --maxConnections=3 --timeout=30000 2>&1 | tee ../grab.log
+          h=$((10#$(date -u +%H))); jours=2; { [ $h -ge 1 ] && [ $h -le 4 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; } && jours=7   # passage de la nuit, même parti en retard
+          echo "Programme sur $jours jours"
+          npm run grab --- --channels=$ch --output=../guide-tv.xml --days=$jours --maxConnections=3 --timeout=30000 2>&1 | tee ../grab.log
 
       - name: Tri des programmes de sport
-        if: github.event_name != 'push'
         continue-on-error: true
         run: node outils/tv-tri.mjs guide-tv.xml tv.json grab.log
 
-      # ---------- 2. Données de la page Sport ----------
-      - name: Matchs, journées et classements
-        continue-on-error: true
-        run: node outils/sport-data.mjs
-
-      # ---------- 3. Envoi des données ----------
+      # ---------- 2. Envoi des données ----------
       - name: Envoi des données
-        run: bash outils/publier-donnees.sh tv.json donnees/sport
+        run: bash outils/publier-donnees.sh tv.json

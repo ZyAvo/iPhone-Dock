@@ -1,0 +1,43 @@
+# mon-ecran-version: 47f24f3f
+name: Sport
+
+# Toutes les 2 heures (v51 : séparée du programme TV, qui la retardait de 35 à 50 min) :
+# matchs, journées et classements de la page Sport → donnees/sport/ (branche « donnees », sans historique),
+# puis la tâche « Publication » met le site à jour.
+# Le premier passage après minuit (UTC) relit toute la période ; les autres ne relisent que les jours de match (moins d'appels ESPN).
+on:
+  schedule:
+    - cron: '7 */2 * * *'
+  workflow_dispatch:            # bouton « Run workflow » pour lancer à la main
+  push:                         # dès que tu ajoutes un logo ou un calendrier
+    paths:
+      - 'logos/**'
+      - 'calendriers/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sport
+  cancel-in-progress: false
+
+jobs:
+  sport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Reprise des données précédentes
+        run: bash outils/reprendre-donnees.sh
+
+      # pas de « continue-on-error » : si le script plante, la tâche apparaît en rouge (v51)
+      - name: Matchs, journées et classements
+        run: node outils/sport-data.mjs
+
+      - name: Envoi des données
+        run: bash outils/publier-donnees.sh donnees/sport

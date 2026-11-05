@@ -1,4 +1,4 @@
-# mon-ecran-version: 5c3df7af
+# mon-ecran-version: d92433bd
 # Configuration du dock : dépose « configuration.xlsx » à la racine du dépôt (Add file → Upload files),
 # ou règle le dock dans l'appli (elle écrit config/modifs.json avec la clé de la synchronisation).
 # Cette tâche reporte d'abord dans le classeur les choix faits dans l'appli (par identifiant ; le classeur reste
@@ -86,7 +86,8 @@ jobs:
           # réglages changés → les tâches concernées vont chercher les nouvelles données, puis publication
           ch=$(git show --name-only --format= HEAD || true)          # fichiers de notre enregistrement (même replacé après celui de l'appli)
           lance(){ gh workflow run "$1" --ref "${GITHUB_REF_NAME}" && echo "Lancé : $1"; }
-          echo "$ch" | grep -qE '^config/(sport|tv)\.json$|^config/chaines-tv\.xml$' && lance programme-tv.yml || true
+          echo "$ch" | grep -qE '^config/sport\.json$' && lance sport.yml || true
+          echo "$ch" | grep -qE '^config/tv\.json$|^config/chaines-tv\.xml$' && lance programme-tv.yml || true
           echo "$ch" | grep -qE '^config/actus\.json$' && lance actus.yml || true
           echo "$ch" | grep -qE '^config/marches\.json$' && lance marches.yml || true
           echo "$ch" | grep -qE '^config/videos\.json$' && lance videos.yml || true
