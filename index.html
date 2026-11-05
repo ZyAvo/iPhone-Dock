@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="afa8db69">
+<meta name="mon-ecran-version" content="01c91649">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -702,43 +702,14 @@ window.addEventListener('pageshow', e => { if (e.persisted) verifAccueil(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) verifAccueil(); });
 Noyau.stockage.ecouter('modifs:attente', verifAccueil); Noyau.stockage.ecouter('accueil:disposition', verifAccueil);
 
-/* Icônes App Store : récupérées une fois, puis gardées sur l'iPhone */
+/* Icônes App Store. v52 : cherchées par la tâche « Configuration » (config.js, module « icones ») au lieu d'un script
+   itunes.apple.com chargé dans la page (JSONP) : plus aucun code extérieur ne s'exécute à côté des clés de session.
+   Celles déjà trouvées sur cet appareil (icons:v1) restent utilisées. */
 let ICONS_STORE = {};
 try{ ICONS_STORE = JSON.parse(localStorage.getItem('icons:v1')) || {}; }catch{}
+Object.assign(ICONS_STORE, CFG('icones', {}));
 const iconKey = a => a.icon && !a.store && !a.storeId ? '' : a.storeId ? 'id:' + a.storeId : a.store ? 's:' + a.store : '';
 const iconOf = a => { const k = iconKey(a); return k && ICONS_STORE[k] ? ICONS_STORE[k] : ''; };
-function jsonp(url){
-  return new Promise((ok, ko) => {
-    const cb = '__ic' + Math.random().toString(36).slice(2), sc = document.createElement('script');
-    const end = () => { clearTimeout(t); delete window[cb]; sc.remove(); };
-    const t = setTimeout(() => { end(); ko(); }, 8000);
-    window[cb] = d => { end(); ok(d); };
-    sc.onerror = () => { end(); ko(); };
-    sc.src = `${url}&callback=${cb}`;
-    document.head.appendChild(sc);
-  });
-}
-async function fetchIcons(){
-  let rate = {}; try{ rate = JSON.parse(localStorage.getItem('icons:echecs')) || {}; }catch{}
-  const noteEchec = k => { rate[k] = Date.now(); try{ localStorage.setItem('icons:echecs', JSON.stringify(rate)); }catch{} };
-  // un logo introuvable n'est recherché à nouveau qu'après 7 jours
-  const all = [...HOME, ...NAV_APPS, ...QUICK_LEFT, ...QUICK_RIGHT, ...Object.values(FOLDERS).flatMap(f => f.items)].filter(a => iconKey(a) && !(iconKey(a) in ICONS_STORE) && !(Date.now() - (rate[iconKey(a)] || 0) < 7 * 864e5));
-  const todo = [...new Map(all.map(a => [iconKey(a), a])).values()];
-  for (const a of todo){
-    try{
-      const url = a.storeId ? `https://itunes.apple.com/lookup?id=${encodeURIComponent(a.storeId)}&country=fr`
-                            : `https://itunes.apple.com/search?term=${encodeURIComponent(a.store)}&entity=software&country=fr&limit=1`;
-      const d = await jsonp(url), r = (d.results || [])[0];
-      const img = r && (r.artworkUrl512 || r.artworkUrl100);
-      if (!img){ noteEchec(iconKey(a)); continue; }
-      ICONS_STORE[iconKey(a)] = img;
-      try{ localStorage.setItem('icons:v1', JSON.stringify(ICONS_STORE)); }catch{}
-      document.querySelectorAll(`[data-icon="${CSS.escape(iconKey(a))}"]`).forEach(el => { el.classList.add('img'); el.style.setProperty('--img', `url("${img}")`); });
-    }catch{ if (navigator.onLine) rate[iconKey(a)] = Date.now() - 6 * 864e5; }   // erreur réseau : nouvel essai demain
-    await new Promise(r => setTimeout(r, 250));
-  }
-  try{ localStorage.setItem('icons:echecs', JSON.stringify(rate)); }catch{}
-}
 const iconAttrs = a => { const k = iconKey(a), u = iconOf(a); return `${k ? ` data-icon="${esc(k)}"` : ''}${u ? ` data-has="1"` : ''}`; };
 
 function tileHTML(a){
@@ -770,7 +741,6 @@ Object.entries(FOLDERS).forEach(([id, f]) => {
   if (at >= 0) HOME.splice(at + 1, 0, ...stars); else HOME.push(...stars);
 });
 $('#grid').innerHTML = HOME.map(appHTML).join('');
-setTimeout(fetchIcons, 600);
 
 /* Ouverture d'une appli (noyau.js) : iPhone → appli, raccourci (alt) puis site, en passant au suivant si rien ne s'ouvre en 1,5 s ;
    Android → appli Android puis site ; ordinateur → le site dans un nouvel onglet */
@@ -1480,13 +1450,19 @@ const hm = t => new Date(t).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:
 const agoD = t => { const m = Math.round((Date.now() - t) / 60000); return m < 60 ? `il y a ${Math.max(1, m)} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : new Date(t).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}); };
 const colD = c => !c ? 'var(--t-slate)' : c.startsWith('--') ? `var(${c})` : c;
 let deskNewsAt = 0;
+/* v52 : liste « À la une » (14 titres, une-liste.json ≈ 3 Ko) ; tant que la tâche Actus ne l'a pas produite, le fichier complet comme avant */
+async function uneListe(){
+  let r = await fetch('donnees/actus/une-liste.json', {cache:'no-cache'});
+  if (r.ok){ const j = await r.json(); if (Array.isArray(j.items) && j.items.length) return j.items; }
+  r = await fetch('donnees/actus/actus-fr.json', {cache:'no-cache'});
+  if (r.status === 404) r = await fetch('donnees/actus/actus.json', {cache:'no-cache'});
+  const j = await r.json(); return ((j.tabs || {}).une || {}).items || [];
+}
 async function loadDeskNews(){
   if (!DESK() || !$('#deskNews')) return;
   const el = $('#deskNews'); deskNewsAt = Date.now();
   try{
-    let r = await fetch('donnees/actus/actus-fr.json', {cache:'no-cache'});
-    if (r.status === 404) r = await fetch('donnees/actus/actus.json', {cache:'no-cache'});
-    const j = await r.json(), it = (((j.tabs || {}).une || {}).items || []).slice(0, 9);
+    const it = (await uneListe()).slice(0, 9);
     if (!it.length) throw 0;
     const [h, ...rest] = it, ext = 'target="_blank" rel="noopener"';
     el.innerHTML = `<div class="d-head"><span class="w-label">À la une</span><button type="button" class="d-tv" data-tvmode>Mode TV</button>${PG('actus') ? '<a href="actus.html">Toutes les actus ›</a>' : ''}</div>
@@ -1559,9 +1535,7 @@ function modeTV(on){
 async function renderTvActu(){
   const el = $('#tvActuZ .tvm-in'); if (!el) return;
   try{
-    let r = await fetch('donnees/actus/actus-fr.json', {cache:'no-cache'});
-    if (r.status === 404) r = await fetch('donnees/actus/actus.json', {cache:'no-cache'});
-    const j = await r.json(), it = (((j.tabs || {}).une || {}).items || []).slice(0, 14);
+    const it = (await uneListe()).slice(0, 14);
     el.innerHTML = `<div class="d-head"><span class="w-label">À la une</span>${PG('actus') ? '<a href="actus.html">Actus ›</a>' : ''}</div>`
       + it.map(i => `<a class="tvm-a" href="${esc(i.link)}" target="_blank" rel="noopener"><span class="dn-src"><i style="background:${esc(colD(i.color))}"></i>${esc(i.source)} · ${agoD(i.date)}</span><b>${esc(i.title)}</b></a>`).join('');
   }catch{ el.innerHTML = '<p class="d-empty">Les actus arrivent…</p>'; }

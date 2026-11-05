@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 577d9714
+# mon-ecran-version: 4d50aea5
 # Lit le classeur de configuration (configuration.xlsx) et écrit les réglages du dock dans config/ :
 #   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json, applis.json
 #   config/config.js                     → les mêmes réglages en un seul fichier, chargé par les pages (window.MON_ECRAN_CONFIG)
@@ -341,6 +341,40 @@ def def_appli(x):
             else: d.pop(k, None)
         if d.get('url') and not d.get('app') and not d.get('android'): d['url'] = d.get('web') or d['url']
     return d
+
+def icones_appstore(applis):
+    """v52 : {clé: adresse de l'icône} pour les applis qui ont un nom (« store ») ou un numéro (« storeId ») App Store.
+    Clés comme dans index.html (iconKey) : « id:<numéro> » ou « s:<nom> ». Les icônes déjà trouvées (config/icones.json) sont gardées ;
+    les autres sont cherchées sur l'API publique d'Apple (France). Sans réseau : on garde ce qu'on avait."""
+    import urllib.request, urllib.parse, time
+    try: avant = json.load(open(os.path.join(OUT, 'icones.json'), encoding='utf-8'))
+    except Exception: avant = {}
+    vus = {}
+    def parcourir(x):
+        if isinstance(x, dict):
+            if x.get('storeId'): vus['id:' + str(x['storeId'])] = ('id', str(x['storeId']))
+            elif x.get('store') and not (x.get('icon') and not x.get('store')): vus['s:' + str(x['store'])] = ('s', str(x['store']))
+            for v in x.values(): parcourir(v)
+        elif isinstance(x, list):
+            for v in x: parcourir(v)
+    parcourir(applis)
+    out, cherchees, trouvees = {}, 0, 0
+    for k, (t, v) in vus.items():
+        if avant.get(k): out[k] = avant[k]; continue
+        if cherchees >= 60: continue                         # au plus 60 recherches par passage
+        cherchees += 1
+        url = ('https://itunes.apple.com/lookup?' + urllib.parse.urlencode({'id': v, 'country': 'fr'}) if t == 'id' else
+               'https://itunes.apple.com/search?' + urllib.parse.urlencode({'term': v, 'entity': 'software', 'country': 'fr', 'limit': 1}))
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'MonEcran/1.0'}), timeout=8) as r:
+                res = (json.load(r).get('results') or [{}])[0]
+            img = res.get('artworkUrl512') or res.get('artworkUrl100')
+            if img and img.startswith('https://'): out[k] = img; trouvees += 1
+        except Exception as e:
+            print(f'Icône App Store introuvable pour {v} : {e}'.replace('\n', ' ')[:160])
+        time.sleep(0.3)
+    print(f'Icônes App Store : {len(out)}/{len(vus)} (dont {trouvees} trouvées à ce passage)')
+    return out
 
 def m_applis(m):
     # Mes ajouts : rangés à la fin de leur section (dossier, accueil, bandeau…) ; décochés : dans la réserve (l'appli peut les réafficher)
@@ -798,6 +832,7 @@ def main():
         'applis': m_applis(M['applis']),
     }
     os.makedirs(OUT, exist_ok=True)
+    cfg['icones'] = icones_appstore(cfg['applis'])          # v52 : icônes App Store cherchées ici (plus de JSONP dans la page)
     for k, v in cfg.items():
         json.dump(v, open(os.path.join(OUT, f'{k}.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     # un seul fichier pour les pages (chargé avant leur code ; en cas d'absence, elles gardent leurs réglages intégrés)

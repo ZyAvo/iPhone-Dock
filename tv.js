@@ -1,4 +1,4 @@
-// mon-ecran-version: b055f06e
+// mon-ecran-version: 4ada812d
 /* Mon Écran — TV (v44, films et séries v45) : abonnement Xtream.
    - Accès (serveur, identifiant, mot de passe) : fiche « Accès TV » du Coffre, chiffrée avec ton code et partagée chiffrée par la
      synchronisation ; jamais dans le dépôt, le classeur ou la configuration (publics). Lus une fois par session (code demandé si le
@@ -159,7 +159,7 @@ function noterVu(sid, s, e, id, ext){ const v = vus(); v[sid] = [s, e, id, ext];
 let hlsCharge = null, HLS = null;
 function chargerHls(){
   return hlsCharge || (hlsCharge = new Promise((ok, ko) => { const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js'; s.onload = () => ok(window.Hls); s.onerror = () => { hlsCharge = null; ko(new Error('lecteur')); };
+    s.src = 'vendor/hls.min.js';   /* v52 : copie figée dans le dépôt (hls.js 1.7.4, licence vendor/hls-LICENSE.txt) au lieu du CDN en version flottante */ s.onload = () => ok(window.Hls); s.onerror = () => { hlsCharge = null; ko(new Error('lecteur')); };
     document.head.appendChild(s); }));
 }
 /* Lecture tolérante aux coupures (v48) : tampon plus large, relances automatiques, reprise après une erreur,

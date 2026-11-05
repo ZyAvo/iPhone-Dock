@@ -1,4 +1,4 @@
-// mon-ecran-version: b4e92368
+// mon-ecran-version: a6c88d47
 /* Mon Écran — mise en mémoire sur l'iPhone pour un démarrage instantané, même sans réseau.
    - Pages (accueil, actus, sport, état) : dernière version si le réseau répond en moins de 1,5 s,
      sinon la version en mémoire tout de suite, mise à jour en arrière-plan (la page se recharge seule
@@ -13,7 +13,9 @@ self.addEventListener('install', e => {
   e.waitUntil(caches.open(PAGES).then(c => Promise.all(SHELL.map(u => c.add(new Request(u, {cache:'reload'})).catch(() => {})))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => ![PAGES, DATA, FONTS].includes(k)).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => ![PAGES, DATA, FONTS].includes(k)).map(k => caches.delete(k))))
+    .then(() => caches.open(DATA)).then(c => c.keys().then(l => Promise.all(l.filter(r => /\/donnees\/tv\//.test(r.url)).map(r => c.delete(r)))))   // v52 : catalogue TV (19 Mo) retiré de la mémoire
+    .then(() => self.clients.claim()));
 });
 
 const isPage = (req, url) => req.mode === 'navigate' || /\.html$|\/$|\/(noyau|themes|synchro|tv|match)\.js$|\/config\/config\.js$/.test(url.pathname);   // noyau.js, themes.js, synchro.js : même règle que les pages
@@ -41,9 +43,11 @@ async function pageFirstFromCache(e, url){
   if (quick && quick !== 'lent' && quick.ok) return quick;      // réseau rapide : toujours la dernière version
   st.fromCache = true; e.waitUntil(fresh); return cached;
 }
+const DATA_MAX = 40;        // v52 : au plus 40 fichiers de données gardés (les plus anciens partent)
+async function limiter(cache){ const l = await cache.keys(); for (let i = 0; i < l.length - DATA_MAX; i++) await cache.delete(l[i]); }
 async function networkFirst(e){
   const cache = await caches.open(DATA), key = e.request.url.split('?')[0];
-  const net = fetch(e.request).then(r => { if (r.ok) cache.put(key, r.clone()); return r; });
+  const net = fetch(e.request).then(r => { if (r.status === 200) cache.put(key, r.clone()).then(() => limiter(cache)).catch(() => {}); return r; });   // v52 : 200 seulement (une réponse partielle 206 ne se garde pas)
   // réseau lent (plus de 6 s) ou absent : dernière version connue
   const slow = new Promise(res => setTimeout(res, 6000)).then(() => cache.match(key));
   try{
@@ -69,6 +73,8 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (/^fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) return e.respondWith(cacheFirst(e, FONTS));
   if (url.origin !== self.location.origin) return;
+  // v52 : catalogue TV (19 Mo, relu une fois par jour) et lectures partielles (Range) : directement au réseau, sans mémoire
+  if (/\/donnees\/tv\//.test(url.pathname) || req.headers.has('range')) return;
   if (/\.json$/.test(url.pathname)) return e.respondWith(networkFirst(e));
   if (isPage(req, url)) return e.respondWith(pageFirstFromCache(e, url));
 });

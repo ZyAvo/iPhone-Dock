@@ -1,4 +1,4 @@
-// mon-ecran-version: 7947da31
+// mon-ecran-version: dc2b5fb7
 // Mon Écran — relais TV pour le PC (v44). Rien à installer à part Node.js 18 ou plus récent.
 // Le dock (page sécurisée en https) ne peut ni interroger un serveur TV en http ni lire ses flux. Ce relais tourne sur ton PC,
 // n'écoute que la machine elle-même (127.0.0.1) et fait l'intermédiaire :
@@ -19,11 +19,16 @@ const entetes = o => ({'Access-Control-Allow-Origin':o || '*', 'Vary':'Origin', 
   'Access-Control-Allow-Headers':'*', 'Access-Control-Allow-Private-Network':'true', 'Access-Control-Expose-Headers':'Content-Length, Content-Type'});
 const cible = q => { try{ const u = new URL(q || ''); return /^https?:$/.test(u.protocol) ? u : null; }catch{ return null; } };
 const journal = (...a) => console.log(new Date().toLocaleTimeString('fr-FR'), ...a);
-const masque = u => String(u).replace(/(\/live\/|username=)[^/&]+/g, '$1•••').replace(/(\/live\/•••\/|password=)[^/&.]+/g, '$1•••');
+const masque = u => String(u).replace(/(\/(?:live|movie|series)\/|username=)[^/&]+/g, '$1•••').replace(/(\/(?:live|movie|series)\/•••\/|password=)[^/&.]+/g, '$1•••');   // v52 : films et séries aussi
+/* v52 : le relais ne sert que les serveurs vus depuis le dock. Une demande avec une Origine autorisée (fetch/hls.js des pages du dock)
+   fait connaître son serveur ; une demande sans Origine (<video src>, lecteur) n'est relayée que vers un serveur déjà connu,
+   ou vers TV_SERVEUR s'il est réglé. Les serveurs cités dans une liste HLS relayée ou atteints par redirection sont ajoutés. */
+const CONNUS = new Set((process.env.TV_SERVEUR || '').split(',').map(x => { try{ return new URL(x.trim()).host; }catch{ return ''; } }).filter(Boolean));
+const connu = u => CONNUS.has(u.host);
 
 /* liste HLS : chaque adresse (lignes, URI="…") devient /flux?u=<adresse absolue> */
 function reecrire(texte, base){
-  const abs = x => { try{ return new URL(x.trim(), base).href; }catch{ return x; } };
+  const abs = x => { try{ const v = new URL(x.trim(), base); CONNUS.add(v.host); return v.href; }catch{ return x; } };
   const via = x => `/flux?u=${encodeURIComponent(abs(x))}`;
   return texte.split(/\r?\n/).map(l => {
     if (!l.trim()) return l;
@@ -42,6 +47,8 @@ const serveur = http.createServer(async (req, res) => {
   if (url.pathname !== '/api' && url.pathname !== '/flux'){ res.writeHead(404, H); res.end(); return; }
   const u = cible(url.searchParams.get('u'));
   if (!u){ res.writeHead(400, H); res.end('Adresse invalide'); return; }
+  if (o) CONNUS.add(u.host);
+  else if (!connu(u)){ journal('refusé (serveur pas encore vu depuis le dock : recharge la page TV)', u.host); res.writeHead(403, H); res.end('Serveur inconnu du relais'); return; }
   const stop = new AbortController(); req.on('close', () => stop.abort());
   try{
     /* v48 : serveur lent ou coupure brève : 20 s au plus pour obtenir la réponse, jusqu'à 3 essais (0,6 s puis 1,5 s d'écart) avant d'abandonner */
@@ -52,6 +59,7 @@ const serveur = http.createServer(async (req, res) => {
         break; }
       catch(e){ if (stop.signal.aborted || ++essai > 2) throw e; await new Promise(ok => setTimeout(ok, essai === 1 ? 600 : 1500)); }
     }
+    try{ CONNUS.add(new URL(r.url).host); }catch{}                  // redirection suivie : serveur des flux
     const type = r.headers.get('content-type') || '';
     if (url.pathname === '/flux' && (/mpegurl/i.test(type) || /\.m3u8(\?|$)/i.test(r.url))){
       const t = reecrire(await r.text(), r.url);

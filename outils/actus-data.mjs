@@ -1,4 +1,4 @@
-// mon-ecran-version: 5a0b9bd0
+// mon-ecran-version: 67a7ae79
 // Prépare les actus de la page Actus (lancé par la tâche GitHub « Actus », toutes les 30 min).
 // Lit la liste des onglets et des flux directement dans actus.html, télécharge chaque flux RSS/Atom
 // sans passer par un service tiers, regroupe les mêmes infos venant de plusieurs sites et écrit :
@@ -189,6 +189,9 @@ if (UNE && UNE.url){
   if (it) choix = {url:UNE.url, source:UNE.name, color:UNE.color || '--t-slate', title:it.title, date:it.date || NOW, img:it.img || '', link:it.link};
 }
 fs.writeFileSync(`${OUT}/une.json`, JSON.stringify({v:1, updated:UPD, top:top && {source:top.source, color:top.color, title:top.title, date:top.date, img:top.img || '', link:top.link}, choix}));
+// v52 : les 14 premières de « À la une » pour l'accueil sur ordinateur et le mode TV (≈ 3 Ko au lieu de tout actus-fr.json)
+fs.writeFileSync(`${OUT}/une-liste.json`, JSON.stringify({v:1, updated:UPD,
+  items:((visibles.une || {}).items || []).slice(0, 14).map((i, n) => ({title:i.title, link:i.link, source:i.source, color:i.color, date:i.date, img:i.img || '', ...(n === 0 && i.desc ? {desc:i.desc} : {})}))}));   // résumé : le premier seulement (affiché en grand)
 for (const id of autres) fs.writeFileSync(`${OUT}/onglet-${id}.json`, JSON.stringify({v:1, updated:UPD,
   items:((tabs[id] || {}).items || []).slice(0, 15).map(i => ({title:i.title, link:i.link, source:i.source, color:i.color, date:i.date}))}));
 const ko = Object.values(state).filter(s => !s.ok);

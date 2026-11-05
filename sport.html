@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="0cfaa2df">
+<meta name="mon-ecran-version" content="cd5116d2">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -669,7 +669,8 @@ const dayAt = n => { const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.get
 const ymd = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
 const KEYS = new Map();                                // jour local de chaque horaire, calculé une seule fois
 const localKey = t => { let k = KEYS.get(t); if (k === undefined){ k = ymd(new Date(t)); if (KEYS.size > 20000) KEYS.clear(); KEYS.set(t, k); } return k; };
-const hhmm = t => new Date(t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+const HHMM = new Intl.DateTimeFormat('fr-FR', {hour:'2-digit', minute:'2-digit'});      // v52 : formateur gardé (×50 plus rapide que toLocaleTimeString)
+const hhmm = t => HHMM.format(new Date(t));
 const MAXOFF = (7 - new Date().getDay()) % 7 + 7;   // dimanche de la semaine prochaine
 const PAST = 10;                                     // jours passés affichés (J-10)
 const OFFSETS = Array.from({length:MAXOFF + PAST + 1}, (_, i) => i - PAST);
@@ -826,6 +827,14 @@ function expand(m){
 }
 const PRE = {ok:false, tried:false, at:0, missing:false, idle:{}, files:{}};
 const PRE_MAX = 6 * 3600e3;                         // au-delà, on repasse en lecture directe sur ESPN
+/* v52 : un match encore « en cours » dans les données préparées (relevé il y a jusqu'à 2 h) mais commencé depuis plus que sa durée + 1 h
+   est terminé : on ne l'affiche plus « en direct » (ESPN, s'il répond, redonne ensuite le score final) */
+const DUREE_SPORT = {soccer:115, rugby:110, basketball:150, football:200, hockey:165, baseball:200};
+const finiSansNouvelles = m => {
+  if (m.state !== 'in') return m;
+  const L = LBY[m.league], d = m.dur || DUREE_SPORT[L && L.sport] || 180;
+  return Date.now() > m.t + (d + 60) * 60e3 ? {...m, state:'post'} : m;
+};
 async function loadPre(){
   PRE.tried = true;
   if (sample) return false;
@@ -844,7 +853,7 @@ async function loadPre(){
     LEAGUES.forEach(L => {
       if (PRE.idle[L.id]){ delete DATA[L.id]; return; }
       const lg = (j.leagues || {})[L.id] || {}, old = DATA[L.id];
-      const evs = (parLg[L.id] || []).map(expand);
+      const evs = (parLg[L.id] || []).map(expand).map(finiSansNouvelles);
       DATA[L.id] = {at:Date.now(), day:ymd(dayAt(0)), events:old && old.liveAt ? mergeLive(evs, old.events.filter(m => m.state !== 'pre')) : evs,
                     logo:lg.logo || '', logoDark:lg.logoDark || '', pre:true, liveAt:old && old.liveAt};
     });
@@ -946,7 +955,8 @@ let TV = null;
 /* Nettoyage des noms (une seule règle partout) : minuscules, sans accents, et les lettres que la décomposition
    ne simplifie pas (ß → ss, ø → o, æ → ae…) : « Groß » = « Gross », « Bodø/Glimt » = « Bodo/Glimt » */
 const LETTRES = {'ß':'ss', 'æ':'ae', 'œ':'oe', 'ø':'o', 'ł':'l', 'đ':'d', 'ð':'d', 'þ':'th', 'ı':'i', 'ħ':'h'};
-const plain = s => String(s || '').toLowerCase().replace(/[ßæœøłđðþıħ]/g, c => LETTRES[c]).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const PLAIN = new Map();                               // v52 : mêmes noms relus à chaque rendu → résultat gardé
+const plain = s => { s = String(s || ''); let r = PLAIN.get(s); if (r === undefined){ r = s.toLowerCase().replace(/[ßæœøłđðþıħ]/g, c => LETTRES[c]).normalize('NFD').replace(/[\u0300-\u036f]/g, ''); if (PLAIN.size > 20000) PLAIN.clear(); PLAIN.set(s, r); } return r; };
 const teamKey = s => plain(s).replace(/[^a-z0-9]+/g, ' ').trim();
 const minVal = s => { const a = String(s || '').match(/(\d+)(?:\D{0,3}\+\s*(\d+))?/); return a ? +a[1] + (a[2] ? +a[2] / 100 : 0) : 999; };
 const normTxt = s => ' ' + teamKey(s) + ' ';
@@ -956,7 +966,10 @@ const ALIAS = {cologne:'koln', munich:'munchen', nuremberg:'nurnberg', utd:'unit
   // noms français des clubs étrangers (programmes TV)
   hambourg:'hamburg', breme:'bremen', mayence:'mainz', augsbourg:'augsburg', fribourg:'freiburg', francfort:'frankfurt', dusseldorf:'duesseldorf',
   naples:'napoli', rome:'roma', turin:'torino', genes:'genoa', seville:'sevilla', majorque:'mallorca', saragosse:'zaragoza', lisbonne:'lisbon'};
-const tokens = t => !t ? [] : [...new Set([t.full, t.name, t.abbr].flatMap(x => normTxt(x).trim().split(' ')).map(w => ALIAS[w] || w).filter(w => (w.length >= 3 || /^\d{2,}$/.test(w)) && !STOP.has(w)))];
+const TOKENS = new Map();                              // v52 : mots d'une équipe gardés (listes lues seulement, jamais modifiées)
+const tokens = t => { if (!t) return []; const k = `${t.full}\u0001${t.name}\u0001${t.abbr}`; let r = TOKENS.get(k);
+  if (!r){ r = [...new Set([t.full, t.name, t.abbr].flatMap(x => normTxt(x).trim().split(' ')).map(w => ALIAS[w] || w).filter(w => (w.length >= 3 || /^\d{2,}$/.test(w)) && !STOP.has(w)))]; if (TOKENS.size > 20000) TOKENS.clear(); TOKENS.set(k, r); }
+  return r; };
 async function loadTV(){
   if (sample) return;
   try{
@@ -1002,7 +1015,7 @@ function tvFor(m){
     return {names:list.slice(0, 2).map(h => h.multi ? `${h.c} (multiplex)` : h.c)};
   }
   const keys = TVKEY[m.league]; if (!keys) return null;
-  const others = Object.values(DATA).flatMap(d => d.events || []).filter(x => x.id !== m.id && x.home && x.away && Math.abs(x.t - m.t) < 3 * 3600e3);   // sans les séances F1 / MotoGP (pas d'équipes)
+  const others = tousMatchs().filter(x => x.id !== m.id && x.home && x.away && Math.abs(x.t - m.t) < 3 * 3600e3);   // sans les séances F1 / MotoGP (pas d'équipes)
   const otherPair = p => others.some(x => { const h = tokens(x.home), a = tokens(x.away); return h.length && a.length && has(p.txt, h) && has(p.txt, a); });
   const cand = [...new Set(TV.filter(p => p.s >= m.t - 40 * 60e3 && p.s <= m.t + 15 * 60e3 && p.e >= m.t + 60 * 60e3 && has(p.txt, keys) && !otherPair(p)).map(p => p.c))];
   return cand.length && cand.length <= 6 ? {names:[shortList(cand.sort((a, b) => a.localeCompare(b, 'fr', {numeric:true})))], probable:true} : null;
@@ -1083,19 +1096,24 @@ function visible(m){
   if (group === 'live') return m.state === 'in';
   return group === 'all' || L.group === group;
 }
+/* v52 : tous les matchs mis à plat une seule fois par rendu (gardés jusqu'à la fin de la tâche en cours) */
+let TOUS = null;
+const tousMatchs = () => TOUS || (queueMicrotask(() => { TOUS = null; }), TOUS = Object.values(DATA).flatMap(d => d.events || []));
 function eventsOfDay(off){
   const key = ymd(dayAt(off));
-  return Object.values(DATA).flatMap(d => d.events).filter(m => localKey(m.t) === key && visible(m) && !ghost(m));
+  return tousMatchs().filter(m => localKey(m.t) === key && visible(m) && !ghost(m));
 }
 
+const JOUR_C = new Intl.DateTimeFormat('fr-FR', {weekday:'short'}), JOUR_L = new Intl.DateTimeFormat('fr-FR', {weekday:'long', day:'numeric', month:'long'});   // v52 : formateurs gardés
 function renderDays(){
+  TOUS = null;                                         // v52 : données relues à chaque rendu
   $('#days').innerHTML = OFFSETS.map(o => {
     const d = dayAt(o), evs = eventsOfDay(o);
-    const dw = o === 0 ? "Auj." : o === -1 ? 'Hier' : o === 1 ? 'Dem.' : d.toLocaleDateString('fr-FR',{weekday:'short'}).replace('.','');
+    const dw = o === 0 ? "Auj." : o === -1 ? 'Hier' : o === 1 ? 'Dem.' : JOUR_C.format(d).replace('.','');
     const live = evs.some(m => m.state === 'in');
     const wk = o > -PAST && d.getDay() === 1;
     return `<button type="button" class="day${o === 0 ? ' today' : ''}${live ? ' has-live' : ''}${wk ? ' wk' : ''}" role="tab" data-o="${o}" aria-selected="${o === selDay}"
-      aria-label="${d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}, ${evs.length} matchs">
+      aria-label="${JOUR_L.format(d)}, ${evs.length} matchs">
       <span class="dw">${dw}</span><span class="dn">${d.getDate()}</span><span class="dc">${evs.length || ''}</span></button>`;
   }).join('');
   if (shownDay !== selDay){
@@ -1229,7 +1247,8 @@ function majOuverts(){
     const m = par.get(li.dataset.id); const mo = li.querySelector('.more');
     if (m && mo && COTES_LG.includes(m.league)){ mo.outerHTML = moreHTML(m); const st = li.querySelector('.row .st'); if (st) st.outerHTML = statusHTML(m); } });
 }
-const cote = v => v == null ? '—' : Number(v).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2});
+const COTE_F = new Intl.NumberFormat('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2});   // v52 : formateur gardé
+const cote = v => v == null ? '—' : COTE_F.format(Number(v));
 function cotesHTML(m){
   if (!COTES_LG.includes(m.league) || m.state === 'post') return '';
   const L0 = cotesLu();
@@ -1413,6 +1432,7 @@ function raceCalHTML(L, c){
 }
 
 function render(){
+  TOUS = null;
   refreshRaceStates();
   renderDays();
   const evs = eventsOfDay(selDay).sort((a,b) => a.t - b.t);

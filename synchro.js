@@ -1,4 +1,4 @@
-// mon-ecran-version: 2ad8298b
+// mon-ecran-version: 95cdb90e
 /* Mon Écran — synchronisation chiffrée entre tes appareils (iPhone, PC…).
    - Un fichier chiffré (synchro/mon-ecran.json, branche « synchro » de ton dépôt GitHub) contient tes placements,
      versements, réglages d'investissement et le Coffre. Sans la phrase secrète, c'est un bloc illisible.
@@ -58,10 +58,16 @@ async function ecrireDistant(jeton, fichier, sha){
   const body = {message:`Synchro (${appareil()})`, content:utf8b64(JSON.stringify(fichier)), branch:BRANCHE, ...(sha ? {sha} : {})};
   let r = await gh(jeton, `/contents/${CHEMIN}`, {method:'PUT', body:JSON.stringify(body)});
   if (r.status === 404 || r.status === 422){                         // branche « synchro » pas encore créée
-    const m = await gh(jeton, '/git/ref/heads/main'); if (!m.ok) throw new Error('droits');
-    const base = (await m.json()).object.sha;
-    const c = await gh(jeton, '/git/refs', {method:'POST', body:JSON.stringify({ref:'refs/heads/' + BRANCHE, sha:base})});
-    if (!c.ok && c.status !== 422) throw new Error('droits');
+    const ex = await gh(jeton, `/git/ref/heads/${BRANCHE}`);
+    if (ex.status === 404){
+      // v52 : branche créée « orpheline », avec ce seul fichier (avant : copie de main, avec toutes les pages et les tâches)
+      const post = async (chemin, corps) => { const x = await gh(jeton, chemin, {method:'POST', body:JSON.stringify(corps)}); if (!x.ok) throw new Error(x.status === 403 || x.status === 404 ? 'droits' : 'reseau'); return x.json(); };
+      const blob = await post('/git/blobs', {content:body.content, encoding:'base64'});
+      const arbre = await post('/git/trees', {tree:[{path:CHEMIN, mode:'100644', type:'blob', sha:blob.sha}]});
+      const commit = await post('/git/commits', {message:body.message, tree:arbre.sha, parents:[]});
+      await post('/git/refs', {ref:'refs/heads/' + BRANCHE, sha:commit.sha});
+      return blob.sha;
+    }
     r = await gh(jeton, `/contents/${CHEMIN}`, {method:'PUT', body:JSON.stringify(body)});
   }
   if (r.status === 409) throw new Error('conflit');
