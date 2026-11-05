@@ -1,0 +1,40 @@
+# mon-ecran-version: a397db3f
+name: Cotes (mail)
+
+# Rapport des cotes du matin envoyé par mail (v48) : matchs du jour × sites de paris, écarts surlignés.
+# Réglage une fois : Settings → Secrets and variables → Actions → New repository secret
+#   MAIL_UTILISATEUR   adresse de la boîte Gmail dédiée
+#   MAIL_MDP_APPLI     son mot de passe d'application (Google › Sécurité › Validation en deux étapes › Mots de passe des applications)
+#   MAIL_DESTINATAIRE  facultatif (sinon le mail part vers MAIL_UTILISATEUR)
+# Passe chaque jour à 7 h 40 UTC (8 h 40 en hiver, 9 h 40 en été), après le relevé du matin de la tâche « Cotes ».
+on:
+  schedule:
+    - cron: '40 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cotes-mail
+  cancel-in-progress: false
+
+jobs:
+  mail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Dernières données
+        run: bash outils/reprendre-donnees.sh
+      - name: Module d'envoi
+        run: npm install --no-save --no-audit --no-fund nodemailer@6.9.16 >/dev/null
+      - name: Envoyer le rapport
+        env:
+          MAIL_UTILISATEUR: ${{ secrets.MAIL_UTILISATEUR }}
+          MAIL_MDP_APPLI: ${{ secrets.MAIL_MDP_APPLI }}
+          MAIL_DESTINATAIRE: ${{ secrets.MAIL_DESTINATAIRE }}
+        run: node outils/cotes-mail.mjs
