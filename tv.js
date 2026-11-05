@@ -1,11 +1,11 @@
-// mon-ecran-version: 0d9288eb
+// mon-ecran-version: b055f06e
 /* Mon Écran — TV (v44, films et séries v45) : abonnement Xtream.
    - Accès (serveur, identifiant, mot de passe) : fiche « Accès TV » du Coffre, chiffrée avec ton code et partagée chiffrée par la
      synchronisation ; jamais dans le dépôt, le classeur ou la configuration (publics). Lus une fois par session (code demandé si le
      Coffre n'est pas ouvert), gardés en mémoire de session (« tv:acces ») le temps de l'onglet / de l'appli.
    - Les serveurs Xtream sont en http : une page en https ne peut ni les interroger ni lire leurs flux. Sur le PC, le relais
      (outils/tv-relais.mjs, lancé sur la machine, http://127.0.0.1:8765) fait l'intermédiaire : liste des chaînes, programme, lecture.
-     Sans relais (ou sur iPhone) : chaînes favorites, ouverture dans Infuse (iPhone) ou VLC (fichier .m3u d'une chaîne).
+     Sans relais (ou sur iPhone) : chaînes favorites, ouverture dans VLC (appli VLC sur iPhone, fichier .m3u ailleurs ; Infuse devenu payant, retiré en v48).
    - Catalogue (v45) : donnees/tv/catalogue.json, fait chaque jour par la tâche « TV » (outils/tv-catalogue.mjs), compressé puis chiffré
      (AES-GCM) avec la clé de la fiche Accès TV (« cle », aussi en secret GitHub TV_CLE) ; il ne contient aucun accès. Directs, films et
      séries sans le PC ; l'appareil reconstruit chaque adresse de flux avec les accès du Coffre.
@@ -276,10 +276,10 @@ function arreter(video){
   if (video){ video.onerror = null; video.pause(); [...video.querySelectorAll('track[data-local]')].forEach(x => { URL.revokeObjectURL(x.src); x.remove(); }); video.removeAttribute('src'); video.load(); }
   if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
 }
-/* lecteur externe : Infuse (iPhone / iPad), sinon un petit fichier .m3u (VLC ou le lecteur associé) */
+/* lecteur externe : VLC sur iPhone / iPad (adresse vlc-x-callback, v48 : remplace Infuse devenu payant), sinon un petit fichier .m3u (VLC ou le lecteur associé) */
 function externe(a, it){
   const url = urlDe(a, it);
-  if (IOS){ location.href = 'infuse://x-callback-url/play?url=' + enc(url); return; }
+  if (IOS){ location.href = 'vlc-x-callback://x-callback-url/stream?url=' + enc(url); return; }
   const f = new Blob([`#EXTM3U\n#EXTINF:-1,${it.nom}\n${url}\n`], {type:'audio/x-mpegurl'});
   const l = document.createElement('a'); l.href = URL.createObjectURL(f); l.download = (it.nom || 'video').replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.m3u';
   document.body.appendChild(l); l.click(); setTimeout(() => { URL.revokeObjectURL(l.href); l.remove(); }, 2000);
@@ -368,10 +368,10 @@ function monter(Z){
     if (it.k === 'd'){
       const e = (info || [])[0], n = (info || [])[1], t = Date.now(), pct = e && e.fin > e.debut ? Math.max(0, Math.min(100, (t - e.debut) / (e.fin - e.debut) * 100)) : 0;
       now.innerHTML = `<b>${esc(it.nom)}${e ? ' · ' + esc(e.titre) : ''}</b><small>${S.err ? esc(S.err) : e ? `${hm(e.debut)}–${hm(e.fin)}${n ? ` · ensuite ${hm(n.debut)} ${esc(n.titre)}` : ''}` : 'programme non fourni'}</small>${e ? `<span class="tv-bar"><i style="width:${pct.toFixed(0)}%"></i></span>` : ''}`;
-      act.innerHTML = `<button type="button" class="tv-btn" data-tv="fav" aria-pressed="${estFavori(it.id)}">${estFavori(it.id) ? '★ Favori' : '☆ Favori'}</button>${pip()}<button type="button" class="tv-btn" data-tv="ext">${IOS ? 'Infuse' : 'VLC'}</button>`;
+      act.innerHTML = `<button type="button" class="tv-btn" data-tv="fav" aria-pressed="${estFavori(it.id)}">${estFavori(it.id) ? '★ Favori' : '☆ Favori'}</button>${pip()}<button type="button" class="tv-btn" data-tv="ext">VLC</button>`;
     } else {
       now.innerHTML = `<b>${esc(it.titreLong || it.nom)}</b><small>${S.err ? esc(S.err) : `${it.k === 'f' ? 'Film' : 'Épisode'} · ${esc((it.ext || '').toUpperCase())}${/^(mkv|avi)$/i.test(it.ext || '') ? ' · si l\'image ne vient pas : VLC' : ''}`}</small>`;
-      act.innerHTML = `${pip()}<button type="button" class="tv-btn" data-tv="ext">${IOS ? 'Infuse' : 'VLC'}</button>`;
+      act.innerHTML = `${pip()}<button type="button" class="tv-btn" data-tv="ext">VLC</button>`;
     }
   };
   /* commandes (v48) : retour / avance, retour au direct, sous-titres (pistes du flux ou fichier .srt/.vtt), pistes audio */
@@ -402,7 +402,7 @@ function monter(Z){
       <li>Double-clique <code>tv-relais.cmd</code> (laisse la fenêtre ouverte). Pour qu'il démarre avec Windows : place un raccourci de ce fichier dans <code>shell:startup</code> (Win + R).</li>
       <li>Reviens ici et touche <b>Réessayer</b>. Si Chrome demande l'accès aux appareils du réseau local, accepte.</li></ol>
     <div class="tv-row-b"><button type="button" class="tv-btn main" data-tv="relais">Réessayer</button></div>
-    <p class="tv-msg">En attendant, les chaînes, films et épisodes s'ouvrent dans ${IOS ? 'Infuse' : 'VLC'}.</p>`;
+    <p class="tv-msg">En attendant, les chaînes, films et épisodes s'ouvrent dans VLC.</p>`;
   /* ---- données de l'onglet ---- */
   const etoileF = it => `<button type="button" class="tv-st" data-favf="${esc(it.k)}:${esc(it.id)}" aria-pressed="${estFavF(it)}" aria-label="${estFavF(it) ? 'Retirer des favoris' : 'Ajouter aux favoris'}">${estFavF(it) ? '★' : '☆'}</button>`;
   const source = o => o === 'd' ? (CATA ? CATA.d : S.relais && LISTE ? LISTE : null) : o === 'f' ? (CATA && CATA.f) : o === 's' ? (CATA && CATA.s) : null;
@@ -461,7 +461,7 @@ function monter(Z){
     const po = `<span class="tv-po"${it.icone ? ` style="background-image:url(&quot;${esc(https(it.icone))}&quot;)"` : ''}></span>`;
     if (v.t === 'f'){
       EL.innerHTML = retour + `<div class="tv-fi">${po}<div><h3>${esc(it.nom)}</h3><p>${[it.an || '', it.note ? '★ ' + it.note + '/10' : '', (it.ext || '').toUpperCase()].filter(Boolean).join(' · ')}</p>
-        <div class="tv-row-b" style="margin-top:10px"><button type="button" class="tv-btn main" data-tv="lire">${lecteurDispo() ? 'Regarder' : IOS ? 'Regarder dans Infuse' : 'Ouvrir dans VLC'}</button>
+        <div class="tv-row-b" style="margin-top:10px"><button type="button" class="tv-btn main" data-tv="lire">${lecteurDispo() ? 'Regarder' : 'Ouvrir dans VLC'}</button>
         <button type="button" class="tv-btn" data-liste="f:${esc(it.id)}" aria-pressed="${dansListe(it)}">${dansListe(it) ? '✓ À regarder' : '＋ À regarder'}</button>
         <button type="button" class="tv-btn" data-favf="f:${esc(it.id)}" aria-pressed="${estFavF(it)}">${estFavF(it) ? '★ Favori' : '☆ Favori'}</button>
         ${posDe(it) ? `<span class="tv-cs" style="align-self:center">reprise à ${mmss(posDe(it)[0])}</span>` : ''}

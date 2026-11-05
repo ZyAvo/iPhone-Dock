@@ -1,4 +1,4 @@
-// mon-ecran-version: 88d60d6b
+// mon-ecran-version: bccf0ddb
 // Prépare les données de la page Sport (lancé par la tâche GitHub « Programme TV sport »).
 // Lit la liste des compétitions et les fonctions de lecture directement dans sport.html,
 // interroge ESPN côté serveur, numérote les journées et écrit :
@@ -215,10 +215,18 @@ async function rugbyDetails(L, evs, prev){
   const old = new Map(((prev && prev.events) || []).filter(m => m.full).map(m => [m.id, m.full]));
   const todo = [];
   // on réutilise le détail déjà lu (s'il indique bien le camp de chaque action), sinon on le relit
-  evs.forEach(m => { const f = old.get(m.id); if (f && m.state === 'post' && f.some(d => d.side)) m.full = f; else if (m.state !== 'pre' && m.t > NOW - 120 * DAY) todo.push(m); });
+  // v48 : un détail lu pendant le match (mi-temps…) restait figé une fois le match fini ; il n'est gardé que si ses points collent au score
+  const PTS = {try:5, conv:2, pen:3, drop:3};
+  const pts = (l, m, sd) => (l || []).filter(d => (d.side || (String(d.team) === String(m[sd].id) ? sd : '')) === sd).reduce((a, d) => a + (PTS[d.kind] || 0), 0);
+  const ecart = (l, m) => m.home.score === '' || m.away.score === '' ? 0 : Math.abs(pts(l, m, 'home') - (+m.home.score || 0)) + Math.abs(pts(l, m, 'away') - (+m.away.score || 0));
+  evs.forEach(m => { const f = old.get(m.id);
+    if (f && m.state === 'post' && f.some(d => d.side) && (ecart(f, m) === 0 || m.t < NOW - 3 * DAY)) m.full = f;
+    else if (m.state !== 'pre' && m.t > NOW - 120 * DAY) todo.push(m); });
   await pool(todo.slice(0, 80).map(m => async () => {
     const j = await get(`${API}/${L.sport}/${L.id}/summary?event=${encodeURIComponent(m.id)}`, 2);
     if (j){ const {evs:list} = summaryEvents(j); if (list.length) m.full = list; }
+    // fiche moins complète que la liste du tableau des scores : on garde celle du tableau
+    if (m.full && m.details && m.details.length && ecart(m.details, m) < ecart(m.full, m)) m.full = m.details.map(d => ({...d, side:String(d.team) === String(m.home.id) ? 'home' : String(d.team) === String(m.away.id) ? 'away' : ''}));
   }), 6);
   return todo.length;
 }

@@ -1,4 +1,4 @@
-// mon-ecran-version: 6c65d79d
+// mon-ecran-version: 766d1e05
 /* Mon Écran — lecture des fiches de match ESPN (v48), commune à Sport et à l'accueil (détail d'un match).
    Sortis de sport.html sans changement : classify, summaryEvents (rugby et autres), soccerEvents (foot), shootoutTable, markShootout
    (fonctions globales, sport.html les appelle comme avant). Ajouts : Match.lire(j, sport) pour l'accueil, Match.minute(...) (rugby).
@@ -260,6 +260,16 @@ function minute(st, evs, debut){
   if (est > (per >= 2 ? 80 : 40)) return (per >= 2 ? "80'+" : "40'+");
   return est > 0 ? est + "'" : null;
 }
+/* rugby (v48) : points d'une liste d'actions pour un camp, et choix de la liste la plus complète (celle dont les points collent au score ;
+   à égalité, la plus longue). Un détail lu pendant le match (mi-temps…) reste sinon figé alors que le match est fini. */
+const PTS = {try:5, conv:2, pen:3, drop:3};
+const campDe = (d, m) => d.side || (d.team != null && m ? (String(d.team) === String(m.home.id) ? 'home' : String(d.team) === String(m.away.id) ? 'away' : '') : '');
+function points(evs, m, sd){ return (evs || []).filter(d => campDe(d, m) === sd).reduce((a, d) => a + (PTS[d.kind] || 0), 0); }
+function ecartScore(evs, m){ if (!m || m.home.score === '' || m.away.score === '') return 0; return Math.abs(points(evs, m, 'home') - (+m.home.score || 0)) + Math.abs(points(evs, m, 'away') - (+m.away.score || 0)); }
+function meilleur(m, ...listes){
+  const l = listes.filter(x => Array.isArray(x) && x.length); if (!l.length) return listes.find(Array.isArray) || [];
+  return l.map((x, i) => ({x, e:ecartScore(x, m), n:x.length, i})).sort((a, b) => a.e - b.e || b.n - a.n || a.i - b.i)[0].x;
+}
 Object.assign(window, {classify, summaryEvents, soccerEvents, shootoutTable, markShootout});
-window.Match = {lire, minute, minVal, teamKey, classify, summaryEvents, soccerEvents, markShootout};
+window.Match = {lire, minute, points, ecartScore, meilleur, minVal, teamKey, classify, summaryEvents, soccerEvents, markShootout};
 })();

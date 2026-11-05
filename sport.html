@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="2d723784">
+<meta name="mon-ecran-version" content="a144c445">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1177,7 +1177,7 @@ function moreHTML(m){
   const full = FULL[m.id];
   const kindOf = d => d.kind || (d.red ? 'red' : d.yellow ? 'yellow' : d.goal ? 'goal' : '');
   const okKind = d => KIND[d.kind] && (rugby ? d.kind !== 'penmiss' : ['goal', 'red', 'penmiss'].includes(d.kind));
-  let list = ((full && full.evs) || m.details).map(d => ({...d, kind:kindOf(d)})).filter(okKind);
+  let list = (rugby && window.Match ? Match.meilleur(m, full && full.evs, m.full, m.details) : ((full && full.evs) || m.details)).map(d => ({...d, kind:kindOf(d)})).filter(okKind);
   if (L.sport === 'soccer') list = markShootout(list.map(d => ({...d, side:sideOf(d)})).filter(d => d.side), m);
   const nReg = list.filter(d => !d.so).length, soAt = list.some(d => d.so) ? nReg : -1;
   const row = i => i + 2 + (soAt >= 0 && i >= soAt ? 1 : 0);
@@ -1305,12 +1305,13 @@ async function loadFull(m, li){
   const cur = FULL[m.id];
   if (sample){ FULL[m.id] = {at:Date.now(), evs:m.details}; if (li && li.isConnected) li.querySelector('.more').outerHTML = moreHTML(m); return; }
   if ((cur && Date.now() - cur.at < (m.state === 'in' ? 45e3 : 15 * 60e3))) return;
-  if (m.full && m.full.length && m.state === 'post'){ FULL[m.id] = {at:Date.now(), evs:m.full}; if (li && li.isConnected){ li.querySelector('.more').outerHTML = moreHTML(m); li.querySelectorAll('.team').forEach((el, i) => { el.outerHTML = teamHTML(m, i ? m.away : m.home); }); } return; }
+  /* v48 : détail gardé incomplet (lu pendant le match) → relu */
+  if (m.full && m.full.length && m.state === 'post' && !(window.Match && Match.ecartScore(m.full, m) > 0)){ FULL[m.id] = {at:Date.now(), evs:m.full}; if (li && li.isConnected){ li.querySelector('.more').outerHTML = moreHTML(m); li.querySelectorAll('.team').forEach((el, i) => { el.outerHTML = teamHTML(m, i ? m.away : m.home); }); } return; }
   const L = LBY[m.league];
   try{
     const j = await getJSON(`${API}/${L.sport}/${L.id}/summary?event=${encodeURIComponent(m.id)}`);
     const {evs, diag} = L.sport === 'soccer' ? soccerEvents(j, m) : summaryEvents(j);
-    FULL[m.id] = {at:Date.now(), evs:evs.length ? evs : m.details, diag:evs.length ? '' : diag, url:`${API}/${L.sport}/${L.id}/summary?event=${encodeURIComponent(m.id)}`};
+    FULL[m.id] = {at:Date.now(), evs:evs.length ? (L.sport === 'rugby' && window.Match ? Match.meilleur(m, evs, m.details) : evs) : m.details, diag:evs.length ? '' : diag, url:`${API}/${L.sport}/${L.id}/summary?event=${encodeURIComponent(m.id)}`};
   }catch{ FULL[m.id] = {at:Date.now(), evs:m.details, diag:'fiche ESPN inaccessible', url:`${API}/${L.sport}/${L.id}/summary?event=${encodeURIComponent(m.id)}`}; }
   if (li && li.isConnected){ li.querySelector('.more').outerHTML = moreHTML(m); li.querySelectorAll('.team').forEach((el, i) => { el.outerHTML = teamHTML(m, i ? m.away : m.home); }); }
 }
