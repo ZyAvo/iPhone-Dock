@@ -1,4 +1,4 @@
-# mon-ecran-version: 1bc1f5cb
+# mon-ecran-version: a0b896b9
 name: TV
 
 # Catalogue TV (directs, films, séries) de l'abonnement Xtream, une fois par jour, publié CHIFFRÉ sur la branche « donnees-tv »
@@ -39,7 +39,7 @@ jobs:
       - name: Retrait de l'ancien emplacement (branche donnees)
         run: bash outils/publier-donnees.sh --retirer donnees/tv
       - name: Mise en ligne
-        if: hashFiles('donnees/tv/catalogue.json') != ''
+        if: hashFiles('donnees/tv/directs.json') != ''      # v54 : catalogue en trois fichiers
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run publication.yml --ref "${GITHUB_REF_NAME}"
