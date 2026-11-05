@@ -1,5 +1,5 @@
 {
- "date": "2026-10-31T13:35:53+00:00",
+ "date": "2026-11-05T11:05:56+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -133,16 +133,7 @@
  "erreurs": [],
  "modifs": {
   "recues": 1,
-  "nouvelles": [
-   {
-    "uid": "mvwg1scg-594f4z0v4w",
-    "statut": "ok",
-    "message": "reporté dans l'onglet Accueil, ligne 21 : Oui = vide",
-    "id": "un:france-info",
-    "le": "2026-10-31T13:35:53+00:00",
-    "par": "ordinateur"
-   }
-  ]
+  "nouvelles": []
  },
  "resume": {
   "ok": 7,
