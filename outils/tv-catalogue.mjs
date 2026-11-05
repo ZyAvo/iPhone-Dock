@@ -1,4 +1,4 @@
-// mon-ecran-version: 8ed59428
+// mon-ecran-version: 4d656ed6
 // Mon Écran — catalogue TV quotidien (directs, films, séries) à partir de l'abonnement Xtream, publié CHIFFRÉ.
 // Accès : secrets XT_SERVEUR, XT_IDENTIFIANT, XT_MOTDEPASSE ; clé de chiffrement : secret TV_CLE (générée dans la fiche « Accès TV »
 // du Coffre, 32 octets en base64). Le dépôt est public : le catalogue est compressé puis chiffré (AES-256-GCM) avant publication
@@ -88,12 +88,20 @@ const Sx = {cats:catsS, s:SR.map(s => [s.id, s.nom, s.img, s.cat, s.note, s.an, 
 const exp = info.user_info.exp_date ? +info.user_info.exp_date * 1000 : null;
 const cata = {v:1, genere:new Date().toISOString(), fin:exp, d:D, f:F, s:Sx};
 
-/* ---------- 5. compression + chiffrement ---------- */
-const brut = zlib.gzipSync(Buffer.from(JSON.stringify(cata)), {level:9});
-const iv = wc.getRandomValues(new Uint8Array(12));
+/* ---------- 5. compression + chiffrement ----------
+   v54 : trois fichiers, lus à la demande par tv.js (Directs à l'ouverture, Films / Séries quand on ouvre leur onglet) :
+   directs.json {d}, films.json {f}, series.json {s} ; chacun {v:2, genere, fin, iv, ct} (gzip puis AES-256-GCM, même clé).
+   L'ancien catalogue.json (tout en un) n'est plus écrit : la publication remplace le dossier donnees/tv. */
 const k = await wc.subtle.importKey('raw', cle, 'AES-GCM', false, ['encrypt']);
-const ct = Buffer.from(await wc.subtle.encrypt({name:'AES-GCM', iv}, k, brut));
 fs.mkdirSync('donnees/tv', {recursive:true});
-fs.writeFileSync(SORTIE, JSON.stringify({v:1, genere:cata.genere, iv:Buffer.from(iv).toString('base64'), ct:ct.toString('base64')}));
-dire(`✅ ${directs.length.toLocaleString('fr-FR')} directs, ${F.f.length.toLocaleString('fr-FR')} films, ${SR.length.toLocaleString('fr-FR')} séries (${episodes.length.toLocaleString('fr-FR')} épisodes ; ${rattaches} rattachés à leur fiche, ${seuls} sans fiche) · ${(fs.statSync(SORTIE).size / 1048576).toFixed(1)} Mo chiffrés`);
+const tailles = [];
+for (const [nom, part] of [['directs', {d:D}], ['films', {f:F}], ['series', {s:Sx}]]){
+  const brut = zlib.gzipSync(Buffer.from(JSON.stringify({v:2, genere:cata.genere, fin:exp, ...part})), {level:9});
+  const iv = wc.getRandomValues(new Uint8Array(12));
+  const ct = Buffer.from(await wc.subtle.encrypt({name:'AES-GCM', iv}, k, brut));
+  const txt = JSON.stringify({v:2, genere:cata.genere, iv:Buffer.from(iv).toString('base64'), ct:ct.toString('base64')});
+  fs.writeFileSync(`donnees/tv/${nom}.json`, txt); tailles.push(`${nom} ${(txt.length / 1e6).toFixed(1)} Mo`);
+}
+if (fs.existsSync(SORTIE)) fs.rmSync(SORTIE);
+dire(`✅ ${directs.length.toLocaleString('fr-FR')} directs, ${F.f.length.toLocaleString('fr-FR')} films, ${SR.length.toLocaleString('fr-FR')} séries (${episodes.length.toLocaleString('fr-FR')} épisodes ; ${rattaches} rattachés à leur fiche, ${seuls} sans fiche) · chiffrés : ${tailles.join(', ')}`);
 fin(0);

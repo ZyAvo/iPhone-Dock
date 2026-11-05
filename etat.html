@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="c35e9ce2">
+<meta name="mon-ecran-version" content="0d1f5de0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -500,7 +500,9 @@ function tvPart(){
 async function chargerTVC(){
   if (TVC) return;
   try{
-    const r = await fetch('donnees/tv/catalogue.json', {cache:'no-cache', headers:{Range:'bytes=0-400'}});
+    // v54 : catalogue en trois fichiers ; directs.json est le plus petit (sinon l'ancien catalogue.json, lu en partie)
+    let r = await fetch('donnees/tv/directs.json', {cache:'no-cache', headers:{Range:'bytes=0-400'}});
+    if (r.status === 404) r = await fetch('donnees/tv/catalogue.json', {cache:'no-cache', headers:{Range:'bytes=0-400'}});
     if (r.status === 404){ TVC = {absent:true}; }
     else { const t = (await r.text()).slice(0, 400), g = t.match(/"genere"\s*:\s*"([^"]+)"/); TVC = g ? {genere:g[1]} : {absent:true}; }
   }catch{ TVC = {absent:true}; }

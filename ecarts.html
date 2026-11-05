@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="bc7bb8f7">
+<meta name="mon-ecran-version" content="85079838">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Écarts de cotes</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,6 +19,7 @@ img{max-width:100%}
 <script src="config/config.js"></script>
 <script src="noyau.js"></script>
 <script src="themes.js"></script>
+<script src="match.js"></script>
 <script>/* page désactivée dans Réglages › Pages et widgets : on s'arrête là (aucun chargement) */Noyau.accueil.garde('sport');</script>
 <link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="commun.css">
@@ -269,8 +270,6 @@ function jourHeure(t){
 }
 const heure = t => new Date(t).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
 const ago = t => { const m = Math.round((Date.now() - t) / 60000); if (m < 60) return `il y a ${Math.max(1, m)} min`; const h = Math.round(m / 60); return h < 48 ? `il y a ${h} h` : `il y a ${Math.round(h / 24)} j`; };
-const moyenne = l => l.reduce((a, b) => a + b, 0) / l.length;
-const mediane = l => { const s = [...l].sort((a, b) => a - b), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; };
 let F = {releve:'dernier', periode:'avenir', lg:'toutes', ...LS.get('ecarts:filtres', {})};
 let COTES = null, NOMS = {}, chargeA = 0;
 
@@ -295,11 +294,7 @@ function ecarts(liste){
       for (const k of ['h', 'd', 'a']){
         const vals = Object.entries(r.sites || {}).map(([s, o]) => [s, +(o || {})[k]]).filter(([, v]) => v > 1);
         if (vals.length < 3) continue;                      // il faut au moins 2 autres sites pour comparer
-        for (const [s, v] of vals){
-          const autres = vals.filter(([x]) => x !== s).map(([, x]) => x);
-          const ref = REF === 'mediane' ? mediane(autres) : moyenne(autres), e = v / ref - 1;
-          if (e >= SEUIL) out.push({m, r, k, s, v, ref, e, vals});
-        }
+        for (const {s, v, ref, e} of Match.ecarts(vals, REF === 'mediane')) if (e >= SEUIL) out.push({m, r, k, s, v, ref, e, vals});   // v54 : calcul commun (match.js)
       }
     }
   }

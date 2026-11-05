@@ -1,4 +1,4 @@
-// mon-ecran-version: 60c4221f
+// mon-ecran-version: f1ecc810
 // Rapport des cotes du matin par mail (v48) — lancé par la tâche GitHub « Cotes (mail) », chaque matin après le relevé de 8 h.
 // Tableau : en lignes les matchs du jour (1 / N / 2), en colonnes les sites de paris, la meilleure cote en gras,
 // les cotes qui s'écartent des autres d'au moins le seuil du classeur (onglet Cotes, « rapport ») surlignées avec l'écart.
@@ -10,6 +10,11 @@
 // Essai sans envoi : COTES_MAIL_APERCU=apercu.html node outils/cotes-mail.mjs  (écrit le mail dans ce fichier)
 import fs from 'node:fs';
 import {CFG} from './config-lire.mjs';
+import vm from 'node:vm';
+// v54 : calcul des écarts commun avec la page Écarts et l'accueil (match.js, exécuté tel quel ; window = l'objet global)
+globalThis.window = globalThis;
+vm.runInThisContext(fs.readFileSync(new URL('../match.js', import.meta.url), 'utf8'), {filename:'match.js'});
+const {Match} = globalThis;
 
 const FICHIER = process.env.COTES_FICHIER || 'donnees/cotes/cotes.json';
 const APERCU = process.env.COTES_MAIL_APERCU || '';
@@ -27,7 +32,6 @@ try{ j = JSON.parse(fs.readFileSync(FICHIER, 'utf8')); }catch{ console.log('Pas 
 const R = CFG('cotes.rapport', {seuil:0.05, reference:'moyenne'}) || {}, SEUIL = +R.seuil || 0.05, MED = R.reference === 'mediane';
 const SITES = CFG('cotes.sites', ['winamax_fr', 'betclic_fr', 'unibet_fr', 'pmu_fr', 'netbet_fr']);
 const moy = l => l.reduce((a, b) => a + b, 0) / l.length;
-const mdn = l => { const x = [...l].sort((a, b) => a - b), n = x.length; return n % 2 ? x[(n - 1) / 2] : (x[n / 2 - 1] + x[n / 2]) / 2; };
 
 /* matchs du jour (heure de Paris) pas encore commencés depuis plus de 2 h, avec leur dernier relevé */
 const maintenant = process.env.COTES_JOUR ? Date.parse(process.env.COTES_JOUR + 'T07:40:00Z') : Date.now(), aujourd = jourParis(maintenant);   // COTES_JOUR : essai sur un autre jour
@@ -44,10 +48,9 @@ const lignes = matchs.map(m => {
   const issues = [['h', '1', m.eq[0]], ['d', 'N', 'Nul'], ['a', '2', m.eq[1]]].map(([k, code, nom]) => {
     const vals = sites.map(s => [s, +((m.r.sites[s] || {})[k])]).filter(([, v]) => v > 1);
     const best = vals.length ? Math.max(...vals.map(([, v]) => v)) : 0;
-    const cell = {};
+    const cell = {}, E = new Map(Match.ecarts(vals, MED).map(x => [x.s, x.e]));
     for (const [s, v] of vals){
-      const au = vals.filter(([x]) => x !== s).map(([, x]) => x);
-      const e = au.length >= 2 ? v / (MED ? mdn(au) : moy(au)) - 1 : 0;
+      const e = E.get(s) || 0;
       cell[s] = {v, best:v === best && vals.length > 1, e};
       if (e >= SEUIL) ecarts.push({m, nom, s, v, e});
     }

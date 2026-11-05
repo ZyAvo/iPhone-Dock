@@ -1,4 +1,4 @@
-// mon-ecran-version: 8d0c1c11
+// mon-ecran-version: 7fbfaa6d
 /* Mon Écran — noyau commun à toutes les pages, et base des futures applis dédiées (iPhone, Android, PC).
    Rien ici ne dépend d'une astuce de Safari : ce qui est propre à « l'iPhone en mode web » est rangé dans Noyau.iphoneWeb,
    et une appli dédiée pourra fournir window.MonEcranNatif (ouvrir un lien, garder la clé…) que le noyau utilisera en priorité.
@@ -32,11 +32,13 @@ function config(chemin, defaut){
 }
 
 /* ---------- Mémoire de l'appareil ---------- */
+// v54 : une appli dédiée peut fournir sa propre mémoire durable (MonEcranNatif.stockage : getItem / setItem / removeItem, synchrones)
+const zoneDe = zone => (zone === 'localStorage' && natif() && natif().stockage) || window[zone];
 const memoire = zone => ({
-  lire(k, d){ try{ const v = JSON.parse(window[zone].getItem(k)); return v ?? d; }catch{ return d; } },
-  ecrire(k, v){ try{ v == null ? window[zone].removeItem(k) : window[zone].setItem(k, JSON.stringify(v)); return true; }catch{ return false; } },
-  texte(k, d = ''){ try{ const v = window[zone].getItem(k); return v ?? d; }catch{ return d; } },       // valeur gardée telle quelle (pas en JSON)
-  effacer(k){ try{ window[zone].removeItem(k); }catch{} },
+  lire(k, d){ try{ const v = JSON.parse(zoneDe(zone).getItem(k)); return v ?? d; }catch{ return d; } },
+  ecrire(k, v){ try{ v == null ? zoneDe(zone).removeItem(k) : zoneDe(zone).setItem(k, JSON.stringify(v)); return true; }catch{ return false; } },
+  texte(k, d = ''){ try{ const v = zoneDe(zone).getItem(k); return v ?? d; }catch{ return d; } },       // valeur gardée telle quelle (pas en JSON)
+  effacer(k){ try{ zoneDe(zone).removeItem(k); }catch{} },
 });
 const stockage = {...memoire('localStorage'), session:memoire('sessionStorage'),
   /* prévient quand une autre page (ou un autre onglet) change cette clé */

@@ -1,4 +1,4 @@
-// mon-ecran-version: a2e71420
+// mon-ecran-version: be9c4472
 /* Mon Écran — TV (v44, films et séries v45) : abonnement Xtream.
    - Accès (serveur, identifiant, mot de passe) : fiche « Accès TV » du Coffre, chiffrée avec ton code et partagée chiffrée par la
      synchronisation ; jamais dans le dépôt, le classeur ou la configuration (publics). Lus une fois par session (code demandé si le
@@ -59,13 +59,17 @@ const oublier = () => SSs('tv:acces', null);
 /* ---------- relais (PC) ---------- */
 let relaisEtat = null;
 async function relaisOK(force){
+  if (NATIF_TV() && NATIF_TV().pret) return !!(await NATIF_TV().pret());     // v54 : appli dédiée
   if (relaisEtat !== null && !force) return relaisEtat;
   try{ const c = new AbortController(), t = setTimeout(() => c.abort(), 1500);
     const r = await fetch(RELAIS() + '/ping', {signal:c.signal, cache:'no-store'}); clearTimeout(t);
     relaisEtat = r.ok && !!(await r.json()).ok; }catch{ relaisEtat = false; }
   return relaisEtat;
 }
-const viaRelais = (chemin, url) => `${RELAIS()}/${chemin}?u=${enc(url)}`;
+/* v54 : dans une appli dédiée, MonEcranNatif.tv remplace le relais du PC (adresse(chemin, url) : adresse locale de l'appli
+   pour 'api' ou 'flux' ; pret() : vrai si elle peut lire les flux http). Sur le web : relais comme avant. */
+const NATIF_TV = () => (window.MonEcranNatif && window.MonEcranNatif.tv) || null;
+const viaRelais = (chemin, url) => NATIF_TV() && NATIF_TV().adresse ? NATIF_TV().adresse(chemin, url) : `${RELAIS()}/${chemin}?u=${enc(url)}`;
 const urlApi = (a, action, extra = '') => `${a.serveur}/player_api.php?username=${enc(a.u)}&password=${enc(a.p)}${action ? '&action=' + action : ''}${extra}`;
 async function api(a, action, extra){
   const r = await fetch(viaRelais('api', urlApi(a, action, extra)), {cache:'no-store'});
@@ -87,18 +91,38 @@ async function catalogue(a, force){
   CATA_ERR = '';
   if (!a || !a.cle){ CATA_ERR = 'cle'; return null; }
   try{
-    const r = await fetch('donnees/tv/catalogue.json', {cache:'no-cache'}); if (!r.ok){ CATA_ERR = 'absent'; return null; }
-    const j = await r.json();
-    const k = await crypto.subtle.importKey('raw', unb64(a.cle), 'AES-GCM', false, ['decrypt']);
-    let gz; try{ gz = await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(j.iv)}, k, unb64(j.ct)); }catch{ CATA_ERR = 'mauvaise-cle'; return null; }
-    const c = JSON.parse(await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
-    const cats = l => (l || []).map(([id, nom]) => ({id:String(id), nom}));
-    CATA = {genere:c.genere, fin:c.fin,
-      d:{cats:cats(c.d.cats), l:(c.d.ch || []).map(([id, nom, icone, cat, epg]) => ({k:'d', id, nom, icone, cat:String(cat || ''), epg}))},
-      f:{cats:cats(c.f.cats), l:(c.f.f || []).map(([id, nom, icone, cat, ext, note, an, tmdb, ajout]) => ({k:'f', id, nom, icone, cat:String(cat || ''), ext, note, an, tmdb, ajout}))},
-      s:{cats:cats(c.s.cats), l:(c.s.s || []).map(([id, nom, icone, cat, note, an, genre, eps]) => ({k:'s', id, nom, icone, cat:String(cat || ''), note, an, genre, eps:eps || []}))}};
+    // v54 : catalogue en trois fichiers (directs.json à l'ouverture ; films.json et series.json à la demande, section()) ;
+    // sans eux (tâche TV pas encore repassée), l'ancien catalogue.json tout en un
+    let r = await fetch('donnees/tv/directs.json', {cache:'no-cache'}), parts = r.ok;
+    if (!parts) r = await fetch('donnees/tv/catalogue.json', {cache:'no-cache'});
+    if (!r.ok){ CATA_ERR = 'absent'; return null; }
+    const c = await dechiffrerPart(a, await r.json()); if (!c) return null;
+    CATA = {genere:c.genere, fin:c.fin, parts, d:partD(c), f:parts ? null : partF(c), s:parts ? null : partS(c)};
     return CATA;
   }catch{ CATA_ERR = 'lecture'; return null; }
+}
+const catsDe = l => (l || []).map(([id, nom]) => ({id:String(id), nom}));
+const partD = c => ({cats:catsDe(c.d.cats), l:(c.d.ch || []).map(([id, nom, icone, cat, epg]) => ({k:'d', id, nom, icone, cat:String(cat || ''), epg}))});
+const partF = c => ({cats:catsDe(c.f.cats), l:(c.f.f || []).map(([id, nom, icone, cat, ext, note, an, tmdb, ajout]) => ({k:'f', id, nom, icone, cat:String(cat || ''), ext, note, an, tmdb, ajout}))});
+const partS = c => ({cats:catsDe(c.s.cats), l:(c.s.s || []).map(([id, nom, icone, cat, note, an, genre, eps]) => ({k:'s', id, nom, icone, cat:String(cat || ''), note, an, genre, eps:eps || []}))});
+async function dechiffrerPart(a, j){
+  const k = await crypto.subtle.importKey('raw', unb64(a.cle), 'AES-GCM', false, ['decrypt']);
+  let gz; try{ gz = await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(j.iv)}, k, unb64(j.ct)); }catch{ CATA_ERR = 'mauvaise-cle'; return null; }
+  return JSON.parse(await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+}
+/* v54 : Films ('f') ou Séries ('s') chargés au premier besoin (une seule fois ; en cas d'échec, liste vide et message) */
+const SECTIONS = {};
+function section(a, o){
+  if (!CATA || !CATA.parts || CATA[o]) return Promise.resolve(CATA && CATA[o]);
+  return SECTIONS[o] || (SECTIONS[o] = (async () => {
+    try{
+      const r = await fetch(`donnees/tv/${o === 'f' ? 'films' : 'series'}.json`, {cache:'no-cache'});
+      const c = r.ok ? await dechiffrerPart(a, await r.json()) : null;
+      if (!r.ok) CATA_ERR = 'absent';
+      CATA[o] = c ? (o === 'f' ? partF(c) : partS(c)) : {cats:[], l:[], erreur:true};
+    }catch{ CATA_ERR = 'lecture'; CATA[o] = {cats:[], l:[], erreur:true}; }
+    delete SECTIONS[o]; return CATA[o];
+  })());
 }
 
 /* ---------- directs par le relais (sans catalogue) ---------- */
@@ -167,7 +191,8 @@ function chargerHls(){
    chien de garde (image figée 10 s pendant la lecture → rechargement au point de direct, ou à la même position pour un film).
    surEtat(k) : 'reco' (reconnexion en cours), 'ok' (la lecture repart), 'flux' | 'lecteur' (abandon après plusieurs essais). */
 const LECT = {video:null, a:null, it:null, etat:null, essais:0, t:0, dernier:-1, fige:0, garde:0, recup:0};
-const HLS_CFG = {lowLatencyMode:false, maxBufferLength:60, maxMaxBufferLength:120, backBufferLength:300, liveSyncDurationCount:4, liveMaxLatencyDurationCount:12,
+/* v54 : mémoire arrière 300 → 120 s et avance plafonnée à 90 s (≈ 260 → 130 Mo pour un flux HD à 5 Mbit/s) ; les sauts ↺ 10/30 s restent couverts */
+const HLS_CFG = {lowLatencyMode:false, maxBufferLength:60, maxMaxBufferLength:90, backBufferLength:120, liveSyncDurationCount:4, liveMaxLatencyDurationCount:12,
   manifestLoadingMaxRetry:6, manifestLoadingRetryDelay:1000, levelLoadingMaxRetry:6, levelLoadingRetryDelay:1000, fragLoadingMaxRetry:8, fragLoadingRetryDelay:800,
   fragLoadingMaxRetryTimeout:8000, nudgeMaxRetry:10, maxBufferHole:1, highBufferWatchdogPeriod:2};
 function signaler(k){ if (LECT.etat !== k){ LECT.etat = k; LECT.surEtat && LECT.surEtat(k); } }
@@ -423,6 +448,10 @@ function monter(Z){
   const rendreListe = () => {
     if (!S.a) return;
     if (S.vue) return rendreVue();
+    if ((S.onglet === 'f' || S.onglet === 's') && CATA && CATA.parts && !CATA[S.onglet]){       // v54 : onglet chargé au premier passage
+      const o = S.onglet; EL.innerHTML = entete() + '<p class="tv-msg">Chargement…</p>';
+      section(S.a, o).then(() => { if (S.onglet === o && !S.vue) rendreListe(); }); return;
+    }
     const o = S.onglet, src = source(o), q = norm(S.q[o]);
     let L = [], opts = '', vide = '';
     if (o === 'l'){ L = aRegarder(); vide = 'Rien pour l\'instant : touche ＋ à côté d\'un film ou d\'une série.'; }
@@ -436,7 +465,7 @@ function monter(Z){
       } else { L = favs.map(f => ({...f, k:'d'})); vide = 'Aucun favori pour l\'instant.'; }
       if (q && src) L = src.l;
     } else {
-      if (!src){ EL.innerHTML = entete() + `<p class="tv-msg">${messageCatalogue()}</p>`; return; }
+      if (!src || src.erreur){ EL.innerHTML = entete() + `<p class="tv-msg">${messageCatalogue()}</p>`; return; }
       const c = S.cat[o] || 'tout';
       L = c === 'tout' ? src.l : c === 'recent' ? [...src.l].sort((a, b) => (b.ajout || 0) - (a.ajout || 0)).slice(0, 200) : src.l.filter(x => x.cat === c);
       opts = `<select data-tv="cat" aria-label="Catégorie"><option value="tout"${c === 'tout' ? ' selected' : ''}>Tout (${src.l.length})</option>${o === 'f' ? `<option value="recent"${c === 'recent' ? ' selected' : ''}>Ajouts récents</option>` : ''}${src.cats.map(x => `<option value="${esc(x.id)}"${c === x.id ? ' selected' : ''}>${esc(x.nom)}</option>`).join('')}</select>`;
@@ -522,6 +551,7 @@ function monter(Z){
   const ouvrir = (k, id) => {
     if (k === 'd'){ const c = trouver('d', id) || favoris().map(f => ({...f, k:'d'})).find(x => String(x.id) === String(id)); if (c) jouer(c); return; }
     if (k === 'e'){ const x = aRegarder().find(y => y.k === 'e' && String(y.id) === String(id)); if (x) jouer(x); return; }
+    if ((k === 'f' || k === 's') && CATA && CATA.parts && !CATA[k]){ section(S.a, k).then(() => ouvrir(k, id)); return; }   // v54 : depuis Favoris ou À regarder
     const it = trouver(k, id); if (!it){ EL.insertAdjacentHTML('afterbegin', '<p class="tv-msg"><b>Plus dans le catalogue.</b></p>'); return; }
     S.vue = {t:k, it}; rendreVue();
   };

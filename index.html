@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="285e7546">
+<meta name="mon-ecran-version" content="f1ab4202">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -988,7 +988,7 @@ $('#placeResults').addEventListener('click', e => {
    Réglage une seule fois : une appli gratuite sur developer.spotify.com, dont on colle le Client ID ici.
    La page vérifie ce qui joue toutes les 3 s pendant la lecture (10 s en pause), seulement quand elle est affichée. */
 const SP_API = 'https://api.spotify.com/v1', SP_ACC = 'https://accounts.spotify.com';
-const SP_REDIRECT = location.origin + location.pathname.replace(/index\.html$/, '');
+const SP_REDIRECT = (window.MonEcranNatif && window.MonEcranNatif.retourSpotify) || location.origin + location.pathname.replace(/index\.html$/, '');   // v54 : adresse de retour propre à une appli dédiée
 const SP_SCOPES = 'user-read-currently-playing user-read-playback-state user-modify-playback-state user-read-recently-played playlist-read-private playlist-read-collaborative';   // v48 : playlists
 const SPI = {
   note:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5.5l11-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>',
@@ -1493,17 +1493,17 @@ let cotesAt = 0;
 async function chargerCotes(){
   const el = $('#dsCotes'); if (!el) return; cotesAt = Date.now();
   try{
+    await chargerJS('match.js');                          // v54 : calcul des écarts commun (Match.ecarts)
     const j = await (await fetch('donnees/cotes/cotes.json', {cache:'no-cache'})).json();
     const R = CFG('cotes.rapport', {seuil:0.05, reference:'moyenne'}) || {}, SEUIL = +R.seuil || 0.05, med = R.reference === 'mediane';
     const NOMS_S = {winamax_fr:'Winamax', betclic_fr:'Betclic', unibet_fr:'Unibet', pmu_fr:'PMU', netbet_fr:'NetBet', parionssport_fr:'Parions Sport'};
-    const moy = l => l.reduce((a, b) => a + b, 0) / l.length, mdn = l => { const x = [...l].sort((a, b) => a - b), n = x.length; return n % 2 ? x[(n - 1) / 2] : (x[n / 2 - 1] + x[n / 2]) / 2; };
     const out = [], now = Date.now();
     for (const [id, m] of Object.entries(j.matchs || {})){
       if (!m.t || m.t < now - 2 * 3600e3 || !m.eq) continue;
       const rel = (m.releves || []).filter(r => r.sites).sort((a, b) => a.at - b.at), r = rel[rel.length - 1] || m.dernier; if (!r || !r.sites) continue;
       for (const k of ['h', 'd', 'a']){
         const vals = Object.entries(r.sites).map(([s, o]) => [s, +(o || {})[k]]).filter(([, v]) => v > 1); if (vals.length < 3) continue;
-        for (const [s, v] of vals){ const au = vals.filter(([x]) => x !== s).map(([, x]) => x), ref = med ? mdn(au) : moy(au), e = v / ref - 1; if (e >= SEUIL) out.push({id, m, k, s, v, e}); }
+        for (const {s, v, e} of Match.ecarts(vals, med)) if (e >= SEUIL) out.push({id, m, k, s, v, e});
       }
     }
     out.sort((a, b) => b.e - a.e);

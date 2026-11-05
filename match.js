@@ -1,4 +1,4 @@
-// mon-ecran-version: 766d1e05
+// mon-ecran-version: 7cab077e
 /* Mon Écran — lecture des fiches de match ESPN (v48), commune à Sport et à l'accueil (détail d'un match).
    Sortis de sport.html sans changement : classify, summaryEvents (rugby et autres), soccerEvents (foot), shootoutTable, markShootout
    (fonctions globales, sport.html les appelle comme avant). Ajouts : Match.lire(j, sport) pour l'accueil, Match.minute(...) (rugby).
@@ -270,6 +270,14 @@ function meilleur(m, ...listes){
   const l = listes.filter(x => Array.isArray(x) && x.length); if (!l.length) return listes.find(Array.isArray) || [];
   return l.map((x, i) => ({x, e:ecartScore(x, m), n:x.length, i})).sort((a, b) => a.e - b.e || b.n - a.n || a.i - b.i)[0].x;
 }
+/* v54 : écart de chaque cote par rapport aux autres sites (moyenne ou médiane des autres), le même calcul pour la page Écarts,
+   l'accueil sur ordinateur et le mail des cotes. vals : [[site, cote > 1], …] ; il faut au moins 3 sites (2 autres pour comparer). */
+const moyenne = l => l.reduce((a, b) => a + b, 0) / l.length;
+const mediane = l => { const x = [...l].sort((a, b) => a - b), n = x.length; return n % 2 ? x[(n - 1) / 2] : (x[n / 2 - 1] + x[n / 2]) / 2; };
+function ecarts(vals, med){
+  if (vals.length < 3) return [];
+  return vals.map(([s, v]) => { const autres = vals.filter(([x]) => x !== s).map(([, x]) => x), ref = med ? mediane(autres) : moyenne(autres); return {s, v, ref, e:v / ref - 1}; });
+}
 Object.assign(window, {classify, summaryEvents, soccerEvents, shootoutTable, markShootout});
-window.Match = {lire, minute, points, ecartScore, meilleur, minVal, teamKey, classify, summaryEvents, soccerEvents, markShootout};
+window.Match = {lire, minute, points, ecartScore, meilleur, minVal, teamKey, classify, summaryEvents, soccerEvents, markShootout, ecarts, moyenne, mediane};
 })();
