@@ -1,4 +1,4 @@
-// mon-ecran-version: 5093939e
+// mon-ecran-version: 0d9288eb
 /* Mon Écran — TV (v44, films et séries v45) : abonnement Xtream.
    - Accès (serveur, identifiant, mot de passe) : fiche « Accès TV » du Coffre, chiffrée avec ton code et partagée chiffrée par la
      synchronisation ; jamais dans le dépôt, le classeur ou la configuration (publics). Lus une fois par session (code demandé si le
@@ -136,6 +136,22 @@ function basculerListe(it){
   else l.unshift(it.k === 's' ? {k:'s', id:it.id, nom:it.nom, icone:it.icone || ''} : {k:it.k, id:it.id, nom:it.nom, icone:it.icone || '', ext:it.ext || '', an:it.an || 0, sid:it.sid, s:it.s, e:it.e});
   LSs('tv:liste', l.length ? l.slice(0, 200) : null); prefs(); return i < 0;
 }
+/* favoris des films et séries (v48) : onglet ★ Favoris, partagés par la synchro (clé tvfav) */
+const favF = () => LSg('tv:favf', []);
+const estFavF = it => favF().some(x => cleIt(x) === cleIt(it));
+function basculerFavF(it){
+  const l = favF(), i = l.findIndex(x => cleIt(x) === cleIt(it));
+  if (i >= 0) l.splice(i, 1); else l.unshift({k:it.k, id:it.id, nom:it.nom, icone:it.icone || '', ext:it.ext || '', an:it.an || 0});
+  LSs('tv:favf', l.length ? l.slice(0, 300) : null); prefs(); return i < 0;
+}
+/* position de lecture des films et épisodes (v48, sur l'appareil) : reprise là où on s'était arrêté */
+const POS = () => LSg('tv:pos', {});
+function noterPos(it, t, d){
+  if (!it || it.k === 'd' || !(d > 0)) return; const p = POS(), k = cleIt(it);
+  if (t < 30 || t > d - 60) delete p[k]; else p[k] = [Math.round(t), Math.round(d), Date.now()];
+  const l = Object.entries(p).sort((a, b) => b[1][2] - a[1][2]).slice(0, 150); LSs('tv:pos', l.length ? Object.fromEntries(l) : null);
+}
+const posDe = it => it && it.k !== 'd' ? POS()[cleIt(it)] : null;
 const vus = () => LSg('tv:vus', {});
 function noterVu(sid, s, e, id, ext){ const v = vus(); v[sid] = [s, e, id, ext]; LSs('tv:vus', v); prefs(); }
 
@@ -146,20 +162,120 @@ function chargerHls(){
     s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js'; s.onload = () => ok(window.Hls); s.onerror = () => { hlsCharge = null; ko(new Error('lecteur')); };
     document.head.appendChild(s); }));
 }
-async function lire(video, a, it, surErreur){
-  if (HLS){ try{ HLS.destroy(); }catch{} HLS = null; }
-  video.onerror = () => surErreur && surErreur('flux');
-  if (it.k !== 'd'){ video.src = viaRelais('flux', urlDe(a, it)); video.play().catch(() => {}); return; }   // film, épisode : fichier (avance rapide par le relais)
-  const src = viaRelais('flux', urlDe(a, it, true));
-  if (video.canPlayType('application/vnd.apple.mpegurl')){ video.src = src; video.play().catch(() => {}); return; }
-  const Hls = await chargerHls();
-  if (!Hls || !Hls.isSupported()){ surErreur && surErreur('lecteur'); return; }
-  HLS = new Hls({lowLatencyMode:false, backBufferLength:30});
-  HLS.on(Hls.Events.ERROR, (e, d) => { if (d && d.fatal) surErreur && surErreur('flux'); });
-  HLS.loadSource(src); HLS.attachMedia(video);
-  HLS.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+/* Lecture tolérante aux coupures (v48) : tampon plus large, relances automatiques, reprise après une erreur,
+   chien de garde (image figée 10 s pendant la lecture → rechargement au point de direct, ou à la même position pour un film).
+   surEtat(k) : 'reco' (reconnexion en cours), 'ok' (la lecture repart), 'flux' | 'lecteur' (abandon après plusieurs essais). */
+const LECT = {video:null, a:null, it:null, etat:null, essais:0, t:0, dernier:-1, fige:0, garde:0, recup:0};
+const HLS_CFG = {lowLatencyMode:false, maxBufferLength:60, maxMaxBufferLength:120, backBufferLength:300, liveSyncDurationCount:4, liveMaxLatencyDurationCount:12,
+  manifestLoadingMaxRetry:6, manifestLoadingRetryDelay:1000, levelLoadingMaxRetry:6, levelLoadingRetryDelay:1000, fragLoadingMaxRetry:8, fragLoadingRetryDelay:800,
+  fragLoadingMaxRetryTimeout:8000, nudgeMaxRetry:10, maxBufferHole:1, highBufferWatchdogPeriod:2};
+function signaler(k){ if (LECT.etat !== k){ LECT.etat = k; LECT.surEtat && LECT.surEtat(k); } }
+function relancer(raison){
+  const v = LECT.video, it = LECT.it; if (!v || !it) return;
+  if (++LECT.essais > 6){ signaler('flux'); return; }
+  signaler('reco');
+  const pos = it.k !== 'd' ? v.currentTime : null;
+  clearTimeout(LECT.t);
+  LECT.t = setTimeout(() => { if (LECT.it === it) brancher(v, LECT.a, it, pos); }, Math.min(1000 * 2 ** (LECT.essais - 1), 8000));
 }
-function arreter(video){ if (HLS){ try{ HLS.destroy(); }catch{} HLS = null; } if (video){ video.pause(); video.removeAttribute('src'); video.load(); } }
+async function brancher(video, a, it, pos){
+  if (HLS){ try{ HLS.destroy(); }catch{} HLS = null; }
+  LECT.dernier = -1; LECT.fige = 0; LECT.recup = 0;
+  const reprendre = () => { if (pos > 0){ const go = () => { try{ video.currentTime = pos; }catch{} }; video.readyState >= 1 ? go() : video.addEventListener('loadedmetadata', go, {once:true}); } video.play().catch(() => {}); };
+  video.onerror = () => { if (LECT.it === it) relancer('erreur'); };
+  if (it.k !== 'd'){ video.src = viaRelais('flux', urlDe(a, it)); reprendre(); return; }   // film, épisode : fichier (avance rapide par le relais)
+  const src = viaRelais('flux', urlDe(a, it, true));
+  /* Safari : lecteur HLS natif. Chrome et Edge savent aussi lire le HLS en natif depuis 2025, mais sans tampon réglable ni retour
+     en arrière en direct : hls.js passe en premier partout où MediaSource existe (v48). */
+  const safari = IOS || (/safari/i.test(navigator.userAgent) && !/chrome|chromium|crios|edg|android/i.test(navigator.userAgent));
+  if (video.canPlayType('application/vnd.apple.mpegurl') && (safari || !window.MediaSource)){ video.src = src; reprendre(); return; }
+  let Hls; try{ Hls = await chargerHls(); }catch{ signaler('lecteur'); return; }
+  if (!Hls || !Hls.isSupported()){ if (video.canPlayType('application/vnd.apple.mpegurl')){ video.src = src; reprendre(); } else signaler('lecteur'); return; }
+  if (LECT.it !== it) return;
+  const h = HLS = new Hls(HLS_CFG);
+  h.on(Hls.Events.ERROR, (e, d) => {
+    if (!d || !d.fatal || HLS !== h) return;
+    if (d.type === Hls.ErrorTypes.MEDIA_ERROR && LECT.recup < 2){ if (LECT.recup++ === 1) h.swapAudioCodec(); h.recoverMediaError(); return; }
+    relancer(d.type);
+  });
+  h.on(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(() => {}); LECT.pistes && LECT.pistes(); });
+  h.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => LECT.pistes && LECT.pistes());
+  h.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => LECT.pistes && LECT.pistes());
+  h.on(Hls.Events.FRAG_BUFFERED, () => { if (LECT.etat === 'reco'){ LECT.essais = 0; signaler('ok'); } });
+  h.loadSource(src); h.attachMedia(video);
+}
+function garde(){
+  const v = LECT.video; if (!v || !LECT.it || document.hidden) return;
+  if (v.paused || v.ended || v.seeking){ LECT.dernier = v.currentTime; LECT.fige = 0; return; }
+  if (v.currentTime !== LECT.dernier){ LECT.dernier = v.currentTime; LECT.fige = 0; if (LECT.etat === 'reco' && v.readyState >= 3){ LECT.essais = 0; signaler('ok'); } return; }
+  LECT.fige += 2;
+  if (LECT.fige === 4) signaler('reco');                          // 4 s sans image : on le dit
+  if (LECT.fige >= 10){ LECT.fige = 0; relancer('fige'); }        // 10 s : on recharge
+}
+async function lire(video, a, it, surEtat){
+  clearTimeout(LECT.t); Object.assign(LECT, {video, a, it, etat:null, essais:0, surEtat});
+  if (!LECT.garde) LECT.garde = setInterval(garde, 2000);
+  if (!video.dataset.tvEcoute){ video.dataset.tvEcoute = '1';
+    video.addEventListener('timeupdate', () => { if (LECT.it && LECT.it.k !== 'd' && Math.abs(video.currentTime - (video._posNotee || 0)) > 10){ video._posNotee = video.currentTime; noterPos(LECT.it, video.currentTime, video.duration); } });
+    video.addEventListener('pause', () => LECT.it && noterPos(LECT.it, video.currentTime, video.duration));
+    video.addEventListener('playing', () => { if (LECT.etat === 'reco'){ LECT.essais = 0; signaler('ok'); } });
+    video.addEventListener('loadedmetadata', () => LECT.pistes && LECT.pistes()); }
+  const p = posDe(it);
+  await brancher(video, a, it, p ? p[0] : null);
+  return p;
+}
+/* sauter de s secondes (négatif = retour) ; en direct : dans ce qui est en mémoire */
+/* en direct, hls.js laisse la plage « seekable » vide (durée infinie) : le navigateur refuse alors tout déplacement.
+   On déclare la partie en mémoire comme plage atteignable (MediaSource.setLiveSeekableRange) avant de se déplacer. */
+function plageDirect(video){
+  if (!HLS || !video || (video.seekable && video.seekable.length) || !video.buffered.length) return;
+  try{ const ms = [...(HLS.coreComponents || []), HLS.bufferController].map(c => c && c.mediaSource).find(m => m && m.setLiveSeekableRange);
+    if (ms && ms.readyState === 'open') ms.setLiveSeekableRange(video.buffered.start(0), video.buffered.end(video.buffered.length - 1)); }catch{}
+}
+function sauter(video, s){
+  if (!video || !isFinite(video.currentTime)) return;
+  if (LECT.it && LECT.it.k === 'd') plageDirect(video);
+  let t = video.currentTime + s;
+  const r = video.seekable && video.seekable.length ? [video.seekable.start(0), video.seekable.end(video.seekable.length - 1)] : null;
+  const b = video.buffered && video.buffered.length ? [video.buffered.start(0), video.buffered.end(video.buffered.length - 1)] : null;
+  const direct = LECT.it && LECT.it.k === 'd', lim = direct ? b || r : r || b;
+  if (lim) t = Math.max(lim[0] + .2, Math.min(t, lim[1] - (direct ? 1 : .5)));
+  if (isFinite(video.duration) && video.duration > 0) t = Math.min(t, video.duration - .5);
+  video.currentTime = Math.max(0, t);
+}
+function auDirect(video){ if (!video) return; const t = HLS && HLS.liveSyncPosition; if (t) video.currentTime = t; else if (video.seekable.length) video.currentTime = video.seekable.end(video.seekable.length - 1) - 3; video.play().catch(() => {}); }
+const retard = video => { if (!video || !LECT.it || LECT.it.k !== 'd') return 0; const fin = (HLS && HLS.liveSyncPosition) || (video.buffered.length ? video.buffered.end(video.buffered.length - 1) : 0); return fin ? Math.max(0, fin - video.currentTime) : 0; };
+/* sous-titres et pistes audio : pistes du flux (hls.js ou lecteur natif), plus un fichier .srt / .vtt choisi sur l'appareil */
+function pistes(video){
+  const st = [], au = [];
+  if (HLS){ (HLS.subtitleTracks || []).forEach((t, i) => st.push({id:'h' + i, nom:t.name || t.lang || 'Piste ' + (i + 1), on:HLS.subtitleTrack === i && HLS.subtitleDisplay}));
+    if ((HLS.audioTracks || []).length > 1) HLS.audioTracks.forEach((t, i) => au.push({id:i, nom:t.name || t.lang || 'Audio ' + (i + 1), on:HLS.audioTrack === i})); }
+  if (video) [...video.textTracks].forEach((t, i) => { if ((t.kind === 'subtitles' || t.kind === 'captions') && !(HLS && !t.label && st.length) && !(HLS && st.some(x => x.nom === t.label)))
+    st.push({id:'n' + i, nom:t.label || t.language || 'Sous-titres ' + (i + 1), on:t.mode === 'showing'}); });
+  return {st, au};
+}
+function choisirSousTitres(video, id){
+  if (HLS){ HLS.subtitleDisplay = /^h/.test(id); HLS.subtitleTrack = /^h/.test(id) ? +id.slice(1) : -1; }
+  [...(video ? video.textTracks : [])].forEach((t, i) => { if ((t.kind === 'subtitles' || t.kind === 'captions') && !(HLS && /^h/.test(id))) t.mode = id === 'n' + i ? 'showing' : 'disabled'; });
+}
+function choisirAudio(i){ if (HLS) HLS.audioTrack = +i; }
+const srtVersVtt = t => 'WEBVTT\n\n' + String(t).replace(/\r/g, '').replace(/^﻿/, '').replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2').replace(/^\d+\n(?=\d{2}:\d{2})/gm, '');
+function ajouterSousTitres(video, fichier){
+  return fichier.text().then(t => {
+    [...video.querySelectorAll('track[data-local]')].forEach(x => { URL.revokeObjectURL(x.src); x.remove(); });
+    const tr = document.createElement('track'); tr.kind = 'subtitles'; tr.label = fichier.name.replace(/\.(srt|vtt)$/i, '').slice(0, 40); tr.srclang = 'fr'; tr.dataset.local = '1';
+    tr.src = URL.createObjectURL(new Blob([/^WEBVTT/.test(t.replace(/^﻿/, '')) ? t : srtVersVtt(t)], {type:'text/vtt'}));
+    video.appendChild(tr); if (HLS) HLS.subtitleTrack = -1;
+    [...video.textTracks].forEach(x => { if (x.kind === 'subtitles' || x.kind === 'captions') x.mode = x === tr.track ? 'showing' : 'disabled'; });
+  });
+}
+function arreter(video){
+  clearTimeout(LECT.t); if (LECT.it && video) noterPos(LECT.it, video.currentTime, video.duration);
+  LECT.it = null; LECT.etat = null;
+  if (HLS){ try{ HLS.destroy(); }catch{} HLS = null; }
+  if (video){ video.onerror = null; video.pause(); [...video.querySelectorAll('track[data-local]')].forEach(x => { URL.revokeObjectURL(x.src); x.remove(); }); video.removeAttribute('src'); video.load(); }
+  if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
+}
 /* lecteur externe : Infuse (iPhone / iPad), sinon un petit fichier .m3u (VLC ou le lecteur associé) */
 function externe(a, it){
   const url = urlDe(a, it);
@@ -181,6 +297,14 @@ const CSS = `
 .tv-btn.main{background:var(--accent);color:var(--on-accent);border-color:transparent}
 .tv-row-b{display:flex;flex-wrap:wrap;gap:8px}
 .tv-video{width:100%;aspect-ratio:16/9;background:#000;border-radius:18px;display:block}
+.tv-vw{position:relative}
+.tv-rc{position:absolute;left:12px;top:12px;padding:5px 10px;border-radius:10px;background:rgba(0,0,0,.66);color:#fff;font-size:.78rem;font-weight:600;pointer-events:none}
+.tv-rc[hidden]{display:none}
+.tv-cmd{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tv-cmd .tv-btn{min-height:34px;padding:5px 11px;font-size:.8rem;font-variant-numeric:tabular-nums}
+.tv-cmd select{font:inherit;font-size:.8rem;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 8px;max-width:12em}
+.tv-cmd .tv-btn.dir{color:#fff;background:#d33;border-color:transparent}
+.tv-cmd .tv-btn.dir[aria-pressed="true"]{background:var(--card);color:var(--ink-soft);border-color:var(--line)}
 .tv-now{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .tv-now b{font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tv-now small{font-size:.78rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -216,7 +340,9 @@ const CSS = `
 function styles(){ if (document.getElementById('tv-css')) return; const s = document.createElement('style'); s.id = 'tv-css'; s.textContent = CSS; document.head.appendChild(s); }
 
 /* ---------- interface : monter({lecteur, chaines, quitter}) ---------- */
-const ONGLETS = [['d', 'Directs'], ['f', 'Films'], ['s', 'Séries'], ['l', 'À regarder']];
+const ONGLETS = [['d', 'Directs'], ['f', 'Films'], ['s', 'Séries'], ['v', '★ Favoris'], ['l', 'À regarder']];
+const SAUTS = (() => { try{ const v = window.CFG ? CFG('tv.sauts', [10, 30]) : [10, 30]; return [Math.abs(+v[0]) || 10, Math.abs(+v[1]) || 30]; }catch{ return [10, 30]; } })();
+const mmss = t => { t = Math.max(0, Math.round(t)); const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0'); };
 const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const https = u => String(u || '').replace(/^http:\/\//i, 'https://');
 const ini = t => esc((String(t || '?').replace(/^[^a-z0-9]+/i, '')[0] || '?').toUpperCase());
@@ -232,10 +358,12 @@ function monter(Z){
     if (!LE) return;
     if (!S.relais){ LE.innerHTML = `<div class="tv-h"><span class="tv-k">TV</span>${quitter}</div>${relaisAide()}`; return; }
     if (!LE.querySelector('video')) LE.innerHTML = `<div class="tv-h"><span class="tv-k">En lecture</span>${quitter}</div>
-      <video class="tv-video" controls playsinline></video>
+      <div class="tv-vw"><video class="tv-video" controls playsinline></video><span class="tv-rc" hidden>Reconnexion…</span></div>
+      <div class="tv-cmd" id="tvCmd" hidden></div>
       <div class="tv-h"><span class="tv-now" id="tvNow"><b>Choisis une chaîne, un film ou un épisode</b><small>dans la liste</small></span><span class="tv-row-b" id="tvAct"></span></div>`;
     const now = LE.querySelector('#tvNow'), act = LE.querySelector('#tvAct');
-    if (!it) return;
+    if (!it){ LE.querySelector('#tvCmd').hidden = true; return; }
+    rendreCmd(it);
     const hm = d => new Date(d).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
     if (it.k === 'd'){
       const e = (info || [])[0], n = (info || [])[1], t = Date.now(), pct = e && e.fin > e.debut ? Math.max(0, Math.min(100, (t - e.debut) / (e.fin - e.debut) * 100)) : 0;
@@ -246,6 +374,27 @@ function monter(Z){
       act.innerHTML = `${pip()}<button type="button" class="tv-btn" data-tv="ext">${IOS ? 'Infuse' : 'VLC'}</button>`;
     }
   };
+  /* commandes (v48) : retour / avance, retour au direct, sous-titres (pistes du flux ou fichier .srt/.vtt), pistes audio */
+  const rendreCmd = it => {
+    const c = LE && LE.querySelector('#tvCmd'), v = LE && LE.querySelector('video'); if (!c || !v) return;
+    const P = pistes(v), ch = P.st.find(x => x.on);
+    c.hidden = false;
+    c.innerHTML = `<button type="button" class="tv-btn" data-tv="saut" data-s="-${SAUTS[0]}" title="Retour de ${SAUTS[0]} s (←)">↺ ${SAUTS[0]} s</button>
+      <button type="button" class="tv-btn" data-tv="saut" data-s="${SAUTS[1]}" title="Avance de ${SAUTS[1]} s (→)">${SAUTS[1]} s ↻</button>
+      ${it.k === 'd' ? `<button type="button" class="tv-btn dir" data-tv="direct" aria-pressed="true" title="Revenir au direct">● Direct</button>` : ''}
+      <select data-tv="st" aria-label="Sous-titres"><option value="">Sous-titres : non</option>${P.st.map(x => `<option value="${esc(x.id)}"${x.on ? ' selected' : ''}>${esc(x.nom)}</option>`).join('')}<option value="+">Charger un fichier .srt / .vtt…</option></select>
+      ${P.au.length ? `<select data-tv="au" aria-label="Audio">${P.au.map(x => `<option value="${x.id}"${x.on ? ' selected' : ''}>${esc(x.nom)}</option>`).join('')}</select>` : ''}
+      <input type="file" accept=".srt,.vtt,text/vtt" data-tv="stf" hidden>`;
+    if (!ch) c.querySelector('[data-tv="st"]').value = '';
+    majDirect();
+  };
+  const majDirect = () => { const b = LE && LE.querySelector('[data-tv="direct"]'); if (!b) return; const r = retard(LE.querySelector('video')); const loin = r > 20; b.setAttribute('aria-pressed', String(!loin)); b.textContent = loin ? `● Direct (−${mmss(r)})` : '● Direct'; };
+  LECT.pistes = () => { if (S.cur && LE) rendreCmd(S.cur); };
+  const etatLecture = (it, k) => {
+    const rc = LE && LE.querySelector('.tv-rc'); if (rc) rc.hidden = k !== 'reco';
+    if (k === 'flux' || k === 'lecteur'){ S.err = k === 'lecteur' ? 'Ce navigateur ne sait pas lire ce flux : essaie VLC.' : 'Flux interrompu malgré plusieurs reprises (serveur ou format) : réessaie, ou VLC.'; rendreLecteur(it, S.info); }
+    else if (k === 'ok' && S.err){ S.err = ''; rendreLecteur(it, S.info); }
+  };
   const pip = () => document.pictureInPictureEnabled ? '<button type="button" class="tv-btn" data-tv="pip" title="Garder la vidéo visible par-dessus les autres fenêtres">Image dans l\'image</button>' : '';
   const relaisAide = () => `<p class="tv-msg"><b>Lecture dans le dock : lance le relais sur ton PC.</b> Les flux de ton abonnement sont en http : une page sécurisée ne peut pas les lire seule.</p>
     <ol class="tv-ol"><li>Installe <b>Node.js</b> (version LTS, nodejs.org), une seule fois.</li>
@@ -255,6 +404,7 @@ function monter(Z){
     <div class="tv-row-b"><button type="button" class="tv-btn main" data-tv="relais">Réessayer</button></div>
     <p class="tv-msg">En attendant, les chaînes, films et épisodes s'ouvrent dans ${IOS ? 'Infuse' : 'VLC'}.</p>`;
   /* ---- données de l'onglet ---- */
+  const etoileF = it => `<button type="button" class="tv-st" data-favf="${esc(it.k)}:${esc(it.id)}" aria-pressed="${estFavF(it)}" aria-label="${estFavF(it) ? 'Retirer des favoris' : 'Ajouter aux favoris'}">${estFavF(it) ? '★' : '☆'}</button>`;
   const source = o => o === 'd' ? (CATA ? CATA.d : S.relais && LISTE ? LISTE : null) : o === 'f' ? (CATA && CATA.f) : o === 's' ? (CATA && CATA.s) : null;
   const trouver = (k, id) => { const s = source(k === 'e' ? 's' : k); return s && s.l.find(x => String(x.id) === String(id)); };
   const ligne = (it, droite) => {
@@ -275,6 +425,7 @@ function monter(Z){
     const o = S.onglet, src = source(o), q = norm(S.q[o]);
     let L = [], opts = '', vide = '';
     if (o === 'l'){ L = aRegarder(); vide = 'Rien pour l\'instant : touche ＋ à côté d\'un film ou d\'une série.'; }
+    else if (o === 'v'){ L = favF().map(f => trouver(f.k, f.id) || f); vide = 'Aucun favori : touche ☆ sur la fiche d\'un film ou d\'une série.'; }
     else if (o === 'd'){
       const favs = favoris();
       if (src){
@@ -294,8 +445,8 @@ function monter(Z){
     if (q) L = L.filter(x => norm(x.nom).includes(q));
     const tot = L.length; L = L.slice(0, 300);
     const pos = (EL.querySelector('.tv-l') || {}).scrollTop || 0, memeVue = S.derniereVue === o + '|' + (S.cat[o] || '') + '|' + q; S.derniereVue = o + '|' + (S.cat[o] || '') + '|' + q;
-    EL.innerHTML = entete() + `<div class="tv-f">${opts}<input type="search" data-tv="q" placeholder="Chercher" value="${esc(S.q[o])}" aria-label="Chercher"></div>
-      <div class="tv-l">${L.map(it => ligne(it, it.k === 'd' ? etoile(it) : plus(it))).join('') || `<p class="tv-msg" style="padding:10px 0">${q ? 'Aucun résultat.' : vide}</p>`}
+    EL.innerHTML = entete() + `<div class="tv-f"${o === 'v' || o === 'l' ? ' style="display:none"' : ''}>${opts}<input type="search" data-tv="q" placeholder="Chercher" value="${esc(S.q[o])}" aria-label="Chercher"></div>
+      <div class="tv-l">${L.map(it => ligne(it, it.k === 'd' ? etoile(it) : o === 'v' ? etoileF(it) : plus(it))).join('') || `<p class="tv-msg" style="padding:10px 0">${q ? 'Aucun résultat.' : vide}</p>`}
       ${tot > L.length ? `<p class="tv-msg" style="padding:8px 0">${tot - L.length} autres : affine la recherche.</p>` : ''}</div>`;
     if (memeVue && pos){ const l = EL.querySelector('.tv-l'); if (l) l.scrollTop = pos; }   // la liste reste où elle était (v46)
   };
@@ -312,6 +463,8 @@ function monter(Z){
       EL.innerHTML = retour + `<div class="tv-fi">${po}<div><h3>${esc(it.nom)}</h3><p>${[it.an || '', it.note ? '★ ' + it.note + '/10' : '', (it.ext || '').toUpperCase()].filter(Boolean).join(' · ')}</p>
         <div class="tv-row-b" style="margin-top:10px"><button type="button" class="tv-btn main" data-tv="lire">${lecteurDispo() ? 'Regarder' : IOS ? 'Regarder dans Infuse' : 'Ouvrir dans VLC'}</button>
         <button type="button" class="tv-btn" data-liste="f:${esc(it.id)}" aria-pressed="${dansListe(it)}">${dansListe(it) ? '✓ À regarder' : '＋ À regarder'}</button>
+        <button type="button" class="tv-btn" data-favf="f:${esc(it.id)}" aria-pressed="${estFavF(it)}">${estFavF(it) ? '★ Favori' : '☆ Favori'}</button>
+        ${posDe(it) ? `<span class="tv-cs" style="align-self:center">reprise à ${mmss(posDe(it)[0])}</span>` : ''}
         ${lecteurDispo() ? `<button type="button" class="tv-btn" data-tv="ext">VLC</button>` : ''}</div></div></div>`;
       return;
     }
@@ -320,7 +473,8 @@ function monter(Z){
     const eps = it.eps.filter(e => e[0] === v.saison), suite = vu ? it.eps[it.eps.findIndex(e => e[0] === vu[0] && e[1] === vu[1]) + 1] : it.eps[0];
     EL.innerHTML = retour + `<div class="tv-fi">${po}<div><h3>${esc(it.nom)}</h3><p>${[it.an || '', it.note ? '★ ' + it.note + '/10' : '', it.genre || '', `${it.eps.length} épisodes`].filter(Boolean).join(' · ')}</p>
       <div class="tv-row-b" style="margin-top:10px">${suite ? `<button type="button" class="tv-btn main" data-ep="${esc(suite[2])}">${vu ? 'Reprendre ' : 'Commencer '}${se(suite[0], suite[1])}</button>` : ''}
-      <button type="button" class="tv-btn" data-liste="s:${esc(it.id)}" aria-pressed="${dansListe(it)}">${dansListe(it) ? '✓ À regarder' : '＋ À regarder'}</button></div></div></div>
+      <button type="button" class="tv-btn" data-liste="s:${esc(it.id)}" aria-pressed="${dansListe(it)}">${dansListe(it) ? '✓ À regarder' : '＋ À regarder'}</button>
+      <button type="button" class="tv-btn" data-favf="s:${esc(it.id)}" aria-pressed="${estFavF(it)}">${estFavF(it) ? '★ Favori' : '☆ Favori'}</button></div></div></div>
       ${saisons.length > 1 ? `<select class="tv-sa" data-tv="saison" aria-label="Saison">${saisons.map(s => `<option value="${s}"${s === v.saison ? ' selected' : ''}>Saison ${s}</option>`).join('')}</select>` : ''}
       <div class="tv-l">${eps.map(e => { const estVu = vu && (e[0] < vu[0] || (e[0] === vu[0] && e[1] <= vu[1]));
         return `<div class="tv-ep${estVu ? ' vu' : ''}" role="button" tabindex="0" data-ep="${esc(e[2])}"><b>${se(e[0], e[1])}</b><span>${esc(e[4] || 'Épisode ' + e[1])}</span><span class="tv-cs">${estVu ? 'vu' : (e[3] || '').toUpperCase()}</span></div>`; }).join('') || '<p class="tv-msg">Aucun épisode.</p>'}</div>`;
@@ -356,9 +510,10 @@ function monter(Z){
   const jouer = async it => {
     S.cur = it; S.err = '';
     if (!lecteurDispo()){ externe(S.a, it); rendreListe(); return; }
-    rendreLecteur(it, []); if (!S.vue) rendreListe();
-    await lire(LE.querySelector('video'), S.a, it, k => { S.err = k === 'lecteur' ? 'Ce navigateur ne sait pas lire ce flux : essaie VLC.' : 'Flux illisible ici (format ou serveur) : essaie VLC.'; rendreLecteur(it, []); });
-    if (it.k === 'd') epg(S.a, it.id).then(info => { if (S.cur === it) rendreLecteur(it, info); });
+    S.info = []; rendreLecteur(it, []); if (!S.vue) rendreListe();
+    const p = await lire(LE.querySelector('video'), S.a, it, k => { if (S.cur === it) etatLecture(it, k); });
+    if (p && S.cur === it){ const now = LE.querySelector('#tvNow small'); if (now) now.insertAdjacentHTML('beforeend', ` · reprise à ${mmss(p[0])} <button type="button" class="tv-a" data-tv="debut">depuis le début</button>`); }
+    if (it.k === 'd') epg(S.a, it.id).then(info => { if (S.cur === it){ S.info = info; rendreLecteur(it, info); } });
     else { const v = LE.querySelector('video');                 // son AC3 / DTS : Chrome lit l'image sans le son (Edge, lui, lit souvent l'AC3)
       setTimeout(() => { if (S.cur === it && v && !v.paused && v.currentTime > 2 && 'webkitAudioDecodedByteCount' in v && v.webkitAudioDecodedByteCount === 0){
         S.err = 'Pas de son ici (format AC3/DTS) : ouvre le dock dans Microsoft Edge, ou utilise VLC.'; rendreLecteur(it, []); } }, 6000); }
@@ -378,6 +533,8 @@ function monter(Z){
   const clic = e => {
     const f = e.target.closest('[data-fav]');
     if (f){ e.stopPropagation(); const c = trouver('d', f.dataset.fav) || favoris().find(x => String(x.id) === f.dataset.fav); if (c){ basculerFavori(c); rendreListe(); if (S.cur) rendreLecteur(S.cur); } return; }
+    const ff = e.target.closest('[data-favf]');
+    if (ff){ e.stopPropagation(); const [k, id] = ff.dataset.favf.split(/:(.*)/s); const it = (S.vue && cleIt(S.vue.it) === ff.dataset.favf) ? S.vue.it : trouver(k, id) || favF().find(x => cleIt(x) === ff.dataset.favf); if (it){ basculerFavF(it); rendreListe(); } return; }
     const l = e.target.closest('[data-liste]');
     if (l){ e.stopPropagation(); const [k, id] = l.dataset.liste.split(/:(.*)/s); const it = (S.vue && cleIt(S.vue.it) === l.dataset.liste) ? S.vue.it : trouver(k, id) || aRegarder().find(x => cleIt(x) === l.dataset.liste); if (it){ basculerListe(it); rendreListe(); } return; }
     const og = e.target.closest('[data-onglet]'); if (og){ S.onglet = og.dataset.onglet; S.vue = null; LSs('tv:onglet', S.onglet); rendreListe(); return; }
@@ -389,6 +546,9 @@ function monter(Z){
     if (a === 'pip'){ const v = LE && LE.querySelector('video'); if (v){ (document.pictureInPictureElement ? document.exitPictureInPicture() : v.requestPictureInPicture()).catch(() => {}); } return; }
     if (a === 'fav' && S.cur){ basculerFavori(S.cur); rendreListe(); rendreLecteur(S.cur); return; }
     if (a === 'ext'){ const it = S.vue && S.vue.t === 'f' ? S.vue.it : S.cur; if (it) externe(S.a, it); return; }
+    if (a === 'saut'){ sauter(LE.querySelector('video'), +t.dataset.s); setTimeout(majDirect, 300); return; }
+    if (a === 'direct'){ auDirect(LE.querySelector('video')); setTimeout(majDirect, 500); return; }
+    if (a === 'debut'){ const v = LE.querySelector('video'); if (v){ v.currentTime = 0; v.play().catch(() => {}); } t.remove(); return; }
     if (a === 'quitter'){ arreter(LE && LE.querySelector('video')); Z.quitter && Z.quitter(); return; }
     const c = e.target.closest('[data-it]'); if (c){ const [k, id] = c.dataset.it.split(/:(.*)/s); ouvrir(k, id); }
   };
@@ -398,11 +558,20 @@ function monter(Z){
     r.addEventListener('change', e => {
       if (e.target.matches('[data-tv="cat"]')){ S.cat[S.onglet] = e.target.value; LSs('tv:cats', S.cat); S.q[S.onglet] = ''; rendreListe(); }
       if (e.target.matches('[data-tv="saison"]') && S.vue){ S.vue.saison = +e.target.value; rendreVue(); }
+      if (e.target.matches('[data-tv="st"]')){ const v = LE.querySelector('video'); if (e.target.value === '+'){ LE.querySelector('[data-tv="stf"]').click(); const ch = pistes(v).st.find(x => x.on); e.target.value = ch ? ch.id : ''; } else choisirSousTitres(v, e.target.value); }
+      if (e.target.matches('[data-tv="stf"]') && e.target.files[0]){ const v = LE.querySelector('video'); ajouterSousTitres(v, e.target.files[0]).then(() => S.cur && rendreCmd(S.cur)).catch(() => {}); }
+      if (e.target.matches('[data-tv="au"]')) choisirAudio(e.target.value);
     });
     r.addEventListener('input', e => { if (e.target.matches('[data-tv="q"]')){ S.q[S.onglet] = e.target.value; const pos = e.target.selectionStart; rendreListe(); const i = EL.querySelector('[data-tv="q"]'); if (i){ i.focus(); try{ i.setSelectionRange(pos, pos); }catch{} } } });
     r.addEventListener('submit', async e => { if (!e.target.matches('[data-tv="pin"]')) return; e.preventDefault(); const v = e.target.querySelector('input').value; if (await etatAcces(v)) demarrer(); });
   });
   window.addEventListener('synchro:prefs', () => { if (S.a) rendreListe(); });
+  /* clavier (PC) : ← retour, → avance, quand le lecteur est visible et qu'on n'écrit pas dans un champ */
+  if (LE) document.addEventListener('keydown', e => {
+    if (!S.cur || !LE.offsetParent || e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|SELECT|TEXTAREA)$/.test((e.target || {}).tagName || '')) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight'){ e.preventDefault(); sauter(LE.querySelector('video'), e.key === 'ArrowLeft' ? -SAUTS[0] : SAUTS[1]); setTimeout(majDirect, 300); }
+  });
+  if (LE) setInterval(() => { if (S.cur && S.cur.k === 'd' && LE.offsetParent) majDirect(); }, 5000);
   demarrer();
   return {arreter:() => arreter(LE && LE.querySelector('video')), recharger:() => demarrer(true)};
 }

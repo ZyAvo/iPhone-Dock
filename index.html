@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="fea0a4e1">
+<meta name="mon-ecran-version" content="afa8db69">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -213,6 +213,7 @@ html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);tra
 .d-empty{font-size:.86rem;color:var(--ink-soft);margin:0}
 /* Mode TV (PC, v44) : lecteur à la place d'« À la une », chaînes en haut à droite, matchs en bas à droite, détail du match au centre, actus à gauche */
 .tvm{display:none}
+html:not(.tv-on) .tvm{display:none!important}   /* v48 : le lecteur (.tv-z de tv.js, display:flex) restait affiché en bas après « Quitter le mode TV » */
 .d-tv{font-size:.8rem;font-weight:600;color:var(--accent);margin-left:auto}
 html.desk.tv-on #home{grid-template-columns:minmax(300px,340px) minmax(0,1fr) minmax(320px,380px)!important;
   grid-template-areas:"clock lecteur chaines" "spot lecteur chaines" "actu lecteur chaines" "actu detail matchs" "apps apps apps" "quick quick quick"!important;
@@ -234,6 +235,12 @@ html.desk #tvChainesZ{grid-area:chaines}html.desk #tvMatchsZ{grid-area:matchs}ht
 .tvd-eq span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .tvd-s{font-size:2.2rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .tvd-st{font-size:.78rem;color:var(--ink-soft);text-align:center}
+.tvd-res{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 14px;font-size:.82rem;line-height:1.35}
+.tvd-res > div{display:flex;flex-direction:column;gap:3px;min-width:0}.tvd-res > div:last-child{text-align:right}
+.tvd-res span{overflow-wrap:anywhere}.tvd-res small{color:var(--ink-soft)}.tvd-res i{font-style:normal;color:var(--ink-soft);font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.tvd-res .rouge::before{content:"";display:inline-block;width:8px;height:11px;border-radius:2px;background:#d33;margin-right:5px;vertical-align:-1px}
+.tvd-res .jaune::before{content:"";display:inline-block;width:8px;height:11px;border-radius:2px;background:#e8b500;margin-right:5px;vertical-align:-1px}
+.tvd-tal{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;font-size:.74rem;color:var(--ink-soft)}.tvd-tal span:last-child{text-align:right}
 .tvd-ev{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:.84rem}
 .tvd-ev b{font-variant-numeric:tabular-nums;color:var(--ink-soft);font-weight:600}
 .tvd-stat{display:grid;grid-template-columns:60px minmax(0,1fr) 60px;gap:8px;padding:5px 0;font-size:.82rem;text-align:center;border-top:1px solid var(--line)}
@@ -340,6 +347,16 @@ html.desk .inv-r{padding-left:10px;font-size:.74rem}html.desk .inv-r b,html.desk
 .sp-uri{display:flex;gap:6px;align-items:center;margin-top:4px}
 .sp-uri code{flex:1;min-width:0;font-size:.74rem;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 8px;overflow-wrap:anywhere}
 .sp-mini{flex:none;padding:6px 10px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-size:.78rem;font-weight:600}
+.sp-ctl{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.sp-row{display:flex;gap:6px;flex-wrap:wrap}.sp-row .sp-mini{padding:8px 10px}.sp-mini[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.sp-vol{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px;align-items:center;font-size:.8rem;color:var(--ink-soft)}
+.sp-vol select{font:inherit;font-size:.84rem;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 8px;min-width:0}
+.sp-vol input{accent-color:var(--accent);width:100%}
+.sp-sec{font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-top:2px}
+.sp-pls{display:flex;flex-direction:column;max-height:34vh;overflow:auto;margin:0 -4px;padding:0 4px}
+.sp-pl{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line);text-align:left;font-size:.86rem;font-weight:600}
+.sp-pl small{display:block;font-size:.72rem;font-weight:400;color:var(--ink-soft)}
+.sp-pi{width:40px;height:40px;border-radius:8px;background:var(--card) center / cover no-repeat}
 .sp-go{width:100%;padding:11px;border-radius:14px;background:var(--accent);color:var(--on-accent);font-weight:600;text-align:center;margin-bottom:6px}
 .sp-sep{border:0;border-top:1px solid var(--line);margin:12px 4px}
 .sp-code{width:100%;font:inherit;font-size:13px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px;min-height:64px;resize:vertical;overflow-wrap:anywhere}
@@ -1002,7 +1019,7 @@ $('#placeResults').addEventListener('click', e => {
    La page vérifie ce qui joue toutes les 3 s pendant la lecture (10 s en pause), seulement quand elle est affichée. */
 const SP_API = 'https://api.spotify.com/v1', SP_ACC = 'https://accounts.spotify.com';
 const SP_REDIRECT = location.origin + location.pathname.replace(/index\.html$/, '');
-const SP_SCOPES = 'user-read-currently-playing user-read-playback-state user-modify-playback-state user-read-recently-played';
+const SP_SCOPES = 'user-read-currently-playing user-read-playback-state user-modify-playback-state user-read-recently-played playlist-read-private playlist-read-collaborative';   // v48 : playlists
 const SPI = {
   note:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5.5l11-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>',
   play:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>',
@@ -1043,9 +1060,9 @@ async function spAccess(force){
     .finally(() => { spTokPromise = null; });
   return spTokPromise;
 }
-async function spCall(method, path, retry = true){
-  const r = await fetch(SP_API + path, {method, headers:{Authorization:'Bearer ' + await spAccess()}});
-  if (r.status === 401 && retry){ await spAccess(true); return spCall(method, path, false); }
+async function spCall(method, path, retry = true, body){
+  const r = await fetch(SP_API + path, {method, headers:{Authorization:'Bearer ' + await spAccess(), ...(body ? {'Content-Type':'application/json'} : {})}, ...(body ? {body:JSON.stringify(body)} : {})});
+  if (r.status === 401 && retry){ await spAccess(true); return spCall(method, path, false, body); }
   if (r.status === 204 || r.status === 202) return null;
   const j = await r.json().catch(() => null);
   if (!r.ok) throw Object.assign(new Error((j && j.error && j.error.message) || 'Spotify'), {status:r.status, reason:j && j.error && j.error.reason, retry:+r.headers.get('Retry-After') || 0});
@@ -1114,7 +1131,8 @@ async function spPoll(delay){
   try{
     const p = await spCall('GET', '/me/player?additional_types=episode');
     if (p && p.item){
-      sp = {kind:'track', track:trackOf(p.item), playing:!!p.is_playing, progress:p.progress_ms || 0, dur:p.item.duration_ms || 0, at:Date.now(), device:p.device && p.device.name};
+      sp = {kind:'track', track:trackOf(p.item), playing:!!p.is_playing, progress:p.progress_ms || 0, dur:p.item.duration_ms || 0, at:Date.now(), device:p.device && p.device.name,
+        shuffle:!!p.shuffle_state, repeat:p.repeat_state || 'off', volume:p.device ? p.device.volume_percent : null, devId:p.device && p.device.id};
       wait = p.is_playing ? 3000 : 10e3;
     } else {
       const r = await spCall('GET', '/me/player/recently-played?limit=1').catch(() => null);
@@ -1158,7 +1176,8 @@ function spPanel(mode = 'setup'){
   } else {
     const on = !!(spTok && spTok.refresh);
     box.innerHTML = `<h3 id="spTitle">${on ? 'Spotify' : 'Connecter Spotify'}</h3>
-      ${on ? `<p class="pl-msg">Compte connecté. Le widget se met à jour pendant la lecture.</p>
+      ${on ? `<div class="sp-ctl" id="spCtl"><p class="pl-msg">Chargement du lecteur…</p></div>
+        <p class="pl-msg">Compte connecté. Le widget se met à jour pendant la lecture.</p>
         ${!standalone() ? '<button type="button" class="sp-go" data-sp="transfert">Code pour l\'icône de l\'écran d\'accueil</button>' : ''}
         <button type="button" class="sp-go" data-sp="logout">Déconnecter</button>` : `
       <ol class="sp-steps">
@@ -1167,6 +1186,7 @@ function spPanel(mode = 'setup'){
           <span class="sp-uri"><code>${esc(SP_REDIRECT)}</code><button type="button" class="sp-mini" data-sp="copy" data-v="${esc(SP_REDIRECT)}">Copier</button></span></li>
         <li>Enregistre, puis copie le <b>Client ID</b> de l'appli et colle-le ici :</li>
       </ol>
+      ${spId ? '<p class="pl-msg">Client ID déjà renseigné (repris de tes autres appareils par la synchro) : touche simplement « Se connecter ».</p>' : ''}
       <form class="pl-search" data-sp-form="id"><input id="spIdIn" value="${esc(spId)}" placeholder="Client ID" aria-label="Client ID Spotify" autocapitalize="off" autocorrect="off" spellcheck="false"></form>
       <button type="button" class="sp-go" data-sp="login">Se connecter à Spotify</button>
       <hr class="sp-sep">
@@ -1177,7 +1197,34 @@ function spPanel(mode = 'setup'){
   }
   $('#spScrim').hidden = false;
   focusSi(box.querySelector('input,button'));
+  if (mode !== 'transfert' && spTok && spTok.refresh) spLecteur();
 }
+/* Lecteur complet dans la fenêtre Spotify (v48) : aléatoire, répétition, volume, appareil de sortie, playlists (commandes : Premium) */
+const SP_REP = {off:'Répétition : non', context:'Répéter la liste', track:'Répéter le titre'};
+async function spLecteur(){
+  const el = $('#spCtl'); if (!el) return;
+  const [p, d, pl] = await Promise.all([spCall('GET', '/me/player').catch(() => null), spCall('GET', '/me/player/devices').catch(() => null), spCall('GET', '/me/playlists?limit=40').catch(e => ({err:e.status}))]);
+  if (!$('#spCtl')) return;
+  const devs = (d && d.devices) || [], vol = p && p.device ? p.device.volume_percent : null;
+  el.innerHTML = `<div class="sp-row"><button type="button" class="sp-mini" data-sp="shuffle" aria-pressed="${!!(p && p.shuffle_state)}">🔀 Aléatoire ${p && p.shuffle_state ? 'oui' : 'non'}</button>
+      <button type="button" class="sp-mini" data-sp="repeat" data-v="${esc((p && p.repeat_state) || 'off')}">🔁 ${SP_REP[(p && p.repeat_state) || 'off']}</button></div>
+    ${vol != null ? `<label class="sp-vol"><span>Volume</span><input type="range" min="0" max="100" step="5" value="${vol}" data-sp-vol aria-label="Volume"></label>` : ''}
+    ${devs.length ? `<label class="sp-vol"><span>Sortie</span><select data-sp-dev aria-label="Appareil de sortie">${devs.map(x => `<option value="${esc(x.id)}"${x.is_active ? ' selected' : ''}>${esc(x.name)} (${esc(x.type)})</option>`).join('')}</select></label>`
+      : '<p class="pl-msg">Aucun appareil Spotify ouvert : lance Spotify sur ton téléphone, ton PC ou une enceinte.</p>'}
+    ${pl && pl.err === 403 || pl && pl.err === 401 ? '<p class="pl-msg">Pour afficher tes playlists, reconnecte Spotify une fois (nouvelle autorisation) : Déconnecter puis Se connecter.</p>'
+      : pl && pl.items && pl.items.length ? `<span class="sp-sec">Playlists</span><div class="sp-pls">${pl.items.filter(Boolean).map(x => `<button type="button" class="sp-pl" data-sp="pl" data-v="${esc(x.uri)}"><span class="sp-pi"${((x.images || [])[0] || {}).url ? ` style="background-image:url(&quot;${esc(x.images[x.images.length > 1 ? 1 : 0].url)}&quot;)"` : ''}></span><span>${esc(x.name)}<small>${esc(((x.tracks || {}).total ?? '') + ' titres')}</small></span></button>`).join('')}</div>` : ''}
+    <p class="pl-msg" id="spCtlMsg" role="status"></p>`;
+}
+async function spAction(f){
+  const m = t => { const x = $('#spCtlMsg'); if (x) x.textContent = t; };
+  try{ await f(); setTimeout(spLecteur, 500); spPoll(700); }
+  catch(e){ m(e.status === 403 ? (e.reason === 'PREMIUM_REQUIRED' ? 'Réservé à Spotify Premium.' : 'Refusé par Spotify.') : e.status === 404 ? 'Aucun appareil actif : ouvre Spotify quelque part.' : 'Spotify ne répond pas.'); }
+}
+document.addEventListener('change', e => {
+  if (e.target.matches('[data-sp-vol]')) spAction(() => spCall('PUT', `/me/player/volume?volume_percent=${+e.target.value}`));
+  if (e.target.matches('[data-sp-dev]')) spAction(() => spCall('PUT', '/me/player', true, {device_ids:[e.target.value], play:true}));
+});
+window.addEventListener('synchro:prefs', () => { const id = LS.get('spotify:client', ''); if (id && id !== spId && !(spTok && spTok.refresh)){ spId = id; if (sp.kind === 'setup') spRender(); } });   // Client ID venu d'un autre appareil (v48)
 function spClose(){ $('#spScrim').hidden = true; focusSi(lastFocus); }
 $('#spScrim').addEventListener('click', e => { if (!e.target.closest('#spPanel')) spClose(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#spScrim').hidden) spClose(); });
@@ -1190,6 +1237,9 @@ document.addEventListener('click', async e => {
   if (what === 'transfert') return spPanel('transfert');
   if (what === 'close') return spClose();
   if (['toggle', 'next', 'prev'].includes(what)) return spCommand(what);
+  if (what === 'shuffle') return spAction(() => spCall('PUT', `/me/player/shuffle?state=${b.getAttribute('aria-pressed') !== 'true'}`));
+  if (what === 'repeat') return spAction(() => spCall('PUT', `/me/player/repeat?state=${({off:'context', context:'track', track:'off'})[b.dataset.v] || 'off'}`));
+  if (what === 'pl') return spAction(() => spCall('PUT', '/me/player/play', true, {context_uri:b.dataset.v}));
   if (what === 'copy'){
     try{ await navigator.clipboard.writeText(b.dataset.v); b.textContent = 'Copié ✓'; }
     catch{ const ta = $('#spPanel textarea, #spPanel code'); if (ta && ta.select) ta.select(); b.textContent = 'Sélectionné : copie-le'; }
@@ -1541,17 +1591,51 @@ async function renderDetail(id, z){
     if (Z.sel !== id) return;
     const comp = (((j.header || {}).competitions) || [])[0] || {}, cs = comp.competitors || [];
     const H = cs.find(c => c.homeAway === 'home') || cs[0] || {}, A = cs.find(c => c.homeAway === 'away') || cs[1] || {};
-    const st = ((comp.status || {}).type || {}), etat = st.state;
+    const st = ((comp.status || {}).type || {}), etat = st.state, US = US_SP.includes(e.sp);
+    const [G, D] = US ? [A, H] : [H, A];                                  // v48 : sports US, l'équipe qui reçoit à droite
+    try{ await chargerJS('match.js'); }catch{}
+    if (Z.sel !== id) return;
+    const P = window.Match && (e.sp === 'soccer' || e.sp === 'rugby') ? Match.lire(j, e.sp) : {evs:[]};
     const eq = c => `<span class="tvd-eq">${((c.team || {}).logos || [])[0] || (c.team || {}).logo ? `<img src="${esc(((c.team || {}).logos || [])[0] ? c.team.logos[0].href : c.team.logo)}" alt="" onerror="this.remove()">` : ''}<span>${esc((c.team || {}).displayName || '')}</span></span>`;
-    const evs = [...(j.keyEvents || []).filter(k => /goal|but|card|carton|penalty|substitution/i.test(((k.type || {}).text || '') + ' ' + ((k.type || {}).type || '')) && !/substitution/i.test((k.type || {}).text || '')),
-      ...(!(j.keyEvents || []).length ? (j.scoringPlays || []) : [])].slice(-14).reverse();
-    const sT = ((j.boxscore || {}).teams || []), stH = (sT.find(t => (t.team || {}).id === (H.team || {}).id) || sT[0] || {}).statistics || [], stA = (sT.find(t => (t.team || {}).id === (A.team || {}).id) || sT[1] || {}).statistics || [];
-    const stats = stH.filter(x => x.displayValue != null && x.label).slice(0, 8).map(x => { const y = stA.find(z => z.name === x.name) || {}; return `<div class="tvd-stat"><span>${esc(x.displayValue)}</span><span>${esc(x.label)}</span><span>${esc(y.displayValue ?? '')}</span></div>`; }).join('');
-    el.innerHTML = tete + `<div class="tvd-sc">${eq(H)}<span class="tvd-s">${etat === 'pre' ? '–' : `${esc(H.score ?? '')} – ${esc(A.score ?? '')}`}</span>${eq(A)}</div>
-      <div class="tvd-st">${esc(st.shortDetail || st.detail || (etat === 'pre' ? 'À venir · ' + hm(e.t) : ''))}</div>
-      ${evs.length ? `<span class="ds-sec">Faits du match</span>${evs.map(k => `<div class="tvd-ev"><b>${esc(((k.clock || {}).displayValue) || '')}</b><span>${esc(k.text || k.shortText || ((k.type || {}).text) || '')}</span></div>`).join('')}` : ''}
+    /* résumé (v48) : buteurs et minutes au foot ; essais, transformations, pénalités, drops et cartons au rugby, par équipe */
+    const cote = d => (d.side === 'home') === !US ? 0 : 1, cols = [[], []];
+    const mins = l => l.map(d => esc(d.min || '')).filter(Boolean).join(', ');
+    const parJoueur = l => { const g = new Map(); l.forEach(d => { const k = (d.who || '?') + (d.og ? '|csc' : ''); g.set(k, [...(g.get(k) || []), d]); }); return [...g.values()]; };
+    if (e.sp === 'soccer') [0, 1].forEach(c => {
+      parJoueur(P.evs.filter(d => cote(d) === c && d.kind === 'goal' && !d.so)).forEach(l => cols[c].push(`<span>${esc(l[0].who || 'But')} <small>${l.map(d => esc(d.min || '') + (d.pen ? ' (pén.)' : '')).join(', ')}${l[0].og ? ' (csc)' : ''}</small></span>`));
+      P.evs.filter(d => cote(d) === c && d.kind === 'red').forEach(d => cols[c].push(`<span class="rouge">${esc(d.who || 'Carton rouge')} <small>${esc(d.min || '')}</small></span>`));
+    });
+    let tally = '';
+    if (e.sp === 'rugby' && P.evs.length){
+      const T = {try:'Essais', conv:'Transf.', pen:'Pénalités', drop:'Drops'};
+      [0, 1].forEach(c => {
+        Object.entries(T).forEach(([k, lab]) => { const l = P.evs.filter(d => cote(d) === c && d.kind === k); if (!l.length) return;
+          cols[c].push(`<i>${lab} (${l.length})</i>` + parJoueur(l).map(x => `<span>${esc(x[0].who || '?')} <small>${x.length > 2 ? '×' + x.length : mins(x)}</small></span>`).join('')); });
+        P.evs.filter(d => cote(d) === c && (d.kind === 'yellow' || d.kind === 'red')).forEach(d => cols[c].push(`<span class="${d.kind === 'red' ? 'rouge' : 'jaune'}">${esc(d.who || 'Carton')} <small>${esc(d.min || '')}</small></span>`));
+      });
+      const n = (c, k) => P.evs.filter(d => cote(d) === c && d.kind === k).length;
+      tally = `<div class="tvd-tal">${[0, 1].map(c => `<span>${n(c, 'try')} essai${n(c, 'try') > 1 ? 's' : ''} · ${n(c, 'conv')} transf. · ${n(c, 'pen')} pén.${n(c, 'drop') ? ' · ' + n(c, 'drop') + ' drop' : ''}</span>`).join('')}</div>`;
+    }
+    const resume = cols[0].length || cols[1].length ? `<span class="ds-sec">${e.sp === 'rugby' ? 'Points marqués' : 'Buts'}</span>${tally}<div class="tvd-res"><div>${cols[0].join('')}</div><div>${cols[1].join('')}</div></div>` : '';
+    /* faits du match : toute la liste (v48 : au rugby, les essais et transformations étaient écartés et la liste coupée à 14) */
+    const FAIT = /goal|but|card|carton|penalty|pénalit|try|essai|conver|transfo|drop|sin.?bin/i;
+    let evs = (j.keyEvents || []).filter(k => FAIT.test(((k.type || {}).text || '') + ' ' + ((k.type || {}).type || '') + ' ' + (k.text || '')) && !/substitution/i.test((k.type || {}).text || '')).reverse();
+    if (!evs.length && (j.scoringPlays || []).length) evs = [...j.scoringPlays].reverse();
+    const faitsTxt = k => esc(k.text || k.shortText || ((k.type || {}).text) || '');
+    let faits = evs.map(k => `<div class="tvd-ev"><b>${esc(((k.clock || {}).displayValue) || '')}</b><span>${faitsTxt(k)}</span></div>`).join('');
+    if (!faits && e.sp === 'rugby' && P.evs.length){                      // fiche sans liste d'actions : celles lues par match.js
+      const NOM = {try:'Essai', conv:'Transformation', pen:'Pénalité', drop:'Drop', yellow:'Carton jaune', red:'Carton rouge'}, eqN = c => esc(((c.team || {}).shortDisplayName) || ((c.team || {}).displayName) || '');
+      faits = [...P.evs].sort((a, b) => Match.minVal(b.min) - Match.minVal(a.min)).map(d => `<div class="tvd-ev"><b>${esc(d.min || '')}</b><span>${NOM[d.kind] || d.kind} · ${esc(d.who || '')} (${eqN(d.side === 'home' ? H : A)})</span></div>`).join('');
+    }
+    const sT = ((j.boxscore || {}).teams || []), stG = (sT.find(t => (t.team || {}).id === (G.team || {}).id) || sT[US ? 1 : 0] || {}).statistics || [], stD = (sT.find(t => (t.team || {}).id === (D.team || {}).id) || sT[US ? 0 : 1] || {}).statistics || [];
+    const stats = stG.filter(x => x.displayValue != null && x.label).slice(0, 8).map(x => { const y = stD.find(z => z.name === x.name) || {}; return `<div class="tvd-stat"><span>${esc(x.displayValue)}</span><span>${esc(x.label)}</span><span>${esc(y.displayValue ?? '')}</span></div>`; }).join('');
+    const mn = e.sp === 'rugby' && etat === 'in' && window.Match ? Match.minute(comp.status || {}, P.evs, e.t) : null;
+    el.innerHTML = tete + `<div class="tvd-sc">${eq(G)}<span class="tvd-s">${etat === 'pre' ? '–' : `${esc(G.score ?? '')} – ${esc(D.score ?? '')}`}</span>${eq(D)}</div>
+      <div class="tvd-st">${esc(mn ? (mn === 'MT' ? 'Mi-temps' : mn) : st.shortDetail || st.detail || (etat === 'pre' ? 'À venir · ' + hm(e.t) : ''))}</div>
+      ${resume}
+      ${faits ? `<span class="ds-sec">Faits du match</span>${faits}` : ''}
       ${stats ? `<span class="ds-sec">Statistiques</span>${stats}` : ''}
-      ${!evs.length && !stats && etat !== 'pre' ? '<p class="d-empty">Pas encore de détail fourni pour ce match.</p>' : ''}`;
+      ${!resume && !faits && !stats && etat !== 'pre' ? '<p class="d-empty">Pas encore de détail fourni pour ce match.</p>' : ''}`;
     if (etat === 'in' && Z.actif()) Z.t = setTimeout(() => { if (Z.sel === id && Z.actif()) renderDetail(id, z); }, 60e3);
   }catch{ if (Z.sel === id) el.innerHTML = tete + '<p class="d-empty">Détail injoignable pour l\'instant.</p>'; }
 }
@@ -1578,13 +1662,24 @@ const favWords = t => String(t || '').toLowerCase().replace(/[ßæœøłđðþı
 function favOf(){ try{ return JSON.parse(localStorage.getItem('sport:favoris')) || SPORT_FAV; }catch{ return SPORT_FAV; } }
 const isFavEv = (e, F) => F.ligues.includes(e.l) || F.equipes.some(n => { const f = favWords(n); return f.length && [e.h, e.a].some(x => { const w = favWords(x); return f.every(t => w.includes(t)); }); });
 let minutes = {}, logosL = {};
+/* minute au rugby (v48) : ESPN laisse l'horloge à 1' ; estimée depuis le coup d'envoi et la période (même calcul que match.js) */
+function minRugby(st, debut){
+  if (window.Match) return Match.minute(st, [], debut) || '';
+  const d = String(((st || {}).type || {}).shortDetail || ''); if (/half.?time|^ht$/i.test(d)) return 'MT';
+  const lu = parseInt(st.displayClock, 10); if (lu > 1 && lu <= 100) return lu + "'";
+  if (!debut) return ''; const per = +st.period || 1, ec = Math.floor((Date.now() - debut) / 60e3);
+  const est = per >= 2 ? Math.max(41, ec - 17) : Math.min(40, ec); return est > (per >= 2 ? 80 : 40) ? (per >= 2 ? "80'+" : "40'+") : est > 0 ? est + "'" : '';
+}
 /* une ligne de match (accueil PC et mode TV) : LIVE + minute, équipes et score, drapeau et logo de la compétition (v46) */
 const DRAPEAU = (() => { try{ return Object.fromEntries((CFG('sport.leagues', []) || []).map(l => [l.id, l.flag || ''])); }catch{ return {}; } })();
+const US_SP = ['basketball', 'football', 'hockey', 'baseball'];   // v48 : sports US, l'équipe qui reçoit à droite (« Visiteur @ Domicile »)
 function ligneMatch(e, liveIds, F, attrs){
-  const enDirect = liveIds.has(e.id), sc = enDirect ? (LIVE_NOW.scores || {})[e.id] || '' : '', mn = enDirect ? (LIVE_NOW.minutes || {})[e.id] || minutes[e.id] || '' : '';
+  const us = US_SP.includes(e.sp) && !!e.a;
+  if (us) e = {...e, h:e.a, a:e.h, us:true};
+  const enDirect = liveIds.has(e.id), sc0 = enDirect ? (LIVE_NOW.scores || {})[e.id] || '' : '', sc = us ? sc0.split('–').reverse().join('–') : sc0, mn = enDirect ? (LIVE_NOW.minutes || {})[e.id] || minutes[e.id] || '' : '';
   const lg = (LIVE_NOW.logos || logosL || {})[e.sp + '/' + e.l] || logosL[e.sp + '/' + e.l];
   return `<span class="ds-h">${enDirect ? `<span class="ds-live">LIVE</span>${mn ? `<span class="ds-min">${esc(mn)}</span>` : ''}` : hm(e.t)}</span>
-    <span><span class="ds-t">${esc(e.h)}${e.a ? (sc ? ` <span class="ds-sc">${esc(sc)}</span> ` : ' – ') + esc(e.a) : ''}</span><span class="ds-l">${DRAPEAU[e.l] ? DRAPEAU[e.l] + ' ' : ''}${lg ? `<img class="ds-lg" src="${esc(lg)}" alt="" onerror="this.remove()">` : ''}${esc(e.ln || e.l)}</span></span>`;
+    <span><span class="ds-t">${esc(e.h)}${e.a ? (sc ? ` <span class="ds-sc">${esc(sc)}</span> ` : e.us ? ' @ ' : ' – ') + esc(e.a) : ''}</span><span class="ds-l">${DRAPEAU[e.l] ? DRAPEAU[e.l] + ' ' : ''}${lg ? `<img class="ds-lg" src="${esc(lg)}" alt="" onerror="this.remove()">` : ''}${esc(e.ln || e.l)}</span></span>`;
 }
 async function loadLive(){
   const dots = document.querySelectorAll('[data-livedot]'); if (!dots.length) return;
@@ -1600,7 +1695,7 @@ async function loadLive(){
         const s = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${k}/scoreboard`)).json();
         const lg = (((s.leagues || [])[0] || {}).logos || [])[0]; if (lg && lg.href) logosL[k] = lg.href;
         (s.events || []).forEach(ev => { states[ev.id] = ((ev.status || {}).type || {}).state;
-          const st = ev.status || {}, ty = st.type || {}; if (ty.state === 'in') minutes[ev.id] = /'|\d/.test(st.displayClock || '') && k.startsWith('soccer') ? st.displayClock : (ty.shortDetail || st.displayClock || '');
+          const st = ev.status || {}, ty = st.type || {}; if (ty.state === 'in') minutes[ev.id] = /'|\d/.test(st.displayClock || '') && k.startsWith('soccer') ? st.displayClock : k.startsWith('rugby') ? minRugby(st, Date.parse(ev.date)) : (ty.shortDetail || st.displayClock || '');
           const cs = ((ev.competitions || [])[0] || {}).competitors || [], h = cs.find(c => c.homeAway === 'home'), a = cs.find(c => c.homeAway === 'away');
           if (h && a && h.score != null && a.score != null) scores[ev.id] = `${h.score}–${a.score}`; });
       }catch{} }));
@@ -1632,7 +1727,7 @@ function renderBand(){
   rows.innerHTML = list.length ? list.map(e => {
     const live = L.ids.has(e.id) || now >= e.t, sc = L.scores[e.id];
     const ses = String(e.a || '').replace(/^essais libres (\d)$/i, 'EL$1').replace(/^qualifications sprint$/i, 'QS').replace(/^qualifications (\d)$/i, 'Q$1').replace(/^qualifications$/i, 'Q').replace(/^warm-?up$/i, 'WU');
-    const titre = e.sp === 'racing' ? `${e.ln} · ${ses}${e.h ? ' · ' + e.h.replace(/^(Grand Prix|GP) (de |du |d'|des )?/i, '') : ''}` : `${e.hc || e.h} – ${e.ac || e.a}`;
+    const titre = e.sp === 'racing' ? `${e.ln} · ${ses}${e.h ? ' · ' + e.h.replace(/^(Grand Prix|GP) (de |du |d'|des )?/i, '') : ''}` : US_SP.includes(e.sp) ? `${e.ac || e.a} @ ${e.hc || e.h}` : `${e.hc || e.h} – ${e.ac || e.a}`;
     const [jr, hr] = quand(e.t);
     return `<span class="pr-row">${live ? '<span class="pr-t live">En cours</span>' : `<span class="pr-t">${jr}</span><span class="pr-t pr-h">${hr}</span>`}<span class="pr-m">${esc(titre)}</span>${sc ? `<span class="pr-sc">${esc(sc)}</span>` : e.tv ? `<span class="pr-tv">${esc(e.tv)}</span>` : '<span></span>'}</span>`; }).join('')
     : '<span class="sb-vide">Aucun match de tes favoris dans les 8 jours</span>';

@@ -1,4 +1,4 @@
-// mon-ecran-version: f98bb157
+// mon-ecran-version: 1769949a
 /* Mon Écran — thèmes de couleurs (v42), communs à toutes les pages.
    Chargé dans <head> juste après noyau.js : applique le thème et le mode choisis dans État avant l'affichage,
    écrit les couleurs du thème et le fond dégradé (calque fixe : sur iPhone, Safari ignore « background-attachment:fixed »
@@ -85,7 +85,8 @@ function calculer(t){
   const accClair = couleur(Math.min(ac[0], .5), Math.min(ac[1], .16), ac[2]), accSombre = couleur(Math.max(ac[0], .78), Math.min(ac[1], .15), ac[2]);
   const acO = oklch(accClair), asO = oklch(accSombre);
   const base = couleur(.968, cC, hC), baseS = couleur(.17, cF, hF);
-  const tache = (o, L, al) => couleur(L, Math.min(o[1] * 1.1 + .03, .17), o[2], al);
+  const AV = t.av || {}, fT = AV.taches != null && isFinite(+AV.taches) ? Math.max(0, Math.min(1, +AV.taches / 100)) : 1;   // v48 : intensité des taches du fond
+  const tache = (o, L, al) => couleur(L, Math.min(o[1] * 1.1 + .03, .17), o[2], +(al * fT).toFixed(3));
   const tuile = (o, L) => couleur(L, Math.min(Math.max(o[1], .05), .15), o[2]);
   const clair = {
     base, 'blob-1':tache(v(0), .8, .58), 'blob-2':tache(v(1), .72, .5), 'blob-3':tache(v(2), .6, .42), 'blob-4':tache(v(3), .84, .5),
@@ -108,7 +109,24 @@ function calculer(t){
     accent:accSombre, 'on-accent':baseS, 'accent-soft':couleur(asO[0], asO[1], asO[2], .14),
     sheet:couleur(.17, cF, hF, .95), 'sheet-solid':baseS, scrim:'rgba(0,0,0,.45)'
   };
+  avance(AV, clair, sombre);
   return {clair:{...clair, ...(t.clair || {})}, sombre:{...sombre, ...(t.sombre || {})}};
+}
+/* Réglages avancés du thème perso (v48) : {fond, texte, accent, neon, taches} — couleurs imposées telles quelles.
+   fond / texte : mode clair (le sombre reste calculé) ; accent : boutons et liens, dans les deux modes ;
+   neon : l'accent garde sa couleur vive (sinon il est assombri en clair pour rester lisible), texte des boutons foncé s'il est clair. */
+function avance(AV, clair, sombre){
+  const hex = h => HEX.test(h || '') ? (h.startsWith('#') ? h : '#' + h) : null;
+  const fond = hex(AV.fond), texte = hex(AV.texte), acc = hex(AV.accent);
+  if (fond){ const o = oklch(fond);
+    Object.assign(clair, {base:fond, panel:fond, 'sheet-solid':fond, head:couleur(o[0], o[1], o[2], .76), sheet:couleur(o[0], o[1], o[2], .95)});
+    if (o[0] < .93) Object.assign(clair, {card:'rgba(255,255,255,.5)', glass:'rgba(255,255,255,.34)'}); }
+  if (texte){ const o = oklch(texte), f = oklch(fond || clair.base), mi = k => couleur(o[0] + (f[0] - o[0]) * k, o[1] * (1 - k * .6), o[2]);
+    Object.assign(clair, {ink:texte, 'ink-soft':mi(.42), 'ink-faint':mi(.6), line:couleur(o[0], o[1], o[2], .12), scrim:couleur(o[0], o[1], o[2], .3), shadow:`0 14px 34px -16px ${couleur(o[0], o[1], o[2], .42)}`}); }
+  if (acc){ const o = oklch(acc), sur = h => oklch(h)[0] > .68 ? (texte || '#10141a') : '#ffffff';
+    const cl = AV.neon ? acc : couleur(Math.min(o[0], .5), Math.min(o[1], .16), o[2]), so = AV.neon ? acc : couleur(Math.max(o[0], .78), Math.min(o[1], .15), o[2]);
+    Object.assign(clair, {accent:cl, 'on-accent':sur(cl), 'accent-soft':couleur(o[0], o[1], o[2], AV.neon ? .16 : .09)});
+    Object.assign(sombre, {accent:so, 'on-accent':oklch(so)[0] > .68 ? sombre.base : '#ffffff', 'accent-soft':couleur(o[0], o[1], o[2], .16)}); }
 }
 /* thème écrit à la main (tous ceux d'avant la v42) : ses valeurs telles quelles ; sinon calculé */
 const variables = t => t.clair && (t.id === 'bleu' || t.clair.base) ? {clair:t.clair, sombre:t.sombre || {}} : calculer(t);
@@ -133,7 +151,7 @@ const FOND = `.app-logo{display:inline-block;width:.9em;height:.9em;border-radiu
   + `@supports (background-image:radial-gradient(in oklab, red, blue)){body::after{background-image:${GRAIN},${taches('in oklab ')}}}\n`;
 
 /* ---------- thème perso ---------- */
-function perso(){ try{ const p = JSON.parse(LS.lire('theme:perso')); return p && Array.isArray(p.c) && p.c.length >= 2 ? {id:'perso', nom:String(p.nom || 'Mon thème').slice(0, 30), d:'Mon thème', c:p.c.slice(0, 5), perso:true} : null; }catch{ return null; } }
+function perso(){ try{ const p = JSON.parse(LS.lire('theme:perso')); return p && Array.isArray(p.c) && p.c.length >= 2 ? {id:'perso', nom:String(p.nom || 'Mon thème').slice(0, 30), d:'Mon thème', c:p.c.slice(0, 5), perso:true, ...(p.av ? {av:p.av} : {})} : null; }catch{ return null; } }
 /* couleurs lues dans un texte : adresse coolors.co (…/ff6b6b-ffa36c-…), codes #rrggbb séparés par des espaces, virgules… */
 function lireCouleurs(txt){
   const s = String(txt || ''), m = s.match(/coolors\.co\/(?:palette\/)?([0-9a-f]{6}(?:-[0-9a-f]{6})+)/i);
@@ -255,8 +273,8 @@ window.Themes = {
   variables:t => variables(t),
   choisir(id){ LS.ecrire('palette', id === DEF() ? null : id); apercu = null; ecrireCSS(); poser(actuel()); poserIcones(); },
   /* aperçu sans rien garder (État › Créer mon thème) ; Themes.apercu(null) revient au thème choisi */
-  apercu(c){ apercu = c && c.length >= 2 ? {id:'apercu', c} : null; ecrireCSS(); poser(apercu ? 'apercu' : actuel()); poserIcones(); },
-  enregistrerPerso(nom, c){ LS.ecrire('theme:perso', JSON.stringify({nom:String(nom || 'Mon thème').slice(0, 30), c:c.slice(0, 5)})); apercu = null; this.choisir('perso');
+  apercu(c, av){ apercu = c && c.length >= 2 ? {id:'apercu', c, ...(av ? {av} : {})} : null; ecrireCSS(); poser(apercu ? 'apercu' : actuel()); poserIcones(); },
+  enregistrerPerso(nom, c, av){ LS.ecrire('theme:perso', JSON.stringify({nom:String(nom || 'Mon thème').slice(0, 30), c:c.slice(0, 5), ...(av ? {av} : {})})); apercu = null; this.choisir('perso');
     try{ window.Synchro && Synchro.prefsPlusTard && Synchro.prefsPlusTard(); }catch{} },
   effacerPerso(){ LS.ecrire('theme:perso', null); if (LS.lire('palette') === 'perso') LS.ecrire('palette', null); apercu = null; ecrireCSS(); poser(actuel()); poserIcones();
     try{ window.Synchro && Synchro.prefsPlusTard && Synchro.prefsPlusTard(); }catch{} },

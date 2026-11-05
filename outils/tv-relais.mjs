@@ -1,4 +1,4 @@
-// mon-ecran-version: fd87098a
+// mon-ecran-version: 7947da31
 // Mon Écran — relais TV pour le PC (v44). Rien à installer à part Node.js 18 ou plus récent.
 // Le dock (page sécurisée en https) ne peut ni interroger un serveur TV en http ni lire ses flux. Ce relais tourne sur ton PC,
 // n'écoute que la machine elle-même (127.0.0.1) et fait l'intermédiaire :
@@ -44,7 +44,14 @@ const serveur = http.createServer(async (req, res) => {
   if (!u){ res.writeHead(400, H); res.end('Adresse invalide'); return; }
   const stop = new AbortController(); req.on('close', () => stop.abort());
   try{
-    const r = await fetch(u, {redirect:'follow', signal:stop.signal, headers:{'User-Agent':UA, 'Accept':'*/*', ...(req.headers.range ? {Range:req.headers.range} : {})}});
+    /* v48 : serveur lent ou coupure brève : 20 s au plus pour obtenir la réponse, jusqu'à 3 essais (0,6 s puis 1,5 s d'écart) avant d'abandonner */
+    let r, essai = 0;
+    for (;;){
+      try{ r = await fetch(u, {redirect:'follow', signal:AbortSignal.any([stop.signal, AbortSignal.timeout(20000)]), headers:{'User-Agent':UA, 'Accept':'*/*', ...(req.headers.range ? {Range:req.headers.range} : {})}});
+        if (r.status >= 500 && essai < 2 && url.pathname === '/flux') throw new Error('serveur ' + r.status);
+        break; }
+      catch(e){ if (stop.signal.aborted || ++essai > 2) throw e; await new Promise(ok => setTimeout(ok, essai === 1 ? 600 : 1500)); }
+    }
     const type = r.headers.get('content-type') || '';
     if (url.pathname === '/flux' && (/mpegurl/i.test(type) || /\.m3u8(\?|$)/i.test(r.url))){
       const t = reecrire(await r.text(), r.url);

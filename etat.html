@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="2a2b3855">
+<meta name="mon-ecran-version" content="51e93acc">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -120,6 +120,11 @@ html.desk .wrap{max-width:860px}
 .pz-c input::-webkit-color-swatch-wrapper{padding:3px}
 .pz-c input::-webkit-color-swatch{border:0;border-radius:9px}
 .pz .actions{margin-top:12px}
+.pz-av{margin-top:10px}.pz-av > summary{cursor:pointer;list-style:none}.pz-av > summary::-webkit-details-marker{display:none}.pz-av > summary::before{content:"▸ ";color:var(--ink-soft)}.pz-av[open] > summary::before{content:"▾ "}
+.pz-avg{display:flex;flex-direction:column;gap:2px}
+.pz .pz-al{flex-direction:row;align-items:center;gap:10px;margin-top:6px}
+.pz-al input[type=color]{margin-left:auto;width:52px;height:32px;border:1px solid var(--line);border-radius:8px;background:none;padding:2px}.pz-al input[type=color]:disabled{opacity:.35}
+.pz-al input[type=range]{flex:1;accent-color:var(--accent)}.pz-al span{min-width:3em;text-align:right}
 .pz-del{color:#c0392b}
 .logos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 8px;padding:10px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
 .lg{display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px 2px;border-radius:14px;min-height:44px}
@@ -165,6 +170,7 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 .lamp{width:14px;height:14px;border-radius:50%;flex:none;background:var(--lc);box-shadow:0 0 0 4px color-mix(in oklab, var(--lc) 22%, transparent)}
 .ok{--lc:#1e8a4c}.warn{--lc:#e08a12}.err{--lc:#d63c3c}.none{--lc:#8b8c89}
 .part{border-radius:24px;overflow:hidden}
+.grp{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin:10px 4px -2px}
 .part > summary{list-style:none;display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
 .part > summary::-webkit-details-marker{display:none}
 .part > summary .t{flex:1;min-width:0}
@@ -260,7 +266,11 @@ function judge(e){
   return out;
 }
 const chev = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
-const part = (title, j, inner, open) => `<details class="part glass ${j.lvl}"${open ? ' open' : ''}><summary><span class="lamp"></span><span class="t"><b>${title}</b><small>${esc(j.msg)}</small></span>${chev}</summary><div class="body">${inner}</div></details>`;
+/* v48 : toutes les parties fermées par défaut (le point vert / orange / rouge suffit) ; celles qu'on ouvre le restent pendant la session */
+const OUVERTS = (() => { try{ return new Set(JSON.parse(sessionStorage.getItem('etat:ouverts')) || []); }catch{ return new Set(); } })();
+document.addEventListener('toggle', e => { const d = e.target; if (!d || !d.matches || !d.matches('details[data-part]')) return;
+  d.open ? OUVERTS.add(d.dataset.part) : OUVERTS.delete(d.dataset.part); try{ sessionStorage.setItem('etat:ouverts', JSON.stringify([...OUVERTS])); }catch{} }, true);
+const part = (title, j, inner) => `<details class="part glass ${j.lvl}" data-part="${esc(title)}"${OUVERTS.has(title) ? ' open' : ''}><summary><span class="lamp"></span><span class="t"><b>${title}</b><small>${esc(j.msg)}</small></span>${chev}</summary><div class="body">${inner}</div></details>`;
 
 /* Thème de couleurs (gardé sur cet appareil, appliqué à toutes les pages) — liste, calcul et thème perso : themes.js */
 const MODE_DEF = CFG('apparence.mode', 'auto');   // choix de départ d'un nouvel appareil (le thème de départ : Themes.defaut())
@@ -269,7 +279,7 @@ const PZ = {ouvert:false, c:null, nom:''};          // formulaire « Créer mon 
 const PZ_DEPART = ['#ff6b6b', '#ffa36c', '#c06c84', '#6c5b7b', '#355c7d'];
 function themeHTML(){
   const cur = Themes.actuel(), p = Themes.perso();
-  return `<div class="sum glass" id="themeCard" style="flex-direction:column;align-items:stretch;gap:6px"><b>Thème</b>
+  return `<div id="themeCard" style="display:flex;flex-direction:column;align-items:stretch;gap:6px">
     <div class="modes" role="radiogroup" aria-label="Mode clair ou sombre">${[['auto', 'Défaut'], ['clair', 'Clair'], ['sombre', 'Sombre']].map(([v, t]) => `<button type="button" role="radio" aria-checked="${v === modeNow()}" data-mode="${v}"${v === 'auto' ? ' title="Suit le réglage de l\'iPhone"' : ''}>${t}</button>`).join('')}</div>
     <div class="pals" role="radiogroup" aria-label="Thème de couleurs">${Themes.liste().map(t => `<button type="button" class="pl-row" role="radio" aria-checked="${t.id === cur}" data-pal="${t.id}">
       <span class="pal" aria-hidden="true">${t.c.map(c => `<i style="background:${esc(c)}"></i>`).join('')}</span><span class="pl-t"><b>${esc(t.nom)}</b><small>${esc(t.d)}</small></span><span class="ok" aria-hidden="true"></span></button>`).join('')}
@@ -280,32 +290,53 @@ function themeHTML(){
     <p class="note" style="margin:2px 0 0">Aux couleurs du thème choisi. Sur l'écran d'accueil, l'iPhone garde l'icône du jour où elle a été ajoutée : pour la changer, fais d'abord une sauvegarde (ou active la synchronisation), supprime l'icône, puis rajoute-la depuis Safari (Partager › Sur l'écran d'accueil) et restaure tes réglages.</p>
     <p class="note" style="margin:2px 0 0">Appliqué à toutes les pages de cet appareil.${p ? ' Ton thème perso est partagé avec tes autres appareils par la synchronisation.' : ''}</p></div>`;
 }
+const AV_DEF = {fond:'#d5d9de', texte:'#1c2128', accent:'#00b4ff'};
+/* réglages avancés lus dans le formulaire (v48) : seulement ceux cochés */
+function pzAvance(){
+  const av = {};
+  document.querySelectorAll('[data-pza]').forEach(i => { if (!i.disabled) av[i.dataset.pza] = i.value; });
+  const n = document.querySelector('[data-pza-neon]'), t = document.querySelector('[data-pza-taches]');
+  if (n && n.checked) av.neon = true; if (t && +t.value !== 100) av.taches = +t.value;
+  return Object.keys(av).length ? av : null;
+}
 function persoHTML(p){
-  const c = PZ.c || (p ? p.c : PZ_DEPART);
+  const c = PZ.c || (p ? p.c : PZ_DEPART), AVc = PZ.av || (p && p.av) || {};
   return `<div class="pz" id="pz"><b>${p ? 'Modifier mon thème' : 'Créer mon thème'}</b>
     <label class="note">Lien coolors.co ou codes couleur<input id="pzTxt" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://coolors.co/ff6b6b-ffa36c-c06c84-…"></label>
     <div class="pz-c" role="group" aria-label="Couleurs du thème">${[0, 1, 2, 3, 4].map(i => `<input type="color" data-pzc="${i}" value="${esc(c[i] || c[i % c.length])}" aria-label="Couleur ${i + 1}">`).join('')}</div>
+    <details class="pz-av"${PZ.av ? ' open' : ''}><summary class="note"><b>Avancé</b> : imposer le fond, le texte, l'accent</summary>
+      <div class="pz-avg">
+        ${[['fond', 'Fond (clair)'], ['texte', 'Texte (clair)'], ['accent', 'Accent']].map(([k, t]) => `<label class="note pz-al"><input type="checkbox" data-pza-on="${k}"${AVc[k] ? ' checked' : ''}>${t}<input type="color" data-pza="${k}" value="${esc(AVc[k] || AV_DEF[k])}"${AVc[k] ? '' : ' disabled'}></label>`).join('')}
+        <label class="note pz-al"><input type="checkbox" data-pza-neon${AVc.neon ? ' checked' : ''}>Néon : garder l'accent vif tel quel</label>
+        <label class="note pz-al">Taches du fond<input type="range" min="0" max="100" step="10" data-pza-taches value="${AVc.taches ?? 100}"><span>${AVc.taches ?? 100} %</span></label>
+      </div>
+      <p class="note">Exemple : fond gris clair #D5D9DE, texte #1C2128, accent bleu néon #00B4FF avec « Néon », taches à 20 %. Le mode sombre reste calculé (l'accent s'y applique aussi).</p>
+    </details>
     <label class="note">Nom<input id="pzNom" type="text" maxlength="30" autocomplete="off" value="${esc(PZ.nom || (p ? p.nom : 'Mon thème'))}"></label>
     <div class="actions"><button type="button" class="btn main" data-perso="garder">Enregistrer</button><button type="button" class="btn" data-perso="annuler">Annuler</button>${p ? '<button type="button" class="btn pz-del" data-perso="effacer">Supprimer</button>' : ''}</div>
     <p class="note">Aperçu en direct sur cette page (clair et sombre sont calculés à partir des couleurs). Sur coolors.co : « Generate » jusqu'à une palette qui te plaît, puis copie l'adresse de la page.</p></div>`;
 }
 const pzCouleurs = () => [...document.querySelectorAll('[data-pzc]')].map(i => i.value);
+const pzApercu = () => { PZ.av = pzAvance(); Themes.apercu(pzCouleurs(), PZ.av); };
 function themeRedessiner(focus){
   const el = $('#themeCard'); if (!el) return; const tmp = document.createElement('div'); tmp.innerHTML = themeHTML(); el.replaceWith(tmp.firstElementChild);
   if (focus){ const f = document.querySelector(focus); if (f) f.focus(); }
 }
 document.addEventListener('input', e => {
   if (e.target.id === 'pzTxt'){ const l = Themes.lireCouleurs(e.target.value); if (l.length < 2) return;
-    document.querySelectorAll('[data-pzc]').forEach((x, i) => { x.value = l[i % l.length]; }); PZ.c = pzCouleurs(); Themes.apercu(PZ.c); return; }
-  if (e.target.matches('[data-pzc]')){ PZ.c = pzCouleurs(); Themes.apercu(PZ.c); return; }
+    document.querySelectorAll('[data-pzc]').forEach((x, i) => { x.value = l[i % l.length]; }); PZ.c = pzCouleurs(); pzApercu(); return; }
+  if (e.target.matches('[data-pzc]')){ PZ.c = pzCouleurs(); pzApercu(); return; }
+  if (e.target.matches('[data-pza],[data-pza-taches]')){ if (e.target.matches('[data-pza-taches]')) e.target.nextElementSibling.textContent = e.target.value + ' %'; pzApercu(); return; }
+  if (e.target.matches('[data-pza-on]')){ const i = document.querySelector(`[data-pza="${e.target.dataset.pzaOn}"]`); if (i) i.disabled = !e.target.checked; pzApercu(); return; }
+  if (e.target.matches('[data-pza-neon]')){ pzApercu(); return; }
   if (e.target.id === 'pzNom') PZ.nom = e.target.value;
 });
 document.addEventListener('click', e => {
   const z = e.target.closest('[data-perso]'); if (!z) return;
   const a = z.dataset.perso;
-  if (a === 'ouvrir'){ PZ.ouvert = true; PZ.c = null; PZ.nom = ''; themeRedessiner('#pzTxt'); Themes.apercu(pzCouleurs()); return; }
-  if (a === 'annuler'){ PZ.ouvert = false; PZ.c = null; Themes.apercu(null); themeRedessiner(); return; }
-  if (a === 'garder'){ Themes.enregistrerPerso(($('#pzNom') || {}).value || 'Mon thème', pzCouleurs()); PZ.ouvert = false; PZ.c = null; themeRedessiner(); return; }
+  if (a === 'ouvrir'){ PZ.ouvert = true; PZ.c = null; PZ.av = null; PZ.nom = ''; themeRedessiner('#pzTxt'); pzApercu(); return; }
+  if (a === 'annuler'){ PZ.ouvert = false; PZ.c = null; PZ.av = null; Themes.apercu(null); themeRedessiner(); return; }
+  if (a === 'garder'){ Themes.enregistrerPerso(($('#pzNom') || {}).value || 'Mon thème', pzCouleurs(), pzAvance()); PZ.ouvert = false; PZ.c = null; PZ.av = null; themeRedessiner(); return; }
   if (a === 'effacer'){ if (!confirm('Supprimer ton thème perso (sur tous tes appareils synchronisés) ?')) return; Themes.effacerPerso(); PZ.ouvert = false; PZ.c = null; themeRedessiner(); }
 });
 window.addEventListener('synchro:prefs', () => { if (!PZ.ouvert) themeRedessiner(); });
@@ -327,9 +358,15 @@ function autoHTML(){
     `${rows}<p class="note">Couper une mise à jour économise la batterie et les données mobiles : la page garde ce qu'elle a déjà et ne se rafraîchit plus que quand tu touches ↻ (ou à l'ouverture pour la météo et Spotify). Un ⚠ s'affiche alors à l'endroit concerné. Les tâches GitHub continuent de tourner.</p>`, off.length > 0);
 }
 
+/* v48 : regroupé par thèmes — Contenu · Paramétrage · Technique */
+const grp = t => `<h2 class="grp">${t}</h2>`;
+const groupes = tech => cotesPart() + tvPart()
+  + grp('Paramétrage') + part('Thème et icône', {lvl:'ok', msg:((Themes.liste().find(t => t.id === Themes.actuel()) || {}).nom || 'Thème') + ' · ' + ({auto:'mode de l\'appareil', clair:'clair', sombre:'sombre'})[modeNow()]}, themeHTML()) + autoHTML() + syncHTML() + sauvHTML()
+  + grp('Technique') + tech + confPart();
 function render(e){
   const j = judge(e);
   const label = {ok:'Tout est à jour', warn:'Quelques points à vérifier', err:'Des données ne se mettent plus à jour'}[j.global];
+  let tech = '';
   let h = `<div class="sum glass ${j.global}"><span class="lamp"></span><div><b>${label}</b><p>Résumé fait ${ago(e.genere)}. Les données se rafraîchissent toutes les 15 min (actus), toutes les 20 min en semaine (marchés) et toutes les 2 h (matchs, TV).</p></div></div>`;
 
   if (e.sport){
@@ -375,7 +412,7 @@ function render(e){
     const vieux = P.liste.filter(x => x.v !== x.attendu), wf = vieux.filter(x => x.f.startsWith('.github/'));
     const lvl = vieux.length ? 'warn' : 'ok';
     const rows = [...vieux, ...P.liste.filter(x => !vieux.includes(x))].map(x => `<tr><td class="mono">${esc(x.f)}</td><td>${x.v === x.attendu ? '<span class="tag ok">à jour</span>' : x.v === undefined ? '<span class="tag warn">absent</span>' : `<span class="tag warn">${esc(x.v || 'ancien')}</span>`}</td></tr>`).join('');
-    h += part('Pages et scripts', {lvl, msg:vieux.length ? `${vieux.length} fichier${vieux.length > 1 ? 's' : ''} pas à jour (lot ${P.lot})` : `Lot ${P.lot} complet`},
+    tech += part('Pages et scripts', {lvl, msg:vieux.length ? `${vieux.length} fichier${vieux.length > 1 ? 's' : ''} pas à jour (lot ${P.lot})` : `Lot ${P.lot} complet`},
       `<table class="rows"><thead><tr><th>Fichier</th><th>Version</th></tr></thead><tbody>${rows}</tbody></table>
       ${wf.length ? `<p class="note"><b>À déposer à la main</b> (une tâche GitHub ne peut pas les modifier) : ${wf.map(x => esc(x.f)).join(', ')}.</p>` : ''}
       <p class="note">Lot ${esc(P.lot)}${P.date ? ` du ${new Date(P.date).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}` : ''}. Cette page sur ton iPhone : ${esc(mine || '?')}${mine && mine !== P.lot ? ' (ancienne : tire vers le bas pour recharger)' : ''}.</p>`, vieux.length > 0);
@@ -387,7 +424,7 @@ function render(e){
       f.calendriers.length ? `<ul class="note">${f.calendriers.map(c => `<li>${esc(c.replace(/^calendriers\//, ''))}</li>`).join('')}</ul>` : '<p class="note">Aucun calendrier déposé.</p>', false);
   }
 
-  h += cotesPart() + confPart() + themeHTML() + autoHTML() + syncHTML() + sauvHTML();
+  h = h.replace(/(<\/div><\/div>)/, '$1' + grp('Contenu')) + groupes(tech);
   h += `<div class="actions"><a class="btn main" href="https://github.com/${esc(Noyau.depot.nom)}/actions" target="_blank" rel="noopener">Voir les tâches GitHub</a>
     <button type="button" class="btn" id="resetBtn">Vider la mémoire de l'appli</button></div>
     <p class="note" id="resetMsg">« Vider la mémoire » efface les données gardées sur cet appareil (matchs, actus, pages) ; tes réglages (lieu météo, Spotify, favoris, langue des actus, placements, rafraîchissement) sont conservés.</p>`;
@@ -444,6 +481,27 @@ document.addEventListener('click', async e => {
 });
 /* ---------- Cotes des matchs (tâche « Cotes », The Odds API) : compteur de crédits et clé pour l'actualisation à la main ---------- */
 let COTES = null;
+/* Films et séries (v48) : le catalogue chiffré de la tâche « TV » est-il publié et récent ? (début du fichier seulement : {v, genere, …}) */
+let TVC = null;
+function tvPart(){
+  const c = TVC, d = c && c.genere ? Date.parse(c.genere) : 0;
+  const lvl = !c ? 'none' : c.absent ? 'warn' : Date.now() - d > 36 * 3600e3 ? 'warn' : 'ok';
+  const msg = !c ? 'Lecture…' : c.absent ? 'Pas encore publié' : `Catalogue publié ${ago(d)}`;
+  if (!c) setTimeout(chargerTVC, 0);
+  return part('Films et séries (tâche TV)', {lvl, msg}, c && c.absent
+    ? `<p class="note">Le catalogue n'est pas encore là. Vérifie le secret GitHub <b>TV_CLE</b> (clé copiée depuis la fiche Accès TV du Coffre), puis lance la tâche « TV » (Actions › TV › Run workflow). Il se met ensuite à jour chaque nuit.</p>`
+    : `<p class="note">Catalogue chiffré avec ta clé <b>TV_CLE</b> : s'il est publié et que la page TV l'ouvre (onglets Films et Séries), le secret est bon. Mise à jour chaque nuit vers 5 h 30.</p>`);
+}
+async function chargerTVC(){
+  if (TVC) return;
+  try{
+    const r = await fetch('donnees/tv/catalogue.json', {cache:'no-cache', headers:{Range:'bytes=0-400'}});
+    if (r.status === 404){ TVC = {absent:true}; }
+    else { const t = (await r.text()).slice(0, 400), g = t.match(/"genere"\s*:\s*"([^"]+)"/); TVC = g ? {genere:g[1]} : {absent:true}; }
+  }catch{ TVC = {absent:true}; }
+  const el = document.querySelector('details[data-part="Films et séries (tâche TV)"]'); if (!el) return;
+  const tmp = document.createElement('div'); tmp.innerHTML = tvPart(); el.replaceWith(tmp.firstElementChild);
+}
 function cotesPart(){
   const C = COTES, q = C && C.quota, cle = (() => { try{ return JSON.parse(localStorage.getItem('cotes:cle')) || ''; }catch{ return ''; } })();
   const lq = (() => { try{ return JSON.parse(localStorage.getItem('cotes:quota')); }catch{ return null; } })();
@@ -472,7 +530,7 @@ async function load(){
     if (!r.ok) throw new Error(r.status);
     render(await r.json());
   }catch(err){
-    $('#out').innerHTML = `<div class="sum glass err"><span class="lamp"></span><div><b>Résumé introuvable</b><p>Le fichier etat.json est fait par la tâche GitHub « Publication ». Vérifie qu'elle a bien tourné (Settings → Pages → Source : GitHub Actions).</p></div></div>` + cotesPart() + confPart() + themeHTML() + autoHTML() + syncHTML() + sauvHTML();
+    $('#out').innerHTML = `<div class="sum glass err"><span class="lamp"></span><div><b>Résumé introuvable</b><p>Le fichier etat.json est fait par la tâche GitHub « Publication ». Vérifie qu'elle a bien tourné (Settings → Pages → Source : GitHub Actions).</p></div></div>` + groupes('');
   }finally{ $('#refreshBtn').classList.remove('spin'); }
 }
 $('#refreshBtn').addEventListener('click', load);

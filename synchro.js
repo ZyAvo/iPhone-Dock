@@ -1,4 +1,4 @@
-// mon-ecran-version: ee0d5269
+// mon-ecran-version: 2ad8298b
 /* Mon Écran — synchronisation chiffrée entre tes appareils (iPhone, PC…).
    - Un fichier chiffré (synchro/mon-ecran.json, branche « synchro » de ton dépôt GitHub) contient tes placements,
      versements, réglages d'investissement et le Coffre. Sans la phrase secrète, c'est un bloc illisible.
@@ -153,8 +153,8 @@ const investLocal = () => { const { verrou, ...reglages } = LSg('invest:reglages
 const investAppliquer = v => { const reg = LSg('invest:reglages', {}); LSs('invest:lignes', v.lignes || []); LSs('invest:reglages', {...(v.reglages || {}), verrou:reg.verrou}); LSs('invest:versements', v.versements || []); };
 /* partie « prefs » : tes choix personnels, réglés dans l'appli (plus dans le classeur) :
    équipes et compétitions favorites (Sport), abonnements cochés (Vidéos), villes météo (Accueil), thème perso (État, v42), chaînes TV favorites (v44), liste « À regarder » et séries vues (v45) */
-const PREFS = {sport:'sport:favoris', abos:'videos:abos', villes:'lieu:favoris', theme:'theme:perso', tv:'tv:favoris', tvliste:'tv:liste', tvvus:'tv:vus'};
-const PREFS_SI_PRESENT = ['theme', 'tv', 'tvliste', 'tvvus'];      // absentes du contenu tant qu'elles sont vides : l'empreinte des favoris d'avant la v42 ne change pas
+const PREFS = {sport:'sport:favoris', abos:'videos:abos', villes:'lieu:favoris', theme:'theme:perso', tv:'tv:favoris', tvliste:'tv:liste', tvvus:'tv:vus', tvfav:'tv:favf', spotify:'spotify:client'};
+const PREFS_SI_PRESENT = ['theme', 'tv', 'tvliste', 'tvvus', 'tvfav', 'spotify'];      // absentes du contenu tant qu'elles sont vides : l'empreinte des favoris d'avant la v42 ne change pas
 const prefsLocal = () => Object.fromEntries(Object.entries(PREFS).map(([k, c]) => [k, LSg(c, null)]).filter(([k, v]) => v != null || !PREFS_SI_PRESENT.includes(k)));
 const prefsAppliquer = v => {
   for (const [k, c] of Object.entries(PREFS)) if (v && v[k] != null) LSs(c, v[k]);

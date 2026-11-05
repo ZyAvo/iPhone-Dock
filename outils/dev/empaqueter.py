@@ -1,9 +1,9 @@
-# mon-ecran-version: e6df4ed2
+# mon-ecran-version: 276407e7
 # Prépare un lot : marque chaque page/script avec l'empreinte de son contenu, écrit lot.json, fait le zip.
 # Usage : python3 empaqueter.py <dossier> <nom du lot> <zip de sortie>
 import sys, os, re, json, hashlib, zipfile, datetime
 src, lot, out = sys.argv[1], sys.argv[2], sys.argv[3]
-SUPPRIMER = ['tv.json', 'donnees', 'outils/prix-test.mjs']   # restes de l'ancien fonctionnement ; test des prix abandonné (31/10/2026)
+SUPPRIMER = ['tv.json', 'donnees', 'outils/prix-test.mjs', 'outils/tv-test.mjs']   # restes de l'ancien fonctionnement ; test des prix abandonné (31/10/2026) ; test TV retiré (v48)
 STAMP_RE = re.compile(r'(<meta name="mon-ecran-version" content="[^"]*">\n?|^(//|#) mon-ecran-version: [\w.-]+\n)', re.M)
 def stamp(path, text):
     base = STAMP_RE.sub('', text)
