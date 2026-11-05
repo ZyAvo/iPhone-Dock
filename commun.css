@@ -1,0 +1,27 @@
+/* Mon Écran — styles communs à toutes les pages (v53), chargés avant ceux de la page (qui peuvent les préciser) */
+/* Police Geist hébergée avec le dock (avant : Google Fonts, 2 serveurs tiers, 6 graisses) : version variable réduite au latin, licence polices/LICENCE-Geist.txt */
+@font-face{font-family:"Geist";src:url(polices/Geist-Variable.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:"Geist Mono";src:url(polices/GeistMono-Variable.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+/* Rond de toucher, avis de nouvelle version, « tirer pour rafraîchir » (commun.js) */
+.tap-dot{position:fixed;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;pointer-events:none;z-index:9999;
+  background:radial-gradient(circle, color-mix(in oklab, var(--accent) 45%, transparent), color-mix(in oklab, var(--accent) 22%, transparent) 55%, rgba(255,255,255,.15) 72%);
+  box-shadow:0 0 0 2.5px rgba(255,255,255,.9), 0 0 0 4px color-mix(in oklab, var(--accent) 45%, transparent), 0 4px 16px rgba(0,0,0,.22);animation:tapdot .6s ease-out forwards}
+.maj-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:9998;
+  padding:10px 16px;border-radius:999px;background:var(--accent, #274c77);color:var(--on-accent, #e7ecef);font:600 .85rem/1.2 var(--f-ui, system-ui);box-shadow:0 10px 26px -10px rgba(0,0,0,.5);
+  animation:majin .3s ease-out}
+@keyframes majin{from{opacity:0;transform:translate(-50%, 10px)}}
+@keyframes tapdot{from{transform:scale(.55);opacity:1}to{transform:scale(1.45);opacity:0}}
+.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top, 0px) + 6px);z-index:9999;width:38px;height:38px;margin-left:-19px;border-radius:50%;
+  display:grid;place-items:center;pointer-events:none;opacity:0;transform:translateY(-60px);
+  background:var(--sheet-solid, var(--base, #eef2f5));color:var(--ink-soft, #56636f);box-shadow:0 6px 18px -8px rgba(0,0,0,.45);border:1px solid var(--line, rgba(0,0,0,.1))}
+.ptr svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.ptr.pret{color:var(--accent, #274c77)}
+.ptr.pret svg{transform:rotate(180deg)}
+.ptr.va{transition:transform .2s, opacity .2s}
+.ptr.tourne svg{animation:ptr-t .7s linear infinite}
+@keyframes ptr-t{to{transform:rotate(360deg)}}
+/* v53 : zone tactile de 44 px autour des boutons ronds de l'en-tête (38 px), dessin inchangé :
+   3 px de marge intérieure compensés par une marge négative, fond et reflets ramenés à la taille d'avant */
+.icon-btn.glass{box-sizing:content-box;padding:3px;margin:-3px;background-clip:content-box}
+.icon-btn.glass::before,.icon-btn.glass::after{inset:3px}
+.icon-btn.glass .nb,.icon-btn.glass.health b{top:0;right:0}

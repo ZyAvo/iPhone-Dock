@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 4d50aea5
+# mon-ecran-version: b31d21b4
 # Lit le classeur de configuration (configuration.xlsx) et écrit les réglages du dock dans config/ :
 #   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json, applis.json
 #   config/config.js                     → les mêmes réglages en un seul fichier, chargé par les pages (window.MON_ECRAN_CONFIG)
@@ -841,7 +841,9 @@ def main():
         f.write('// Réglages du dock, écrits par la tâche « Configuration » à partir de configuration.xlsx — ne pas modifier à la main.\n')
         # depot : nom du dépôt GitHub (v42), pour une page ouverte ailleurs que sur pseudo.github.io/depot/ (fichier sur PC…) : suit un renommage
         depot = {'nom': os.environ['GITHUB_REPOSITORY']} if re.fullmatch(r'[\w.-]+/[\w.-]+', os.environ.get('GITHUB_REPOSITORY', '')) else None
-        f.write('window.MON_ECRAN_CONFIG = ' + json.dumps(dict(cfg, genere=RAPPORT['date'], modifs_traitees=sorted(modifs['traitees']), **({'depot': depot} if depot else {})), ensure_ascii=False, separators=(',', ':')) + ';\n')
+        # v53 : la liste des chaînes du programme TV (≈ 10 Ko) reste dans config/tv.json pour les tâches : aucune page ne la lit
+        cfg_pages = dict(cfg, tv={k: v for k, v in cfg['tv'].items() if k != 'chaines'})
+        f.write('window.MON_ECRAN_CONFIG = ' + json.dumps(dict(cfg_pages, genere=RAPPORT['date'], modifs_traitees=sorted(modifs['traitees']), **({'depot': depot} if depot else {})), ensure_ascii=False, separators=(',', ':')) + ';\n')
     # liste des chaînes pour le programme TV (même format que outils/chaines-tv.xml)
     esc = lambda v: str(v).replace('&', '&amp;').replace('<', '&lt;').replace('"', '&quot;')
     with open(os.path.join(OUT, 'chaines-tv.xml'), 'w', encoding='utf-8') as f:

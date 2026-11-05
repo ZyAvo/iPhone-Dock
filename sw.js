@@ -1,4 +1,4 @@
-// mon-ecran-version: a6c88d47
+// mon-ecran-version: a474fdb0
 /* Mon Écran — mise en mémoire sur l'iPhone pour un démarrage instantané, même sans réseau.
    - Pages (accueil, actus, sport, état) : dernière version si le réseau répond en moins de 1,5 s,
      sinon la version en mémoire tout de suite, mise à jour en arrière-plan (la page se recharge seule
@@ -7,7 +7,7 @@
    - Polices Google : gardées en mémoire.
    Les sites extérieurs (ESPN, Spotify, flux RSS…) ne passent pas par ici. */
 const PAGES = 'pages-v1', DATA = 'donnees-v1', FONTS = 'polices-v1';
-const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'pronos.html', 'reglages.html', 'tv.html', 'noyau.js', 'themes.js', 'tv.js', 'match.js', 'synchro.js', 'manifest.json', 'apple-touch-icon.png', 'icone-192.png', 'icone-512.png'];
+const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'pronos.html', 'reglages.html', 'tv.html', 'noyau.js', 'themes.js', 'tv.js', 'match.js', 'synchro.js', 'commun.js', 'commun.css', 'polices/Geist-Variable.woff2', 'manifest.json', 'apple-touch-icon.png', 'icone-192.png', 'icone-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(PAGES).then(c => Promise.all(SHELL.map(u => c.add(new Request(u, {cache:'reload'})).catch(() => {})))).then(() => self.skipWaiting()));
@@ -18,7 +18,7 @@ self.addEventListener('activate', e => {
     .then(() => self.clients.claim()));
 });
 
-const isPage = (req, url) => req.mode === 'navigate' || /\.html$|\/$|\/(noyau|themes|synchro|tv|match)\.js$|\/config\/config\.js$/.test(url.pathname);   // noyau.js, themes.js, synchro.js : même règle que les pages
+const isPage = (req, url) => req.mode === 'navigate' || /\.html$|\/$|\/(noyau|themes|synchro|tv|match|commun)\.js$|\/commun\.css$|\/config\/config\.js$/.test(url.pathname);   // noyau.js, themes.js, synchro.js : même règle que les pages
 const pageKey = url => { const p = url.pathname.replace(/\/$/, '/index.html'); return new URL(p, url.origin).href; };   // sans « ?code=… » etc.
 
 /* Pages : réseau d'abord s'il répond vite (1,5 s), sinon la version en mémoire (affichage immédiat),
@@ -73,6 +73,7 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (/^fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) return e.respondWith(cacheFirst(e, FONTS));
   if (url.origin !== self.location.origin) return;
+  if (/\/polices\//.test(url.pathname)) return e.respondWith(cacheFirst(e, FONTS));      // v53 : polices hébergées avec le dock
   // v52 : catalogue TV (19 Mo, relu une fois par jour) et lectures partielles (Range) : directement au réseau, sans mémoire
   if (/\/donnees\/tv\//.test(url.pathname) || req.headers.has('range')) return;
   if (/\.json$/.test(url.pathname)) return e.respondWith(networkFirst(e));

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="30a350e1">
+<meta name="mon-ecran-version" content="181cdd4f">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Investissements</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,8 +20,8 @@ img{max-width:100%}
 <script src="noyau.js"></script>
 <script src="themes.js"></script>
 <script>/* page désactivée dans Réglages › Pages et widgets : on s'arrête là (aucun chargement) */Noyau.accueil.garde('invest');</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
+<link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="commun.css">
 <style>
 /* Layout : en-tête collant en verre (retour, actualiser, titre) ; une carte par source de données
    (résumé coloré en tête, détails dépliables) */
@@ -147,14 +147,14 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 /* ---------- Toucher visible et fondu entre les pages ---------- */
 @view-transition{navigation:auto}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
-.tap-dot{position:fixed;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;pointer-events:none;z-index:9999;
+
   background:radial-gradient(circle, color-mix(in oklab, var(--accent) 45%, transparent), color-mix(in oklab, var(--accent) 22%, transparent) 55%, rgba(255,255,255,.15) 72%);
   box-shadow:0 0 0 2.5px rgba(255,255,255,.9), 0 0 0 4px color-mix(in oklab, var(--accent) 45%, transparent), 0 4px 16px rgba(0,0,0,.22);animation:tapdot .6s ease-out forwards}
-.maj-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:9998;
+
   padding:10px 16px;border-radius:999px;background:var(--accent, #274c77);color:var(--on-accent, #e7ecef);font:600 .85rem/1.2 var(--f-ui, system-ui);box-shadow:0 10px 26px -10px rgba(0,0,0,.5);
   animation:majin .3s ease-out}
-@keyframes majin{from{opacity:0;transform:translate(-50%, 10px)}}
-@keyframes tapdot{from{transform:scale(.55);opacity:1}to{transform:scale(1.45);opacity:0}}
+
+
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 :root{--up:#1e7a46;--down:#b4442c;--warn:#a35d00;--panel:#eef2f5}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--up:#5fd08e;--down:#ff8a70;--warn:#f0b04a;--panel:#0e1b2c} }
@@ -1020,82 +1020,20 @@ syncMaintenant();                                   // session de synchronisatio
 let syncVu = Date.now();
 document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - syncVu > 60e3){ syncVu = Date.now(); syncMaintenant(); } });
 </script>
-<script>
-/* Toucher visible : un rond qui s'efface là où le doigt appuie (pratique aussi pour les vidéos de démo) */
-document.addEventListener('pointerdown', e => {
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-  const d = document.createElement('span'); d.className = 'tap-dot';
-  d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
-  document.body.appendChild(d); setTimeout(() => d.remove(), 650);
-}, {passive:true, capture:true});
-</script>
-<script>
-/* Mise en mémoire sur l'iPhone (démarrage instantané, hors ligne) + avis quand une nouvelle version est déposée */
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
-  const t0 = Date.now(); let majDispo = false, cacheAt = 0;
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-  navigator.serviceWorker.addEventListener('message', e => {
-    if (!e.data || e.data.type !== 'nouvelle-version') return;
-    majDispo = true;
-    if (Date.now() - t0 < 8000){ location.reload(); return; }         // page tout juste ouverte : on passe directement à la nouvelle version
-    if (document.querySelector('.maj-toast')) return;
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'maj-toast'; b.textContent = 'Nouvelle version — toucher pour l\'afficher';
-    b.addEventListener('click', () => location.reload()); document.body.appendChild(b);
-  });
-  try{ navigator.serviceWorker.startMessages(); }catch{}
-  /* Retour sur l'appli : nouvelle version déjà prête → rechargement ; sinon on vérifie s'il y en a une (au plus toutes les 2 min) */
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) return;
-    if (majDispo){ location.reload(); return; }
-    if (Date.now() - cacheAt < 120e3) return;
-    cacheAt = Date.now();
-    navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
-    fetch(location.pathname, {cache:'no-cache'}).catch(() => {});
-  });
-}
-</script>
 <!-- ==TIRER== Tirer vers le bas pour recharger (comme Safari) -->
 <style>
-.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top, 0px) + 6px);z-index:9999;width:38px;height:38px;margin-left:-19px;border-radius:50%;
+
   display:grid;place-items:center;pointer-events:none;opacity:0;transform:translateY(-60px);
   background:var(--sheet-solid, var(--base, #eef2f5));color:var(--ink-soft, #56636f);box-shadow:0 6px 18px -8px rgba(0,0,0,.45);border:1px solid var(--line, rgba(0,0,0,.1))}
-.ptr svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
-.ptr.pret{color:var(--accent, #274c77)}
-.ptr.pret svg{transform:rotate(180deg)}
-.ptr.va{transition:transform .2s, opacity .2s}
-.ptr.tourne svg{animation:ptr-t .7s linear infinite}
-@keyframes ptr-t{to{transform:rotate(360deg)}}
+
+
+
+
+
+
 </style>
 <div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
-<script>
-(() => {
-  const el = document.getElementById('ptr'), SEUIL = 78;
-  let y0 = null, x0 = 0, d = 0, actif = false;
-  const OVER = '.scrim:not([hidden]),.sheet-bg:not([hidden]),.sheet:not([hidden]),[role="dialog"]:not([hidden])';
-  const bloque = t => [...document.querySelectorAll(OVER)].some(e => e.getClientRects().length) || !t.closest || t.closest('input,textarea,select,[data-no-ptr]') ||
-    (() => { for (let n = t; n && n !== document.body; n = n.parentElement) if (n.scrollTop > 0) return true; return false; })();
-  const set = (y, cls) => { el.style.transform = `translateY(${y}px)`; el.style.opacity = Math.min(1, y / 40); el.className = 'ptr' + (cls ? ' ' + cls : ''); };
-  addEventListener('touchstart', e => {
-    if (e.touches.length !== 1 || (scrollY || document.documentElement.scrollTop) > 0 || bloque(e.target)) { y0 = null; return; }
-    y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; d = 0; actif = false;
-  }, {passive:true});
-  addEventListener('touchmove', e => {
-    if (y0 == null) return;
-    const dy = e.touches[0].clientY - y0, dx = e.touches[0].clientX - x0;
-    if (!actif){ if (Math.abs(dx) > Math.abs(dy) || dy < 6){ if (Math.abs(dx) > 10 || dy < -6) y0 = null; return; } if ((scrollY || document.documentElement.scrollTop) > 0){ y0 = null; return; } actif = true; }
-    d = Math.max(0, dy);
-    const y = Math.min(80, d * .5);
-    set(y - 10, d >= SEUIL ? 'pret' : '');
-  }, {passive:true});
-  addEventListener('touchend', () => {
-    if (y0 == null || !actif){ y0 = null; return; }
-    y0 = null;
-    if (d >= SEUIL){ set(34, 'va tourne'); setTimeout(() => location.reload(), 250); }
-    else { set(-60, 'va'); }
-  }, {passive:true});
-  addEventListener('touchcancel', () => { if (actif) set(-60, 'va'); y0 = null; }, {passive:true});
-})();
-</script>
+<script src="commun.js"></script>
 <!-- ==FIN TIRER== -->
 </body>
 </html>

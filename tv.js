@@ -1,4 +1,4 @@
-// mon-ecran-version: 4ada812d
+// mon-ecran-version: a2e71420
 /* Mon Écran — TV (v44, films et séries v45) : abonnement Xtream.
    - Accès (serveur, identifiant, mot de passe) : fiche « Accès TV » du Coffre, chiffrée avec ton code et partagée chiffrée par la
      synchronisation ; jamais dans le dépôt, le classeur ou la configuration (publics). Lus une fois par session (code demandé si le
@@ -17,6 +17,7 @@ const LSg = (k, d) => { try{ const v = JSON.parse(localStorage.getItem(k)); retu
 const LSs = (k, v) => { try{ v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); }catch{} };
 const SSg = (k, d) => { try{ const v = JSON.parse(sessionStorage.getItem(k)); return v ?? d; }catch{ return d; } };
 const SSraw = k => { try{ return sessionStorage.getItem(k); }catch{ return null; } };   // clés écrites telles quelles par le Coffre
+/* v53 : la liste des chaînes de la session s'appelle « tv:chaines » (« tv:liste » = À regarder, sur l'appareil) */
 const SSs = (k, v) => { try{ v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, JSON.stringify(v)); }catch{} };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 const enc = encodeURIComponent;
@@ -104,13 +105,13 @@ async function catalogue(a, force){
 let LISTE = null;
 async function liste(a, force){
   if (LISTE && !force) return LISTE;
-  const c = !force && SSg('tv:liste', null); if (c && c.l){ LISTE = c; return LISTE; }
+  const c = !force && SSg('tv:chaines', null); if (c && c.l){ LISTE = c; return LISTE; }
   const info = await api(a, '');
   if (info && info.user_info && (info.user_info.auth === 0 || info.user_info.auth === '0')) throw new Error('acces');
   const [cats, ch] = await Promise.all([api(a, 'get_live_categories'), api(a, 'get_live_streams')]);
   LISTE = {cats:(cats || []).map(x => ({id:String(x.category_id), nom:x.category_name || '?'})),
     l:(ch || []).map(x => ({k:'d', id:x.stream_id, nom:String(x.name || '').trim(), icone:x.stream_icon || '', cat:String(x.category_id)}))};
-  SSs('tv:liste', LISTE); return LISTE;
+  SSs('tv:chaines', LISTE); return LISTE;
 }
 async function epg(a, id){
   try{ const j = await api(a, 'get_short_epg', `&stream_id=${enc(id)}&limit=3`);

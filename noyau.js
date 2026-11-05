@@ -1,4 +1,4 @@
-// mon-ecran-version: bdd7c8a4
+// mon-ecran-version: 8d0c1c11
 /* Mon Écran — noyau commun à toutes les pages, et base des futures applis dédiées (iPhone, Android, PC).
    Rien ici ne dépend d'une astuce de Safari : ce qui est propre à « l'iPhone en mode web » est rangé dans Noyau.iphoneWeb,
    et une appli dédiée pourra fournir window.MonEcranNatif (ouvrir un lien, garder la clé…) que le noyau utilisera en priorité.
@@ -524,7 +524,18 @@ background:radial-gradient(60% 45% at 10% 8%,color-mix(in oklab,var(--pd-acc) 30
   },
 };
 
-window.Noyau = {version:1, config, stockage, appareil, lien, iphoneWeb, depot, synchro, catalogue, modifs, accueil, applis, icones, MSG,
+/* v53 : lecture d'un fichier JSON du site sans jamais lever d'erreur, avec vérification de forme.
+   → {ok, statut (200 | code HTTP | 'forme' | 'reseau'), donnees (ou le défaut)} */
+async function json(url, {defaut = null, verif = null, cache = 'no-cache'} = {}){
+  try{
+    const r = await fetch(url, {cache});
+    if (!r.ok) return {ok:false, statut:r.status, donnees:defaut};
+    const d = await r.json();
+    if (verif && !verif(d)) return {ok:false, statut:'forme', donnees:defaut};
+    return {ok:true, statut:200, donnees:d};
+  }catch{ return {ok:false, statut:'reseau', donnees:defaut}; }
+}
+window.Noyau = {version:1, json, config, stockage, appareil, lien, iphoneWeb, depot, synchro, catalogue, modifs, accueil, applis, icones, MSG,
   message:code => MSG[String(code).replace(/^erreur:/, '')] || (window.Synchro && Synchro.MSG[String(code).replace(/^erreur:/, '')]) || String(code)};
 window.CFG = config;
 })();

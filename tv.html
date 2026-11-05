@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="c2c5640c">
+<meta name="mon-ecran-version" content="8f8cdb04">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TV</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,8 +19,8 @@ img{max-width:100%}
 <script src="config/config.js"></script>
 <script src="noyau.js"></script>
 <script src="themes.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&display=swap">
+<link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="commun.css">
 <style>
 /* Page TV (v44) : lecteur (avec le relais du PC) et liste des chaînes ; styles des zones : tv.js */
 :root{
@@ -114,14 +114,14 @@ html.desk #tvChaines{position:sticky;top:120px;max-height:calc(100vh - 140px)}
 html.desk #tvChaines .tv-l{max-height:calc(100vh - 260px)}
 @view-transition{navigation:auto}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
-.tap-dot{position:fixed;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;pointer-events:none;z-index:9999;
+
   background:radial-gradient(circle, color-mix(in oklab, var(--accent) 45%, transparent), color-mix(in oklab, var(--accent) 22%, transparent) 55%, rgba(255,255,255,.15) 72%);
   box-shadow:0 0 0 2.5px rgba(255,255,255,.9), 0 0 0 4px color-mix(in oklab, var(--accent) 45%, transparent), 0 4px 16px rgba(0,0,0,.22);animation:tapdot .6s ease-out forwards}
-.maj-toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:9998;
+
   padding:10px 16px;border-radius:999px;background:var(--accent, #274c77);color:var(--on-accent, #e7ecef);font:600 .85rem/1.2 var(--f-ui, system-ui);box-shadow:0 10px 26px -10px rgba(0,0,0,.5);
   animation:majin .3s ease-out}
-@keyframes majin{from{opacity:0;transform:translate(-50%, 10px)}}
-@keyframes tapdot{from{transform:scale(.55);opacity:1}to{transform:scale(1.45);opacity:0}}
+
+
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 /* Thèmes de couleurs et fond dégradé : themes.js (v42) */
 </style>
@@ -147,14 +147,6 @@ html.desk #tvChaines .tv-l{max-height:calc(100vh - 260px)}
 /* Page TV : lecteur seulement quand le relais du PC répond (sinon liste des favoris et ouverture dans VLC) */
 TV.monter({lecteur:TV.ios ? null : document.getElementById('tvLecteur'), chaines:document.getElementById('tvChaines')});
 </script>
-<script>
-/* Toucher visible : un rond qui s'efface là où le doigt appuie */
-document.addEventListener('pointerdown', e => {
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-  const d = document.createElement('span'); d.className = 'tap-dot';
-  d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
-  document.body.appendChild(d); setTimeout(() => d.remove(), 650);
-}, {passive:true});
-</script>
+<script src="commun.js"></script>
 </body>
 </html>
