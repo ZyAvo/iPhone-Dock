@@ -1,6 +1,6 @@
-// mon-ecran-version: bccf0ddb
-// Prépare les données de la page Sport (lancé par la tâche GitHub « Programme TV sport »).
-// Lit la liste des compétitions et les fonctions de lecture directement dans sport.html,
+// mon-ecran-version: 0b18dab2
+// Prépare les données de la page Sport (lancé par la tâche GitHub « Sport », v51 ; avant : « Programme TV sport »).
+// Lit la liste des compétitions et les fonctions de lecture dans sport.html et match.js,
 // interroge ESPN côté serveur, numérote les journées et écrit :
 //   donnees/sport/jours.json     → matchs de J-4 à J+15, toutes compétitions (ouverture de la page Sport)
 //   donnees/sport/passe.json     → matchs de J-11 à J-4 (chargés juste après)
@@ -27,13 +27,18 @@ const grab = (a, b) => {
   return page.slice(i, j);
 };
 const fnBlock = name => { const i = page.indexOf(`function ${name}(`); if (i < 0) throw new Error(`Fonction introuvable : ${name}`); return page.slice(i, page.indexOf('\n}\n', i) + 3); };
+// v51 : classify, summaryEvents… vivent dans match.js depuis la v48 (lecture des fiches de match commune à Sport et à l'accueil) :
+// on exécute ce fichier tel quel (il range ses fonctions dans window, ici l'objet global) au lieu de les chercher dans sport.html
+globalThis.window = globalThis;
+vm.runInThisContext(fs.readFileSync(new URL('../match.js', import.meta.url), 'utf8'), {filename:'match.js'});
+if (typeof globalThis.classify !== 'function' || typeof globalThis.summaryEvents !== 'function') throw new Error('match.js : classify / summaryEvents absents');
 const shared = [
   grab('const REGIONS = ', '\nconst VERSION'),
   grab('const LETTRES', 'async function loadTV'),
   grab('const same = ', '/* Numéros de journée'),
-  fnBlock('applyRefs'), fnBlock('parseCalendar'), fnBlock('classify'), fnBlock('norm'), fnBlock('logosOf'),
-  fnBlock('num'), grab('const statOf', 'function sortEntries'), fnBlock('sortEntries'), fnBlock('tableFrom'),
-  fnBlock('summaryEvents'), fnBlock('assignRounds'),
+  fnBlock('applyRefs'), fnBlock('parseCalendar'), fnBlock('norm'), fnBlock('logosOf'),
+  fnBlock('num'), grab(page.includes('\nfunction statOf(') ? 'function statOf(' : 'const statOf', 'function sortEntries')   /* v48 : statOf devenue une fonction */, fnBlock('sortEntries'), fnBlock('tableFrom'),
+  fnBlock('assignRounds'),
   page.slice(page.indexOf('const slug = '), page.indexOf('\n', page.indexOf('const slug = ')))
 ].map(c => c.replace(/^(const|let) /gm, 'var ')).join('\n');
 vm.runInThisContext(shared, {filename:'sport.html (extraits)'});
@@ -119,14 +124,8 @@ async function eventsFor(L, S, prev){
     if (!near) return {idle:true, info};
   }
 
-  // 1) toute la période d'un coup (ESPN tronque parfois la réponse : on complète ensuite jour par jour)
-  let ranged = [];
-  for (const lim of [1000, 400]){
-    try{
-      const j = await get(`${base}?dates=${ymd(S.start)}-${ymd(S.end)}&limit=${lim}`, 2);
-      if (j && Array.isArray(j.events) && j.events.length){ ranged = j.events.map(e => norm(e, L)); break; }
-    }catch{}
-  }
+  // 1) (jusqu'à la v50 : demande de toute la période d'un coup ; ESPN ne la remplissait jamais — « range: 0 » partout — v51 : retirée)
+  const ranged = [];
   // 2) jours à vérifier : les jours de match du calendrier ESPN s'il est vraiment à jour, sinon tous les jours de la saison.
   //    ESPN mélange parfois l'ancienne saison et quelques dates de la nouvelle (Top 14) : on ne s'y fie que s'il
   //    annonce des matchs à venir. Les 3 semaines autour d'aujourd'hui sont toujours relues.
@@ -134,7 +133,14 @@ async function eventsFor(L, S, prev){
   const calIn = (cal || []).filter(d => d >= lo && d <= hi);
   const calOk = calIn.length > 0 && (calIn[calIn.length - 1] >= ymd(NOW - 2 * DAY) || todayK > hi);
   const near = days(Math.max(S.start, NOW - 7 * DAY), Math.min(S.end, NOW + 21 * DAY));
-  const cand = [...new Set([...(calOk ? calIn : days(S.start, S.end)), ...near])].sort();
+  let cand = [...new Set([...(calOk ? calIn : days(S.start, S.end)), ...near])].sort();
+  // v51 : en journée, de J-3 à J+14, on ne relit que les jours utiles (jours de match du calendrier ESPN ou déjà connus, hier, aujourd'hui) ;
+  // le premier passage de chaque jour (UTC) relit tout, pour attraper les matchs ajoutés ou déplacés (SPORT_COMPLET=1 : tout, tout de suite)
+  const COMPLET = process.env.SPORT_COMPLET === '1' || !(prev && prev.events && prev.events.length) || prev.completLe !== ymd(NOW);
+  if (!COMPLET){
+    const utiles = new Set([...calIn, ...prev.events.map(m => ymd(m.t)), todayK, ymd(NOW - DAY)]), bas = ymd(NOW - 3 * DAY), haut = ymd(NOW + 14 * DAY);
+    cand = cand.filter(d => d < bas || d > haut || utiles.has(d));
+  }
   const covered = new Set(ranged.map(m => ymd(m.t)));
   const lastCovered = [...covered].sort().pop(); covered.delete(lastCovered);        // le dernier jour peut être incomplet
   const cutoff = ymd(NOW - 3 * DAY);
@@ -149,10 +155,10 @@ async function eventsFor(L, S, prev){
   const raw = [...keep, ...ranged, ...res.flatMap(j => ((j || {}).events || []).map(e => norm(e, L)))];
   const map = new Map(); raw.forEach(m => map.set(m.id, m));
   const all = [...map.values()], events = all.filter(m => !ghost(m, all)).sort((a, b) => a.t - b.t);
-  const diag = {range:ranged.length, days:todo.length, ok, failed:todo.length - ok, calendar:calOk ? 'espn' : 'tous les jours', ghosts:all.length - events.length};
+  const diag = {range:ranged.length, complet:COMPLET, days:todo.length, ok, failed:todo.length - ok, calendar:calOk ? 'espn' : 'tous les jours', ghosts:all.length - events.length};
   console.log(`  ${L.name} : ${JSON.stringify(diag)}`);
   Object.keys(future).forEach(d => { if (d <= far) delete future[d]; });
-  return {events, info, calendar:cal, checked:[...checked].sort(), future, diag};
+  return {events, info, calendar:cal, checked:[...checked].sort(), future, diag, completLe:COMPLET ? ymd(NOW) : prev.completLe};
 }
 
 /* ---------- Journées ---------- */
@@ -317,7 +323,7 @@ for (const L of LEAGUES){
     const rounds = await numberRounds(L, S, r.events);
     await rugbyDetails(L, r.events, prev);
     const table = await standings(L, S, r.events, prev);
-    write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, diag:r.diag, calendar:r.calendar, checked:r.checked, future:r.future, rounds, table, events:r.events.map(slim)});
+    write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, diag:r.diag, calendar:r.calendar, checked:r.checked, future:r.future, completLe:r.completLe, rounds, table, events:r.events.map(slim)});
     index.leagues[L.id] = {count:r.events.length, rounds, table:table ? table.src || 'espn' : false, diag:r.diag, file:`${slug(L.id)}.json`};
     r.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => (m.t < NOW - 4 * DAY ? passe : upcoming).push(m));
     console.log(`${L.name} : ${r.events.length} matchs, ${Math.round((Date.now() - t0) / 1000)} s`, JSON.stringify(rounds));

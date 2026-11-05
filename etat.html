@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="51e93acc">
+<meta name="mon-ecran-version" content="79d04604">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -252,7 +252,7 @@ function judge(e){
     out.sport = {lvl, msg:`Mis à jour ${ago(e.sport.updated)}${bad.length ? ` · ${bad.length} compétition${bad.length > 1 ? 's' : ''} en erreur` : ''}`};
   }
   if (!e.tv) out.tv = {lvl:'warn', msg:'Pas encore de programme TV'};
-  else out.tv = {lvl:age(e.tv.updated, 5, 12), msg:`Mis à jour ${ago(e.tv.updated)} · ${e.tv.chaines.length} chaînes avec programme`};
+  else out.tv = {lvl:age(e.tv.updated, 6, 14), msg:`Mis à jour ${ago(e.tv.updated)} · ${e.tv.chaines.length} chaînes avec programme`};
   if (!e.actus) out.actus = {lvl:'warn', msg:'Pas encore d\'actus préparées'};
   else {
     const ko = e.actus.sources.filter(s => !s.ok);
@@ -367,7 +367,7 @@ function render(e){
   const j = judge(e);
   const label = {ok:'Tout est à jour', warn:'Quelques points à vérifier', err:'Des données ne se mettent plus à jour'}[j.global];
   let tech = '';
-  let h = `<div class="sum glass ${j.global}"><span class="lamp"></span><div><b>${label}</b><p>Résumé fait ${ago(e.genere)}. Les données se rafraîchissent toutes les 15 min (actus), toutes les 20 min en semaine (marchés) et toutes les 2 h (matchs, TV).</p></div></div>`;
+  let h = `<div class="sum glass ${j.global}"><span class="lamp"></span><div><b>${label}</b><p>Résumé fait ${ago(e.genere)}. Les données se rafraîchissent toutes les 15 min (actus), toutes les 20 min en semaine (marchés), toutes les 2 h (matchs) et toutes les 4 h (programme TV).</p></div></div>`;
 
   if (e.sport){
     const rows = e.sport.ligues.map(l => {
@@ -376,7 +376,7 @@ function render(e){
     }).join('');
     h += part('Matchs et classements', j.sport, `<table class="rows"><thead><tr><th>Compétition</th><th>Matchs / séances</th><th>Classement</th><th>État</th></tr></thead><tbody>${rows}</tbody></table>
       <p class="note">« en pause » : tournoi sans match prévu dans les 45 jours. Version de la page Sport : ${esc(e.sport.version || '?')}.</p>`, j.sport.lvl !== 'ok');
-  } else h += part('Matchs et classements', j.sport, '<p class="note">La tâche « Programme TV sport » n\'a encore rien publié.</p>', true);
+  } else h += part('Matchs et classements', j.sport, '<p class="note">La tâche « Sport » n\'a encore rien publié.</p>', true);
 
   if (e.sport && e.sport.ligues.some(l => l.logo)){
     const L = e.sport.ligues.filter(l => l.logo), manq = L.filter(l => !l.logo.perso && !l.logo.espn);

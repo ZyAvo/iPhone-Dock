@@ -1,4 +1,4 @@
-// mon-ecran-version: 40e3a71e
+// mon-ecran-version: 609e518a
 // Cotes des matchs (lancé toutes les 10 min par la tâche GitHub « Cotes », avec le secret ODDS_API_KEY de The Odds API).
 // Plan (option 1) pour les 5 grands championnats et les 3 coupes d'Europe, cote 1 / N / 2 des sites français :
 //   - un relevé le matin (à partir de 8 h) pour chaque compétition qui joue ce jour-là ;
@@ -56,7 +56,7 @@ async function api(path, params = {}){
   return r.json();
 }
 
-/* matchs prévus (préparés par la tâche « Programme TV sport ») */
+/* matchs prévus (préparés par la tâche « Sport ») */
 const jours = read('donnees/sport/jours.json') || {events:[]};
 const matchs = (jours.events || []).filter(m => COMPS[m.league] && m.home && m.t > NOW - 3 * 3600e3 && m.t < NOW + 2 * DAY);
 const paris = new Intl.DateTimeFormat('fr-CA', {timeZone:'Europe/Paris', year:'numeric', month:'2-digit', day:'2-digit'});
@@ -77,7 +77,7 @@ for (const [lg, ms] of Object.entries(parComp)){
     const kAv = `${lg}|${t}|avant`, kMt = `${lg}|${t}|mi-temps`;
     // fenêtres larges : les tâches programmées de GitHub partent souvent avec 10 à 45 min de retard
     if (!st.fait[kAv] && NOW >= t - 45 * MIN && NOW < t) dus.push({lg, phase:'avant', k:kAv, ids});
-    if (!st.fait[kMt] && NOW >= t + 48 * MIN && NOW < t + 80 * MIN) dus.push({lg, phase:'mi-temps', k:kMt, ids});
+    if (!st.fait[kMt] && NOW >= t + 45 * MIN && NOW < t + 80 * MIN) dus.push({lg, phase:'mi-temps', k:kMt, ids});
   }
 }
 // une seule demande par compétition, même si plusieurs relevés tombent en même temps
