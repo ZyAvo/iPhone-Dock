@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="594a6135">
+<meta name="mon-ecran-version" content="038daf87">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -228,7 +228,7 @@ html.desk .f-sheet{border-radius:26px}
 .risque{font-size:.72rem;color:var(--ink-soft);line-height:1.45;text-align:center;margin:6px 0 0}
 .risque a{color:var(--accent)}
 
-/* ---------- Pronos (v50) ---------- */
+/* ---------- Pronos (v50 ; v56 : présentation « fun ») ---------- */
 .bandeau{border-radius:18px;padding:10px 14px;font-size:.8rem;color:var(--ink-soft);display:flex;gap:10px;align-items:center}
 .bandeau b{color:var(--ink)}
 .carte{border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:10px}
@@ -243,32 +243,134 @@ html.desk .f-sheet{border-radius:26px}
 .ong{display:flex;gap:2px;padding:4px;border-radius:18px}
 .ong button{flex:1;padding:9px 6px;border-radius:14px;font-size:.86rem;font-weight:500;color:var(--ink-soft)}
 .ong button[aria-selected="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
-.jour{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin:6px 4px -4px}
-.pm{border-radius:20px;padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:6px 10px;align-items:center}
-.pm-h{grid-column:1 / -1;display:flex;justify-content:space-between;gap:8px;font-size:.72rem;color:var(--ink-soft)}
-.pm-h b{color:var(--ink);font-weight:600}
-.eq{font-size:.9rem;font-weight:600;min-width:0;overflow-wrap:anywhere}
-.eq.d{text-align:right}
-.sc{display:flex;align-items:center;gap:6px}
-.sc input{width:46px;height:42px;text-align:center;font:inherit;font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0}
-.sc input:disabled{opacity:.55}
-.sc span{color:var(--ink-soft)}
-.sc .res{font-size:1.15rem;font-weight:700;font-variant-numeric:tabular-nums;min-width:4.2em;text-align:center}
-.pm-b{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:6px;font-size:.74rem;color:var(--ink-soft)}
-.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-variant-numeric:tabular-nums}
-.chip.moi{border-color:var(--accent)}
-.chip.p3{background:#1f8a4c;color:#fff;border-color:transparent}.chip.p1{background:rgba(31,138,76,.16);color:inherit}
+.jour{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin:8px 4px -2px}
 .ok{color:#1f8a4c;font-weight:600}
-.cl{border-radius:24px;padding:6px 14px}
-.cl-r{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:.88rem}
-.cl-r:first-child{border-top:0}
-.cl-r.t{font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
-.cl-r b{font-variant-numeric:tabular-nums}
-.cl-r .n{font-variant-numeric:tabular-nums;color:var(--ink-soft);text-align:right;min-width:2.6em}
-.cl-r .pts{font-weight:700;font-size:1rem;text-align:right;min-width:2.4em}
-.cl-r.moi{color:var(--accent)}
 .vide{font-size:.86rem;color:var(--ink-soft);padding:10px 4px}
 .note{font-size:.76rem;color:var(--ink-soft);line-height:1.45;margin:2px 4px}
+/* avatars */
+.p-av{--av:#888;display:inline-grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%;font-size:14px;line-height:1;
+  background:color-mix(in oklab, var(--av) 30%, var(--base));box-shadow:inset 0 0 0 2px var(--av)}
+.p-av.lg{width:46px;height:46px;font-size:24px;box-shadow:inset 0 0 0 3px var(--av)}
+.p-av.xl{width:58px;height:58px;font-size:30px;box-shadow:inset 0 0 0 3px var(--av), 0 6px 16px -8px var(--av)}
+.p-pile{display:inline-flex;align-items:center;padding-left:6px}
+.p-pile .p-av{width:22px;height:22px;font-size:12px;margin-left:-6px;box-shadow:inset 0 0 0 2px var(--av), 0 0 0 2px var(--base)}
+/* en-tête « Salut » */
+.p-hero{border-radius:24px;padding:16px;display:grid;gap:12px}
+.p-hero-t{display:flex;align-items:center;gap:12px}
+.p-hero-t b{display:block;font-size:1.15rem;letter-spacing:-.01em}
+.p-hero-t div > span{display:block;font-size:.8rem;color:var(--ink-soft);margin-top:2px}
+.p-hero-n{border-radius:16px;padding:10px 12px;background:color-mix(in oklab, var(--accent) 12%, transparent);display:grid;gap:1px}
+.p-hero-n span{font-size:.66rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft)}
+.p-hero-n b{font-size:1.45rem;letter-spacing:-.02em;color:var(--accent);font-variant-numeric:tabular-nums}
+.p-hero-n small{font-size:.78rem;color:var(--ink-soft)}
+.p-prog-t{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:6px}
+.p-prog-t b{font-variant-numeric:tabular-nums}
+.p-barre{height:10px;border-radius:99px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
+.p-barre i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg, var(--accent), #2a9d48);transition:width .5s ease}
+/* compétition et matchs */
+.p-comp{border-radius:22px;padding:2px 14px 4px}
+.p-comp-h{display:flex;align-items:center;gap:9px;padding:11px 0 9px}
+.p-comp-h b{font-size:.9rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-cl{width:24px;height:24px;object-fit:contain;flex:none}
+.p-cl.ph{display:grid;place-items:center;font-size:16px}
+.p-tour{margin-left:auto;flex:none;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--card);border:1px solid var(--line);color:var(--ink-soft)}
+.p-m{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto minmax(0,1fr);gap:8px 8px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.p-eq{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;font-size:.82rem;font-weight:600;line-height:1.2;min-width:0}
+.p-eq span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.p-lg{width:40px;height:40px;object-fit:contain;flex:none}
+.p-lg.ph{--eq:#8b8c89;display:grid;place-items:center;border-radius:50%;background:color-mix(in oklab, var(--eq) 22%, var(--card));box-shadow:inset 0 0 0 2px color-mix(in oklab, var(--eq) 70%, transparent);font-size:.68rem;font-weight:800;color:var(--ink)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .p-lg:not(.ph){filter:drop-shadow(0 0 1px rgba(255,255,255,.4))} }
+:root[data-theme="dark"] .p-lg:not(.ph){filter:drop-shadow(0 0 1px rgba(255,255,255,.4))}
+.p-st{display:flex;flex-direction:column;align-items:center;gap:4px}
+.p-st input{width:50px;height:46px;text-align:center;font:inherit;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink);
+  background:var(--card);border:1px solid var(--line);border-radius:14px;padding:0}
+.p-st input::placeholder{color:var(--ink-soft);opacity:.5}
+.p-st input:disabled{background:transparent;border-color:transparent;opacity:1;-webkit-text-fill-color:var(--ink)}
+.p-pm{width:50px;height:30px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--accent);font-size:20px;font-weight:700;line-height:1;touch-action:manipulation}
+.p-pm:active{transform:scale(.92);background:color-mix(in oklab, var(--accent) 18%, var(--card))}
+.p-sep{font-size:22px;font-weight:700;color:var(--ink-soft)}
+.p-pied{grid-column:1 / -1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.75rem;color:var(--ink-soft)}
+.p-pied .p-qui{margin-left:auto;display:inline-flex;align-items:center;gap:6px}
+.p-cd{font-variant-numeric:tabular-nums}
+.p-cd.urgent{color:#d4572e;font-weight:700}
+.p-live{color:#d63c3c;font-weight:700}
+.pop{display:inline-block;animation:pop .45s ease-out}
+@keyframes pop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.18);opacity:1}100%{transform:none}}
+.p-chips{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:6px}
+.p-chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 2px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:.78rem;font-variant-numeric:tabular-nums}
+.p-chip .p-av{width:22px;height:22px;font-size:12px}
+.p-chip.p3{background:#1f8a4c;color:#fff;border-color:transparent}
+.p-chip.p1{background:color-mix(in oklab, #1f8a4c 20%, var(--card))}
+.p-chip.moi{box-shadow:0 0 0 1.5px var(--accent)}
+/* résultats */
+.p-reel{grid-column:2 / 5;display:flex;align-items:center;gap:8px;font-size:1.7rem;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.p-reel span{color:var(--ink-soft);font-weight:600}
+.p-moi{grid-column:1 / -1;display:flex;align-items:center;justify-content:center;gap:8px;font-size:.8rem;color:var(--ink-soft)}
+.p-moi b{color:var(--ink);font-variant-numeric:tabular-nums}
+.p-bd{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:99px;font-size:.74rem;font-weight:700;white-space:nowrap}
+.p-bd.p3{background:#1f8a4c;color:#fff}
+.p-bd.p1{background:color-mix(in oklab, #1f8a4c 22%, transparent);color:var(--ink)}
+.p-bd.p0{background:var(--card);border:1px solid var(--line);color:var(--ink-soft)}
+.p-bilan{border-radius:22px;padding:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.p-bilan div{display:grid;gap:2px}
+.p-bilan b{font-size:1.3rem;font-variant-numeric:tabular-nums}
+.p-bilan span{font-size:.7rem;color:var(--ink-soft)}
+/* classement */
+.p-podium{border-radius:24px;padding:18px 12px 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:8px;overflow:hidden}
+.p-pod{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-width:0}
+.p-pod .med{font-size:20px;line-height:1}
+.p-pod .nom{font-size:.86rem;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-pod small{font-size:.68rem;color:var(--ink-soft);min-height:1.2em}
+.p-marche{--m:#a7b1bb;width:100%;margin-top:6px;border-radius:14px 14px 0 0;display:grid;place-items:center;align-content:center;gap:0;color:#fff;
+  background:linear-gradient(180deg, color-mix(in oklab, var(--m) 92%, #fff), color-mix(in oklab, var(--m) 70%, #000))}
+.p-marche b{font-size:1.35rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.p-marche span{font-size:.66rem;opacity:.9}
+.r1 .p-marche{--m:#e0a800;height:92px}.r2 .p-marche{--m:#9aa6b2;height:70px}.r3 .p-marche{--m:#c27c45;height:54px}
+.r1 .p-av{animation:flotte 3s ease-in-out infinite}
+@keyframes flotte{50%{transform:translateY(-4px)}}
+.p-vide{opacity:.35}
+.p-fl{font-size:.7rem;font-weight:700;white-space:nowrap}
+.p-fl.up{color:#1f8a4c}.p-fl.down{color:#d63c3c}
+.p-tro{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.p-tro > div{border-radius:18px;padding:11px 12px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:center}
+.p-tro .e{grid-row:span 3;font-size:26px}
+.p-tro .t{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+.p-tro .w{display:flex;align-items:center;gap:6px;font-weight:700;font-size:.86rem;min-width:0}
+.p-tro .w span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-tro .w .p-av{width:20px;height:20px;font-size:11px}
+.p-tro .v{font-size:.72rem;color:var(--ink-soft)}
+.p-liste{border-radius:22px;padding:2px 14px}
+.p-r{display:grid;grid-template-columns:22px auto minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.p-r:first-child{border-top:0}
+.p-r > b{font-variant-numeric:tabular-nums;color:var(--ink-soft);text-align:center}
+.p-r-n{min-width:0;font-weight:600;font-size:.9rem}
+.p-r-n small{display:block;font-weight:400;font-size:.7rem;color:var(--ink-soft);margin-top:1px}
+.p-r-pts{font-weight:800;font-size:1.05rem;font-variant-numeric:tabular-nums;min-width:2.2em;text-align:right}
+.p-r.moi .p-r-n{color:var(--accent)}
+.p-pod.moi .nom{color:var(--accent)}
+/* avatar à choisir */
+.p-choix{display:grid;gap:10px}
+.p-choix .lab{font-size:.78rem;color:var(--ink-soft)}
+.p-choix-t{display:flex;align-items:center;gap:12px}
+.p-emo{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+.p-emo button{aspect-ratio:1;border-radius:12px;font-size:20px;background:var(--card);border:1px solid var(--line)}
+.p-emo button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent);background:color-mix(in oklab, var(--accent) 14%, var(--card))}
+.p-coul{display:flex;flex-wrap:wrap;gap:10px}
+.p-coul button{width:30px;height:30px;border-radius:50%;background:var(--av)}
+.p-coul button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--base), 0 0 0 5px var(--av)}
+.p-invit{font-size:1.5rem;line-height:1}
+/* fête */
+.p-conf{position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden}
+.p-conf i{position:absolute;top:-14px;width:8px;height:13px;border-radius:2px;animation:tombe var(--d) cubic-bezier(.25,.6,.45,1) var(--w) forwards}
+@keyframes tombe{to{transform:translate(var(--x), 108vh) rotate(var(--r))}}
+.p-toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom, 0px));z-index:81;transform:translateX(-50%);max-width:calc(100% - 32px);
+  padding:11px 18px;border-radius:999px;background:#1f8a4c;color:#fff;font-weight:700;font-size:.86rem;text-align:center;box-shadow:0 12px 28px -10px rgba(0,0,0,.5);
+  animation:toast 4s ease forwards}
+@keyframes toast{0%{opacity:0;transform:translate(-50%, 20px)}8%,85%{opacity:1;transform:translate(-50%, 0)}100%{opacity:0;transform:translate(-50%, 10px)}}
+/* PC : compétitions sur deux colonnes */
+html.desk .p-grille{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+html.desk .p-grille .jour{grid-column:1 / -1}
+.p-grille{display:flex;flex-direction:column;gap:12px}
 </style>
 </head>
 <body>
@@ -285,13 +387,16 @@ html.desk .f-sheet{border-radius:26px}
 <main><div class="wrap" id="out"><p class="vide">Chargement…</p></div></main>
 
 <script>
-/* Pronos entre amis (v50, module d'essai ; v55 : mode partagé branché).
+/* Pronos entre amis (v50, module d'essai ; v55 : mode partagé branché ; v56 : présentation « fun »).
    Matchs : calendriers déjà publiés par la tâche Sport (donnees/sport/<compétition>.json), compétitions CFG('pronos.ligues').
    Points : score exact 3, bon résultat (vainqueur ou nul) 1 ; classements du mois et de la saison.
    Deux modes, même interface (objet BASE) :
-   - simulation (aucune adresse dans CFG('pronos.api')) : tout reste sur cet appareil (clé pronos:sim), avec 3 amis fictifs ;
+   - simulation (pronos.api vide) : tout reste sur cet appareil (clé pronos:sim), avec 3 amis fictifs ;
    - partagé : appli web Google Apps Script (outils/pronos/Code.gs) qui garde les joueurs et les pronos dans un Google Sheets,
-     refuse un prono après le coup d'envoi et ne montre ceux des autres qu'une fois le match commencé. */
+     refuse un prono après le coup d'envoi et ne montre ceux des autres qu'une fois le match commencé.
+   v56 : matchs par jour puis par compétition (logos), score au clavier ou avec − / +, compte à rebours, avatars (emoji + couleur),
+   « qui a déjà pronostiqué » (serveur v56), badges de points, confettis sur un score exact, podium, flèches de progression, trophées du mois.
+   Avec un serveur v55 : pas d'avatars des autres ni de « qui a pronostiqué », le reste marche. Gratuit, sans mise ni gain. */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } }, set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }};
@@ -305,6 +410,20 @@ const hm = t => new Date(t).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:
 const jourDe = t => new Date(t).toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
 const moisDe = t => new Date(t).toISOString().slice(0, 7);
 const q = new URLSearchParams(location.search);
+const hash = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+const pl = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`;
+function libJour(t){
+  const a = new Date(t); a.setHours(0, 0, 0, 0); const b = new Date(); b.setHours(0, 0, 0, 0);
+  const n = Math.round((a - b) / 864e5);
+  return n === 0 ? "Aujourd'hui" : n === 1 ? 'Demain' : n === -1 ? 'Hier' : jourDe(t);
+}
+function compte(t){                         // « dans 2 h 15 », « dans 40 min », « samedi 14:30 »
+  const d = t - Date.now(); if (d <= 0) return "c'est parti !";
+  const min = Math.ceil(d / 60e3);
+  if (min < 60) return `dans ${min} min`;
+  if (min < 24 * 60) return `dans ${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`;
+  return `${new Date(t).toLocaleDateString('fr-FR', {weekday:'long'})} ${hm(t)}`;
+}
 
 /* ---------- points ---------- */
 const issue = (h, a) => h > a ? 1 : h < a ? 2 : 0;
@@ -315,9 +434,21 @@ function points(p, m){
   return issue(+p[0], +p[1]) === issue(H, A) ? 1 : 0;
 }
 
+/* ---------- avatars : « emoji|n° de couleur » ---------- */
+const EMOJIS = ['🦊', '🐺', '🦁', '🐯', '🐻', '🐼', '🐨', '🦅', '🐙', '🦄', '🐸', '🐲', '🤖', '👽', '🔥', '⚡'];
+const COULEURS = ['#e4572e', '#f3a712', '#2a9d48', '#00a5cf', '#7b2cbf', '#e63978', '#3a5bd9', '#ff7b00'];
+const avLire = s => { const m = /^([^|]{1,8})\|([0-7])$/.exec(String(s || '')); return m ? {e:m[1], c:+m[2]} : null; };
+const avTexte = a => `${a.e}|${a.c}`;
+const avHasard = n => { const h = hash(n); return {e:EMOJIS[h % EMOJIS.length], c:(h >>> 5) % COULEURS.length}; };
+function avatarDe(n){
+  const me = BASE.moi();
+  return (me && n === me.pseudo && avLire(me.avatar)) || avLire((ETAT.avatars || {})[n]) || avHasard(n);
+}
+const avHTML = (n, cls = '') => { const a = avatarDe(n); return `<span class="p-av ${cls}" style="--av:${COULEURS[a.c]}" title="${esc(n)}" aria-hidden="true">${esc(a.e)}</span>`; };
+
 /* ---------- simulation : tout sur cet appareil, 3 amis fictifs ---------- */
 const AMIS = ['Lucas', 'Inès', 'Théo'];
-const hash = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+const AMIS_AV = {Lucas:'🦁|1', Inès:'🦄|5', Théo:'🐙|3'};
 function pronoFictif(nom, m){              // tirage stable : même ami, même match → même prono
   const r = hash(nom + m.id), rugby = m.league === '270559';
   if (rugby){ const a = 10 + r % 25, b = 8 + (r >>> 5) % 25; return [a, b]; }
@@ -326,18 +457,20 @@ function pronoFictif(nom, m){              // tirage stable : même ami, même m
 const SIMU = {
   etat(){ return LS.get('pronos:sim', {moi:null, groupe:'', p:{}}); },
   garder(s){ LS.set('pronos:sim', s); },
-  async inscrire(pseudo, pin, groupe){ const s = this.etat(); s.moi = {pseudo, pin}; s.groupe = groupe; this.garder(s); return {ok:true}; },
+  async inscrire(pseudo, pin, groupe, avatar){ const s = this.etat(); s.moi = {pseudo, pin, avatar}; s.groupe = groupe; this.garder(s); return {ok:true}; },
   moi(){ const s = this.etat(); return s.moi ? {...s.moi, groupe:s.groupe} : null; },
+  async avatar(av){ const s = this.etat(); s.moi.avatar = av; this.garder(s); return {ok:true}; },
   async parier(m, h, a){ if (Date.now() >= m.t) return {err:'ferme'}; const s = this.etat(); s.p[m.id] = [h, a, Date.now()]; this.garder(s); return {ok:true}; },
   async tout(matchs){
-    const s = this.etat(), moi = s.moi.pseudo, pr = {};
+    const s = this.etat(), moi = s.moi.pseudo, pr = {}, qui = {};
     for (const m of matchs){
-      const l = {};
+      const l = {}, joue = AMIS.filter(n => hash(n + m.id) % 10 < 8);   // amis : 8 matchs sur 10
       if (s.p[m.id]) l[moi] = s.p[m.id].slice(0, 2);
-      if (Date.now() >= m.t) AMIS.forEach((n, i) => { if (hash(n + m.id) % 10 < 8) l[n] = pronoFictif(n, m); });   // amis : 8 matchs sur 10, visibles une fois le match commencé
+      if (Date.now() >= m.t) joue.forEach(n => { l[n] = pronoFictif(n, m); });   // visibles une fois le match commencé
+      else { const d = joue.filter(n => hash(n + m.id + 'deja') % 3); if (s.p[m.id]) d.push(moi); if (d.length) qui[m.id] = d; }
       if (Object.keys(l).length) pr[m.id] = l;
     }
-    return {joueurs:[moi, ...AMIS], pronos:pr};
+    return {joueurs:[moi, ...AMIS], pronos:pr, avatars:{...AMIS_AV}, qui};
   },
   remplirPasses(matchs){ const s = this.etat(); matchs.filter(m => m.state === 'post' && !s.p[m.id]).forEach(m => { if (hash('moi' + m.id) % 10 < 9) s.p[m.id] = [...pronoFictif('Moi' + s.moi.pseudo, m), m.t - 3600e3]; }); this.garder(s); },
   effacer(){ localStorage.removeItem('pronos:sim'); }
@@ -346,7 +479,8 @@ const SIMU = {
 const DISTANT = {
   async appel(action, x){ const r = await fetch(API, {method:'POST', body:JSON.stringify({action, ...x})}); if (!r.ok) throw new Error('reseau'); return r.json(); },
   moi(){ return LS.get('pronos:moi', null); },
-  async inscrire(pseudo, pin, groupe){ const r = await this.appel('inscrire', {pseudo, pin, groupe}); if (r.ok) LS.set('pronos:moi', {pseudo, pin, groupe}); return r; },
+  async inscrire(pseudo, pin, groupe, avatar){ const r = await this.appel('inscrire', {pseudo, pin, groupe, avatar}); if (r.ok) LS.set('pronos:moi', {pseudo, pin, groupe, avatar}); return r; },
+  async avatar(av){ const me = this.moi(), r = await this.appel('avatar', {...me, avatar:av}); if (r.ok) LS.set('pronos:moi', {...me, avatar:av}); return r; },
   async parier(m, h, a){ const me = this.moi(); return this.appel('parier', {...me, match:m.id, ligue:m.league, h, a}); },
   async tout(matchs){ const me = this.moi(); return this.appel('etat', {...me}); },
   effacer(){ localStorage.removeItem('pronos:moi'); }
@@ -354,14 +488,71 @@ const DISTANT = {
 const BASE = SIM ? SIMU : DISTANT;
 
 /* ---------- matchs ---------- */
-let MATCHS = [], ETAT = {joueurs:[], pronos:{}}, PANNE = '', VUE = LS.get('pronos:vue', 'jouer'), PERIODE = 'mois';
+let MATCHS = [], ETAT = {joueurs:[], pronos:{}}, PANNE = '', VUE = LS.get('pronos:vue', 'jouer'), PERIODE = 'mois', CHOIX = null, EDITER = false;
+const COMP = {};
 async function chargerMatchs(){
   const now = Date.now(), out = [];
   await Promise.all(LIGUES.map(async L => { try{
     const j = await (await fetch(`donnees/sport/${L.f}.json`, {cache:'no-cache'})).json();
-    (j.events || []).forEach(e => { if (e.home && e.away && e.t > now - JOURS_APRES * 86400e3 && e.t < now + JOURS_AVANT * 86400e3 && !/POSTPONED|CANCEL/.test(e.code || '')) out.push({...e, nomL:L.nom}); });
+    COMP[L.id] = {logo:j.logo || '', logoDark:j.logoDark || ''};
+    (j.events || []).forEach(e => { if (e.home && e.away && e.t > now - JOURS_APRES * 86400e3 && e.t < now + JOURS_AVANT * 86400e3 && !/POSTPONED|CANCEL/.test(e.code || '')) out.push({...e, nomL:L.nom, L}); });
   }catch{} }));
   MATCHS = out.sort((a, b) => a.t - b.t);
+}
+
+/* ---------- logos ---------- */
+const petit = (u, px = 96) => { const m = String(u || '').match(/^(?:https?:)?\/\/a\.espncdn\.com(\/i\/[^?#]+\.png)$/i);
+  return m ? `https://a.espncdn.com/combiner/i?img=${m[1]}&w=${px}&h=${px}&transparent=true` : String(u || '').replace(/^http:\/\//i, 'https://'); };
+const remplace = (cls, txt, coul) => `this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} ph',textContent:'${txt}'${coul ? `,style:'--eq:${coul}'` : ''}}))`;
+function logoEq(m, t){
+  const u = t.logo || (/\./.test(m.league) && t.id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${t.id}.png` : '');   // foot : logo ESPN d'après l'identifiant (comme la page Sport)
+  const ab = String(t.abbr || t.name || '?').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 3);
+  const coul = COULEURS[hash(t.name || ab) % COULEURS.length];                                    // pastille si le logo manque : couleur stable par équipe
+  return u ? `<img class="p-lg" src="${esc(petit(u))}" alt="" loading="lazy" onerror="${esc(remplace('p-lg', ab, coul))}">` : `<span class="p-lg ph" style="--eq:${coul}">${esc(ab)}</span>`;
+}
+function compLogo(L){
+  const c = COMP[L.id] || {}, emo = /\./.test(L.id) ? '⚽' : '🏉';
+  if (!c.logo || /ESPN-icon/i.test(c.logo)) return `<span class="p-cl ph">${emo}</span>`;           // ESPN n'a qu'une icône générique pour le Top 14
+  const img = `<img class="p-cl" src="${esc(petit(c.logo, 64))}" alt="" loading="lazy" onerror="${esc(remplace('p-cl', emo).replace('this.replaceWith', "(this.closest('picture')||this).replaceWith"))}">`;
+  return c.logoDark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${esc(petit(c.logoDark, 64))}">${img}</picture>` : img;
+}
+
+/* ---------- regroupement : jour › compétition ---------- */
+function blocs(l, f){
+  const jours = [];
+  for (const m of l){
+    const d = new Date(m.t).toDateString(); let J = jours[jours.length - 1];
+    if (!J || J.d !== d) jours.push(J = {d, t:m.t, comps:new Map()});
+    if (!J.comps.has(m.league)) J.comps.set(m.league, []);
+    J.comps.get(m.league).push(m);
+  }
+  return `<div class="p-grille">${jours.map(J => `<p class="jour">${esc(libJour(J.t))}</p>` + [...J.comps.values()].map(ms => {
+    const L = ms[0].L, tours = [...new Set(ms.map(m => m.round).filter(Boolean))];
+    return `<section class="p-comp glass"><div class="p-comp-h">${compLogo(L)}<b>${esc(L.nom)}</b>${tours.length === 1 ? `<span class="p-tour">${esc(tours[0])}ᵉ journée</span>` : ''}</div>${ms.map(f).join('')}</section>`;
+  }).join('')).join('')}</div>`;
+}
+
+/* ---------- classement ---------- */
+function classement(per, sansDernierJour){
+  const mois = moisDe(Date.now()), T = {};
+  ETAT.joueurs.forEach(n => { T[n] = {n, pts:0, ex:0, nb:0, bons:0, serie:0}; });
+  let l = MATCHS.filter(m => m.state === 'post' && ETAT.pronos[m.id] && (per === 'saison' || moisDe(m.t) === mois));
+  if (sansDernierJour && l.length){ const der = new Date(l[l.length - 1].t).toDateString(); l = l.filter(m => new Date(m.t).toDateString() !== der); if (!l.length) return null; }
+  l.forEach(m => Object.entries(ETAT.pronos[m.id] || {}).forEach(([n, p]) => {
+    const pt = points(p, m); if (pt == null) return;
+    const x = T[n] || (T[n] = {n, pts:0, ex:0, nb:0, bons:0, serie:0});
+    x.pts += pt; x.nb++; if (pt === 3) x.ex++; if (pt) x.bons++;
+    x.serie = pt ? x.serie + 1 : 0;                         // série en cours : bons pronos d'affilée (ordre des matchs)
+  }));
+  return Object.values(T).sort((a, b) => b.pts - a.pts || b.ex - a.ex || a.nb - b.nb || a.n.localeCompare(b.n)).map((x, i) => ({...x, pos:i + 1}));
+}
+const rangTxt = p => p === 1 ? '1ᵉʳ' : `${p}ᵉ`;
+const stats = x => x.nb ? [x.ex ? `🎯 ${x.ex}` : '', `✓ ${Math.round(100 * x.bons / x.nb)} %`, x.serie >= 2 ? `🔥 ${x.serie}` : ''].filter(Boolean).join(' · ') : 'Pas encore de prono noté';
+function fleche(x, avant){
+  if (!avant) return '';
+  const y = avant.find(z => z.n === x.n); if (!y) return '';
+  const d = y.pos - x.pos;
+  return d > 0 ? `<span class="p-fl up">▲ ${d}</span>` : d < 0 ? `<span class="p-fl down">▼ ${-d}</span>` : '';
 }
 
 /* ---------- affichage ---------- */
@@ -375,54 +566,133 @@ function rendre(){
   const ong = `<div class="ong glass" role="tablist">${[['jouer', 'À pronostiquer'], ['res', 'Résultats'], ['cl', 'Classement']].map(([k, t]) => `<button type="button" role="tab" data-vue="${k}" aria-selected="${VUE === k}">${t}</button>`).join('')}</div>`;
   out.innerHTML = bandeau + ong + (VUE === 'jouer' ? jouerHTML(me) : VUE === 'res' ? resHTML(me) : clHTML(me));
 }
+function choixHTML(){
+  const a = CHOIX;
+  return `<div class="p-choix"><div class="p-choix-t"><span class="p-av xl" style="--av:${COULEURS[a.c]}" id="avApercu">${esc(a.e)}</span><span class="lab">Ton avatar : il s'affiche à côté de tes pronos et dans le classement.</span></div>
+    <div class="p-emo">${EMOJIS.map(e => `<button type="button" data-emo="${e}" aria-pressed="${e === a.e}" aria-label="Avatar ${e}">${e}</button>`).join('')}</div>
+    <div class="p-coul">${COULEURS.map((c, i) => `<button type="button" data-coul="${i}" style="--av:${c}" aria-pressed="${i === a.c}" aria-label="Couleur ${i + 1}"></button>`).join('')}</div></div>`;
+}
 function inscriptionHTML(){
   const g = (q.get('groupe') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
-  return `<form class="carte glass" id="inscr"><h2>Rejoindre le groupe</h2>
-    <p>${g ? `Tu as été invité dans le groupe <b>${esc(g)}</b>.` : 'Entre le code du groupe (ou crée-en un en inventant un code).'} Choisis un pseudo et un code à 4 chiffres : il te servira à te reconnecter sur un autre appareil.</p>
+  if (!CHOIX) CHOIX = avHasard(String(Math.random()));
+  return `<form class="carte glass" id="inscr">${g ? `<span class="p-invit">🎉</span><h2>Tu es invité dans le groupe ${esc(g)} !</h2>` : '<h2>Rejoindre un groupe</h2>'}
+    <p>${g ? 'Pronostique les matchs avec tes amis : 3 points pour un score exact, 1 pour le bon vainqueur (ou le nul). Gratuit, juste pour le plaisir.' : 'Entre le code du groupe (ou crée-en un en inventant un code).'} Choisis un pseudo et un code à 4 chiffres : il te servira à te reconnecter sur un autre appareil.</p>
     <label class="champ">Groupe<input name="groupe" value="${esc(g || (SIM ? 'AMIS' : ''))}" autocapitalize="characters" autocomplete="off" maxlength="8" required></label>
     <label class="champ">Pseudo<input name="pseudo" autocomplete="nickname" maxlength="20" required></label>
     <label class="champ">Code (4 chiffres)<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" required></label>
-    <div class="btns"><button class="btn main" type="submit">Rejoindre</button></div><p class="msg" id="iMsg" role="status"></p></form>`;
+    ${choixHTML()}
+    <div class="btns"><button class="btn main" type="submit">C'est parti !</button></div><p class="msg" id="iMsg" role="status"></p></form>`;
 }
-const quitter = me => SIM ? '' : `<div class="carte glass"><h2>Cet appareil</h2><p>Connecté en tant que <b>${esc(me.pseudo)}</b> dans le groupe <b>${esc(me.groupe)}</b>. Tes pronos restent sur le serveur : tu peux revenir avec le même pseudo et le même code.</p>
-  <div class="btns"><button type="button" class="btn" data-quitter>Changer de joueur ou de groupe</button></div></div>`;
-const ligneEq = (m, droite) => `<span class="eq${droite ? ' d' : ''}">${esc((droite ? m.away : m.home).name)}</span>`;
-function parJour(l, f){ let j = '', h = ''; for (const m of l){ const d = jourDe(m.t); if (d !== j){ j = d; h += `<p class="jour">${esc(d)}</p>`; } h += f(m); } return h; }
+const monProno = (m, me) => (ETAT.pronos[m.id] || {})[me.pseudo];
+function heroHTML(me){
+  const now = Date.now(), ouverts = MATCHS.filter(m => m.state !== 'post' && m.t > now), faits = ouverts.filter(m => monProno(m, me)), prochain = ouverts[0];
+  const cl = classement('mois'), x = cl.find(y => y.n === me.pseudo), joue = cl.some(y => y.nb);
+  const reste = ouverts.length - faits.length, pct = ouverts.length ? Math.round(100 * faits.length / ouverts.length) : 100;
+  return `<section class="p-hero glass" id="hero">
+    <div class="p-hero-t">${avHTML(me.pseudo, 'xl')}<div><b>Salut ${esc(me.pseudo)} !</b><span>${x && joue ? `${rangTxt(x.pos)} sur ${cl.length} ce mois-ci · ${pl(x.pts, 'point')}` : `${pl(ETAT.joueurs.length, 'joueur')} dans le groupe`}</span></div></div>
+    ${prochain ? `<div class="p-hero-n"><span>Prochain coup d'envoi</span><b data-cd="${prochain.t}">${esc(compte(prochain.t))}</b><small>${esc(prochain.home.name)} – ${esc(prochain.away.name)} · ${esc(prochain.L.nom)}</small></div>` : ''}
+    ${ouverts.length ? `<div><div class="p-prog-t"><span>${reste ? `${pl(reste, 'prono')} à faire cette semaine` : 'Tout est pronostiqué ✅'}</span><b>${faits.length}/${ouverts.length}</b></div><div class="p-barre"><i style="width:${pct}%"></i></div></div>` : ''}
+  </section>`;
+}
+function scoreHTML(m, p, i, ferme){
+  const nom = esc((i ? m.away : m.home).name);
+  return `<div class="p-st">${ferme ? '' : `<button type="button" class="p-pm" data-pas="1" aria-label="${nom} : un de plus">+</button>`}<input inputmode="numeric" maxlength="3" placeholder="?" aria-label="Score ${nom}" value="${esc(p[i])}"${ferme ? ' disabled' : ''}>${ferme ? '' : `<button type="button" class="p-pm" data-pas="-1" aria-label="${nom} : un de moins">−</button>`}</div>`;
+}
+function quiHTML(m, me){
+  if (!ETAT.qui) return '';                                  // serveur v55 : information absente
+  const autres = ETAT.joueurs.filter(n => n !== me.pseudo); if (!autres.length) return '';
+  const l = (ETAT.qui[m.id] || []).filter(n => n !== me.pseudo);
+  return `<span class="p-qui">${l.length ? `<span class="p-pile">${l.slice(0, 5).map(n => avHTML(n)).join('')}</span>` : '👀'} ${l.length}/${autres.length} ${autres.length > 1 ? 'amis ont joué' : 'ami a joué'}</span>`;
+}
+function matchJouer(m, me){
+  const now = Date.now(), p = monProno(m, me) || ['', ''], ferme = now >= m.t;
+  const gauche = ferme ? (m.state === 'in' ? '<span class="p-live">● En direct</span>' : '🔒 Commencé') : `<span class="p-cd${m.t - now < 3600e3 ? ' urgent' : ''}" data-cd="${m.t}" data-pre="⏳ ">⏳ ${esc(compte(m.t))}</span>`;
+  return `<div class="p-m" data-m="${esc(m.id)}">
+    <div class="p-eq">${logoEq(m, m.home)}<span>${esc(m.home.name)}</span></div>
+    ${scoreHTML(m, p, 0, ferme)}<span class="p-sep">:</span>${scoreHTML(m, p, 1, ferme)}
+    <div class="p-eq">${logoEq(m, m.away)}<span>${esc(m.away.name)}</span></div>
+    <div class="p-pied">${gauche}<span data-etat>${!ferme && p[0] !== '' ? '<span class="ok">✓ enregistré</span>' : ''}</span>${ferme ? '' : quiHTML(m, me)}</div>
+    ${ferme ? `<div class="p-chips">${autresHTML(m, me) || '<span class="note">Aucun prono</span>'}</div>` : ''}</div>`;
+}
 function jouerHTML(me){
   const now = Date.now(), l = MATCHS.filter(m => m.state !== 'post' && m.t > now - 3 * 3600e3);
-  if (!l.length) return '<p class="vide">Aucun match dans les 7 prochains jours pour ces compétitions.</p>';
-  return parJour(l, m => { const p = ((ETAT.pronos[m.id] || {})[me.pseudo]) || ['', ''], ferme = now >= m.t;
-    return `<div class="pm glass" data-m="${esc(m.id)}"><span class="pm-h"><b>${esc(m.nomL)}</b><span>${ferme ? (m.state === 'in' ? 'En cours · fermé' : 'Fermé') : hm(m.t)}</span></span>
-      ${ligneEq(m)}<span class="sc"><input inputmode="numeric" maxlength="3" aria-label="Score ${esc(m.home.name)}" value="${esc(p[0])}"${ferme ? ' disabled' : ''} data-c="0"><span>–</span><input inputmode="numeric" maxlength="3" aria-label="Score ${esc(m.away.name)}" value="${esc(p[1])}"${ferme ? ' disabled' : ''} data-c="1"></span>${ligneEq(m, true)}
-      <span class="pm-b" data-etat>${ferme ? autresHTML(m, me) : p[0] !== '' ? '<span class="ok">✓ enregistré</span>' : `Ouvert jusqu'au coup d'envoi (${hm(m.t)})`}</span></div>`; });
+  return heroHTML(me) + (l.length ? blocs(l, m => matchJouer(m, me)) : '<p class="vide">Aucun match dans les 7 prochains jours pour ces compétitions.</p>');
 }
-function autresHTML(m, me){
-  const l = ETAT.pronos[m.id] || {};
-  return Object.entries(l).sort(([a], [b]) => (b === me.pseudo) - (a === me.pseudo)).map(([n, p]) => { const pt = points(p, m);
-    return `<span class="chip${n === me.pseudo ? ' moi' : ''}${pt === 3 ? ' p3' : pt === 1 ? ' p1' : ''}">${esc(n)} ${esc(p[0])}–${esc(p[1])}${pt != null ? ` · ${pt} pt${pt > 1 ? 's' : ''}` : ''}</span>`; }).join('') || 'Aucun prono';
+function autresHTML(m, me, sansMoi){
+  const l = Object.entries(ETAT.pronos[m.id] || {}).filter(([n]) => !(sansMoi && n === me.pseudo));
+  return l.sort(([a], [b]) => (b === me.pseudo) - (a === me.pseudo)).map(([n, p]) => { const pt = points(p, m);
+    return `<span class="p-chip${n === me.pseudo ? ' moi' : ''}${pt === 3 ? ' p3' : pt === 1 ? ' p1' : ''}">${avHTML(n)}${esc(n)} <b>${esc(p[0])}–${esc(p[1])}</b>${pt ? ` · +${pt}` : ''}</span>`; }).join('');
 }
+const badge = pt => pt === 3 ? '<span class="p-bd p3">🎯 +3</span>' : pt === 1 ? '<span class="p-bd p1">✓ +1</span>' : '<span class="p-bd p0">✗ 0</span>';
 function resHTML(me){
   const l = MATCHS.filter(m => m.state === 'post' && ETAT.pronos[m.id]).reverse();
   if (!l.length) return '<p class="vide">Pas encore de match terminé avec des pronos.</p>' + (SIM ? simOutils() : '');
-  return parJour(l, m => `<div class="pm glass"><span class="pm-h"><b>${esc(m.nomL)}</b><span>${hm(m.t)}</span></span>
-    ${ligneEq(m)}<span class="sc"><span class="res">${esc(m.home.score)} – ${esc(m.away.score)}</span></span>${ligneEq(m, true)}<span class="pm-b">${autresHTML(m, me)}</span></div>`);
+  const x = classement('mois').find(y => y.n === me.pseudo) || {pts:0, ex:0, bons:0, nb:0};
+  return `<section class="p-bilan glass"><div><b>${x.pts}</b><span>points ce mois-ci</span></div><div><b>${x.ex}</b><span>🎯 scores exacts</span></div><div><b>${x.nb ? Math.round(100 * x.bons / x.nb) : 0} %</b><span>✓ bons résultats</span></div></section>`
+    + blocs(l, m => { const p = monProno(m, me), autres = autresHTML(m, me, true);
+      return `<div class="p-m"><div class="p-eq">${logoEq(m, m.home)}<span>${esc(m.home.name)}</span></div>
+        <div class="p-reel">${esc(m.home.score)}<span>–</span>${esc(m.away.score)}</div>
+        <div class="p-eq">${logoEq(m, m.away)}<span>${esc(m.away.name)}</span></div>
+        <div class="p-moi">${p ? `Ton prono <b>${esc(p[0])}–${esc(p[1])}</b> ${badge(points(p, m))}` : 'Pas de prono pour toi'}</div>
+        ${autres ? `<div class="p-chips">${autres}</div>` : ''}</div>`; });
 }
-function classement(per){
-  const mois = moisDe(Date.now()), T = {};
-  ETAT.joueurs.forEach(n => { T[n] = {n, pts:0, ex:0, nb:0}; });
-  MATCHS.filter(m => m.state === 'post' && (per === 'saison' || moisDe(m.t) === mois)).forEach(m => Object.entries(ETAT.pronos[m.id] || {}).forEach(([n, p]) => {
-    const pt = points(p, m); if (pt == null) return; const x = T[n] || (T[n] = {n, pts:0, ex:0, nb:0}); x.pts += pt; x.nb++; if (pt === 3) x.ex++; }));
-  return Object.values(T).sort((a, b) => b.pts - a.pts || b.ex - a.ex || a.nb - b.nb || a.n.localeCompare(b.n));
+function podiumHTML(l, avant, me){
+  const pod = x => x ? `<div class="p-pod r${x.pos}${x.n === me.pseudo ? ' moi' : ''}"><span class="med">${['🥇', '🥈', '🥉'][x.pos - 1]}</span>${avHTML(x.n, x.pos === 1 ? 'xl' : 'lg')}
+      <span class="nom">${esc(x.n)}</span><small>${fleche(x, avant) || (x.serie >= 2 ? `🔥 ${x.serie}` : '&nbsp;')}</small><div class="p-marche"><b>${x.pts}</b><span>${x.pts > 1 ? 'pts' : 'pt'}</span></div></div>`
+    : '<div class="p-pod p-vide"><div class="p-marche" style="height:40px"></div></div>';
+  return `<section class="p-podium glass">${pod(l[1])}${pod(l[0])}${pod(l[2])}</section>`;
+}
+function tropheesHTML(l){
+  if (!l.some(x => x.nb)) return '';
+  const max = (k, min = 1) => { const x = [...l].sort((a, b) => b[k] - a[k] || a.pos - b.pos)[0]; return x && x[k] >= min ? x : null; };
+  const joues = l.filter(x => x.nb), der = joues.length >= 3 ? joues[joues.length - 1] : null;
+  const t = [
+    ['🎯', 'Sniper', max('ex'), x => x.ex > 1 ? `${x.ex} scores exacts` : '1 score exact'],
+    ['🔥', 'En feu', max('serie', 2), x => `${x.serie} bons d'affilée`],
+    ['💪', 'Assidu', max('nb'), x => pl(x.nb, 'prono')],
+    ['🐢', 'Lanterne rouge', der, x => pl(x.pts, 'point')]
+  ].filter(z => z[2]);
+  return t.length ? `<div class="p-tro">${t.map(([e, nom, x, v]) => `<div class="glass"><span class="e">${e}</span><span class="t">${nom}</span><span class="w">${avHTML(x.n)}<span>${esc(x.n)}</span></span><span class="v">${esc(v(x))}</span></div>`).join('')}</div>` : '';
 }
 function clHTML(me){
-  const l = classement(PERIODE);
-  return `<div class="ong glass" role="tablist">${[['mois', 'Ce mois-ci'], ['saison', 'Saison']].map(([k, t]) => `<button type="button" role="tab" data-per="${k}" aria-selected="${PERIODE === k}">${t}</button>`).join('')}</div>
-    <div class="cl glass"><div class="cl-r t"><span>#</span><span>Joueur</span><span class="n">Pronos</span><span class="n">Exacts</span><span class="pts">Pts</span></div>
-    ${l.map((x, i) => `<div class="cl-r${x.n === me.pseudo ? ' moi' : ''}"><b>${i + 1}</b><span>${esc(x.n)}</span><span class="n">${x.nb}</span><span class="n">${x.ex}</span><span class="pts">${x.pts}</span></div>`).join('')}</div>
-    <p class="note">Score exact : 3 points · bon résultat (vainqueur ou nul) : 1 point. À égalité : le plus de scores exacts, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison = les ${JOURS_APRES} derniers jours dans cet essai.` : ''}</p>` + (SIM ? simOutils() : quitter(me));
+  const l = classement(PERIODE), avant = classement(PERIODE, true), joue = l.some(x => x.nb);
+  const per = `<div class="ong glass" role="tablist">${[['mois', 'Ce mois-ci'], ['saison', 'Saison']].map(([k, t]) => `<button type="button" role="tab" data-per="${k}" aria-selected="${PERIODE === k}">${t}</button>`).join('')}</div>`;
+  const corps = joue
+    ? podiumHTML(l, avant, me) + tropheesHTML(l) + (l.length > 3 ? `<div class="p-liste glass">${l.slice(3).map(x => `<div class="p-r${x.n === me.pseudo ? ' moi' : ''}"><b>${x.pos}</b>${avHTML(x.n)}<span class="p-r-n">${esc(x.n)}<small>${stats(x)}</small></span>${fleche(x, avant)}<span class="p-r-pts">${x.pts}</span></div>`).join('')}</div>` : '')
+    : `<div class="carte glass"><h2>🏁 Le classement démarre au premier match terminé</h2><p>Dans le groupe : ${l.map(x => `${avHTML(x.n)} ${esc(x.n)}`).join(' &nbsp; ')}</p></div>`;
+  return per + corps + `<p class="note">Score exact : 3 points · bon résultat (vainqueur ou nul) : 1 point. À égalité : le plus de scores exacts, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison = les ${JOURS_APRES} derniers jours dans cet essai.` : ''} ▲▼ : places gagnées ou perdues depuis la dernière journée.</p>`
+    + (SIM ? simOutils() : '') + appareilHTML(me);
 }
 const simOutils = () => `<div class="carte glass"><h2>Outils de simulation</h2><p>Pour voir le classement vivre tout de suite : des pronos tirés au hasard pour toi sur les matchs déjà joués.</p>
   <div class="btns"><button type="button" class="btn" data-sim="remplir">Simuler mes pronos passés</button><button type="button" class="btn" data-sim="effacer">Tout effacer</button></div></div>`;
+function appareilHTML(me){
+  return `<div class="carte glass" id="appareil"><h2>Mon profil</h2><p>Connecté en tant que <b>${esc(me.pseudo)}</b> dans le groupe <b>${esc(me.groupe)}</b>.${SIM ? '' : ' Tes pronos restent sur le serveur : tu peux revenir avec le même pseudo et le même code.'}</p>
+    ${EDITER ? choixHTML() + '<div class="btns"><button type="button" class="btn main" data-av="garder">Enregistrer</button><button type="button" class="btn" data-av="annuler">Annuler</button></div><p class="msg" id="avMsg" role="status"></p>'
+      : `<div class="btns"><button type="button" class="btn" data-av="changer">${avHTML(me.pseudo)} Changer mon avatar</button>${SIM ? '' : '<button type="button" class="btn" data-quitter>Changer de joueur ou de groupe</button>'}</div>`}</div>`;
+}
+
+/* ---------- fête : confettis sur un score exact (une fois par match) ---------- */
+function fete(texte){
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const c = document.createElement('div'); c.className = 'p-conf'; c.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < 70; i++){
+      const e = document.createElement('i');
+      e.style.cssText = `left:${Math.random() * 100}%;background:${COULEURS[i % COULEURS.length]};--x:${(Math.random() - .5) * 160}px;--r:${(Math.random() - .5) * 1080}deg;--d:${1.6 + Math.random() * 1.4}s;--w:${Math.random() * .5}s`;
+      c.appendChild(e);
+    }
+    document.body.appendChild(c); setTimeout(() => c.remove(), 4000);
+  }
+  const t = document.createElement('div'); t.className = 'p-toast'; t.setAttribute('role', 'status'); t.textContent = texte;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 4200);
+}
+function feterExacts(){
+  const me = BASE.moi(); if (!me) return;
+  const vus = LS.get('pronos:fete', null), now = Date.now();
+  const exacts = MATCHS.filter(m => points(monProno(m, me), m) === 3);
+  if (vus){ const neufs = exacts.filter(m => !vus.includes(m.id) && now - m.t < 4 * 86400e3);
+    if (neufs.length){ const m = neufs[neufs.length - 1]; fete(neufs.length > 1 ? `🎯 ${neufs.length} scores exacts ! +${3 * neufs.length} points` : `🎯 Score exact : ${m.home.name} ${m.home.score}–${m.away.score} ${m.away.name} · +3`); } }
+  LS.set('pronos:fete', [...new Set([...(vus || []), ...exacts.map(m => m.id)])].slice(-300));   // première visite : on retient sans fêter
+}
 
 /* ---------- actions ---------- */
 async function actualiser(){
@@ -431,7 +701,7 @@ async function actualiser(){
   try{ await chargerMatchs(); if (BASE.moi()){ try{ ETAT = await BASE.tout(MATCHS); if (ETAT.err) throw new Error(ETAT.err); }
     catch(e){ ETAT = {joueurs:[], pronos:{}};
       if (e.message === 'code'){ BASE.effacer(); PANNE = 'Pseudo ou code non reconnu par le serveur : reconnecte-toi.'; }      // v55 : plus de page vide sans explication
-      else PANNE = 'Serveur des pronos injoignable : les pronos affichés peuvent être incomplets. Réessaie avec ↻.'; } } rendre(); }
+      else PANNE = 'Serveur des pronos injoignable : les pronos affichés peuvent être incomplets. Réessaie avec ↻.'; } } rendre(); feterExacts(); }
   finally{ $('#refreshBtn').classList.remove('spin'); }
 }
 document.addEventListener('submit', async e => {
@@ -439,40 +709,83 @@ document.addEventListener('submit', async e => {
   const f = new FormData(e.target), groupe = String(f.get('groupe')).toUpperCase().replace(/[^A-Z0-9]/g, ''), pseudo = String(f.get('pseudo')).trim(), pin = String(f.get('pin'));
   const msg = t => { $('#iMsg').textContent = t; };
   if (!groupe || !pseudo || !/^\d{4}$/.test(pin)) return msg('Groupe, pseudo et code à 4 chiffres.');
+  if (/\|/.test(pseudo)) return msg('Pas de « | » dans le pseudo.');
   if (SIM && AMIS.includes(pseudo)) return msg('Pseudo déjà pris dans ce groupe.');
-  try{ const r = await BASE.inscrire(pseudo, pin, groupe);
+  try{ const r = await BASE.inscrire(pseudo, pin, groupe, avTexte(CHOIX));
     if (!r.ok) return msg(r.err === 'pris' ? 'Ce pseudo existe déjà dans le groupe : mauvais code ?' : 'Inscription refusée.');
     actualiser(); }catch{ msg('Serveur des pronos injoignable.'); }
 });
 const enAttente = {};
-document.addEventListener('input', e => {
-  const i = e.target.closest('.sc input'); if (!i) return;
-  i.value = i.value.replace(/\D/g, '').slice(0, 3);
-  const box = i.closest('[data-m]'), id = box.dataset.m, m = MATCHS.find(x => x.id === id), [a, b] = box.querySelectorAll('input'), et = box.querySelector('[data-etat]');
+function programmer(box){
+  const id = box.dataset.m, m = MATCHS.find(x => x.id === id), [a, b] = box.querySelectorAll('.p-st input'), et = box.querySelector('[data-etat]');
   clearTimeout(enAttente[id]);
   if (a.value === '' || b.value === ''){ et.textContent = 'Complète les deux scores'; return; }
   et.textContent = 'Enregistrement…';
   enAttente[id] = setTimeout(async () => {
-    try{ const r = await BASE.parier(m, +a.value, +b.value);
-      if (r.ok){ const me = BASE.moi(); (ETAT.pronos[id] || (ETAT.pronos[id] = {}))[me.pseudo] = [+a.value, +b.value]; et.innerHTML = '<span class="ok">✓ enregistré</span>'; }
+    try{ const h = +a.value, v = +b.value, r = await BASE.parier(m, h, v);
+      if (r.ok){ const me = BASE.moi(); (ETAT.pronos[id] || (ETAT.pronos[id] = {}))[me.pseudo] = [h, v];
+        if (ETAT.qui){ const l = ETAT.qui[id] || (ETAT.qui[id] = []); if (!l.includes(me.pseudo)) l.push(me.pseudo); }
+        et.innerHTML = '<span class="ok pop">✓ enregistré</span>';
+        const hero = $('#hero'); if (hero) hero.outerHTML = heroHTML(me); }
       else et.textContent = {ferme:'Trop tard : le match a commencé.', code:'Pseudo ou code non reconnu : actualise la page.', match:'Match pas encore connu du serveur : réessaie dans 10 min.'}[r.err] || 'Refusé par le serveur.'; }
     catch{ et.textContent = 'Pas enregistré (réseau) : réessaie.'; }
+    finally{ delete enAttente[id]; }
   }, 600);
+}
+document.addEventListener('input', e => {
+  const i = e.target.closest('.p-st input'); if (!i) return;
+  i.value = i.value.replace(/\D/g, '').slice(0, 3);
+  programmer(i.closest('[data-m]'));
 });
+document.addEventListener('focusin', e => { const i = e.target.closest('.p-st input'); if (i) setTimeout(() => i.select(), 0); });   // taper remplace le chiffre
+async function changerAvatar(){
+  const msg = t => { const m = $('#avMsg'); if (m) m.textContent = t; };
+  try{ const r = await BASE.avatar(avTexte(CHOIX));
+    if (!r.ok) return msg(r.err === 'action' ? 'Le serveur des pronos doit être mis à jour (v56) pour garder les avatars.' : 'Avatar refusé par le serveur.');
+    if (ETAT.avatars) ETAT.avatars[BASE.moi().pseudo] = avTexte(CHOIX);
+    EDITER = false; rendre(); }catch{ msg('Serveur des pronos injoignable.'); }
+}
 document.addEventListener('click', async e => {
   const v = e.target.closest('[data-vue]'); if (v){ VUE = v.dataset.vue; LS.set('pronos:vue', VUE); rendre(); return; }
   const p = e.target.closest('[data-per]'); if (p){ PERIODE = p.dataset.per; rendre(); return; }
-  if (e.target.closest('[data-quitter]')){ BASE.effacer(); ETAT = {joueurs:[], pronos:{}}; rendre(); return; }
+  const pas = e.target.closest('[data-pas]');
+  if (pas){
+    const box = pas.closest('[data-m]'), i = pas.parentNode.querySelector('input'), d = +pas.dataset.pas;
+    i.value = Math.max(0, Math.min(200, (i.value === '' ? 0 : +i.value) + (i.value === '' && d < 0 ? 0 : d)));
+    box.querySelectorAll('.p-st input').forEach(x => { if (x.value === '') x.value = '0'; });   // un seul côté touché : l'autre à 0
+    if (navigator.vibrate) navigator.vibrate(8);
+    programmer(box); return;
+  }
+  const emo = e.target.closest('[data-emo]'), coul = e.target.closest('[data-coul]');
+  if (emo || coul){
+    if (emo) CHOIX.e = emo.dataset.emo; else CHOIX.c = +coul.dataset.coul;
+    document.querySelectorAll('[data-emo]').forEach(b => b.setAttribute('aria-pressed', b.dataset.emo === CHOIX.e));
+    document.querySelectorAll('[data-coul]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.coul === CHOIX.c));
+    const ap = $('#avApercu'); ap.textContent = CHOIX.e; ap.style.setProperty('--av', COULEURS[CHOIX.c]); return;
+  }
+  const av = e.target.closest('[data-av]');
+  if (av){
+    if (av.dataset.av === 'changer'){ CHOIX = {...avatarDe(BASE.moi().pseudo)}; EDITER = true; rendre(); $('#appareil').scrollIntoView({block:'nearest'}); }
+    else if (av.dataset.av === 'annuler'){ EDITER = false; rendre(); }
+    else changerAvatar();
+    return;
+  }
+  if (e.target.closest('[data-quitter]')){ BASE.effacer(); ETAT = {joueurs:[], pronos:{}}; CHOIX = null; rendre(); return; }
   const s = e.target.closest('[data-sim]');
   if (s && SIM){ if (s.dataset.sim === 'remplir'){ SIMU.remplirPasses(MATCHS); } else if (confirm('Effacer la simulation (pseudo et pronos) ?')) SIMU.effacer(); else return; actualiser(); return; }
 });
 $('#refreshBtn').addEventListener('click', actualiser);
 $('#invBtn').addEventListener('click', async () => {
   const me = BASE.moi(), url = `${location.origin}${location.pathname}?groupe=${encodeURIComponent(me.groupe)}`;
-  const t = `Rejoins mon groupe de pronos ${me.groupe} :`;
+  const t = `⚽🏉 Rejoins mon groupe de pronos ${me.groupe} (gratuit, entre amis) :`;
   try{ if (navigator.share){ await navigator.share({title:'Pronos', text:t, url}); return; } await navigator.clipboard.writeText(`${t} ${url}`); alert('Lien copié : ' + url); }catch{}
 });
-setInterval(() => { if (!document.hidden && VUE === 'jouer' && BASE.moi()) rendre(); }, 60e3);   // fermeture au coup d'envoi sans recharger
+setInterval(() => {                         // comptes à rebours ; fermeture au coup d'envoi sans recharger (pas pendant une saisie)
+  if (document.hidden || !BASE.moi()) return;
+  const now = Date.now(); let passe = false;
+  document.querySelectorAll('[data-cd]').forEach(x => { const t = +x.dataset.cd; if (t <= now) passe = true; x.textContent = (x.dataset.pre || '') + compte(t); x.classList.toggle('urgent', x.classList.contains('p-cd') && t - now < 3600e3); });
+  if (passe && VUE === 'jouer' && !(document.activeElement && document.activeElement.closest('.p-st')) && !Object.keys(enAttente).length) rendre();
+}, 30e3);
 actualiser();
 </script>
 

@@ -1,4 +1,4 @@
-# Pronos entre amis (v50, module d'essai ; v55 : mode partagé branché)
+# Pronos entre amis (v50, module d'essai ; v55 : mode partagé branché ; v56 : présentation « fun »)
 
 Page `pronos.html` (lien en bas de la page Sport). Lien à partager : `https://zyavo.github.io/iPhone-Dock/pronos.html?groupe=CODE`
 (bouton de partage en haut de la page une fois inscrit).
@@ -9,6 +9,17 @@ Appli web Apps Script du **compte Google perso** de Yoann (tableur « Pronos Kio
 Écrite comme valeur par défaut dans `pronos.html` (`API_TEST`) : `CFG('pronos.api', API_TEST)`. Une ligne `pronos.api` du classeur (à créer) passera devant ;
 `pronos.api` = vide → simulation. **À retirer avant de rendre le dock public** (sinon les copies du dépôt écrivent dans ce tableur).
 Adresse publique (lisible dans la page) : risque = faux joueurs dans le tableur, sans accès au reste du compte Google.
+
+## Présentation (v56)
+- **À pronostiquer** : en-tête (avatar, rang du mois, compte à rebours du prochain coup d'envoi, barre « pronos faits / matchs ouverts »), matchs par jour puis
+  par compétition (logo de la compétition, sinon ⚽/🏉 ; n° de journée), logos des équipes (`t.logo`, sinon logo ESPN foot d'après l'identifiant ; repli : pastille
+  colorée), score au clavier (toucher le chiffre) ou avec − / + (un seul côté touché : l'autre passe à 0), « x/y amis ont joué » (serveur v56).
+- **Résultats** : bilan du mois, score réel, ton prono + badge (🎯 +3, ✓ +1, ✗ 0), pastilles des amis ; confettis + message à la première vue d'un score exact
+  de moins de 4 jours (`pronos:fete` ; la première visite retient sans fêter).
+- **Classement** : podium, ▲▼ depuis la dernière journée (classement sans le dernier jour joué), stats (🎯 exacts, ✓ %, 🔥 série), trophées de la période
+  (🎯 Sniper, 🔥 En feu ≥ 2, 💪 Assidu, 🐢 Lanterne rouge dès 3 joueurs), Mon profil (changer d'avatar, changer de joueur).
+- **Avatars** : « emoji|n° de couleur » (16 emojis, 8 couleurs) choisis à l'inscription ; sans avatar enregistré, tirage stable d'après le pseudo.
+- Serveur v55 : la page marche (pas d'avatars des autres ni de « qui a joué » ; changer d'avatar → message « serveur à mettre à jour »).
 
 ## Mode simulation (sans serveur)
 Sans adresse de serveur, tout reste sur l'appareil (clé `pronos:sim`) : 3 amis fictifs (Lucas, Inès, Théo) avec des pronos tirés au hasard,
@@ -27,6 +38,7 @@ remplit tes pronos sur les matchs déjà joués pour voir le classement ; « Tou
 Modifier le script ensuite : Déployer › Gérer les déploiements › crayon › Version : **Nouvelle version** › Déployer (l'adresse /exec ne change pas).
 Les onglets Joueurs et Pronos se créent au premier usage (ou par `verifier`) ; tu peux les lire et corriger dans le tableau (le code des joueurs n'y est qu'en empreinte).
 v55 : colonnes groupe, pseudo, match, ligue au format texte et comparaisons en texte (sinon un groupe « 2026 » devenait un nombre : doublons, « mauvais code »).
+v56 : colonne E `avatar` de Joueurs (ajoutée toute seule à un onglet existant), action `avatar`, `etat` renvoie aussi `avatars` et `qui` (pseudos ayant pronostiqué un match pas commencé, sans le score).
 Page : bandeau si le serveur ne répond pas ; « code non reconnu » → retour à l'inscription ; Classement › « Changer de joueur ou de groupe » (oublie l'identité sur l'appareil).
 
 ## Règles

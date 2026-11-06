@@ -1,8 +1,9 @@
-/* KiosK — serveur des pronos entre amis (Google Apps Script, v55).
+/* KiosK — serveur des pronos entre amis (Google Apps Script, v56).
    Garde les joueurs et les pronos dans le Google Sheets auquel ce script est attaché (onglets « Joueurs » et « Pronos », créés tout seuls).
    Refuse un prono après le coup d'envoi (horaires lus sur le site publié, pas envoyés par le téléphone) et ne montre
    les pronos des autres qu'une fois le match commencé. Les points et le classement sont calculés par la page.
    v55 : groupes, pseudos et matchs toujours lus en texte (le Sheets changeait « 2026 » en nombre : inscription en double, « mauvais code »).
+   v56 : avatar de chaque joueur (colonne E de Joueurs, « emoji|couleur ») et, pour les matchs pas commencés, qui a déjà pronostiqué (sans les scores).
    Mise en place : voir outils/dev/PRONOS.md. */
 const SITE = 'https://zyavo.github.io/iPhone-Dock/';            // adresse du dock publié
 const LIGUES = {'fra.1':'fra-1', '270559':'270559', 'uefa.champions':'uefa-champions'};   // id ESPN → fichier donnees/sport/<fichier>.json
@@ -18,11 +19,13 @@ function doGet(){ return ContentService.createTextOutput(JSON.stringify({ok:true
 function feuille(nom, entetes, texte){
   const ss = SpreadsheetApp.getActive(); let f = ss.getSheetByName(nom);
   if (!f){ f = ss.insertSheet(nom); f.getRange(texte).setNumberFormat('@'); f.appendRow(entetes); f.setFrozenRows(1); }
+  else if (f.getLastColumn() < entetes.length) f.getRange(1, 1, 1, entetes.length).setValues([entetes]);   // v56 : colonne ajoutée à un onglet existant
   return f;
 }
-const JOUEURS = () => feuille('Joueurs', ['groupe', 'pseudo', 'code (empreinte)', 'inscrit le'], 'A:C');
+const JOUEURS = () => feuille('Joueurs', ['groupe', 'pseudo', 'code (empreinte)', 'inscrit le', 'avatar'], 'A:C');
 const PRONOS = () => feuille('Pronos', ['groupe', 'pseudo', 'match', 'ligue', 'dom', 'ext', 'le'], 'A:D');
 const T = v => String(v);                                          // valeur de cellule en texte
+const AV = s => { const m = /^([^|]{1,8})\|([0-7])$/.exec(String(s || '')); return m ? m[0] : ''; };   // avatar « emoji|n° de couleur »
 const net = s => String(s || '').trim().slice(0, 20);
 const grp = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
 const empreinte = (g, p, pin) => Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, g + '|' + p.toLowerCase() + '|' + pin + '|mon-ecran'));
@@ -32,8 +35,8 @@ function joueur(q){
   const g = grp(q.groupe), p = net(q.pseudo), pin = String(q.pin || '');
   if (!g || !p || !/^\d{4}$/.test(pin)) return null;
   const l = JOUEURS().getDataRange().getValues().slice(1), h = empreinte(g, p, pin);
-  const x = l.find(r => T(r[0]) === g && T(r[1]).toLowerCase() === p.toLowerCase());
-  return x && T(x[2]) === h ? {g, p:T(x[1])} : null;
+  const i = l.findIndex(r => T(r[0]) === g && T(r[1]).toLowerCase() === p.toLowerCase()), x = l[i];
+  return x && T(x[2]) === h ? {g, p:T(x[1]), ligne:i + 2} : null;
 }
 
 /* horaires des matchs : fichiers publiés par la tâche Sport (mémoire 10 min) */
@@ -56,9 +59,9 @@ const ACTIONS = {
     const verrou = LockService.getScriptLock(); verrou.waitLock(10000);
     try{
       const f = JOUEURS(), l = f.getDataRange().getValues().slice(1);
-      const x = l.find(r => T(r[0]) === g && T(r[1]).toLowerCase() === p.toLowerCase());
-      if (x) return T(x[2]) === empreinte(g, p, pin) ? {ok:true} : {err:'pris'};
-      f.appendRow([g, p, empreinte(g, p, pin), new Date()]);
+      const i = l.findIndex(r => T(r[0]) === g && T(r[1]).toLowerCase() === p.toLowerCase()), x = l[i], av = AV(q.avatar);
+      if (x){ if (T(x[2]) !== empreinte(g, p, pin)) return {err:'pris'}; if (av) f.getRange(i + 2, 5).setValue(av); return {ok:true}; }
+      f.appendRow([g, p, empreinte(g, p, pin), new Date(), av]);
       return {ok:true};
     }finally{ verrou.releaseLock(); }
   },
@@ -78,16 +81,24 @@ const ACTIONS = {
       return {ok:true};
     }finally{ verrou.releaseLock(); }
   },
+  avatar(q){
+    const j = joueur(q); if (!j) return {err:'code'};
+    const av = AV(q.avatar); if (!av) return {err:'avatar'};
+    JOUEURS().getRange(j.ligne, 5).setValue(av);
+    return {ok:true};
+  },
   etat(q){
     const j = joueur(q); if (!j) return {err:'code'};
-    const H = horaires(), now = Date.now(), pronos = {};
+    const H = horaires(), now = Date.now(), pronos = {}, qui = {};
     PRONOS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === j.g).forEach(r => {
-      const id = T(r[2]), qui = T(r[1]), commence = H[id] && now >= H[id];
-      if (qui !== j.p && !commence) return;                       // pronos des autres : seulement une fois le match commencé
-      (pronos[id] || (pronos[id] = {}))[qui] = [r[4], r[5]];
+      const id = T(r[2]), nom = T(r[1]), commence = H[id] && now >= H[id];
+      if (!commence) (qui[id] || (qui[id] = [])).push(nom);    // v56 : qui a déjà pronostiqué (sans le score)
+      if (nom !== j.p && !commence) return;                    // pronos des autres : seulement une fois le match commencé
+      (pronos[id] || (pronos[id] = {}))[nom] = [r[4], r[5]];
     });
-    const joueurs = JOUEURS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === j.g).map(r => T(r[1]));
-    return {joueurs, pronos};
+    const joueurs = [], avatars = {};
+    JOUEURS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === j.g).forEach(r => { joueurs.push(T(r[1])); if (AV(r[4])) avatars[T(r[1])] = T(r[4]); });
+    return {joueurs, pronos, avatars, qui};
   }
 };
 
