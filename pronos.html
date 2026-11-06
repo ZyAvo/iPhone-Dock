@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="e948ca9d">
+<meta name="mon-ecran-version" content="594a6135">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -285,7 +285,7 @@ html.desk .f-sheet{border-radius:26px}
 <main><div class="wrap" id="out"><p class="vide">Chargement…</p></div></main>
 
 <script>
-/* Pronos entre amis (v50, module d'essai).
+/* Pronos entre amis (v50, module d'essai ; v55 : mode partagé branché).
    Matchs : calendriers déjà publiés par la tâche Sport (donnees/sport/<compétition>.json), compétitions CFG('pronos.ligues').
    Points : score exact 3, bon résultat (vainqueur ou nul) 1 ; classements du mois et de la saison.
    Deux modes, même interface (objet BASE) :
@@ -296,7 +296,9 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } }, set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }};
 const LIGUES = CFG('pronos.ligues', [{id:'fra.1', f:'fra-1', nom:'Ligue 1'}, {id:'270559', f:'270559', nom:'Top 14'}, {id:'uefa.champions', f:'uefa-champions', nom:'Ligue des champions'}]);
-const API = String(CFG('pronos.api', '') || '').trim();
+// v55 : serveur de test de Yoann (Apps Script, compte perso) en attendant la ligne pronos.api du classeur — à retirer avant de rendre le dock public.
+const API_TEST = 'https://script.google.com/macros/s/AKfycby6vzzsVzPJ8DuTBqexvEqGBnqMGZy2Os5RU5DDvTxEAvUwFlbH9S9StR2nVjpLuGCLug/exec';
+const API = String(CFG('pronos.api', API_TEST) || '').trim();
 const SIM = !API;
 const JOURS_AVANT = 7, JOURS_APRES = 45;
 const hm = t => new Date(t).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
@@ -352,7 +354,7 @@ const DISTANT = {
 const BASE = SIM ? SIMU : DISTANT;
 
 /* ---------- matchs ---------- */
-let MATCHS = [], ETAT = {joueurs:[], pronos:{}}, VUE = LS.get('pronos:vue', 'jouer'), PERIODE = 'mois';
+let MATCHS = [], ETAT = {joueurs:[], pronos:{}}, PANNE = '', VUE = LS.get('pronos:vue', 'jouer'), PERIODE = 'mois';
 async function chargerMatchs(){
   const now = Date.now(), out = [];
   await Promise.all(LIGUES.map(async L => { try{
@@ -367,7 +369,8 @@ function rendre(){
   const me = BASE.moi(), out = $('#out');
   $('#stamp').textContent = SIM ? 'Simulation' : me ? me.groupe : '';
   $('#invBtn').hidden = !me;
-  const bandeau = SIM ? `<div class="bandeau glass"><span>🧪</span><span><b>Mode simulation</b> : tes pronos restent sur cet appareil, face à 3 amis fictifs. Les matchs et les résultats sont les vrais.</span></div>` : '';
+  const bandeau = (SIM ? `<div class="bandeau glass"><span>🧪</span><span><b>Mode simulation</b> : tes pronos restent sur cet appareil, face à 3 amis fictifs. Les matchs et les résultats sont les vrais.</span></div>` : '')
+    + (PANNE ? `<div class="bandeau glass"><span>⚠️</span><span>${esc(PANNE)}</span></div>` : '');
   if (!me){ out.innerHTML = bandeau + inscriptionHTML(); return; }
   const ong = `<div class="ong glass" role="tablist">${[['jouer', 'À pronostiquer'], ['res', 'Résultats'], ['cl', 'Classement']].map(([k, t]) => `<button type="button" role="tab" data-vue="${k}" aria-selected="${VUE === k}">${t}</button>`).join('')}</div>`;
   out.innerHTML = bandeau + ong + (VUE === 'jouer' ? jouerHTML(me) : VUE === 'res' ? resHTML(me) : clHTML(me));
@@ -381,6 +384,8 @@ function inscriptionHTML(){
     <label class="champ">Code (4 chiffres)<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" required></label>
     <div class="btns"><button class="btn main" type="submit">Rejoindre</button></div><p class="msg" id="iMsg" role="status"></p></form>`;
 }
+const quitter = me => SIM ? '' : `<div class="carte glass"><h2>Cet appareil</h2><p>Connecté en tant que <b>${esc(me.pseudo)}</b> dans le groupe <b>${esc(me.groupe)}</b>. Tes pronos restent sur le serveur : tu peux revenir avec le même pseudo et le même code.</p>
+  <div class="btns"><button type="button" class="btn" data-quitter>Changer de joueur ou de groupe</button></div></div>`;
 const ligneEq = (m, droite) => `<span class="eq${droite ? ' d' : ''}">${esc((droite ? m.away : m.home).name)}</span>`;
 function parJour(l, f){ let j = '', h = ''; for (const m of l){ const d = jourDe(m.t); if (d !== j){ j = d; h += `<p class="jour">${esc(d)}</p>`; } h += f(m); } return h; }
 function jouerHTML(me){
@@ -414,7 +419,7 @@ function clHTML(me){
   return `<div class="ong glass" role="tablist">${[['mois', 'Ce mois-ci'], ['saison', 'Saison']].map(([k, t]) => `<button type="button" role="tab" data-per="${k}" aria-selected="${PERIODE === k}">${t}</button>`).join('')}</div>
     <div class="cl glass"><div class="cl-r t"><span>#</span><span>Joueur</span><span class="n">Pronos</span><span class="n">Exacts</span><span class="pts">Pts</span></div>
     ${l.map((x, i) => `<div class="cl-r${x.n === me.pseudo ? ' moi' : ''}"><b>${i + 1}</b><span>${esc(x.n)}</span><span class="n">${x.nb}</span><span class="n">${x.ex}</span><span class="pts">${x.pts}</span></div>`).join('')}</div>
-    <p class="note">Score exact : 3 points · bon résultat (vainqueur ou nul) : 1 point. À égalité : le plus de scores exacts, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison = les ${JOURS_APRES} derniers jours dans cet essai.` : ''}</p>` + (SIM ? simOutils() : '');
+    <p class="note">Score exact : 3 points · bon résultat (vainqueur ou nul) : 1 point. À égalité : le plus de scores exacts, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison = les ${JOURS_APRES} derniers jours dans cet essai.` : ''}</p>` + (SIM ? simOutils() : quitter(me));
 }
 const simOutils = () => `<div class="carte glass"><h2>Outils de simulation</h2><p>Pour voir le classement vivre tout de suite : des pronos tirés au hasard pour toi sur les matchs déjà joués.</p>
   <div class="btns"><button type="button" class="btn" data-sim="remplir">Simuler mes pronos passés</button><button type="button" class="btn" data-sim="effacer">Tout effacer</button></div></div>`;
@@ -422,7 +427,11 @@ const simOutils = () => `<div class="carte glass"><h2>Outils de simulation</h2><
 /* ---------- actions ---------- */
 async function actualiser(){
   $('#refreshBtn').classList.add('spin');
-  try{ await chargerMatchs(); if (BASE.moi()){ try{ ETAT = await BASE.tout(MATCHS); if (ETAT.err) throw new Error(ETAT.err); }catch(e){ ETAT = {joueurs:[], pronos:{}}; } } rendre(); }
+  PANNE = '';
+  try{ await chargerMatchs(); if (BASE.moi()){ try{ ETAT = await BASE.tout(MATCHS); if (ETAT.err) throw new Error(ETAT.err); }
+    catch(e){ ETAT = {joueurs:[], pronos:{}};
+      if (e.message === 'code'){ BASE.effacer(); PANNE = 'Pseudo ou code non reconnu par le serveur : reconnecte-toi.'; }      // v55 : plus de page vide sans explication
+      else PANNE = 'Serveur des pronos injoignable : les pronos affichés peuvent être incomplets. Réessaie avec ↻.'; } } rendre(); }
   finally{ $('#refreshBtn').classList.remove('spin'); }
 }
 document.addEventListener('submit', async e => {
@@ -446,13 +455,14 @@ document.addEventListener('input', e => {
   enAttente[id] = setTimeout(async () => {
     try{ const r = await BASE.parier(m, +a.value, +b.value);
       if (r.ok){ const me = BASE.moi(); (ETAT.pronos[id] || (ETAT.pronos[id] = {}))[me.pseudo] = [+a.value, +b.value]; et.innerHTML = '<span class="ok">✓ enregistré</span>'; }
-      else et.textContent = r.err === 'ferme' ? 'Trop tard : le match a commencé.' : 'Refusé par le serveur.'; }
+      else et.textContent = {ferme:'Trop tard : le match a commencé.', code:'Pseudo ou code non reconnu : actualise la page.', match:'Match pas encore connu du serveur : réessaie dans 10 min.'}[r.err] || 'Refusé par le serveur.'; }
     catch{ et.textContent = 'Pas enregistré (réseau) : réessaie.'; }
   }, 600);
 });
 document.addEventListener('click', async e => {
   const v = e.target.closest('[data-vue]'); if (v){ VUE = v.dataset.vue; LS.set('pronos:vue', VUE); rendre(); return; }
   const p = e.target.closest('[data-per]'); if (p){ PERIODE = p.dataset.per; rendre(); return; }
+  if (e.target.closest('[data-quitter]')){ BASE.effacer(); ETAT = {joueurs:[], pronos:{}}; rendre(); return; }
   const s = e.target.closest('[data-sim]');
   if (s && SIM){ if (s.dataset.sim === 'remplir'){ SIMU.remplirPasses(MATCHS); } else if (confirm('Effacer la simulation (pseudo et pronos) ?')) SIMU.effacer(); else return; actualiser(); return; }
 });

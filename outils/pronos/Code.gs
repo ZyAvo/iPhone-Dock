@@ -1,7 +1,8 @@
-/* Mon Écran — serveur des pronos entre amis (Google Apps Script, v50).
+/* KiosK — serveur des pronos entre amis (Google Apps Script, v55).
    Garde les joueurs et les pronos dans le Google Sheets auquel ce script est attaché (onglets « Joueurs » et « Pronos », créés tout seuls).
    Refuse un prono après le coup d'envoi (horaires lus sur le site publié, pas envoyés par le téléphone) et ne montre
    les pronos des autres qu'une fois le match commencé. Les points et le classement sont calculés par la page.
+   v55 : groupes, pseudos et matchs toujours lus en texte (le Sheets changeait « 2026 » en nombre : inscription en double, « mauvais code »).
    Mise en place : voir outils/dev/PRONOS.md. */
 const SITE = 'https://zyavo.github.io/iPhone-Dock/';            // adresse du dock publié
 const LIGUES = {'fra.1':'fra-1', '270559':'270559', 'uefa.champions':'uefa-champions'};   // id ESPN → fichier donnees/sport/<fichier>.json
@@ -14,13 +15,14 @@ function doPost(e){
 }
 function doGet(){ return ContentService.createTextOutput(JSON.stringify({ok:true, service:'pronos'})).setMimeType(ContentService.MimeType.JSON); }
 
-function feuille(nom, entetes){
+function feuille(nom, entetes, texte){
   const ss = SpreadsheetApp.getActive(); let f = ss.getSheetByName(nom);
-  if (!f){ f = ss.insertSheet(nom); f.appendRow(entetes); f.setFrozenRows(1); }
+  if (!f){ f = ss.insertSheet(nom); f.getRange(texte).setNumberFormat('@'); f.appendRow(entetes); f.setFrozenRows(1); }
   return f;
 }
-const JOUEURS = () => feuille('Joueurs', ['groupe', 'pseudo', 'code (empreinte)', 'inscrit le']);
-const PRONOS = () => feuille('Pronos', ['groupe', 'pseudo', 'match', 'ligue', 'dom', 'ext', 'le']);
+const JOUEURS = () => feuille('Joueurs', ['groupe', 'pseudo', 'code (empreinte)', 'inscrit le'], 'A:C');
+const PRONOS = () => feuille('Pronos', ['groupe', 'pseudo', 'match', 'ligue', 'dom', 'ext', 'le'], 'A:D');
+const T = v => String(v);                                          // valeur de cellule en texte
 const net = s => String(s || '').trim().slice(0, 20);
 const grp = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
 const empreinte = (g, p, pin) => Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, g + '|' + p.toLowerCase() + '|' + pin + '|mon-ecran'));
@@ -30,8 +32,8 @@ function joueur(q){
   const g = grp(q.groupe), p = net(q.pseudo), pin = String(q.pin || '');
   if (!g || !p || !/^\d{4}$/.test(pin)) return null;
   const l = JOUEURS().getDataRange().getValues().slice(1), h = empreinte(g, p, pin);
-  const x = l.find(r => r[0] === g && String(r[1]).toLowerCase() === p.toLowerCase());
-  return x && x[2] === h ? {g, p:String(x[1])} : null;
+  const x = l.find(r => T(r[0]) === g && T(r[1]).toLowerCase() === p.toLowerCase());
+  return x && T(x[2]) === h ? {g, p:T(x[1])} : null;
 }
 
 /* horaires des matchs : fichiers publiés par la tâche Sport (mémoire 10 min) */
@@ -54,8 +56,8 @@ const ACTIONS = {
     const verrou = LockService.getScriptLock(); verrou.waitLock(10000);
     try{
       const f = JOUEURS(), l = f.getDataRange().getValues().slice(1);
-      const x = l.find(r => r[0] === g && String(r[1]).toLowerCase() === p.toLowerCase());
-      if (x) return x[2] === empreinte(g, p, pin) ? {ok:true} : {err:'pris'};
+      const x = l.find(r => T(r[0]) === g && T(r[1]).toLowerCase() === p.toLowerCase());
+      if (x) return T(x[2]) === empreinte(g, p, pin) ? {ok:true} : {err:'pris'};
       f.appendRow([g, p, empreinte(g, p, pin), new Date()]);
       return {ok:true};
     }finally{ verrou.releaseLock(); }
@@ -70,7 +72,7 @@ const ACTIONS = {
     const verrou = LockService.getScriptLock(); verrou.waitLock(10000);
     try{
       const f = PRONOS(), l = f.getDataRange().getValues();
-      const i = l.findIndex((r, k) => k > 0 && r[0] === j.g && r[1] === j.p && String(r[2]) === String(q.match));
+      const i = l.findIndex((r, k) => k > 0 && T(r[0]) === j.g && T(r[1]) === j.p && T(r[2]) === String(q.match));
       const ligne = [j.g, j.p, String(q.match), String(q.ligue || ''), h, a, new Date()];
       if (i > 0) f.getRange(i + 1, 1, 1, ligne.length).setValues([ligne]); else f.appendRow(ligne);
       return {ok:true};
@@ -79,12 +81,21 @@ const ACTIONS = {
   etat(q){
     const j = joueur(q); if (!j) return {err:'code'};
     const H = horaires(), now = Date.now(), pronos = {};
-    PRONOS().getDataRange().getValues().slice(1).filter(r => r[0] === j.g).forEach(r => {
-      const id = String(r[2]), commence = H[id] && now >= H[id];
-      if (r[1] !== j.p && !commence) return;                       // pronos des autres : seulement une fois le match commencé
-      (pronos[id] || (pronos[id] = {}))[r[1]] = [r[4], r[5]];
+    PRONOS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === j.g).forEach(r => {
+      const id = T(r[2]), qui = T(r[1]), commence = H[id] && now >= H[id];
+      if (qui !== j.p && !commence) return;                       // pronos des autres : seulement une fois le match commencé
+      (pronos[id] || (pronos[id] = {}))[qui] = [r[4], r[5]];
     });
-    const joueurs = JOUEURS().getDataRange().getValues().slice(1).filter(r => r[0] === j.g).map(r => String(r[1]));
+    const joueurs = JOUEURS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === j.g).map(r => T(r[1]));
     return {joueurs, pronos};
   }
 };
+
+/* À lancer une fois depuis l'éditeur (menu des fonctions › verifier › Exécuter) : demande les autorisations
+   et vérifie que les horaires des matchs se lisent sur le site publié (journal : nombre de matchs trouvés). */
+function verifier(){
+  CacheService.getScriptCache().remove('horaires');
+  const n = Object.keys(horaires()).length;
+  Logger.log(n ? n + ' matchs trouvés sur ' + SITE : 'Aucun match lu : vérifier SITE (' + SITE + ')');
+  JOUEURS(); PRONOS();
+}
