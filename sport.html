@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="f10ddafd">
+<meta name="mon-ecran-version" content="112d9ec9">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -854,6 +854,7 @@ async function loadPre(){
     const idx = await fetch('donnees/sport/index.json', {cache:'no-cache'}).then(x => x.ok ? x.json() : null).catch(() => null);
     PRE.idle = {};
     if (idx) Object.entries(idx.leagues || {}).forEach(([id, v]) => { if (v.idle) PRE.idle[id] = true; });
+    Object.entries(j.leagues || {}).forEach(([id, v]) => { if (v && v.logo) LOGO_PRE[id] = v; });   // v59
     const parLg = {}, vus = new Set();                  // matchs rangés par compétition en une seule passe (J-10 → J+15)
     for (const m of [...(j.events || []), ...(PRE.passe || [])]){ if (vus.has(m.id)) continue; vus.add(m.id); (parLg[m.league] = parLg[m.league] || []).push(m); }
     LEAGUES.forEach(L => {
@@ -1138,18 +1139,29 @@ function renderDays(){
 function renderFilters(){
   $('#filters').innerHTML = GROUPS.map(g => `<button type="button" class="chip" data-g="${g.id}" aria-pressed="${g.id === group}"><svg viewBox="0 0 24 24" aria-hidden="true">${SPORT_ICONS[g.icon]}</svg>${g.label}</button>`).join('');
 }
+/* v59 : logos fixes des compétitions de sélections (qualifications = logo de la compétition ; JO : anneaux, sinon logo ESPN).
+   Avec un vrai logo, le drapeau ou le globe des compétitions internationales (régions intl, rintl) n'est plus affiché. */
+const ESPN_L = n => ({logo:`https://a.espncdn.com/i/leaguelogos/soccer/500/${n}.png`, logoDark:`https://a.espncdn.com/i/leaguelogos/soccer/500-dark/${n}.png`});
+const COMP_LOGOS = {'fifa.world':ESPN_L(4), 'fifa.worldq.uefa':ESPN_L(4), 'uefa.euro':ESPN_L(74), 'uefa.euroq':ESPN_L(74), 'uefa.nations':ESPN_L(2395),
+  'fifa.cwc':ESPN_L(1932), 'fifa.friendly':ESPN_L(53),
+  'fifa.olympics':{logo:'https://upload.wikimedia.org/wikipedia/commons/5/5c/Olympic_rings_without_rims.svg', logoDark:'', repli:ESPN_L(71).logo}};
+const LOGO_PRE = {};                                   // logos de jours.json (aussi pour les compétitions en pause, absentes de DATA)
 function compBadge(L){
-  const d = DATA[L.id] || {};
-  let logo = '';
+  const d = DATA[L.id] || {}, pre = LOGO_PRE[L.id] || {};
+  const src = COMP_LOGOS[L.id] || (d.logo ? d : pre.logo ? pre : {});
+  let logo = '', vrai = false;
   const own = FILES && FILES !== 'missing' && (FILES.comps[slug(L.name)] || FILES.comps[slug(L.id)]);                 // tes logos : logos/competitions/<nom>.png
   const ownDark = own && (FILES.comps[slug(L.name) + '-sombre'] || FILES.comps[slug(L.id) + '-sombre']);
+  const err = `if(this.dataset.r){this.src=this.dataset.r;this.removeAttribute('data-r')}else(this.closest('picture')||this).remove()`;
   if (own){ const img = `<img class="clogo" ${imgSrc(own)} alt="" loading="lazy" onerror="(this.closest('picture')||this).remove()">`;
-    logo = ownDark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${esc(ownDark)}">${img}</picture>` : img; }
-  else if (d.logo){
-    const img = `<img class="clogo" ${imgSrc(d.logo)} alt="" loading="lazy" onerror="(this.closest('picture')||this).remove()">`;
-    logo = d.logoDark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${escImg(petit(d.logoDark))}">${img}</picture>` : img;
+    logo = ownDark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${esc(ownDark)}">${img}</picture>` : img; vrai = true; }
+  else if (src.logo){
+    const img = `<img class="clogo" ${imgSrc(src.logo)}${src.repli ? ` data-r="${escImg(src.repli)}"` : ''} alt="" loading="lazy" onerror="${err}">`;
+    logo = src.logoDark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${escImg(petit(src.logoDark))}">${img}</picture>` : img;
+    vrai = !/ESPN-icon/i.test(src.logo);
   }
-  return `${L.flag ? `<span class="flag" aria-hidden="true">${L.flag}</span>` : ''}${logo}`;
+  const sansDrapeau = vrai && ['intl', 'rintl'].includes(L.region);
+  return `${L.flag && !sansDrapeau ? `<span class="flag" aria-hidden="true">${L.flag}</span>` : ''}${logo}`;
 }
 
 function teamHTML(m, t, other){

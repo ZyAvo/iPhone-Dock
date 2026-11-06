@@ -1,6 +1,6 @@
 {
- "lot": "v58",
- "date": "2026-11-06T11:18:09+00:00",
+ "lot": "v59",
+ "date": "2026-11-06T11:43:03+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/configuration.yml": "d92433bd",
@@ -43,7 +43,7 @@
   "outils/publier-donnees.sh": "42198f72",
   "outils/reprendre-donnees.sh": "650b7efb",
   "outils/sport-course.mjs": "edd60ed7",
-  "outils/sport-data.mjs": "6d96c625",
+  "outils/sport-data.mjs": "e127f26f",
   "outils/tv-catalogue.mjs": "4d656ed6",
   "outils/tv-relais.mjs": "dc2b5fb7",
   "outils/tv-tri.mjs": "5f175f99",
@@ -51,7 +51,7 @@
   "outils/yahoo.py": "103be76d",
   "pronos.html": "1ce3d863",
   "reglages.html": "d4e1f9c4",
-  "sport.html": "f10ddafd",
+  "sport.html": "112d9ec9",
   "sw.js": "a474fdb0",
   "synchro.js": "95cdb90e",
   "themes.js": "1769949a",

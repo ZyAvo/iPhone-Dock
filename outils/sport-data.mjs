@@ -1,4 +1,4 @@
-// mon-ecran-version: 6d96c625
+// mon-ecran-version: e127f26f
 // Prépare les données de la page Sport (lancé par la tâche GitHub « Sport », v51 ; avant : « Programme TV sport »).
 // Lit la liste des compétitions et les fonctions de lecture dans sport.html et match.js,
 // interroge ESPN côté serveur, numérote les journées et écrit :
@@ -298,7 +298,9 @@ async function standings(L, S, evs, prev){
 /* ---------- Logos de clubs manquants (v58) ----------
    ESPN n'a pas de logo pour certains clubs de rugby (Bayonne : vide ; Perpignan, Vannes : drapeau de pays, retiré par Match.equipeClub).
    On les prend sur TheSportsDB : équipes de la compétition (lookup_all_teams, via L.tsdb ou la compétition citée par L.badges), sinon recherche
-   par nom (searchteams, rugby). Mémoire _logos-<compétition>.json : 7 jours (1 jour si un club reste sans logo). Aussi pour le classement. */
+   par nom (searchteams, rugby). Mémoire _logos-<compétition>.json : 7 jours (1 jour si un club reste sans logo). Aussi pour le classement.
+   v59 : la liste des équipes de la clé gratuite est incomplète et la recherche veut le nom exact (« Aviron Bayonnais ») : on lit aussi les matchs de la
+   compétition sur TheSportsDB (saison, derniers et prochains), qui donnent le nom et le logo de chaque équipe (strHomeTeamBadge…). */
 const motsClub = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 4);
 function scoreClub(nom, cand){                                   // mots communs (même mot, ou mêmes 6 premières lettres : Bayonne / Bayonnais)
   const a = motsClub(nom), b = cand.flatMap(motsClub);
@@ -319,15 +321,26 @@ async function logosClubs(L, events, table){
   const file = `${OUT}/_logos-${slug(L.id)}.json`;
   let c = read(file);
   const tous = () => [...sansLogo.keys()].every(n => c.u[n] !== undefined), vide = () => [...sansLogo.keys()].some(n => !c.u[n]);
-  if (!c || !c.u || !tous() || NOW - c.at > (vide() ? DAY : 7 * DAY)){
-    c = {at:NOW, u:{...((c && c.u) || {})}};
+  if (!c || c.v !== 2 || !c.u || !tous() || NOW - c.at > (vide() ? DAY : 7 * DAY)){
+    c = {v:2, at:NOW, u:{...((c && c.v === 2 && c.u) || {})}};
     let equipes = [];
     try{
       const ref = L.tsdb ? L : LEAGUES.find(x => x.id === L.badges);
       if (ref && ref.tsdb){
         const lj = await get(`${TSDB}/search_all_leagues.php?c=${encodeURIComponent(ref.tsdb.c)}&s=${encodeURIComponent(ref.tsdb.s)}`, 2);
         const hit = ((lj || {}).countries || (lj || {}).leagues || []).find(x => [x.strLeague, x.strLeagueAlternate].some(n => n && ref.tsdb.re instanceof RegExp && ref.tsdb.re.test(n)));
-        if (hit){ await sleep(2100); equipes = (((await get(`${TSDB}/lookup_all_teams.php?id=${hit.idLeague}`, 2)) || {}).teams || []).filter(x => x.strBadge); }
+        if (hit){
+          await sleep(2100); equipes = (((await get(`${TSDB}/lookup_all_teams.php?id=${hit.idLeague}`, 2)) || {}).teams || []).filter(x => x.strBadge);
+          const manque = () => [...sansLogo.keys()].some(n => !meilleurClub(n, equipes));
+          const saison = `${new Date(NOW).getUTCMonth() >= 6 ? new Date(NOW).getUTCFullYear() : new Date(NOW).getUTCFullYear() - 1}`;
+          for (const q of [`eventsseason.php?id=${hit.idLeague}&s=${saison}-${+saison + 1}`, `eventspastleague.php?id=${hit.idLeague}`, `eventsnextleague.php?id=${hit.idLeague}`]){
+            if (!manque()) break;
+            await sleep(2100);
+            try{ const j = (await get(`${TSDB}/${q}`, 2)) || {};
+              (j.events || j.results || []).forEach(e => [[e.strHomeTeam, e.strHomeTeamBadge], [e.strAwayTeam, e.strAwayTeamBadge]].forEach(([n, b]) => {
+                if (n && b && !equipes.some(x => x.strTeam === n)) equipes.push({strTeam:n, strBadge:b}); })); }catch{}
+          }
+        }
       }
     }catch{}
     let recherches = 0;
@@ -346,6 +359,23 @@ async function logosClubs(L, events, table){
   [...events.flatMap(m => m.home ? [m.home, m.away] : []), ...lignes].forEach(t => { if (t && !t.logo && c.u[t.name]) t.logo = c.u[t.name]; });
   console.log(`  ${L.name} : logos TheSportsDB ${poses}/${sansLogo.size}`, JSON.stringify([...sansLogo.keys()].map(n => `${n}${c.u[n] ? ' ✓' : ' ✗'}`)));
   return {manque:sansLogo.size, poses};
+}
+
+/* v59 : logo des compétitions de rugby : ESPN n'a qu'une icône générique (ESPN-icon-rugby) → badge TheSportsDB (lookupleague).
+   Identifiants TheSportsDB : Top 14 4430, Champions Cup 4550, Six Nations 4714, Coupe du monde 4574. Mémoire _logos-competitions.json (30 jours ; 1 jour si rien). */
+const TSDB_LIGUE = {'270559':'4430', '271937':'4550', '180659':'4714', '164205':'4574'};
+async function logoCompetition(L, info){
+  const id = TSDB_LIGUE[L.id]; if (!id || !info || (info.logo && !/ESPN-icon/i.test(info.logo))) return;
+  const file = `${OUT}/_logos-competitions.json`, c = read(file) || {};
+  let x = c[L.id];
+  if (!x || NOW - x.at > (x.u ? 30 : 1) * DAY){
+    let u = '';
+    try{ await sleep(2100); const lg = (((await get(`${TSDB}/lookupleague.php?id=${id}`, 2)) || {}).leagues || [])[0] || {};
+      const b = lg.strBadge || lg.strLogo; if (b) u = `${b.replace(/^http:/, 'https:')}/small`; }catch{}
+    x = c[L.id] = {u, at:NOW}; write(file, c);
+  }
+  console.log(`  ${L.name} : logo de la compétition ${x.u ? 'TheSportsDB ✓' : '✗ (icône ESPN gardée)'}`);
+  if (x.u){ info.logo = x.u; info.logoDark = ''; }
 }
 
 /* ---------- Programme ---------- */
@@ -370,6 +400,7 @@ for (const L of LEAGUES){
   }
   try{
     const r = await eventsFor(L, S, prev);
+    try{ await logoCompetition(L, r.info); }catch{}                          // v59
     if (r.idle){
       write(file, {v:1, id:L.id, ...r.info, updated:index.updated, idle:true, season:S.label});
       index.leagues[L.id] = {idle:true, file:`${slug(L.id)}.json`};
