@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="22e4da9a">
+<meta name="mon-ecran-version" content="db06b666">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -709,9 +709,9 @@ function norm(ev, L){
   const comp = c.competitors || [];
   const side = (h, i) => {
     const x = comp.find(t => t.homeAway === h) || comp[i] || {}; const t = x.team || {};
-    return {id:t.id, name:t.shortDisplayName || t.displayName || t.name || '?', full:t.displayName || t.name || '',
+    return equipeClub({id:t.id, name:t.shortDisplayName || t.displayName || t.name || '?', full:t.displayName || t.name || '',
             abbr:t.abbreviation || '', logo:t.logo || '', score:x.score ?? '', win:!!x.winner, so:x.shootoutScore ?? null,
-            rec:['basketball', 'football', 'hockey', 'baseball'].includes(L && L.sport) ? (r => (r.find(y => y.type === 'total' || y.name === 'overall') || r[0] || {}).summary)(x.records || []) : undefined};   // bilan V-D (sports US)
+            rec:['basketball', 'football', 'hockey', 'baseball'].includes(L && L.sport) ? (r => (r.find(y => y.type === 'total' || y.name === 'overall') || r[0] || {}).summary)(x.records || []) : undefined}, L);   // bilan V-D (sports US) ; v57 : pas de drapeau de pays sur un club
   };
   const details = (c.details || []).map(d => {
     const txt = (d.type && d.type.text) || '';
@@ -775,8 +775,10 @@ async function fetchToday(L){                    // rafraîchissement léger des
 function mergeLive(base, fresh){
   const map = new Map(base.map(e => [e.id, e]));
   fresh.forEach(e => { const o = map.get(e.id); map.set(e.id, o ? {...e, round:o.round || e.round, roundSrc:o.roundSrc || e.roundSrc, full:o.full} : e); });
-  return [...map.values()].filter(m => !ghost(m));
+  return sansDoublons([...map.values()].filter(m => !ghost(m)));   // v57 : + fiche en double d'ESPN
 }
+const equipeClub = (t, L) => window.Match && Match.equipeClub ? Match.equipeClub(t, L) : t;   // v57 (match.js)
+const sansDoublons = l => window.Match && Match.doublons ? Match.doublons(l) : l;
 /* Fiche « fantôme » d'ESPN : match jamais commencé dont la date est dépassée de plus d'un jour (souvent l'affiche inversée) */
 const ghost = m => m.state === 'pre' && /SCHEDULED/.test(m.code || '') && m.t < Date.now() - 1.5 * 864e5;
 
@@ -818,6 +820,7 @@ function expand(m){
   [m.home, m.away].forEach(t => {
     if (t.full == null) t.full = t.name;
     if (t.logo == null) t.logo = L && L.sport === 'soccer' && t.id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${t.id}.png` : '';
+    equipeClub(t, L);                                    // v57 : données publiées avant le correctif
     if (t.so === undefined) t.so = null;
     t.win = !!t.win;
     if (t.score == null) t.score = '';
@@ -855,7 +858,7 @@ async function loadPre(){
     LEAGUES.forEach(L => {
       if (PRE.idle[L.id]){ delete DATA[L.id]; return; }
       const lg = (j.leagues || {})[L.id] || {}, old = DATA[L.id];
-      const evs = (parLg[L.id] || []).map(expand).map(finiSansNouvelles);
+      const evs = sansDoublons((parLg[L.id] || []).map(expand).map(finiSansNouvelles));   // v57 : fiches en double d'un fichier publié avant le correctif
       DATA[L.id] = {at:Date.now(), day:ymd(dayAt(0)), events:old && old.liveAt ? mergeLive(evs, old.events.filter(m => m.state !== 'pre')) : evs,
                     logo:lg.logo || '', logoDark:lg.logoDark || '', pre:true, liveAt:old && old.liveAt};
     });
@@ -872,7 +875,8 @@ async function loadPasse(){
     const j = await r.json(); PRE.passe = (j.events || []).map(m => ({...m}));
     LEAGUES.forEach(L => { const d = DATA[L.id]; if (!d || !d.events) return;
       const ids = new Set(d.events.map(m => m.id));
-      PRE.passe.filter(m => m.league === L.id && !ids.has(m.id)).forEach(m => d.events.push(expand({...m}))); });
+      PRE.passe.filter(m => m.league === L.id && !ids.has(m.id)).forEach(m => d.events.push(expand({...m})));
+      d.events = sansDoublons(d.events); });                       // v57 : avec les jours passés, la liste est assez longue pour repérer une fiche en double
     render();
   }catch{}finally{ PRE.passeEnCours = false; }
 }

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="038daf87">
+<meta name="mon-ecran-version" content="83e1f4ac">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -505,8 +505,9 @@ const petit = (u, px = 96) => { const m = String(u || '').match(/^(?:https?:)?\/
   return m ? `https://a.espncdn.com/combiner/i?img=${m[1]}&w=${px}&h=${px}&transparent=true` : String(u || '').replace(/^http:\/\//i, 'https://'); };
 const remplace = (cls, txt, coul) => `this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} ph',textContent:'${txt}'${coul ? `,style:'--eq:${coul}'` : ''}}))`;
 function logoEq(m, t){
-  const u = t.logo || (/\./.test(m.league) && t.id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${t.id}.png` : '');   // foot : logo ESPN d'après l'identifiant (comme la page Sport)
-  const ab = String(t.abbr || t.name || '?').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 3);
+  const pays = /\/teamlogos\/countries\//i.test(t.logo || '');                                   // v57 : ESPN met parfois un drapeau sur un club (Perpignan → USA)
+  const u = (pays ? (!/\./.test(m.league) && t.id ? `https://a.espncdn.com/i/teamlogos/rugby/teams/500/${t.id}.png` : '') : t.logo) || (/\./.test(m.league) && t.id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${t.id}.png` : '');   // foot : logo ESPN d'après l'identifiant (comme la page Sport)
+  const ab = String((pays ? t.name : t.abbr) || t.name || '?').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 3).toUpperCase();
   const coul = COULEURS[hash(t.name || ab) % COULEURS.length];                                    // pastille si le logo manque : couleur stable par équipe
   return u ? `<img class="p-lg" src="${esc(petit(u))}" alt="" loading="lazy" onerror="${esc(remplace('p-lg', ab, coul))}">` : `<span class="p-lg ph" style="--eq:${coul}">${esc(ab)}</span>`;
 }

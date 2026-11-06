@@ -1,4 +1,4 @@
-// mon-ecran-version: 7cab077e
+// mon-ecran-version: e3ad8225
 /* Mon Écran — lecture des fiches de match ESPN (v48), commune à Sport et à l'accueil (détail d'un match).
    Sortis de sport.html sans changement : classify, summaryEvents (rugby et autres), soccerEvents (foot), shootoutTable, markShootout
    (fonctions globales, sport.html les appelle comme avant). Ajouts : Match.lire(j, sport) pour l'accueil, Match.minute(...) (rugby).
@@ -278,6 +278,30 @@ function ecarts(vals, med){
   if (vals.length < 3) return [];
   return vals.map(([s, v]) => { const autres = vals.filter(([x]) => x !== s).map(([, x]) => x), ref = med ? mediane(autres) : moyenne(autres); return {s, v, ref, e:v / ref - 1}; });
 }
+/* v57 : fiche en double d'ESPN (Top 14, 07/11/2026 : « Perpignan – Section Paloise » 16 h 30, équipes 289360 / 289553 vues nulle part ailleurs,
+   à côté du vrai « Pau – Perpignan » 16 h 35). Écarte un match dont les deux équipes n'ont aucun autre match dans la liste, quand un autre match
+   à moins de 36 h a une équipe connue (au moins 2 matchs) du même nom. Comptes par compétition. Liste de moins de 12 matchs (un seul jour, coupe…) : rien n'est écarté. */
+const nomSimple = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const memeNom = (a, b) => { a = nomSimple(a); b = nomSimple(b); return !!a && !!b && (a === b || (a.length >= 4 && b.includes(a)) || (b.length >= 4 && a.includes(b))); };
+function doublons(liste){
+  if (!Array.isArray(liste) || liste.length < 12) return liste;
+  const n = {};
+  const k = (m, t) => `${m.league}|${t.id}`;                          // par compétition : une liste mêlée (jours.json…) reste juste
+  liste.forEach(m => { if (m && m.home && m.away) [m.home, m.away].forEach(t => { n[k(m, t)] = (n[k(m, t)] || 0) + 1; }); });
+  return liste.filter(m => {
+    if (!m || !m.home || !m.away || n[k(m, m.home)] > 1 || n[k(m, m.away)] > 1) return true;
+    return !liste.some(o => o !== m && o.league === m.league && o.home && o.away && Math.abs(o.t - m.t) < 1.5 * 864e5
+      && [o.home, o.away].some(t => n[k(o, t)] > 1 && [m.home, m.away].some(u => memeNom(u.name, t.name))));
+  });
+}
+/* v57 : ESPN donne parfois un logo de pays à un club (Perpignan, code « USA » → drapeau des États-Unis ; Vannes « VAN » → Vanuatu).
+   Hors compétitions de sélections (régions intl et rintl) : logo de club ESPN d'après l'identifiant (rugby), sinon aucun ; code tiré du nom. */
+function equipeClub(t, L){
+  if (!t || !/\/teamlogos\/countries\//i.test(t.logo || '') || !L || ['intl', 'rintl'].includes(L.region)) return t;
+  t.logo = L.sport === 'rugby' && t.id ? `https://a.espncdn.com/i/teamlogos/rugby/teams/500/${t.id}.png` : '';
+  t.abbr = nomSimple(t.name).replace(/ /g, '').slice(0, 3).toUpperCase();
+  return t;
+}
 Object.assign(window, {classify, summaryEvents, soccerEvents, shootoutTable, markShootout});
-window.Match = {lire, minute, points, ecartScore, meilleur, minVal, teamKey, classify, summaryEvents, soccerEvents, markShootout, ecarts, moyenne, mediane};
+window.Match = {lire, minute, points, ecartScore, meilleur, minVal, teamKey, classify, summaryEvents, soccerEvents, markShootout, ecarts, moyenne, mediane, doublons, equipeClub};
 })();

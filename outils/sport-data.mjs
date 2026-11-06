@@ -1,4 +1,4 @@
-// mon-ecran-version: 0b18dab2
+// mon-ecran-version: 624968b1
 // Prépare les données de la page Sport (lancé par la tâche GitHub « Sport », v51 ; avant : « Programme TV sport »).
 // Lit la liste des compétitions et les fonctions de lecture dans sport.html et match.js,
 // interroge ESPN côté serveur, numérote les journées et écrit :
@@ -32,6 +32,8 @@ const fnBlock = name => { const i = page.indexOf(`function ${name}(`); if (i < 0
 globalThis.window = globalThis;
 vm.runInThisContext(fs.readFileSync(new URL('../match.js', import.meta.url), 'utf8'), {filename:'match.js'});
 if (typeof globalThis.classify !== 'function' || typeof globalThis.summaryEvents !== 'function') throw new Error('match.js : classify / summaryEvents absents');
+if (typeof globalThis.Match.doublons !== 'function' || typeof globalThis.Match.equipeClub !== 'function') throw new Error('match.js : doublons / equipeClub absents (v57)');
+globalThis.equipeClub = (t, L) => globalThis.Match.equipeClub(t, L);   // appelée par norm() (sport.html)
 const shared = [
   grab('const REGIONS = ', '\nconst VERSION'),
   grab('const LETTRES', 'async function loadTV'),
@@ -154,7 +156,8 @@ async function eventsFor(L, S, prev){
   covered.forEach(d => { if (d < cutoff) checked.add(d); });
   const raw = [...keep, ...ranged, ...res.flatMap(j => ((j || {}).events || []).map(e => norm(e, L)))];
   const map = new Map(); raw.forEach(m => map.set(m.id, m));
-  const all = [...map.values()], events = all.filter(m => !ghost(m, all)).sort((a, b) => a.t - b.t);
+  const all = [...map.values()], events = globalThis.Match.doublons(all.filter(m => !ghost(m, all))).sort((a, b) => a.t - b.t);   // v57 : + fiches en double d'ESPN
+  events.forEach(m => { if (m.home) [m.home, m.away].forEach(t => globalThis.Match.equipeClub(t, L)); });   // v57 : logos de pays sur des clubs (aussi les matchs repris du fichier précédent)
   const diag = {range:ranged.length, complet:COMPLET, days:todo.length, ok, failed:todo.length - ok, calendar:calOk ? 'espn' : 'tous les jours', ghosts:all.length - events.length};
   console.log(`  ${L.name} : ${JSON.stringify(diag)}`);
   Object.keys(future).forEach(d => { if (d <= far) delete future[d]; });
