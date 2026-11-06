@@ -1,4 +1,4 @@
-# Pronos entre amis (v50, module d'essai ; v55 : mode partagé branché ; v56 : présentation « fun »)
+# Pronos entre amis (v50, module d'essai ; v55 : mode partagé branché ; v56 : présentation « fun » ; v60 : paris en crédits fictifs)
 
 Page `pronos.html` (lien en bas de la page Sport). Lien à partager : `https://zyavo.github.io/iPhone-Dock/pronos.html?groupe=CODE`
 (bouton de partage en haut de la page une fois inscrit).
@@ -20,6 +20,17 @@ Adresse publique (lisible dans la page) : risque = faux joueurs dans le tableur,
   (🎯 Sniper, 🔥 En feu ≥ 2, 💪 Assidu, 🐢 Lanterne rouge dès 3 joueurs), Mon profil (changer d'avatar, changer de joueur).
 - **Avatars** : « emoji|n° de couleur » (16 emojis, 8 couleurs) choisis à l'inscription ; sans avatar enregistré, tirage stable d'après le pseudo.
 - Serveur v55 : la page marche (pas d'avatars des autres ni de « qui a joué » ; changer d'avatar → message « serveur à mettre à jour »).
+
+## Paris en crédits fictifs (v60, onglet « Paris »)
+Jeu entre amis **sans argent** : les crédits ne s'achètent pas, ne s'échangent pas, ne valent rien ; aucun lot réel, aucun lien vers un site de paris.
+- **Crédits** : 100 au début de chaque mois (mois du coup d'envoi, heure de Paris) ; podium du mois fini (joueurs ayant parié au moins une fois ; égalité : ordre alphabétique) :
+  +20 / +10 / +5 au départ du mois suivant. À 0 (et rien en jeu) : plus de pari jusqu'au 1ᵉʳ. **Général** : cumul des soldes de fin de mois (mois joués).
+- **Pari** : simple 1 / N / 2, un par match, mise entière de 1 au solde disponible, modifiable ou annulable jusqu'au coup d'envoi. Ouvert dès qu'il y a la cote du matin (le jour du match,
+  vers 8 h ; compétitions de la tâche Cotes : 5 grands championnats et 3 coupes d'Europe ; pas de rugby). Cote figée = moyenne des sites du relevé « matin » (`donnees/cotes/cotes.json`).
+- **Règlement** (serveur, à chaque appel `paris` ou `miser`) : score final de `jours.json` / `passe.json` (sinon fichier de la compétition) ; gain = arrondi(mise × cote), 0 si perdu ;
+  match reporté ou annulé depuis plus d'un jour : remboursé. Paris des autres visibles au coup d'envoi (avant : seulement qui a parié).
+- **Onglet Paris** du tableur : groupe, pseudo, match, ligue, choix (h/d/a), mise, cote, le, mois, dom, ext, coup d'envoi, gain (vide = en cours).
+- Serveur : actions `miser` (`choix` vide = annuler) et `paris` (soldes du mois, podiums, général, cotes du jour, paris, qui). Simulation : pas de paris (message).
 
 ## Mode simulation (sans serveur)
 Sans adresse de serveur, tout reste sur l'appareil (clé `pronos:sim`) : 3 amis fictifs (Lucas, Inès, Théo) avec des pronos tirés au hasard,

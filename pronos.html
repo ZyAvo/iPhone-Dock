@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="1ce3d863">
+<meta name="mon-ecran-version" content="d0dc916c">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -359,6 +359,38 @@ html.desk .f-sheet{border-radius:26px}
 .p-coul button{width:30px;height:30px;border-radius:50%;background:var(--av)}
 .p-coul button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--base), 0 0 0 5px var(--av)}
 .p-invit{font-size:1.5rem;line-height:1}
+/* paris (v60) */
+.pa-cr{margin-left:auto;text-align:right;display:grid;line-height:1}
+.pa-cr b{font-size:2.1rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--accent)}
+.pa-cr span{font-size:.7rem;color:var(--ink-soft);margin-top:3px}
+.pa-detail{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.78rem;color:var(--ink-soft)}
+.pa-detail b{color:var(--ink);font-variant-numeric:tabular-nums}
+.pa-bonus{font-style:normal;color:#1f8a4c;font-weight:700}
+.pa-fini{border-radius:14px;padding:10px 12px;background:color-mix(in oklab, #d4572e 14%, transparent);font-size:.82rem;font-weight:600}
+.pa-m{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+.pa-h{font-size:.9rem;font-weight:700;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.pa-c{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pa-b{display:grid;gap:1px;justify-items:center;padding:7px 4px;border-radius:14px;background:var(--card);border:1px solid var(--line);color:var(--ink)}
+.pa-b span{font-size:.68rem;font-weight:700;color:var(--ink-soft)}
+.pa-b b{font-size:1.05rem;font-variant-numeric:tabular-nums}
+.pa-b.on{background:var(--accent);color:var(--on-accent);border-color:transparent;box-shadow:0 6px 16px -8px var(--accent)}
+.pa-b.on span{color:inherit;opacity:.85}
+.pa-b:disabled{opacity:.55}
+.pa-mise{grid-column:1 / -1;display:grid;gap:10px;padding:10px;border-radius:16px;background:color-mix(in oklab, var(--accent) 8%, transparent)}
+.pa-mise .msg{margin:0;min-height:0}.pa-mise .msg:empty{display:none}
+.pa-chips{display:flex;flex-wrap:wrap;gap:6px}
+.pa-chips button{padding:6px 12px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-weight:700;font-size:.82rem;font-variant-numeric:tabular-nums}
+.pa-ligne{display:flex;align-items:end;gap:12px}
+.pa-ligne .champ{flex:1;min-width:0}
+.pa-gain{display:grid;text-align:right;font-size:.72rem;color:var(--ink-soft)}
+.pa-gain b{font-size:1.4rem;color:#1f8a4c;font-variant-numeric:tabular-nums}
+.pa-moi{grid-column:1 / -1;text-align:center;font-size:.82rem;padding:8px 10px;border-radius:14px;background:color-mix(in oklab, #1f8a4c 14%, transparent)}
+.pa-lien{color:var(--accent);font-weight:700;text-decoration:underline;font-size:.8rem;margin-left:4px}
+.pa-r{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.pa-r:first-child{border-top:0}
+.pa-r-m{flex:1;min-width:0;font-size:.86rem}
+.pa-r-m small{display:block;font-size:.72rem;color:var(--ink-soft);margin-top:2px}
+.ong button{white-space:nowrap}
 /* fête */
 .p-conf{position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden}
 .p-conf i{position:absolute;top:-14px;width:8px;height:13px;border-radius:2px;animation:tombe var(--d) cubic-bezier(.25,.6,.45,1) var(--w) forwards}
@@ -483,6 +515,8 @@ const DISTANT = {
   async avatar(av){ const me = this.moi(), r = await this.appel('avatar', {...me, avatar:av}); if (r.ok) LS.set('pronos:moi', {...me, avatar:av}); return r; },
   async parier(m, h, a){ const me = this.moi(); return this.appel('parier', {...me, match:m.id, ligue:m.league, h, a}); },
   async tout(matchs){ const me = this.moi(); return this.appel('etat', {...me}); },
+  async paris(){ const me = this.moi(); return this.appel('paris', {...me}); },                                // v60
+  async miser(match, choix, mise){ const me = this.moi(); return this.appel('miser', {...me, match, choix, mise}); },
   effacer(){ localStorage.removeItem('pronos:moi'); }
 };
 const BASE = SIM ? SIMU : DISTANT;
@@ -564,8 +598,8 @@ function rendre(){
   const bandeau = (SIM ? `<div class="bandeau glass"><span>🧪</span><span><b>Mode simulation</b> : tes pronos restent sur cet appareil, face à 3 amis fictifs. Les matchs et les résultats sont les vrais.</span></div>` : '')
     + (PANNE ? `<div class="bandeau glass"><span>⚠️</span><span>${esc(PANNE)}</span></div>` : '');
   if (!me){ out.innerHTML = bandeau + inscriptionHTML(); return; }
-  const ong = `<div class="ong glass" role="tablist">${[['jouer', 'À pronostiquer'], ['res', 'Résultats'], ['cl', 'Classement']].map(([k, t]) => `<button type="button" role="tab" data-vue="${k}" aria-selected="${VUE === k}">${t}</button>`).join('')}</div>`;
-  out.innerHTML = bandeau + ong + (VUE === 'jouer' ? jouerHTML(me) : VUE === 'res' ? resHTML(me) : clHTML(me));
+  const ong = `<div class="ong glass" role="tablist">${[['jouer', 'Pronos'], ['res', 'Résultats'], ['cl', 'Classement'], ['paris', 'Paris']].map(([k, t]) => `<button type="button" role="tab" data-vue="${k}" aria-selected="${VUE === k}">${t}</button>`).join('')}</div>`;
+  out.innerHTML = bandeau + ong + (VUE === 'jouer' ? jouerHTML(me) : VUE === 'res' ? resHTML(me) : VUE === 'paris' ? parisHTML(me) : clHTML(me));
 }
 function choixHTML(){
   const a = CHOIX;
@@ -672,6 +706,118 @@ function appareilHTML(me){
       : `<div class="btns"><button type="button" class="btn" data-av="changer">${avHTML(me.pseudo)} Changer mon avatar</button>${SIM ? '' : '<button type="button" class="btn" data-quitter>Changer de joueur ou de groupe</button>'}</div>`}</div>`;
 }
 
+/* ---------- Paris entre amis (v60) : crédits fictifs, jeu sans argent ----------
+   100 crédits chaque mois (+20 / +10 / +5 pour le podium du mois précédent), pari simple 1 / N / 2 le jour du match à la cote moyenne
+   du relevé du matin (tâche Cotes). Tout est vérifié et compté par le serveur (actions paris et miser) ; la page affiche. */
+const NOMS_PARIS = {'fra.1':'Ligue 1', 'eng.1':'Premier League', 'esp.1':'Liga', 'ita.1':'Serie A', 'ger.1':'Bundesliga', 'uefa.champions':'Ligue des champions', 'uefa.europa':'Ligue Europa', 'uefa.europa.conf':'Ligue Europa Conférence'};
+let PARIS = null, PVUE = LS.get('pronos:pvue', 'jour'), PCL = 'mois', PCHOIX = {}, JOURS = {};
+const cote = c => Number(c).toFixed(2).replace('.', ',');
+const nomMois = M => { const [a, m] = M.split('-').map(Number); return new Date(a, m - 1, 1).toLocaleDateString('fr-FR', {month:'long', year:'numeric'}); };
+const moisSuivant = M => { const [a, m] = M.split('-').map(Number); return new Date(a, m, 1).toLocaleDateString('fr-FR', {day:'numeric', month:'long'}).replace(/^1 /, '1ᵉʳ '); };
+async function chargerParis(){
+  try{ const j = await (await fetch('donnees/sport/jours.json', {cache:'no-cache'})).json();          // équipes (logos) et logos des compétitions
+    JOURS = {}; (j.events || []).forEach(e => { JOURS[e.id] = e; });
+    Object.entries(j.leagues || {}).forEach(([id, v]) => { if (!COMP[id] && v) COMP[id] = {logo:v.logo || '', logoDark:v.logoDark || ''}; }); }catch{}
+  try{ PARIS = await BASE.paris(); }catch{ PARIS = {err:'reseau'}; }
+}
+function matchParis(id, c){
+  const e = JOURS[id] || {}, nom = NOMS_PARIS[c.lg] || e.league || c.lg;
+  return {id, t:c.t, league:c.lg, L:{id:c.lg, nom}, round:e.round, state:e.state, home:e.home || {name:c.eq[0] || '?'}, away:e.away || {name:c.eq[1] || '?'}, c:c.c};
+}
+const monPari = (id, me) => (PARIS.paris || []).find(x => x.match === id && x.p === me.pseudo);
+const libChoix = (x, m) => x === 'h' ? (m ? m.home.name : 'Domicile') : x === 'a' ? (m ? m.away.name : 'Extérieur') : 'Nul';
+function soldeDe(me){ return (PARIS.soldes || {})[me.pseudo] || {solde:100, depart:100, bonus:0, enJeu:0, nb:0}; }
+function clMois(){
+  const s = PARIS.soldes || {};
+  return Object.entries(s).map(([n, x]) => ({n, ...x})).sort((a, b) => (b.nb > 0) - (a.nb > 0) || b.solde - a.solde || a.n.localeCompare(b.n)).map((x, i) => ({...x, pos:i + 1, pts:x.solde, serie:0}));
+}
+function parisHTML(me){
+  if (SIM) return '<div class="carte glass"><h2>🎟️ Paris entre amis</h2><p>Les paris se jouent en mode partagé, avec le serveur du groupe : ils ne sont pas simulés sur cet appareil.</p></div>';
+  if (!PARIS) return '<p class="vide">Chargement des paris…</p>';
+  if (PARIS.err) return `<div class="carte glass"><h2>🎟️ Paris entre amis</h2><p>${PARIS.err === 'action' ? 'Le serveur des pronos doit être mis à jour (v60) : colle le nouveau Code.gs dans Apps Script, puis Déployer › Gérer les déploiements › Nouvelle version.' : 'Serveur des pronos injoignable. Réessaie avec ↻.'}</p></div>`;
+  const x = soldeDe(me), cl = clMois(), r = cl.find(y => y.n === me.pseudo), joue = cl.filter(y => y.nb).length;
+  const fini = x.solde < 1 && !x.enJeu;
+  const sous = `<div class="ong glass" role="tablist">${[['jour', "Aujourd'hui"], ['mes', 'Mes paris'], ['cl', 'Classement']].map(([k, t]) => `<button type="button" role="tab" data-pvue="${k}" aria-selected="${PVUE === k}">${t}</button>`).join('')}</div>`;
+  const hero = `<section class="p-hero glass pa-hero">
+    <div class="p-hero-t">${avHTML(me.pseudo, 'xl')}<div><b>${esc(me.pseudo)}</b><span>${r && r.nb ? `${rangTxt(r.pos)} sur ${joue} en ${nomMois(PARIS.mois).split(' ')[0]}` : `Mois de ${nomMois(PARIS.mois)}`}</span></div>
+      <div class="pa-cr"><b data-compteur="${x.solde}">${x.solde}</b><span>crédits</span></div></div>
+    <div class="pa-detail"><span>Départ <b>${x.depart}</b>${x.bonus ? ` <em class="pa-bonus">dont +${x.bonus} de bonus</em>` : ''}</span><span>En jeu <b>${x.enJeu}</b></span><span>Paris <b>${x.nb}</b></span></div>
+    ${fini ? `<div class="pa-fini">Plus de crédits ce mois-ci : tu repars avec 100 crédits le ${moisSuivant(PARIS.mois)}.</div>` : ''}
+  </section>`;
+  return hero + sous + (PVUE === 'mes' ? mesParisHTML(me) : PVUE === 'cl' ? parisClHTML(me) : parisJourHTML(me, x));
+}
+function parisJourHTML(me, x){
+  const now = Date.now(), l = Object.entries(PARIS.cotes || {}).map(([id, c]) => matchParis(id, c)).sort((a, b) => a.t - b.t);
+  const regles = `<p class="note">Un pari 1 / N / 2 par match, le jour du match, à la cote moyenne du relevé du matin (5 sites français). Gain = mise × cote, arrondi.
+    Résultat : score final (prolongation comprise). 100 crédits au début de chaque mois, +20 / +10 / +5 pour le podium du mois précédent.
+    <b>Jeu entre amis, sans argent</b> : les crédits ne s'achètent pas, ne s'échangent pas et ne valent rien.</p>`;
+  if (!l.length) return `<div class="carte glass"><h2>⏳ Pas encore de cote aujourd'hui</h2><p>Les cotes arrivent vers 8 h le jour du match, pour la Ligue 1, la Premier League, la Liga, la Serie A, la Bundesliga et les coupes d'Europe.</p></div>` + regles;
+  return blocs(l, m => matchParisHTML(m, me, x, now)) + regles;
+}
+function matchParisHTML(m, me, x, now){
+  const ferme = now >= m.t, p = monPari(m.id, me), ch = PCHOIX[m.id], sel = ch ? ch.choix : p && p.choix;
+  const bt = (k, i, lib) => `<button type="button" class="pa-b${sel === k ? ' on' : ''}" data-ch="${k}" aria-pressed="${sel === k}"${ferme ? ' disabled' : ''}><span>${esc(lib)}</span><b>${cote(m.c[i])}</b></button>`;
+  const qui = ((PARIS.qui || {})[m.id] || []).filter(n => n !== me.pseudo);
+  const autres = (PARIS.paris || []).filter(y => y.match === m.id && y.p !== me.pseudo);
+  const gauche = ferme ? (m.state === 'in' ? '<span class="p-live">● En direct</span>' : '🔒 Commencé') : `<span class="p-cd${m.t - now < 3600e3 ? ' urgent' : ''}" data-cd="${m.t}" data-pre="⏳ ">⏳ ${esc(compte(m.t))}</span>`;
+  let corps = '';
+  if (ch && !ferme){
+    const dispo = x.solde + (p ? p.mise : 0), c = m.c['hda'.indexOf(ch.choix)];
+    corps = `<div class="pa-mise"><div class="pa-chips">${[5, 10, 25].filter(v => v < dispo).map(v => `<button type="button" data-mise="${v}">${v}</button>`).join('')}<button type="button" data-mise="${dispo}">Tout (${dispo})</button></div>
+      <div class="pa-ligne"><label class="champ">Mise sur ${esc(libChoix(ch.choix, m))}<input inputmode="numeric" maxlength="4" value="${ch.mise}" data-c="${c}"></label><span class="pa-gain">Gain possible<b data-gain>${Math.round(ch.mise * c)}</b></span></div>
+      <div class="btns"><button type="button" class="btn main" data-valider>${p ? 'Modifier le pari' : 'Valider'}</button>${p ? '<button type="button" class="btn" data-annuler>Annuler le pari</button>' : ''}<button type="button" class="btn" data-fermer>Fermer</button></div><p class="msg" data-pmsg role="status"></p></div>`;
+  } else if (p) corps = `<div class="pa-moi">✓ <b>${p.mise}</b> sur ${esc(libChoix(p.choix, m))} à ${cote(p.cote)} → <b>${Math.round(p.mise * p.cote)}</b> possibles${ferme ? '' : ' <button type="button" class="pa-lien" data-modifier>Modifier</button>'}</div>`;
+  return `<div class="p-m pa-m" data-pm="${esc(m.id)}">
+    <div class="p-eq">${logoEq(m, m.home)}<span>${esc(m.home.name)}</span></div><div class="pa-h">${esc(hm(m.t))}</div><div class="p-eq">${logoEq(m, m.away)}<span>${esc(m.away.name)}</span></div>
+    <div class="pa-c">${bt('h', 0, '1')}${bt('d', 1, 'N')}${bt('a', 2, '2')}</div>
+    ${corps}
+    <div class="p-pied">${gauche}${!ferme && qui.length ? `<span class="p-qui"><span class="p-pile">${qui.slice(0, 5).map(n => avHTML(n)).join('')}</span> ${qui.length} ${qui.length > 1 ? 'ont parié' : 'a parié'}</span>` : ''}</div>
+    ${ferme && autres.length ? `<div class="p-chips">${autres.map(y => `<span class="p-chip">${avHTML(y.p)}${esc(y.p)} <b>${y.mise}</b> sur ${esc(y.choix === 'd' ? 'N' : y.choix === 'h' ? '1' : '2')}</span>`).join('')}</div>` : ''}</div>`;
+}
+function statut(y){
+  if (y.gain === null) return '<span class="p-bd p0">⏳ en cours</span>';
+  if (y.gain === y.mise && y.gain !== Math.round(y.mise * y.cote)) return `<span class="p-bd p0">↩ remboursé</span>`;
+  return y.gain > 0 ? `<span class="p-bd p3">+${y.gain - y.mise}</span>` : `<span class="p-bd p0">−${y.mise}</span>`;
+}
+function mesParisHTML(me){
+  const l = (PARIS.paris || []).filter(y => y.p === me.pseudo).sort((a, b) => b.t - a.t);
+  if (!l.length) return '<p class="vide">Pas encore de pari. Choisis 1, N ou 2 sur un match du jour.</p>';
+  const parMois = {}; l.forEach(y => { (parMois[y.mois] || (parMois[y.mois] = [])).push(y); });
+  return Object.entries(parMois).map(([M, ys]) => `<p class="jour">${esc(nomMois(M))}</p><div class="p-liste glass">${ys.map(y => `<div class="pa-r">
+      <span class="pa-r-m"><b>${esc(y.dom)} – ${esc(y.ext)}</b><small>${esc(new Date(y.t).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}))} · ${esc(NOMS_PARIS[y.lg] || y.lg)} · ${y.mise} sur ${esc(y.choix === 'h' ? y.dom : y.choix === 'a' ? y.ext : 'nul')} à ${cote(y.cote)}</small></span>${statut(y)}</div>`).join('')}</div>`).join('');
+}
+function parisClHTML(me){
+  const per = `<div class="ong glass" role="tablist">${[['mois', 'Ce mois-ci'], ['gen', 'Général']].map(([k, t]) => `<button type="button" role="tab" data-pcl="${k}" aria-selected="${PCL === k}">${t}</button>`).join('')}</div>`;
+  const unite = n => n > 1 ? 'crédits' : 'crédit';
+  if (PCL === 'gen'){
+    const g = Object.entries(PARIS.general || {}).map(([n, x]) => ({n, ...x})).sort((a, b) => b.total - a.total || a.n.localeCompare(b.n));
+    const pal = Object.entries(PARIS.podiums || {}).sort(([a], [b]) => b.localeCompare(a));
+    return per + (g.length ? `<div class="p-liste glass">${g.map((x, i) => `<div class="p-r${x.n === me.pseudo ? ' moi' : ''}"><b>${i + 1}</b>${avHTML(x.n)}<span class="p-r-n">${esc(x.n)}<small>${x.mois} mois joué${x.mois > 1 ? 's' : ''}</small></span><span></span><span class="p-r-pts">${x.total}</span></div>`).join('')}</div>`
+        : `<div class="carte glass"><h2>🏁 Le général démarre à la fin du premier mois</h2><p>Il additionne les crédits de chaque joueur à la fin de chaque mois joué.</p></div>`)
+      + (pal.length ? `<p class="jour">Palmarès</p><div class="p-liste glass">${pal.map(([M, p]) => `<div class="pa-r"><span class="pa-r-m"><b>${esc(nomMois(M))}</b><small>${p.map((n, i) => `${['🥇', '🥈', '🥉'][i]} ${esc(n)}`).join(' · ')}</small></span></div>`).join('')}</div>` : '')
+      + '<p class="note">Général : cumul des crédits de fin de mois (mois où le joueur a parié au moins une fois).</p>';
+  }
+  const l = clMois(), joue = l.filter(x => x.nb);
+  const pod = x => x ? `<div class="p-pod r${x.pos}${x.n === me.pseudo ? ' moi' : ''}"><span class="med">${['🥇', '🥈', '🥉'][x.pos - 1]}</span>${avHTML(x.n, x.pos === 1 ? 'xl' : 'lg')}
+      <span class="nom">${esc(x.n)}</span><small>+${BONUS_P[x.pos - 1]} au ${esc(moisSuivant(PARIS.mois))}</small><div class="p-marche"><b>${x.solde}</b><span>${unite(x.solde)}</span></div></div>`
+    : '<div class="p-pod p-vide"><div class="p-marche" style="height:40px"></div></div>';
+  return per + (joue.length ? `<section class="p-podium glass">${pod(joue[1])}${pod(joue[0])}${pod(joue[2])}</section>` : '<div class="carte glass"><h2>🎟️ Personne n\'a encore parié ce mois-ci</h2><p>Le podium du mois gagne +20, +10 et +5 crédits pour le mois suivant.</p></div>')
+    + (l.length > Math.min(3, joue.length) ? `<div class="p-liste glass">${l.slice(Math.min(3, joue.length)).map(x => `<div class="p-r${x.n === me.pseudo ? ' moi' : ''}"><b>${x.nb ? x.pos : '–'}</b>${avHTML(x.n)}<span class="p-r-n">${esc(x.n)}<small>${x.nb ? `${x.nb} pari${x.nb > 1 ? 's' : ''} · ${x.enJeu} en jeu` : 'Pas encore parié ce mois-ci'}</small></span><span></span><span class="p-r-pts">${x.solde}</span></div>`).join('')}</div>` : '')
+    + `<p class="note">Classement par crédits (en jeu compris comme dépensés). Au ${esc(moisSuivant(PARIS.mois))} : tout le monde repart à 100, +20 / +10 / +5 pour le podium (joueurs ayant parié). À égalité : ordre alphabétique.</p>`;
+}
+const BONUS_P = [20, 10, 5];
+async function validerPari(box, annuler){
+  const id = box.dataset.pm, ch = PCHOIX[id], msg = t => { const m = box.querySelector('[data-pmsg]'); if (m) m.textContent = t; };
+  const mise = annuler ? 0 : parseInt((box.querySelector('.pa-mise input') || {}).value, 10);
+  if (!annuler && !(mise >= 1)) return msg('Mise : 1 crédit au moins.');
+  msg('Enregistrement…');
+  try{ const r = await BASE.miser(id, annuler ? '' : ch.choix, mise);
+    if (!r.ok) return msg({solde:`Pas assez de crédits (disponible : ${r.dispo}).`, ferme:'Trop tard : le match a commencé.', cote:'Pas de cote du matin pour ce match.', mise:'Mise : 1 crédit au moins.', code:'Pseudo ou code non reconnu : actualise la page.'}[r.err] || 'Refusé par le serveur.');
+    delete PCHOIX[id]; PARIS = await BASE.paris(); rendre();
+    if (!annuler){ const b = document.querySelector(`[data-pm="${CSS.escape(id)}"] .pa-moi`); if (b) b.classList.add('pop'); if (navigator.vibrate) navigator.vibrate(12); } }
+  catch{ msg('Pas enregistré (réseau) : réessaie.'); }
+}
+
 /* ---------- fête : confettis sur un score exact (une fois par match) ---------- */
 function fete(texte){
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -702,7 +848,9 @@ async function actualiser(){
   try{ await chargerMatchs(); if (BASE.moi()){ try{ ETAT = await BASE.tout(MATCHS); if (ETAT.err) throw new Error(ETAT.err); }
     catch(e){ ETAT = {joueurs:[], pronos:{}};
       if (e.message === 'code'){ BASE.effacer(); PANNE = 'Pseudo ou code non reconnu par le serveur : reconnecte-toi.'; }      // v55 : plus de page vide sans explication
-      else PANNE = 'Serveur des pronos injoignable : les pronos affichés peuvent être incomplets. Réessaie avec ↻.'; } } rendre(); feterExacts(); }
+      else PANNE = 'Serveur des pronos injoignable : les pronos affichés peuvent être incomplets. Réessaie avec ↻.'; } }
+    if (VUE === 'paris' && BASE.moi() && !SIM) await chargerParis();                    // v60
+    rendre(); feterExacts(); }
   finally{ $('#refreshBtn').classList.remove('spin'); }
 }
 document.addEventListener('submit', async e => {
@@ -734,6 +882,9 @@ function programmer(box){
   }, 600);
 }
 document.addEventListener('input', e => {
+  const pi = e.target.closest('.pa-mise input');
+  if (pi){ pi.value = pi.value.replace(/\D/g, '').slice(0, 4); const box = pi.closest('[data-pm]'), id = box.dataset.pm; if (PCHOIX[id]) PCHOIX[id].mise = +pi.value || 0;
+    box.querySelector('[data-gain]').textContent = Math.round((+pi.value || 0) * +pi.dataset.c); return; }
   const i = e.target.closest('.p-st input'); if (!i) return;
   i.value = i.value.replace(/\D/g, '').slice(0, 3);
   programmer(i.closest('[data-m]'));
@@ -747,7 +898,21 @@ async function changerAvatar(){
     EDITER = false; rendre(); }catch{ msg('Serveur des pronos injoignable.'); }
 }
 document.addEventListener('click', async e => {
-  const v = e.target.closest('[data-vue]'); if (v){ VUE = v.dataset.vue; LS.set('pronos:vue', VUE); rendre(); return; }
+  const v = e.target.closest('[data-vue]'); if (v){ VUE = v.dataset.vue; LS.set('pronos:vue', VUE); rendre(); if (VUE === 'paris' && !SIM && !PARIS){ await chargerParis(); rendre(); } return; }
+  const pv = e.target.closest('[data-pvue]'); if (pv){ PVUE = pv.dataset.pvue; LS.set('pronos:pvue', PVUE); rendre(); return; }
+  const pc = e.target.closest('[data-pcl]'); if (pc){ PCL = pc.dataset.pcl; rendre(); return; }
+  const pm = e.target.closest('[data-pm]');
+  if (pm && PARIS){                                                                 // v60 : paris
+    const id = pm.dataset.pm, me = BASE.moi(), p = monPari(id, me), x = soldeDe(me), dispo = x.solde + (p ? p.mise : 0);
+    const ch = e.target.closest('[data-ch]');
+    if (ch){ const k = ch.dataset.ch, a = PCHOIX[id]; if (a && a.choix === k && !p){ delete PCHOIX[id]; } else PCHOIX[id] = {choix:k, mise:Math.min(a ? a.mise : p ? p.mise : 10, Math.max(dispo, 0))}; rendre(); return; }
+    const mi = e.target.closest('[data-mise]');
+    if (mi){ const i = pm.querySelector('.pa-mise input'); i.value = mi.dataset.mise; i.dispatchEvent(new Event('input', {bubbles:true})); return; }
+    if (e.target.closest('[data-valider]')){ validerPari(pm, false); return; }
+    if (e.target.closest('[data-annuler]')){ validerPari(pm, true); return; }
+    if (e.target.closest('[data-fermer]')){ delete PCHOIX[id]; rendre(); return; }
+    if (e.target.closest('[data-modifier]')){ PCHOIX[id] = {choix:p.choix, mise:p.mise}; rendre(); return; }
+  }
   const p = e.target.closest('[data-per]'); if (p){ PERIODE = p.dataset.per; rendre(); return; }
   const pas = e.target.closest('[data-pas]');
   if (pas){
@@ -786,6 +951,7 @@ setInterval(() => {                         // comptes à rebours ; fermeture au
   const now = Date.now(); let passe = false;
   document.querySelectorAll('[data-cd]').forEach(x => { const t = +x.dataset.cd; if (t <= now) passe = true; x.textContent = (x.dataset.pre || '') + compte(t); x.classList.toggle('urgent', x.classList.contains('p-cd') && t - now < 3600e3); });
   if (passe && VUE === 'jouer' && !(document.activeElement && document.activeElement.closest('.p-st')) && !Object.keys(enAttente).length) rendre();
+  if (passe && VUE === 'paris' && !Object.keys(PCHOIX).length) rendre();               // v60 : paris fermés au coup d'envoi
 }, 30e3);
 actualiser();
 </script>
