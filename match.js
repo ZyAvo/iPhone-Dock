@@ -1,4 +1,4 @@
-// mon-ecran-version: e3ad8225
+// mon-ecran-version: ed101192
 /* Mon Écran — lecture des fiches de match ESPN (v48), commune à Sport et à l'accueil (détail d'un match).
    Sortis de sport.html sans changement : classify, summaryEvents (rugby et autres), soccerEvents (foot), shootoutTable, markShootout
    (fonctions globales, sport.html les appelle comme avant). Ajouts : Match.lire(j, sport) pour l'accueil, Match.minute(...) (rugby).
@@ -295,10 +295,10 @@ function doublons(liste){
   });
 }
 /* v57 : ESPN donne parfois un logo de pays à un club (Perpignan, code « USA » → drapeau des États-Unis ; Vannes « VAN » → Vanuatu).
-   Hors compétitions de sélections (régions intl et rintl) : logo de club ESPN d'après l'identifiant (rugby), sinon aucun ; code tiré du nom. */
+   Hors compétitions de sélections (régions intl et rintl) : logo retiré (v58 : ESPN n'a pas de logo de club pour eux ; la tâche Sport le prend sur TheSportsDB) ; code tiré du nom. */
 function equipeClub(t, L){
   if (!t || !/\/teamlogos\/countries\//i.test(t.logo || '') || !L || ['intl', 'rintl'].includes(L.region)) return t;
-  t.logo = L.sport === 'rugby' && t.id ? `https://a.espncdn.com/i/teamlogos/rugby/teams/500/${t.id}.png` : '';
+  t.logo = '';
   t.abbr = nomSimple(t.name).replace(/ /g, '').slice(0, 3).toUpperCase();
   return t;
 }

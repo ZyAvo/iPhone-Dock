@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="db06b666">
+<meta name="mon-ecran-version" content="f10ddafd">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -774,7 +774,8 @@ async function fetchToday(L){                    // rafraîchissement léger des
 /* Fusionne des matchs frais d'ESPN avec ceux déjà connus, en gardant journée et détail préparés */
 function mergeLive(base, fresh){
   const map = new Map(base.map(e => [e.id, e]));
-  fresh.forEach(e => { const o = map.get(e.id); map.set(e.id, o ? {...e, round:o.round || e.round, roundSrc:o.roundSrc || e.roundSrc, full:o.full} : e); });
+  const garde = (t, a) => t && a && !t.logo && a.logo ? {...t, logo:a.logo} : t;   // v58 : logo pris sur TheSportsDB par la tâche, absent des données fraîches d'ESPN
+  fresh.forEach(e => { const o = map.get(e.id); map.set(e.id, o ? {...e, home:garde(e.home, o.home), away:garde(e.away, o.away), round:o.round || e.round, roundSrc:o.roundSrc || e.roundSrc, full:o.full} : e); });
   return sansDoublons([...map.values()].filter(m => !ghost(m)));   // v57 : + fiche en double d'ESPN
 }
 const equipeClub = (t, L) => window.Match && Match.equipeClub ? Match.equipeClub(t, L) : t;   // v57 (match.js)
@@ -1988,6 +1989,12 @@ function zoneOf(note){
   const z = ZONES.find(([re]) => re.test(note.text));
   return z ? {label:z[1], color:z[2]} : {label:note.text, color:/^#?[0-9a-f]{6}$/i.test(note.color || '') ? '#' + note.color.replace('#', '') : '#8b8c89'};
 }
+/* v58 : logo d'une ligne du classement : pas de drapeau de pays sur un club ; logo manquant → celui du même club dans les matchs (pris sur TheSportsDB par la tâche) */
+function logoLigne(L, e){
+  const x = equipeClub({...e}, L); if (x.logo) return x.logo;
+  for (const m of ((DATA[L.id] || {}).events || [])) for (const t of (m.home ? [m.home, m.away] : [])) if (String(t.id) === String(e.id) && t.logo) return t.logo;
+  return '';
+}
 function tableHTML(L, data){
   if (data === 'err') return `<div class="empty">Le classement n'est pas disponible pour l'instant.</div>`;
   if (!data) return `<div class="skeleton glass"></div><div class="skeleton glass"></div>`;
@@ -2006,7 +2013,7 @@ function tableHTML(L, data){
       const z = zone(e.note); if (z) notes.set(z.label, z.color);
       const rk = statOf(e, ['rank', 'playoffSeed']);
       return `<tr${z ? ` style="--nc:${esc(z.color)}" title="${esc(z.label)}"` : ''} class="${z ? 'noted' : ''}${e.joue ? ' joue' : ''}">
-        <th class="pl" scope="row"><span class="tc"><span class="rk">${esc(rk ? rk.v : i + 1)}</span>${e.logo ? `<img class="tlg" ${imgSrc(e.logo, 72)} decoding="async" alt="" loading="lazy" onerror="this.remove()">` : ''}<span class="tn">${esc(e.name)}</span></span></th>
+        <th class="pl" scope="row"><span class="tc"><span class="rk">${esc(rk ? rk.v : i + 1)}</span>${(lg => lg ? `<img class="tlg" ${imgSrc(lg, 72)} decoding="async" alt="" loading="lazy" onerror="this.remove()">` : '')(logoLigne(L, e))}<span class="tn">${esc(e.name)}</span></span></th>
         ${tc.map(([n], k) => { const s = statOf(e, n); return `<td class="${k === tc.length - 1 ? 'key' : ''}">${esc(s ? s.v : '')}</td>`; }).join('')}</tr>`;
     }).join('');
     return `${one ? '' : `<h3 class="bx-h">${esc(GROUP_FR[t.title] || t.title)}</h3>`}
