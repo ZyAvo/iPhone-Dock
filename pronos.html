@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="1b31026c">
+<meta name="mon-ecran-version" content="bc73b173">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,6 +19,7 @@ img{max-width:100%}
 <script src="config/config.js"></script>
 <script src="noyau.js"></script>
 <script src="themes.js"></script>
+<script src="synchro.js"></script>
 <script>/* page désactivée dans Réglages › Pages et widgets : on s'arrête là (aucun chargement) */Noyau.accueil.garde('sport');</script>
 <link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="commun.css">
@@ -240,6 +241,12 @@ html.desk .f-sheet{border-radius:26px}
 .btn.main{background:var(--accent);color:var(--on-accent);border-color:transparent}
 .btns{display:flex;flex-wrap:wrap;gap:8px}
 .msg{font-size:.8rem;color:#c0392b;min-height:1em}
+.champ select{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.p-lien{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.msg .btn{margin-left:6px;min-height:34px;padding:6px 12px;font-size:.8rem}
+.bandeau .btns{margin-top:8px}
+.b-lien{align-items:flex-start}
+.b-lien .btn{min-height:36px;padding:7px 12px;font-size:.8rem}
 .ong{display:flex;gap:2px;padding:4px;border-radius:18px}
 .ong button{flex:1;padding:9px 6px;border-radius:14px;font-size:.86rem;font-weight:500;color:var(--ink-soft)}
 .ong button[aria-selected="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
@@ -444,7 +451,9 @@ html.desk .p-grille .jour{grid-column:1 / -1}
      refuse un prono après le coup d'envoi et ne montre ceux des autres qu'une fois le match commencé.
    v56 : matchs par jour puis par compétition (logos), score au clavier ou avec − / +, compte à rebours, avatars (emoji + couleur),
    « qui a déjà pronostiqué » (serveur v56), badges de points, confettis sur un score exact, podium, flèches de progression, trophées du mois.
-   Avec un serveur v55 : pas d'avatars des autres ni de « qui a pronostiqué », le reste marche. Gratuit, sans mise ni gain. */
+   Avec un serveur v55 : pas d'avatars des autres ni de « qui a pronostiqué », le reste marche. Gratuit, sans mise ni gain.
+   v63 : identité (pronos:moi) partagée par la synchro chiffrée (partie « prefs ») ; lien de reconnexion ?groupe=…&pseudo=… (jamais le code dans l'adresse),
+   reconnexion par l'action « etat » (ne crée pas de compte, garde l'avatar). */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } }, set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }};
@@ -458,6 +467,13 @@ const hm = t => new Date(t).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:
 const jourDe = t => new Date(t).toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
 const moisDe = t => new Date(t).toISOString().slice(0, 7);
 const q = new URLSearchParams(location.search);
+// v63 : lien de reconnexion (?groupe=…&pseudo=…) ; PRE = ce qui pré-remplit les formulaires ; RECO = formulaire « Me reconnecter »
+const LIEN = {g:(q.get('groupe') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8), p:(q.get('pseudo') || '').trim().slice(0, 20)};
+const PRE = {...LIEN};
+let RECO = !!LIEN.p, SYNC = '';             // SYNC : '' (pas de synchro ici), 'verrou' (activée, code pas saisi), 'ouverte', 'vide' (rien trouvé)
+const lienReco = (g, p) => `${location.origin}${location.pathname}?groupe=${encodeURIComponent(g)}&pseudo=${encodeURIComponent(p)}`;
+const synchroPlusTard = () => { try{ if (window.Synchro) Synchro.prefsPlusTard(); }catch{} };
+function oublierLien(){ if (!LIEN.p) return; LIEN.p = ''; try{ history.replaceState(null, '', `${location.pathname}?groupe=${encodeURIComponent(LIEN.g)}`); }catch{} }
 const hash = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
 const pl = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 function libJour(t){
@@ -533,8 +549,12 @@ const SIMU = {
 const DISTANT = {
   async appel(action, x){ const r = await fetch(API, {method:'POST', body:JSON.stringify({action, ...x})}); if (!r.ok) throw new Error('reseau'); return r.json(); },
   moi(){ return LS.get('pronos:moi', null); },
-  async inscrire(pseudo, pin, groupe, avatar){ const r = await this.appel('inscrire', {pseudo, pin, groupe, avatar}); if (r.ok) LS.set('pronos:moi', {pseudo, pin, groupe, avatar}); return r; },
-  async avatar(av){ const me = this.moi(), r = await this.appel('avatar', {...me, avatar:av}); if (r.ok) LS.set('pronos:moi', {...me, avatar:av}); return r; },
+  async inscrire(pseudo, pin, groupe, avatar){ const r = await this.appel('inscrire', {pseudo, pin, groupe, avatar}); if (r.ok){ LS.set('pronos:moi', {pseudo, pin, groupe, avatar}); synchroPlusTard(); } return r; },
+  async avatar(av){ const me = this.moi(), r = await this.appel('avatar', {...me, avatar:av}); if (r.ok){ LS.set('pronos:moi', {...me, avatar:av}); synchroPlusTard(); } return r; },
+  // v63 : reconnexion = « etat » avec groupe, pseudo, code : refusé si le joueur n'existe pas (pas de compte créé par une faute de frappe), avatar gardé
+  async reconnecter(pseudo, pin, groupe){ const r = await this.appel('etat', {pseudo, pin, groupe}); if (r.err) return r;
+    const vrai = (r.joueurs || []).find(n => n.toLowerCase() === pseudo.toLowerCase()) || pseudo, av = (r.avatars || {})[vrai] || '';
+    LS.set('pronos:moi', {pseudo:vrai, pin, groupe, avatar:av}); synchroPlusTard(); return {ok:true}; },
   async parier(m, h, a){ const me = this.moi(); return this.appel('parier', {...me, match:m.id, ligue:m.league, h, a}); },
   async tout(matchs){ const me = this.moi(); return this.appel('etat', {...me}); },
   async paris(){ const me = this.moi(); return this.appel('paris', {...me}); },                                // v60
@@ -642,7 +662,10 @@ function rendre(){
   $('#stamp').textContent = SIM ? 'Simulation' : me ? me.groupe : '';
   $('#invBtn').hidden = !me;
   const bandeau = (SIM ? `<div class="bandeau glass"><span>🧪</span><span><b>Mode simulation</b> : tes pronos restent sur cet appareil, face à 3 amis fictifs. Les matchs et les résultats sont les vrais.</span></div>` : '')
-    + (PANNE ? `<div class="bandeau glass"><span>⚠️</span><span>${esc(PANNE)}</span></div>` : '');
+    + (PANNE ? `<div class="bandeau glass"><span>⚠️</span><span>${esc(PANNE)}</span></div>` : '')
+    + (me && !SIM && LIEN.p && (LIEN.p.toLowerCase() !== me.pseudo.toLowerCase() || (LIEN.g && LIEN.g !== me.groupe))
+      ? `<div class="bandeau glass b-lien"><span>🔗</span><span>Ce lien est celui de <b>${esc(LIEN.p)}</b>${LIEN.g ? ` (groupe ${esc(LIEN.g)})` : ''}. Sur cet appareil, tu es connecté en <b>${esc(me.pseudo)}</b>.
+        <span class="btns"><button type="button" class="btn" data-autre>Me connecter en ${esc(LIEN.p)}</button><button type="button" class="btn" data-garder>Rester ${esc(me.pseudo)}</button></span></span></div>` : '');
   if (SECTION === 'regles'){ out.innerHTML = retourHTML() + reglesHTML(); return; }
   if (!me){ out.innerHTML = bandeau + inscriptionHTML(); return; }
   if (SECTION === 'accueil'){ out.innerHTML = bandeau + accueilHTML(me); return; }
@@ -691,8 +714,9 @@ function reglesHTML(){
       <li>À 0 crédit (et rien en jeu), plus de pari jusqu'au 1ᵉʳ du mois suivant.</li>
       <li>Classement du mois par crédits ; <b>général</b> : cumul des crédits de fin de mois.</li></ul></div>
     <div class="carte glass regles"><h2>👤 Ton compte</h2><ul>
-      <li>Un pseudo et un code à 4 chiffres. Sur un autre appareil : même groupe, même pseudo, même code, et tu retrouves tout.</li>
-      <li>Avatar et changement de joueur : Pronos › Classement › Mon profil.</li>
+      <li>Un pseudo et un code à 4 chiffres. Sur un autre appareil : « Déjà inscrit ? Me reconnecter », même groupe, même pseudo, même code, et tu retrouves tout.</li>
+      <li>Ton <b>lien de reconnexion</b> remplit le groupe et le pseudo à ta place (le code reste à taper, il n'est jamais dans le lien).</li>
+      <li>Avatar, lien de reconnexion et changement de joueur : Pronos › Classement › Mon profil.</li>
       <li>Pour inviter un ami : bouton de partage en haut à droite.</li></ul></div>`;
 }
 function choixHTML(){
@@ -702,15 +726,36 @@ function choixHTML(){
     <div class="p-coul">${COULEURS.map((c, i) => `<button type="button" data-coul="${i}" style="--av:${c}" aria-pressed="${i === a.c}" aria-label="Couleur ${i + 1}"></button>`).join('')}</div></div>`;
 }
 function inscriptionHTML(){
-  const g = (q.get('groupe') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+  if (RECO && !SIM) return syncHTML() + recoHTML();
+  const g = LIEN.g;
   if (!CHOIX) CHOIX = avHasard(String(Math.random()));
-  return carteAcc('regles', '📖', 'Règles', 'Lire les règles avant de jouer', '') + `<form class="carte glass" id="inscr">${g ? `<span class="p-invit">🎉</span><h2>Tu es invité dans le groupe ${esc(g)} !</h2>` : '<h2>Rejoindre un groupe</h2>'}
+  return syncHTML() + carteAcc('regles', '📖', 'Règles', 'Lire les règles avant de jouer', '') + `<form class="carte glass" id="inscr">${g ? `<span class="p-invit">🎉</span><h2>Tu es invité dans le groupe ${esc(g)} !</h2>` : '<h2>Rejoindre un groupe</h2>'}
     <p>${g ? 'Pronostique les matchs et parie des crédits fictifs avec tes amis. Gratuit et sans argent : les règles sont juste au-dessus.' : 'Entre le code du groupe (ou crée-en un en inventant un code).'} Choisis un pseudo et un code à 4 chiffres : il te servira à te reconnecter sur un autre appareil.</p>
-    <label class="champ">Groupe<input name="groupe" value="${esc(g || (SIM ? 'AMIS' : ''))}" autocapitalize="characters" autocomplete="off" maxlength="8" required></label>
-    <label class="champ">Pseudo<input name="pseudo" autocomplete="nickname" maxlength="20" required></label>
+    <label class="champ">Groupe<input name="groupe" value="${esc(PRE.g || (SIM ? 'AMIS' : ''))}" autocapitalize="characters" autocomplete="off" maxlength="8" required></label>
+    <label class="champ">Pseudo<input name="pseudo" value="${esc(PRE.p)}" autocomplete="nickname" maxlength="20" required></label>
     <label class="champ">Code (4 chiffres)<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" required></label>
     ${choixHTML()}
-    <div class="btns"><button class="btn main" type="submit">C'est parti !</button></div><p class="msg" id="iMsg" role="status"></p></form>`;
+    <div class="btns"><button class="btn main" type="submit">C'est parti !</button>${SIM ? '' : '<button type="button" class="btn" data-reco="1">Déjà inscrit ? Me reconnecter</button>'}</div><p class="msg" id="iMsg" role="status"></p></form>`;
+}
+/* v63 : reconnexion (autre appareil, nouveau site après un renommage) : groupe, pseudo, code ; pas d'avatar à choisir */
+function recoHTML(){
+  const deLien = !!(PRE.p && PRE.p === LIEN.p);
+  return `<form class="carte glass" id="reco"><span class="p-invit">👋</span><h2>${PRE.p ? `Bon retour ${esc(PRE.p)} !` : 'Me reconnecter'}</h2>
+    <p>${deLien ? 'Ton groupe et ton pseudo sont déjà remplis : tape juste ton code à 4 chiffres.' : 'Même groupe, même pseudo, même code : tu retrouves tes pronos, tes paris et ton avatar.'}</p>
+    <label class="champ">Groupe<input name="groupe" value="${esc(PRE.g)}" autocapitalize="characters" autocomplete="off" maxlength="8" required></label>
+    <label class="champ">Pseudo<input name="pseudo" value="${esc(PRE.p)}" autocomplete="nickname" maxlength="20" required></label>
+    <label class="champ">Code (4 chiffres)<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" required></label>
+    <div class="btns"><button class="btn main" type="submit">Me reconnecter</button><button type="button" class="btn" data-reco="0">${deLien ? 'Pas toi ? Créer un compte' : 'Nouveau ? Créer un compte'}</button></div>
+    <p class="msg" id="rMsg" role="status"></p></form>`;
+}
+/* v63 : synchro activée sur cet appareil mais verrouillée : le code (celui d'Investissements) ouvre la synchro et ramène l'identité des autres appareils */
+function syncHTML(){
+  if (SIM) return '';
+  if (SYNC === 'vide') return '<div class="bandeau glass"><span>🔄</span><span>Aucun compte Pronos sur tes autres appareils pour l\'instant : inscris-toi ou reconnecte-toi ci-dessous.</span></div>';
+  if (SYNC !== 'verrou') return '';
+  return `<form class="carte glass" id="syncF"><h2>🔄 Déjà joué sur un autre de tes appareils ?</h2><p>La synchronisation est activée ici : entre ton code (celui d'Investissements) pour reprendre ton compte Pronos.</p>
+    <label class="champ">Ton code<input name="code" type="password" inputmode="numeric" maxlength="6" autocomplete="off" required></label>
+    <div class="btns"><button class="btn" type="submit">Reprendre mon compte</button></div><p class="msg" id="sMsg" role="status"></p></form>`;
 }
 const monProno = (m, me) => (ETAT.pronos[m.id] || {})[me.pseudo];
 function heroHTML(me){
@@ -794,10 +839,18 @@ function clHTML(me){
 }
 const simOutils = () => `<div class="carte glass"><h2>Outils de simulation</h2><p>Pour voir le classement vivre tout de suite : des pronos tirés au hasard pour toi sur les matchs déjà joués.</p>
   <div class="btns"><button type="button" class="btn" data-sim="remplir">Simuler mes pronos passés</button><button type="button" class="btn" data-sim="effacer">Tout effacer</button></div></div>`;
+function lienRecoHTML(me){                  // v63 : lien de reconnexion, pour soi ou pour un ami du groupe (groupe + pseudo, jamais le code)
+  const l = [me.pseudo, ...ETAT.joueurs.filter(n => n !== me.pseudo).sort((a, b) => a.localeCompare(b))];
+  return `<div class="p-lien"><label class="champ">Lien de reconnexion : groupe et pseudo déjà remplis, le code reste à taper
+      <select id="recoQui">${l.map(n => `<option value="${esc(n)}">${n === me.pseudo ? `Moi (${esc(n)})` : esc(n)}</option>`).join('')}</select></label>
+    <button type="button" class="btn" data-lienreco>🔗 Partager le lien</button></div>
+    ${window.Synchro && Synchro.actif() ? '<p class="note">🔄 Ton compte Pronos est aussi partagé avec tes autres appareils par la synchronisation.</p>' : ''}`;
+}
 function appareilHTML(me){
   return `<div class="carte glass" id="appareil"><h2>Mon profil</h2><p>Connecté en tant que <b>${esc(me.pseudo)}</b> dans le groupe <b>${esc(me.groupe)}</b>.${SIM ? '' : ' Tes pronos restent sur le serveur : tu peux revenir avec le même pseudo et le même code.'}</p>
     ${EDITER ? choixHTML() + '<div class="btns"><button type="button" class="btn main" data-av="garder">Enregistrer</button><button type="button" class="btn" data-av="annuler">Annuler</button></div><p class="msg" id="avMsg" role="status"></p>'
-      : `<div class="btns"><button type="button" class="btn" data-av="changer">${avHTML(me.pseudo)} Changer mon avatar</button>${SIM ? '' : '<button type="button" class="btn" data-quitter>Changer de joueur ou de groupe</button>'}</div>`}</div>`;
+      : `<div class="btns"><button type="button" class="btn" data-av="changer">${avHTML(me.pseudo)} Changer mon avatar</button>${SIM ? '' : '<button type="button" class="btn" data-quitter>Changer de joueur ou de groupe</button>'}</div>`}
+    ${SIM || EDITER ? '' : lienRecoHTML(me)}</div>`;
 }
 
 /* ---------- Paris entre amis (v60) : crédits fictifs, jeu sans argent ----------
@@ -939,7 +992,9 @@ function feterExacts(){
 async function actualiser(){
   $('#refreshBtn').classList.add('spin');
   PANNE = '';
-  try{ await chargerMatchs(); if (BASE.moi()){ try{ ETAT = await BASE.tout(MATCHS); if (ETAT.err) throw new Error(ETAT.err); }
+  try{ await chargerMatchs(); if (BASE.moi()){ try{ ETAT = await BASE.tout(MATCHS); if (ETAT.err) throw new Error(ETAT.err);
+      const me = BASE.moi(), vrai = !SIM && !ETAT.joueurs.includes(me.pseudo) && ETAT.joueurs.find(n => n.toLowerCase() === me.pseudo.toLowerCase());
+      if (vrai) LS.set('pronos:moi', {...me, pseudo:vrai}); }                         // v63 : « marc » tapé, « Marc » sur le serveur
     catch(e){ ETAT = {joueurs:[], pronos:{}};
       if (e.message === 'code'){ BASE.effacer(); PANNE = 'Pseudo ou code non reconnu par le serveur : reconnecte-toi.'; }      // v55 : plus de page vide sans explication
       else PANNE = 'Serveur des pronos injoignable : les pronos affichés peuvent être incomplets. Réessaie avec ↻.'; } }
@@ -956,8 +1011,36 @@ document.addEventListener('submit', async e => {
   if (/\|/.test(pseudo)) return msg('Pas de « | » dans le pseudo.');
   if (SIM && AMIS.includes(pseudo)) return msg('Pseudo déjà pris dans ce groupe.');
   try{ const r = await BASE.inscrire(pseudo, pin, groupe, avTexte(CHOIX));
-    if (!r.ok) return msg(r.err === 'pris' ? 'Ce pseudo existe déjà dans le groupe : mauvais code ?' : 'Inscription refusée.');
-    actualiser(); }catch{ msg('Serveur des pronos injoignable.'); }
+    if (!r.ok){ if (r.err === 'pris' && !SIM){ PRE.g = groupe; PRE.p = pseudo; $('#iMsg').innerHTML = 'Ce pseudo existe déjà dans le groupe. <button type="button" class="btn" data-reco="1">C\'est moi : me reconnecter</button>'; return; }
+      return msg(r.err === 'pris' ? 'Ce pseudo existe déjà dans le groupe : mauvais code ?' : 'Inscription refusée.'); }
+    oublierLien(); actualiser(); }catch{ msg('Serveur des pronos injoignable.'); }
+});
+document.addEventListener('submit', async e => {                          // v63 : reconnexion
+  if (e.target.id !== 'reco') return; e.preventDefault();
+  const f = new FormData(e.target), groupe = String(f.get('groupe')).toUpperCase().replace(/[^A-Z0-9]/g, ''), pseudo = String(f.get('pseudo')).trim(), pin = String(f.get('pin'));
+  const msg = t => { $('#rMsg').textContent = t; };
+  if (!groupe || !pseudo || !/^\d{4}$/.test(pin)) return msg('Groupe, pseudo et code à 4 chiffres.');
+  const b = e.target.querySelector('[type=submit]'); b.disabled = true; msg('');
+  try{ const r = await BASE.reconnecter(pseudo, pin, groupe);
+    if (!r.ok) return msg(r.err === 'code' ? 'Pseudo ou code incorrect pour ce groupe.' : r.err === 'champs' ? 'Groupe, pseudo et code à 4 chiffres.' : 'Connexion refusée par le serveur.');
+    RECO = false; oublierLien(); SECTION = 'accueil'; actualiser(); }
+  catch{ msg('Serveur des pronos injoignable.'); }
+  finally{ b.disabled = false; }
+});
+const pinOk = async pin => { const r = LS.get('invest:pin', null); if (!r) return true;     // même vérification que Réglages (code d'Investissements)
+  const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(r.sel + pin)))].map(x => x.toString(16).padStart(2, '0')).join(''); return h === r.h; };
+document.addEventListener('submit', async e => {                          // v63 : ouvrir la synchro pour reprendre l'identité des autres appareils
+  if (e.target.id !== 'syncF') return; e.preventDefault();
+  const code = String(new FormData(e.target).get('code')), msg = t => { $('#sMsg').textContent = t; }, b = e.target.querySelector('[type=submit]');
+  if (!(await pinOk(code))) return msg('Code incorrect.');
+  b.disabled = true; msg('Ouverture de la synchronisation…');
+  try{ const o = await Synchro.ouvrirAvecCode(code).catch(() => null);
+    if (!o) return msg(o === false ? 'Ton code a changé depuis l\'activation : passe par « Synchroniser maintenant » dans État.' : 'Impossible d\'ouvrir la synchronisation (GitHub injoignable ?).');
+    SYNC = 'ouverte'; msg('Recherche de ton compte…');
+    const r = await Synchro.prefs();
+    if (String(r).startsWith('erreur')) return msg('Synchronisation : ' + (Synchro.MSG && Synchro.MSG[r.slice(7)] || 'erreur') + '.');
+    if (!BASE.moi()){ SYNC = 'vide'; rendre(); } }
+  finally{ b.disabled = false; }
 });
 const enAttente = {};
 function programmer(box){
@@ -993,6 +1076,15 @@ async function changerAvatar(){
     EDITER = false; rendre(); }catch{ msg('Serveur des pronos injoignable.'); }
 }
 document.addEventListener('click', async e => {
+  const rc = e.target.closest('[data-reco]');
+  if (rc){ const f = $('#inscr') || $('#reco');                                   // v63 : garder ce qui est déjà tapé
+    if (f && !rc.closest('.msg')){ PRE.g = String(f.elements.groupe.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8); PRE.p = String(f.elements.pseudo.value || '').trim(); }
+    RECO = rc.dataset.reco === '1'; rendre(); return; }
+  if (e.target.closest('[data-autre]')){ BASE.effacer(); ETAT = {joueurs:[], pronos:{}}; PARIS = null; CHOIX = null; RECO = true; PRE.g = LIEN.g; PRE.p = LIEN.p; rendre(); return; }
+  if (e.target.closest('[data-garder]')){ oublierLien(); rendre(); return; }
+  if (e.target.closest('[data-lienreco]')){ const me = BASE.moi(), n = ($('#recoQui') || {}).value || me.pseudo;
+    partager(n === me.pseudo ? `🔗 Mon lien pour revenir dans les pronos du groupe ${me.groupe} (le code à 4 chiffres reste secret) :` : `🔗 ${n}, ton lien pour revenir dans les pronos du groupe ${me.groupe} : il te reste à taper ton code à 4 chiffres.`, lienReco(me.groupe, n));
+    return; }
   const sec = e.target.closest('[data-section]');
   if (sec){ SECTION = sec.dataset.section; rendre(); window.scrollTo(0, 0); if (SECTION === 'paris' && !SIM && !PARIS && BASE.moi()){ await chargerParis(); rendre(); } return; }   // v62
   const v = e.target.closest('[data-vue]'); if (v){ VUE = v.dataset.vue; LS.set('pronos:vue', VUE); rendre(); return; }
@@ -1038,11 +1130,14 @@ document.addEventListener('click', async e => {
   if (s && SIM){ if (s.dataset.sim === 'remplir'){ SIMU.remplirPasses(MATCHS); } else if (confirm('Effacer la simulation (pseudo et pronos) ?')) SIMU.effacer(); else return; actualiser(); return; }
 });
 $('#refreshBtn').addEventListener('click', actualiser);
-$('#invBtn').addEventListener('click', async () => {
-  const me = BASE.moi(), url = `${location.origin}${location.pathname}?groupe=${encodeURIComponent(me.groupe)}`;
-  const t = `⚽🏉 Rejoins mon groupe de pronos ${me.groupe} (gratuit, entre amis) :`;
+async function partager(t, url){
   try{ if (navigator.share){ await navigator.share({title:'Pronos', text:t, url}); return; } await navigator.clipboard.writeText(`${t} ${url}`); alert('Lien copié : ' + url); }catch{}
-});
+}
+$('#invBtn').addEventListener('click', () => { const me = BASE.moi(); partager(`⚽🏉 Rejoins mon groupe de pronos ${me.groupe} (gratuit, entre amis) :`, `${location.origin}${location.pathname}?groupe=${encodeURIComponent(me.groupe)}`); });
+/* v63 : identité arrivée d'un autre appareil par la synchro → la page se recharge sur ce joueur */
+let MOI_VU = JSON.stringify(LS.get('pronos:moi', null));
+window.addEventListener('synchro:prefs', () => { if (SIM) return; const m = JSON.stringify(LS.get('pronos:moi', null)); if (m === MOI_VU) return; MOI_VU = m; RECO = false; SYNC = 'ouverte'; oublierLien(); actualiser(); });
+if (!SIM && window.Synchro && Synchro.actif()) Synchro.pret().then(p => { SYNC = p ? 'ouverte' : 'verrou'; if (!BASE.moi()) rendre(); }).catch(() => {});
 setInterval(() => {                         // comptes à rebours ; fermeture au coup d'envoi sans recharger (pas pendant une saisie)
   if (document.hidden || !BASE.moi()) return;
   const now = Date.now(); let passe = false;

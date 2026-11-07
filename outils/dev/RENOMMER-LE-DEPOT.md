@@ -46,7 +46,7 @@ Les secrets (`TMDB_TOKEN`, `ODDS_API_KEY`) ne sont **pas** copiés : ils restent
 - **Clé GitHub de la synchro** : si elle est limitée à « Only select repositories », elle suit le renommage (rien à faire).
 - **Spotify** (si le widget est connecté) : developer.spotify.com → ton appli → Redirect URIs → ajoute la nouvelle adresse du dock.
 - **PC** : dans le dossier du clone, `git remote set-url origin https://github.com/ZyAvo/<nouveau-nom>.git` (l'ancienne adresse marche encore grâce à la redirection, mais autant la changer) ; renomme le dossier si tu veux, rien n'en dépend.
-- **Pronos** (v55) : dans Apps Script, `SITE` = nouvelle adresse du site, puis Déployer › Gérer les déploiements › Nouvelle version ; renvoyer le lien d'invitation aux amis (ils se reconnectent avec groupe, pseudo, code). Voir `PRONOS.md`.
+- **Pronos** (v55) : dans Apps Script, `SITE` = nouvelle adresse du site, puis Déployer › Gérer les déploiements › Nouvelle version ; renvoyer à chaque ami son lien de reconnexion (v63 : Mon profil › choisir l'ami › Partager le lien ; il ne tape que son code). Tes appareils avec la synchro retrouvent ton compte tout seuls. Voir `PRONOS.md`.
 - **Raccourcis iOS** ou favoris qui ouvrent `zyavo.github.io/iPhone-Dock/…` : à mettre à jour.
 
 ## 5. Après

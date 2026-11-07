@@ -1,4 +1,4 @@
-# Pronos entre amis (v50, module d'essai ; v55 : mode partagé branché ; v56 : présentation « fun » ; v60 : paris en crédits fictifs)
+# Pronos entre amis (v50, module d'essai ; v55 : mode partagé branché ; v56 : présentation « fun » ; v60 : paris en crédits fictifs ; v63 : reconnexion)
 
 Page `pronos.html` (lien en bas de la page Sport). Lien à partager : `https://zyavo.github.io/iPhone-Dock/pronos.html?groupe=CODE`
 (bouton de partage en haut de la page une fois inscrit).
@@ -9,6 +9,12 @@ Appli web Apps Script du **compte Google perso** de Yoann (tableur « Pronos Kio
 Écrite comme valeur par défaut dans `pronos.html` (`API_TEST`) : `CFG('pronos.api', API_TEST)`. Une ligne `pronos.api` du classeur (à créer) passera devant ;
 `pronos.api` = vide → simulation. **À retirer avant de rendre le dock public** (sinon les copies du dépôt écrivent dans ce tableur).
 Adresse publique (lisible dans la page) : risque = faux joueurs dans le tableur, sans accès au reste du compte Google.
+
+## Compte sur plusieurs appareils (v63)
+- **Tes appareils** : l'identité (groupe, pseudo, code, avatar) passe par la synchro chiffrée (partie « prefs »). Un appareil où la synchro est activée retrouve le compte tout seul ;
+  synchro verrouillée : la page Pronos demande le code d'Investissements. Une nouvelle identité (changer de joueur puis se connecter) part sur tous tes appareils.
+- **Lien de reconnexion** (amis, nouveau site après un renommage) : `pronos.html?groupe=CODE&pseudo=PSEUDO`, jamais le code. Pronos › Classement › Mon profil › choisir le joueur › Partager le lien.
+  Le formulaire « Bon retour » ne demande que le code ; il ne crée pas de compte (faute de frappe → « pseudo ou code incorrect ») et garde l'avatar.
 
 ## Accueil (v62)
 À chaque ouverture (lien d'invitation ou dock) : accueil avec trois cartes, **Pronos**, **Paris**, **Règles** (la page des règles reprend tout ce qui suit, en clair pour les amis).
@@ -74,4 +80,5 @@ Gratuit, entre amis, sans mise ni gain : rester hors des jeux d'argent (pas de d
 - `Code.gs` : changer `SITE` (`https://zyavo.github.io/kiosk/`), puis Gérer les déploiements › Nouvelle version (adresse /exec inchangée, rien à refaire dans le dock).
   Sans ça, le serveur ne lit plus les horaires : tous les pronos sont refusés (« Match pas encore connu du serveur »).
 - Lien d'invitation : construit à partir de l'adresse de la page, il suit tout seul. Mais l'ancien site ne répond plus : renvoyer le lien aux amis.
+  v63 : envoyer à chacun son **lien de reconnexion** (Mon profil › choisir l'ami › Partager le lien) : il n'a plus qu'à taper son code.
   Le Sheets garde joueurs et pronos ; sur un nouveau site, chacun se reconnecte avec le même groupe, pseudo et code.
