@@ -1,4 +1,4 @@
-# mon-ecran-version: d92433bd
+# mon-ecran-version: c5aae0f5
 # Configuration du dock : dépose « configuration.xlsx » à la racine du dépôt (Add file → Upload files),
 # ou règle le dock dans l'appli (elle écrit config/modifs.json avec la clé de la synchronisation).
 # Cette tâche reporte d'abord dans le classeur les choix faits dans l'appli (par identifiant ; le classeur reste
@@ -25,7 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # v66 : la dernière version de la branche, pas celle du dépôt qui a lancé la tâche : une tâche restée en file derrière une autre
+      # (classeur déposé pendant une mise à jour) repart des réglages déjà enregistrés et ne bute plus sur un conflit à l'envoi
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
 
       - uses: actions/setup-python@v5
         with:
