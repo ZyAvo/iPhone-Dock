@@ -7,6 +7,14 @@
   "cachee",
   "etat"
  ],
+ "pages_connues": [
+  "actus",
+  "sport",
+  "videos",
+  "invest",
+  "cachee",
+  "etat"
+ ],
  "widgets": [
   "meteo",
   "une",

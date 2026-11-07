@@ -1,5 +1,5 @@
 {
- "date": "2026-11-07T14:05:48+00:00",
+ "date": "2026-11-07T14:32:38+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -55,6 +55,11 @@
   "apparence": {
    "onglet": "Apparence",
    "coches": 8,
+   "ajouts": 0
+  },
+  "pronos": {
+   "onglet": "Pronos",
+   "coches": 2,
    "ajouts": 0
   }
  },
