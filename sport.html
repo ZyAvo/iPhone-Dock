@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="07f6e04f">
+<meta name="mon-ecran-version" content="85ac30d8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -2008,6 +2008,15 @@ function logoLigne(L, e){
   for (const m of ((DATA[L.id] || {}).events || [])) for (const t of (m.home ? [m.home, m.away] : [])) if (String(t.id) === String(e.id) && t.logo) return t.logo;
   return '';
 }
+/* v64 : libellé de saison ESPN (« 2026-27 French Ligue 1 », « 2027 » au Top 14) → « 2026-2027 » ; une seule année pour F1, MotoGP, NFL et les tournois */
+function saisonTxt(L, s){
+  const t = String(s || ''), m = /(\d{4})\s*[-–/]\s*(\d{4}|\d{2})(?!\d)/.exec(t);
+  if (m) return `${m[1]}-${m[2].length === 2 ? m[1].slice(0, 2) + m[2] : m[2]}`;
+  const y = /\b(\d{4})\b/.exec(t); if (!y) return t;
+  if (L.sport === 'racing' || L.id === 'nfl' || L.seasonal) return y[1];
+  const [a, b] = seasonBounds(L);
+  return a.getFullYear() !== b.getFullYear() ? `${a.getFullYear()}-${b.getFullYear()}` : y[1];
+}
 function tableHTML(L, data){
   if (data === 'err') return `<div class="empty">Le classement n'est pas disponible pour l'instant.</div>`;
   if (!data) return `<div class="skeleton glass"></div><div class="skeleton glass"></div>`;
@@ -2033,7 +2042,7 @@ function tableHTML(L, data){
       <div class="tbl-wrap"><table class="bx-tbl st-tbl"><thead><tr><th class="pl">${head}</th>${tc.map(([, l]) => `<th>${esc(l)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
   }).join('');
   const legend = notes.size ? `<ul class="legend">${[...notes].map(([t, c]) => `<li><i style="background:${esc(c)}"></i>${esc(t)}</li>`).join('')}</ul>` : '';
-  return `${data.season ? `<p class="hint">Saison ${esc(data.season)}</p>` : ''}${data.note ? `<p class="hint">${esc(data.note)}</p>` : ''}${html}${legend}`;
+  return `${data.season ? `<p class="hint">Saison ${esc(saisonTxt(L, data.season))}</p>` : ''}${data.note ? `<p class="hint">${esc(data.note)}</p>` : ''}${html}${legend}`;
 }
 
 /* Calendrier : récupération par période, sinon jour par jour (ESPN refuse parfois les périodes) */

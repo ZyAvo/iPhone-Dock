@@ -1,6 +1,6 @@
 {
- "lot": "v63",
- "date": "2026-11-07T13:05:03+00:00",
+ "lot": "v64",
+ "date": "2026-11-07T13:34:18+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/configuration.yml": "d92433bd",
@@ -51,7 +51,7 @@
   "outils/yahoo.py": "103be76d",
   "pronos.html": "bc73b173",
   "reglages.html": "d4e1f9c4",
-  "sport.html": "07f6e04f",
+  "sport.html": "85ac30d8",
   "sw.js": "a474fdb0",
   "synchro.js": "19ab3e0b",
   "themes.js": "1769949a",
