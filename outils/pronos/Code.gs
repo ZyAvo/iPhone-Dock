@@ -1,4 +1,4 @@
-/* KiosK — serveur des pronos entre amis (Google Apps Script, v60).
+/* KiosK — serveur des pronos entre amis (Google Apps Script, v61).
    Garde les joueurs et les pronos dans le Google Sheets auquel ce script est attaché (onglets « Joueurs » et « Pronos », créés tout seuls).
    Refuse un prono après le coup d'envoi (horaires lus sur le site publié, pas envoyés par le téléphone) et ne montre
    les pronos des autres qu'une fois le match commencé. Les points et le classement sont calculés par la page.
@@ -7,6 +7,8 @@
    v60 : paris entre amis avec des crédits fictifs (onglet « Paris ») : 100 crédits chaque mois + bonus du podium du mois précédent (20 / 10 / 5),
    pari simple 1 / N / 2 le jour du match à la cote moyenne du relevé du matin (donnees/cotes/cotes.json), réglé sur le score final publié par la tâche Sport.
    Jeu sans argent : les crédits ne s'achètent pas, ne s'échangent pas et ne valent rien.
+   v61 : appendRow lit les valeurs comme une saisie au clavier (« 2026-11 » devenait une date, même en colonne texte : pari non compté).
+   Les lignes sont écrites avec setValues (le format texte est respecté) et le mois d'un pari se calcule depuis le coup d'envoi (colonne L).
    Mise en place : voir outils/dev/PRONOS.md. */
 const SITE = 'https://zyavo.github.io/iPhone-Dock/';            // adresse du dock publié
 const LIGUES = {'fra.1':'fra-1', '270559':'270559', 'uefa.champions':'uefa-champions'};   // id ESPN → fichier donnees/sport/<fichier>.json
@@ -29,6 +31,8 @@ const JOUEURS = () => feuille('Joueurs', ['groupe', 'pseudo', 'code (empreinte)'
 const PRONOS = () => feuille('Pronos', ['groupe', 'pseudo', 'match', 'ligue', 'dom', 'ext', 'le'], 'A:D');
 const PARIS = () => feuille('Paris', ['groupe', 'pseudo', 'match', 'ligue', 'choix', 'mise', 'cote', 'le', 'mois', 'dom', 'ext', 'coup d\'envoi', 'gain'], ['A:E', 'I:K']);
 const T = v => String(v);                                          // valeur de cellule en texte
+const ajouter = (f, ligne) => f.getRange(f.getLastRow() + 1, 1, 1, ligne.length).setValues([ligne]);   // v61 : pas d'appendRow (conversions)
+const moisL = r => +r[11] ? moisDe(+r[11]) : (r[8] instanceof Date ? moisDe(r[8]) : T(r[8]));         // v61 : mois d'une ligne de Paris
 const AV = s => { const m = /^([^|]{1,8})\|([0-7])$/.exec(String(s || '')); return m ? m[0] : ''; };   // avatar « emoji|n° de couleur »
 const net = s => String(s || '').trim().slice(0, 20);
 const grp = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
@@ -108,11 +112,11 @@ function bilan(g){
   const joueurs = JOUEURS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === g).map(r => T(r[1]));
   const rows = PARIS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === g);
   const cur = moisDe(Date.now()), parMois = {}, podiums = {}, general = {};
-  let M = rows.reduce((m, r) => T(r[8]) < m ? T(r[8]) : m, cur), bonus = {};
+  let M = rows.reduce((m, r) => moisL(r) < m ? moisL(r) : m, cur), bonus = {};
   for (let garde = 0; garde < 120; garde++){
     const b = {};
     joueurs.forEach(p => { b[p] = {depart:DEPART + (bonus[p] || 0), bonus:bonus[p] || 0, mise:0, gains:0, enJeu:0, nb:0}; });
-    rows.filter(r => T(r[8]) === M).forEach(r => { const x = b[T(r[1])]; if (!x) return; x.nb++; x.mise += +r[5]; if (r[12] === '') x.enJeu += +r[5]; else x.gains += +r[12]; });
+    rows.filter(r => moisL(r) === M).forEach(r => { const x = b[T(r[1])]; if (!x) return; x.nb++; x.mise += +r[5]; if (r[12] === '') x.enJeu += +r[5]; else x.gains += +r[12]; });
     Object.values(b).forEach(x => { x.solde = x.depart - x.mise + x.gains; });
     parMois[M] = b;
     if (M >= cur) break;
@@ -133,7 +137,7 @@ const ACTIONS = {
       const f = JOUEURS(), l = f.getDataRange().getValues().slice(1);
       const i = l.findIndex(r => T(r[0]) === g && T(r[1]).toLowerCase() === p.toLowerCase()), x = l[i], av = AV(q.avatar);
       if (x){ if (T(x[2]) !== empreinte(g, p, pin)) return {err:'pris'}; if (av) f.getRange(i + 2, 5).setValue(av); return {ok:true}; }
-      f.appendRow([g, p, empreinte(g, p, pin), new Date(), av]);
+      ajouter(f, [g, p, empreinte(g, p, pin), new Date(), av]);
       return {ok:true};
     }finally{ verrou.releaseLock(); }
   },
@@ -149,7 +153,7 @@ const ACTIONS = {
       const f = PRONOS(), l = f.getDataRange().getValues();
       const i = l.findIndex((r, k) => k > 0 && T(r[0]) === j.g && T(r[1]) === j.p && T(r[2]) === String(q.match));
       const ligne = [j.g, j.p, String(q.match), String(q.ligue || ''), h, a, new Date()];
-      if (i > 0) f.getRange(i + 1, 1, 1, ligne.length).setValues([ligne]); else f.appendRow(ligne);
+      if (i > 0) f.getRange(i + 1, 1, 1, ligne.length).setValues([ligne]); else ajouter(f, ligne);
       return {ok:true};
     }finally{ verrou.releaseLock(); }
   },
@@ -179,7 +183,7 @@ const ACTIONS = {
       if (mise > dispo) return {err:'solde', dispo};
       const cote = C.c['hda'.indexOf(choix)];
       const ligne = [j.g, j.p, id, C.lg, choix, mise, cote, new Date(), M, C.eq[0] || '', C.eq[1] || '', C.t, ''];
-      if (i > 0) f.getRange(i + 1, 1, 1, ligne.length).setValues([ligne]); else f.appendRow(ligne);
+      if (i > 0) f.getRange(i + 1, 1, 1, ligne.length).setValues([ligne]); else ajouter(f, ligne);
       return {ok:true, cote};
     }finally{ verrou.releaseLock(); }
   },
@@ -189,7 +193,7 @@ const ACTIONS = {
     const B = bilan(j.g), now = Date.now(), C = cotesMatin(), cotes = {};
     Object.entries(C).forEach(([id, c]) => { if (c.t > now - 6 * 3600e3) cotes[id] = c; });
     const paris = PARIS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === j.g && (T(r[1]) === j.p || now >= +r[11]))   // paris des autres : au coup d'envoi
-      .map(r => ({p:T(r[1]), match:T(r[2]), lg:T(r[3]), choix:T(r[4]), mise:+r[5], cote:+r[6], mois:T(r[8]), dom:T(r[9]), ext:T(r[10]), t:+r[11], gain:r[12] === '' ? null : +r[12]}));
+      .map(r => ({p:T(r[1]), match:T(r[2]), lg:T(r[3]), choix:T(r[4]), mise:+r[5], cote:+r[6], mois:moisL(r), dom:T(r[9]), ext:T(r[10]), t:+r[11], gain:r[12] === '' ? null : +r[12]}));
     const qui = {};
     PARIS().getDataRange().getValues().slice(1).forEach(r => { if (T(r[0]) === j.g && now < +r[11]) (qui[T(r[2])] || (qui[T(r[2])] = [])).push(T(r[1])); });
     return {mois:B.mois, soldes:B.parMois[B.mois], podiums:B.podiums, general:B.general, cotes, paris, qui};

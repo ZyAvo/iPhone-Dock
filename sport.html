@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="112d9ec9">
+<meta name="mon-ecran-version" content="07f6e04f">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -2001,8 +2001,9 @@ function zoneOf(note){
   const z = ZONES.find(([re]) => re.test(note.text));
   return z ? {label:z[1], color:z[2]} : {label:note.text, color:/^#?[0-9a-f]{6}$/i.test(note.color || '') ? '#' + note.color.replace('#', '') : '#8b8c89'};
 }
-/* v58 : logo d'une ligne du classement : pas de drapeau de pays sur un club ; logo manquant → celui du même club dans les matchs (pris sur TheSportsDB par la tâche) */
+/* v58 : logo d'une ligne du classement (v62 : tes logos d'abord) : pas de drapeau de pays sur un club ; logo manquant → celui du même club dans les matchs (pris sur TheSportsDB par la tâche) */
 function logoLigne(L, e){
+  const own = userLogo({league:L.id}, e); if (own) return own;                   // v62 : tes logos d'abord (comme la liste des matchs)
   const x = equipeClub({...e}, L); if (x.logo) return x.logo;
   for (const m of ((DATA[L.id] || {}).events || [])) for (const t of (m.home ? [m.home, m.away] : [])) if (String(t.id) === String(e.id) && t.logo) return t.logo;
   return '';

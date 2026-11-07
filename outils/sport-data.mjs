@@ -1,4 +1,4 @@
-// mon-ecran-version: e127f26f
+// mon-ecran-version: 4aac78a0
 // Prépare les données de la page Sport (lancé par la tâche GitHub « Sport », v51 ; avant : « Programme TV sport »).
 // Lit la liste des compétitions et les fonctions de lecture dans sport.html et match.js,
 // interroge ESPN côté serveur, numérote les journées et écrit :
@@ -317,9 +317,11 @@ async function logosClubs(L, events, table){
   events.forEach(m => { if (m.home){ voir(m.home); voir(m.away); } });
   const lignes = ((table && table.tables) || []).flatMap(x => x.entries || []);
   lignes.forEach(voir);
-  if (!sansLogo.size) return {manque:0};
   const file = `${OUT}/_logos-${slug(L.id)}.json`;
   let c = read(file);
+  // v62 : la v57 a laissé sur les matchs déjà joués un logo ESPN qui n'existe pas (rugby/teams/500/<id>.png, Perpignan et Vannes) : logo trouvé sur TheSportsDB
+  if (c && c.u) events.forEach(m => { if (m.home) [m.home, m.away].forEach(t => { if (c.u[t.name] && /\/teamlogos\/rugby\/teams\/500\/\d+\.png$/.test(t.logo || '')) t.logo = c.u[t.name]; }); });
+  if (!sansLogo.size) return {manque:0};
   const tous = () => [...sansLogo.keys()].every(n => c.u[n] !== undefined), vide = () => [...sansLogo.keys()].some(n => !c.u[n]);
   if (!c || c.v !== 2 || !c.u || !tous() || NOW - c.at > (vide() ? DAY : 7 * DAY)){
     c = {v:2, at:NOW, u:{...((c && c.v === 2 && c.u) || {})}};

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="d0dc916c">
+<meta name="mon-ecran-version" content="1b31026c">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -391,6 +391,22 @@ html.desk .f-sheet{border-radius:26px}
 .pa-r-m{flex:1;min-width:0;font-size:.86rem}
 .pa-r-m small{display:block;font-size:.72rem;color:var(--ink-soft);margin-top:2px}
 .ong button{white-space:nowrap}
+/* accueil et règles (v62) */
+.acc-grille{display:grid;gap:12px}
+html.desk .acc-grille{grid-template-columns:repeat(3,minmax(0,1fr))}
+.acc-c{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:16px;border-radius:24px;color:var(--ink);min-height:96px}
+.acc-c:active{transform:scale(.98)}
+.acc-e{display:grid;place-items:center;flex:none;width:52px;height:52px;border-radius:16px;font-size:28px;background:color-mix(in oklab, var(--accent) 14%, transparent)}
+.acc-t{flex:1;min-width:0;display:grid;gap:3px}
+.acc-t b{font-size:1.1rem}
+.acc-t > span{font-size:.86rem}
+.acc-t small{font-size:.76rem;color:var(--ink-soft);line-height:1.4}
+.acc-cr{font-size:1.15rem;color:var(--accent);font-variant-numeric:tabular-nums}
+.acc-f{font-size:1.6rem;color:var(--ink-soft);flex:none}
+.acc-retour{align-self:flex-start;display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:99px;font-size:.86rem;font-weight:600;color:var(--accent);
+  background:var(--card);border:1px solid var(--line)}
+.regles ul{margin:0;padding-left:18px;display:grid;gap:7px;font-size:.84rem;color:var(--ink-soft);line-height:1.45}
+.regles li b,.regles p b{color:var(--ink)}
 /* fête */
 .p-conf{position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden}
 .p-conf i{position:absolute;top:-14px;width:8px;height:13px;border-radius:2px;animation:tombe var(--d) cubic-bezier(.25,.6,.45,1) var(--w) forwards}
@@ -459,11 +475,17 @@ function compte(t){                         // « dans 2 h 15 », « dans 40 min
 
 /* ---------- points ---------- */
 const issue = (h, a) => h > a ? 1 : h < a ? 2 : 0;
+const RUGBY = m => !/\./.test(m.league || '');                     // compétitions de rugby : identifiant ESPN sans point (270559…)
+/* Foot : score exact 3, bon résultat 1. Rugby (v62) : bon résultat (vainqueur ou nul) 1 ; parmi eux, le plus proche du score 3
+   (plus petite somme des écarts |dom − réel| + |ext − réel|, ex æquo : 3 chacun). Le rugby compare les pronos du match entre eux. */
 function points(p, m){
   if (!p || m.state !== 'post' || m.home.score === '' || m.away.score === '') return null;
-  const H = +m.home.score, A = +m.away.score;
-  if (+p[0] === H && +p[1] === A) return 3;
-  return issue(+p[0], +p[1]) === issue(H, A) ? 1 : 0;
+  const H = +m.home.score, A = +m.away.score, bon = q => issue(+q[0], +q[1]) === issue(H, A);
+  if (!RUGBY(m)) return +p[0] === H && +p[1] === A ? 3 : bon(p) ? 1 : 0;
+  if (!bon(p)) return 0;
+  const ecart = q => Math.abs(+q[0] - H) + Math.abs(+q[1] - A);
+  const min = Math.min(ecart(p), ...Object.values((ETAT.pronos || {})[m.id] || {}).filter(bon).map(ecart));
+  return ecart(p) <= min ? 3 : 1;
 }
 
 /* ---------- avatars : « emoji|n° de couleur » ---------- */
@@ -522,10 +544,32 @@ const DISTANT = {
 const BASE = SIM ? SIMU : DISTANT;
 
 /* ---------- matchs ---------- */
-let MATCHS = [], ETAT = {joueurs:[], pronos:{}}, PANNE = '', VUE = LS.get('pronos:vue', 'jouer'), PERIODE = 'mois', CHOIX = null, EDITER = false;
+let SECTION = 'accueil';                                          // v62 : accueil à chaque ouverture ; puis regles, pronos ou paris
+let MATCHS = [], ETAT = {joueurs:[], pronos:{}}, PANNE = '', VUE = (v => ['jouer', 'res', 'cl'].includes(v) ? v : 'jouer')(LS.get('pronos:vue', 'jouer')), PERIODE = 'mois', CHOIX = null, EDITER = false;
 const COMP = {};
+/* v62 : tes logos (logos/clubs/<pays>/<club>.png, logos/competitions/<compétition>[-sombre].png, listés par la Publication dans fichiers.json) passent en premier */
+let FICHIERS = null;
+const MOTS_VIDES = new Set(['stade', 'racing', 'olympique', 'olympic', 'club', 'union', 'sporting', 'athletic', 'football', 'rugby', 'saint', 'real', 'city', 'united', 'sport']);
+const mots = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 4 && !MOTS_VIDES.has(w));
+const slugL = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+async function chargerFichiers(){
+  if (FICHIERS) return;
+  try{ const j = await (await fetch('fichiers.json', {cache:'no-cache'})).json(), l = j.logos || [];
+    const base = f => f.split('/').pop().replace(/\.[a-z0-9]+$/i, '');
+    FICHIERS = {clubs:l.filter(f => f.startsWith('logos/clubs/')).map(f => ({pays:f.split('/')[2], k:mots(base(f).replace(/[-_]+/g, ' ')), u:encodeURI(f)})),
+      comps:Object.fromEntries(l.filter(f => f.startsWith('logos/competitions/')).map(f => [base(f).toLowerCase(), encodeURI(f)]))};
+  }catch{ FICHIERS = {clubs:[], comps:{}}; }
+}
+function logoManuel(m, t){                                       // même mot (ou 6 premières lettres) entre le nom du club et le nom du fichier ; ex æquo : aucun
+  if (!FICHIERS || !FICHIERS.clubs.length) return '';
+  const a = mots(`${t.name || ''} ${t.full || ''}`), pays = ['fra.1', '270559'].includes(m.league) ? 'france' : '';
+  const sc = FICHIERS.clubs.filter(x => !pays || x.pays === pays).map(x => ({u:x.u, s:a.filter(w => x.k.some(v => v === w || (w.length >= 6 && v.length >= 6 && v.slice(0, 6) === w.slice(0, 6)))).length}))
+    .filter(x => x.s).sort((p, q) => q.s - p.s);
+  return sc.length && (sc.length === 1 || sc[0].s > sc[1].s) ? sc[0].u : '';
+}
 async function chargerMatchs(){
   const now = Date.now(), out = [];
+  await chargerFichiers();
   await Promise.all(LIGUES.map(async L => { try{
     const j = await (await fetch(`donnees/sport/${L.f}.json`, {cache:'no-cache'})).json();
     COMP[L.id] = {logo:j.logo || '', logoDark:j.logoDark || ''};
@@ -540,13 +584,15 @@ const petit = (u, px = 96) => { const m = String(u || '').match(/^(?:https?:)?\/
 const remplace = (cls, txt, coul) => `this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} ph',textContent:'${txt}'${coul ? `,style:'--eq:${coul}'` : ''}}))`;
 function logoEq(m, t){
   const pays = /\/teamlogos\/countries\//i.test(t.logo || '');                                   // v57 : ESPN met parfois un drapeau sur un club (Perpignan → USA)
-  const u = (pays ? '' : t.logo) || (/\./.test(m.league) && t.id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${t.id}.png` : '');   // foot : logo ESPN d'après l'identifiant (comme la page Sport)
+  const u = logoManuel(m, t) || (pays ? '' : t.logo) || (/\./.test(m.league) && t.id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${t.id}.png` : '');   // foot : logo ESPN d'après l'identifiant (comme la page Sport)
   const ab = String((pays ? t.name : t.abbr) || t.name || '?').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 3).toUpperCase();
   const coul = COULEURS[hash(t.name || ab) % COULEURS.length];                                    // pastille si le logo manque : couleur stable par équipe
   return u ? `<img class="p-lg" src="${esc(petit(u))}" alt="" loading="lazy" onerror="${esc(remplace('p-lg', ab, coul))}">` : `<span class="p-lg ph" style="--eq:${coul}">${esc(ab)}</span>`;
 }
 function compLogo(L){
-  const c = COMP[L.id] || {}, emo = /\./.test(L.id) ? '⚽' : '🏉';
+  const emo = /\./.test(L.id) ? '⚽' : '🏉', F = (FICHIERS || {}).comps || {};
+  const own = F[slugL(L.nom)] || F[slugL(L.id)], ownD = own && (F[slugL(L.nom) + '-sombre'] || F[slugL(L.id) + '-sombre']);   // v62 : tes logos d'abord
+  const c = own ? {logo:own, logoDark:ownD || ''} : COMP[L.id] || {};
   if (!c.logo || /ESPN-icon/i.test(c.logo)) return `<span class="p-cl ph">${emo}</span>`;           // ESPN n'a qu'une icône générique pour le Top 14
   const img = `<img class="p-cl" src="${esc(petit(c.logo, 64))}" alt="" loading="lazy" onerror="${esc(remplace('p-cl', emo).replace('this.replaceWith', "(this.closest('picture')||this).replaceWith"))}">`;
   return c.logoDark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${esc(petit(c.logoDark, 64))}">${img}</picture>` : img;
@@ -597,9 +643,57 @@ function rendre(){
   $('#invBtn').hidden = !me;
   const bandeau = (SIM ? `<div class="bandeau glass"><span>🧪</span><span><b>Mode simulation</b> : tes pronos restent sur cet appareil, face à 3 amis fictifs. Les matchs et les résultats sont les vrais.</span></div>` : '')
     + (PANNE ? `<div class="bandeau glass"><span>⚠️</span><span>${esc(PANNE)}</span></div>` : '');
+  if (SECTION === 'regles'){ out.innerHTML = retourHTML() + reglesHTML(); return; }
   if (!me){ out.innerHTML = bandeau + inscriptionHTML(); return; }
-  const ong = `<div class="ong glass" role="tablist">${[['jouer', 'Pronos'], ['res', 'Résultats'], ['cl', 'Classement'], ['paris', 'Paris']].map(([k, t]) => `<button type="button" role="tab" data-vue="${k}" aria-selected="${VUE === k}">${t}</button>`).join('')}</div>`;
-  out.innerHTML = bandeau + ong + (VUE === 'jouer' ? jouerHTML(me) : VUE === 'res' ? resHTML(me) : VUE === 'paris' ? parisHTML(me) : clHTML(me));
+  if (SECTION === 'accueil'){ out.innerHTML = bandeau + accueilHTML(me); return; }
+  if (SECTION === 'paris'){ out.innerHTML = bandeau + retourHTML() + parisHTML(me); return; }
+  const ong = `<div class="ong glass" role="tablist">${[['jouer', 'À pronostiquer'], ['res', 'Résultats'], ['cl', 'Classement']].map(([k, t]) => `<button type="button" role="tab" data-vue="${k}" aria-selected="${VUE === k}">${t}</button>`).join('')}</div>`;
+  out.innerHTML = bandeau + retourHTML() + ong + (VUE === 'jouer' ? jouerHTML(me) : VUE === 'res' ? resHTML(me) : clHTML(me));
+}
+/* ---------- accueil et règles (v62) : à chaque ouverture, l'accueil mène aux Règles, aux Pronos et aux Paris ---------- */
+const retourHTML = () => '<button type="button" class="acc-retour" data-section="accueil">‹ Accueil</button>';
+function carteAcc(sec, emo, titre, l1, l2){
+  return `<button type="button" class="acc-c glass" data-section="${sec}"><span class="acc-e" aria-hidden="true">${emo}</span>
+    <span class="acc-t"><b>${titre}</b><span>${l1}</span>${l2 ? `<small>${l2}</small>` : ''}</span><span class="acc-f" aria-hidden="true">›</span></button>`;
+}
+function accueilHTML(me){
+  const now = Date.now(), ouverts = MATCHS.filter(m => m.state !== 'post' && m.t > now), reste = ouverts.filter(m => !monProno(m, me)).length, prochain = ouverts[0];
+  const cl = classement('mois'), x = cl.find(y => y.n === me.pseudo), joue = cl.some(y => y.nb);
+  const lp1 = ouverts.length ? (reste ? `${pl(reste, 'prono')} à faire cette semaine` : 'Tout est pronostiqué ✅') : 'Pas de match cette semaine';
+  const lp2 = [x && joue ? `${rangTxt(x.pos)} sur ${cl.length} ce mois-ci · ${pl(x.pts, 'point')}` : '', prochain ? `Prochain : ${esc(prochain.home.name)} – ${esc(prochain.away.name)} <span data-cd="${prochain.t}">${esc(compte(prochain.t))}</span>` : ''].filter(Boolean).join('<br>');
+  let la1 = 'Chargement…', la2 = '';
+  if (SIM){ la1 = 'En mode partagé seulement'; }
+  else if (PARIS && PARIS.err){ la1 = PARIS.err === 'action' ? 'Serveur à mettre à jour (v60)' : 'Serveur injoignable'; }
+  else if (PARIS){ const s = soldeDe(me), n = Object.values(PARIS.cotes || {}).filter(c => c.t > now).length;
+    la1 = `<b class="acc-cr">${s.solde}</b> crédits${s.enJeu ? ` · ${s.enJeu} en jeu` : ''}`;
+    la2 = n ? `${pl(n, 'match')} avec cote aujourd'hui` : "Cotes vers 8 h le jour du match"; }
+  return `<section class="p-hero glass"><div class="p-hero-t">${avHTML(me.pseudo, 'xl')}<div><b>Salut ${esc(me.pseudo)} !</b><span>Groupe ${esc(me.groupe)} · ${pl(ETAT.joueurs.length, 'joueur')}</span></div></div></section>
+    <div class="acc-grille">${carteAcc('pronos', '🎯', 'Pronos', lp1, lp2)}${carteAcc('paris', '🎟️', 'Paris', la1, la2)}${carteAcc('regles', '📖', 'Règles', 'Points, crédits et comment jouer', '')}</div>
+    <p class="note">Jeu entre amis, gratuit et sans argent.</p>`;
+}
+function reglesHTML(){
+  return `<div class="carte glass regles"><h2>🤝 Le principe</h2><p>Un groupe d'amis, un code de groupe, deux jeux : les <b>Pronos</b> (des points) et les <b>Paris</b> (des crédits).
+      Gratuit et <b>sans argent</b> : les crédits ne s'achètent pas, ne s'échangent pas et ne valent rien. Aucun lot, juste le classement.</p></div>
+    <div class="carte glass regles"><h2>🎯 Les pronos</h2><ul>
+      <li>Pronostique le score des matchs de Ligue 1, du Top 14 et de la Ligue des champions, au clavier ou avec − / +. Modifiable jusqu'au coup d'envoi.</li>
+      <li>Les pronos des autres s'affichent au coup d'envoi ; avant, tu vois seulement qui a déjà joué.</li>
+      <li><b>Foot</b> : score exact <b>3 points</b>, bon résultat (vainqueur ou nul) <b>1 point</b>.</li>
+      <li><b>Rugby</b> : bon résultat <b>1 point</b> ; parmi ceux qui ont le bon résultat, le plus proche du score prend <b>3 points</b> (plus petite somme des écarts de points ; ex æquo : 3 chacun).
+        Exemple, score final 27–20 : 25–20 et 28–21 (écart de 2) prennent 3 points, 30–10 prend 1 point, 20–25 prend 0.</li>
+      <li>Classement du mois et de la saison. À égalité : le plus de pronos à 3 points, puis le moins de pronos.</li></ul></div>
+    <div class="carte glass regles"><h2>🎟️ Les paris</h2><ul>
+      <li><b>100 crédits</b> au début de chaque mois pour tout le monde (aussi pour un joueur qui arrive en cours de mois).</li>
+      <li>Le podium du mois reçoit un bonus au départ du mois suivant : <b>+20</b>, <b>+10</b>, <b>+5</b> (joueurs ayant parié au moins une fois).</li>
+      <li>Un pari <b>1 / N / 2</b> par match, le jour du match, dès que la cote du matin est là (vers 8 h) : moyenne de 5 sites français, figée au moment du pari.
+        Foot uniquement : Ligue 1, Premier League, Liga, Serie A, Bundesliga et les coupes d'Europe.</li>
+      <li>La mise est retirée de ton solde tout de suite. Gagné : tu reçois <b>mise × cote</b> (arrondi) ; perdu : rien ; match reporté ou annulé : remboursé.
+        Modifiable ou annulable jusqu'au coup d'envoi.</li>
+      <li>À 0 crédit (et rien en jeu), plus de pari jusqu'au 1ᵉʳ du mois suivant.</li>
+      <li>Classement du mois par crédits ; <b>général</b> : cumul des crédits de fin de mois.</li></ul></div>
+    <div class="carte glass regles"><h2>👤 Ton compte</h2><ul>
+      <li>Un pseudo et un code à 4 chiffres. Sur un autre appareil : même groupe, même pseudo, même code, et tu retrouves tout.</li>
+      <li>Avatar et changement de joueur : Pronos › Classement › Mon profil.</li>
+      <li>Pour inviter un ami : bouton de partage en haut à droite.</li></ul></div>`;
 }
 function choixHTML(){
   const a = CHOIX;
@@ -610,8 +704,8 @@ function choixHTML(){
 function inscriptionHTML(){
   const g = (q.get('groupe') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
   if (!CHOIX) CHOIX = avHasard(String(Math.random()));
-  return `<form class="carte glass" id="inscr">${g ? `<span class="p-invit">🎉</span><h2>Tu es invité dans le groupe ${esc(g)} !</h2>` : '<h2>Rejoindre un groupe</h2>'}
-    <p>${g ? 'Pronostique les matchs avec tes amis : 3 points pour un score exact, 1 pour le bon vainqueur (ou le nul). Gratuit, juste pour le plaisir.' : 'Entre le code du groupe (ou crée-en un en inventant un code).'} Choisis un pseudo et un code à 4 chiffres : il te servira à te reconnecter sur un autre appareil.</p>
+  return carteAcc('regles', '📖', 'Règles', 'Lire les règles avant de jouer', '') + `<form class="carte glass" id="inscr">${g ? `<span class="p-invit">🎉</span><h2>Tu es invité dans le groupe ${esc(g)} !</h2>` : '<h2>Rejoindre un groupe</h2>'}
+    <p>${g ? 'Pronostique les matchs et parie des crédits fictifs avec tes amis. Gratuit et sans argent : les règles sont juste au-dessus.' : 'Entre le code du groupe (ou crée-en un en inventant un code).'} Choisis un pseudo et un code à 4 chiffres : il te servira à te reconnecter sur un autre appareil.</p>
     <label class="champ">Groupe<input name="groupe" value="${esc(g || (SIM ? 'AMIS' : ''))}" autocapitalize="characters" autocomplete="off" maxlength="8" required></label>
     <label class="champ">Pseudo<input name="pseudo" autocomplete="nickname" maxlength="20" required></label>
     <label class="champ">Code (4 chiffres)<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" required></label>
@@ -658,17 +752,17 @@ function autresHTML(m, me, sansMoi){
   return l.sort(([a], [b]) => (b === me.pseudo) - (a === me.pseudo)).map(([n, p]) => { const pt = points(p, m);
     return `<span class="p-chip${n === me.pseudo ? ' moi' : ''}${pt === 3 ? ' p3' : pt === 1 ? ' p1' : ''}">${avHTML(n)}${esc(n)} <b>${esc(p[0])}–${esc(p[1])}</b>${pt ? ` · +${pt}` : ''}</span>`; }).join('');
 }
-const badge = pt => pt === 3 ? '<span class="p-bd p3">🎯 +3</span>' : pt === 1 ? '<span class="p-bd p1">✓ +1</span>' : '<span class="p-bd p0">✗ 0</span>';
+const badge = (pt, rugby) => pt === 3 ? `<span class="p-bd p3">🎯 +3${rugby ? ' · le plus proche' : ''}</span>` : pt === 1 ? '<span class="p-bd p1">✓ +1</span>' : '<span class="p-bd p0">✗ 0</span>';
 function resHTML(me){
   const l = MATCHS.filter(m => m.state === 'post' && ETAT.pronos[m.id]).reverse();
   if (!l.length) return '<p class="vide">Pas encore de match terminé avec des pronos.</p>' + (SIM ? simOutils() : '');
   const x = classement('mois').find(y => y.n === me.pseudo) || {pts:0, ex:0, bons:0, nb:0};
-  return `<section class="p-bilan glass"><div><b>${x.pts}</b><span>points ce mois-ci</span></div><div><b>${x.ex}</b><span>🎯 scores exacts</span></div><div><b>${x.nb ? Math.round(100 * x.bons / x.nb) : 0} %</b><span>✓ bons résultats</span></div></section>`
+  return `<section class="p-bilan glass"><div><b>${x.pts}</b><span>points ce mois-ci</span></div><div><b>${x.ex}</b><span>🎯 pronos à 3 points</span></div><div><b>${x.nb ? Math.round(100 * x.bons / x.nb) : 0} %</b><span>✓ bons résultats</span></div></section>`
     + blocs(l, m => { const p = monProno(m, me), autres = autresHTML(m, me, true);
       return `<div class="p-m"><div class="p-eq">${logoEq(m, m.home)}<span>${esc(m.home.name)}</span></div>
         <div class="p-reel">${esc(m.home.score)}<span>–</span>${esc(m.away.score)}</div>
         <div class="p-eq">${logoEq(m, m.away)}<span>${esc(m.away.name)}</span></div>
-        <div class="p-moi">${p ? `Ton prono <b>${esc(p[0])}–${esc(p[1])}</b> ${badge(points(p, m))}` : 'Pas de prono pour toi'}</div>
+        <div class="p-moi">${p ? `Ton prono <b>${esc(p[0])}–${esc(p[1])}</b> ${badge(points(p, m), RUGBY(m))}` : 'Pas de prono pour toi'}</div>
         ${autres ? `<div class="p-chips">${autres}</div>` : ''}</div>`; });
 }
 function podiumHTML(l, avant, me){
@@ -682,7 +776,7 @@ function tropheesHTML(l){
   const max = (k, min = 1) => { const x = [...l].sort((a, b) => b[k] - a[k] || a.pos - b.pos)[0]; return x && x[k] >= min ? x : null; };
   const joues = l.filter(x => x.nb), der = joues.length >= 3 ? joues[joues.length - 1] : null;
   const t = [
-    ['🎯', 'Sniper', max('ex'), x => x.ex > 1 ? `${x.ex} scores exacts` : '1 score exact'],
+    ['🎯', 'Sniper', max('ex'), x => `${x.ex} prono${x.ex > 1 ? 's' : ''} à 3 points`],
     ['🔥', 'En feu', max('serie', 2), x => `${x.serie} bons d'affilée`],
     ['💪', 'Assidu', max('nb'), x => pl(x.nb, 'prono')],
     ['🐢', 'Lanterne rouge', der, x => pl(x.pts, 'point')]
@@ -695,7 +789,7 @@ function clHTML(me){
   const corps = joue
     ? podiumHTML(l, avant, me) + tropheesHTML(l) + (l.length > 3 ? `<div class="p-liste glass">${l.slice(3).map(x => `<div class="p-r${x.n === me.pseudo ? ' moi' : ''}"><b>${x.pos}</b>${avHTML(x.n)}<span class="p-r-n">${esc(x.n)}<small>${stats(x)}</small></span>${fleche(x, avant)}<span class="p-r-pts">${x.pts}</span></div>`).join('')}</div>` : '')
     : `<div class="carte glass"><h2>🏁 Le classement démarre au premier match terminé</h2><p>Dans le groupe : ${l.map(x => `${avHTML(x.n)} ${esc(x.n)}`).join(' &nbsp; ')}</p></div>`;
-  return per + corps + `<p class="note">Score exact : 3 points · bon résultat (vainqueur ou nul) : 1 point. À égalité : le plus de scores exacts, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison = les ${JOURS_APRES} derniers jours dans cet essai.` : ''} ▲▼ : places gagnées ou perdues depuis la dernière journée.</p>`
+  return per + corps + `<p class="note">Foot : score exact 3 points, bon résultat (vainqueur ou nul) 1 point. Rugby : bon résultat 1 point, et 3 points pour le plus proche du score parmi ceux qui ont le bon résultat (plus petite somme des écarts de points). À égalité : le plus de pronos à 3 points, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison = les ${JOURS_APRES} derniers jours dans cet essai.` : ''} ▲▼ : places gagnées ou perdues depuis la dernière journée.</p>`
     + (SIM ? simOutils() : '') + appareilHTML(me);
 }
 const simOutils = () => `<div class="carte glass"><h2>Outils de simulation</h2><p>Pour voir le classement vivre tout de suite : des pronos tirés au hasard pour toi sur les matchs déjà joués.</p>
@@ -837,7 +931,7 @@ function feterExacts(){
   const vus = LS.get('pronos:fete', null), now = Date.now();
   const exacts = MATCHS.filter(m => points(monProno(m, me), m) === 3);
   if (vus){ const neufs = exacts.filter(m => !vus.includes(m.id) && now - m.t < 4 * 86400e3);
-    if (neufs.length){ const m = neufs[neufs.length - 1]; fete(neufs.length > 1 ? `🎯 ${neufs.length} scores exacts ! +${3 * neufs.length} points` : `🎯 Score exact : ${m.home.name} ${m.home.score}–${m.away.score} ${m.away.name} · +3`); } }
+    if (neufs.length){ const m = neufs[neufs.length - 1]; fete(neufs.length > 1 ? `🎯 ${neufs.length} pronos à 3 points ! +${3 * neufs.length}` : `🎯 ${RUGBY(m) ? 'Le plus proche' : 'Score exact'} : ${m.home.name} ${m.home.score}–${m.away.score} ${m.away.name} · +3`); } }
   LS.set('pronos:fete', [...new Set([...(vus || []), ...exacts.map(m => m.id)])].slice(-300));   // première visite : on retient sans fêter
 }
 
@@ -849,7 +943,8 @@ async function actualiser(){
     catch(e){ ETAT = {joueurs:[], pronos:{}};
       if (e.message === 'code'){ BASE.effacer(); PANNE = 'Pseudo ou code non reconnu par le serveur : reconnecte-toi.'; }      // v55 : plus de page vide sans explication
       else PANNE = 'Serveur des pronos injoignable : les pronos affichés peuvent être incomplets. Réessaie avec ↻.'; } }
-    if (VUE === 'paris' && BASE.moi() && !SIM) await chargerParis();                    // v60
+    if (SECTION === 'paris' && BASE.moi() && !SIM) await chargerParis();                 // v60
+    else if (BASE.moi() && !SIM) chargerParis().then(() => { if (SECTION === 'accueil' || SECTION === 'paris') rendre(); });   // v62 : résumé de l'accueil
     rendre(); feterExacts(); }
   finally{ $('#refreshBtn').classList.remove('spin'); }
 }
@@ -898,7 +993,9 @@ async function changerAvatar(){
     EDITER = false; rendre(); }catch{ msg('Serveur des pronos injoignable.'); }
 }
 document.addEventListener('click', async e => {
-  const v = e.target.closest('[data-vue]'); if (v){ VUE = v.dataset.vue; LS.set('pronos:vue', VUE); rendre(); if (VUE === 'paris' && !SIM && !PARIS){ await chargerParis(); rendre(); } return; }
+  const sec = e.target.closest('[data-section]');
+  if (sec){ SECTION = sec.dataset.section; rendre(); window.scrollTo(0, 0); if (SECTION === 'paris' && !SIM && !PARIS && BASE.moi()){ await chargerParis(); rendre(); } return; }   // v62
+  const v = e.target.closest('[data-vue]'); if (v){ VUE = v.dataset.vue; LS.set('pronos:vue', VUE); rendre(); return; }
   const pv = e.target.closest('[data-pvue]'); if (pv){ PVUE = pv.dataset.pvue; LS.set('pronos:pvue', PVUE); rendre(); return; }
   const pc = e.target.closest('[data-pcl]'); if (pc){ PCL = pc.dataset.pcl; rendre(); return; }
   const pm = e.target.closest('[data-pm]');
@@ -950,8 +1047,9 @@ setInterval(() => {                         // comptes à rebours ; fermeture au
   if (document.hidden || !BASE.moi()) return;
   const now = Date.now(); let passe = false;
   document.querySelectorAll('[data-cd]').forEach(x => { const t = +x.dataset.cd; if (t <= now) passe = true; x.textContent = (x.dataset.pre || '') + compte(t); x.classList.toggle('urgent', x.classList.contains('p-cd') && t - now < 3600e3); });
-  if (passe && VUE === 'jouer' && !(document.activeElement && document.activeElement.closest('.p-st')) && !Object.keys(enAttente).length) rendre();
-  if (passe && VUE === 'paris' && !Object.keys(PCHOIX).length) rendre();               // v60 : paris fermés au coup d'envoi
+  if (passe && SECTION === 'pronos' && VUE === 'jouer' && !(document.activeElement && document.activeElement.closest('.p-st')) && !Object.keys(enAttente).length) rendre();
+  if (passe && SECTION === 'paris' && !Object.keys(PCHOIX).length) rendre();
+  if (passe && SECTION === 'accueil') rendre();               // v60 : paris fermés au coup d'envoi
 }, 30e3);
 actualiser();
 </script>

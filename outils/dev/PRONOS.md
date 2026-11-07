@@ -10,6 +10,16 @@ Appli web Apps Script du **compte Google perso** de Yoann (tableur « Pronos Kio
 `pronos.api` = vide → simulation. **À retirer avant de rendre le dock public** (sinon les copies du dépôt écrivent dans ce tableur).
 Adresse publique (lisible dans la page) : risque = faux joueurs dans le tableur, sans accès au reste du compte Google.
 
+## Accueil (v62)
+À chaque ouverture (lien d'invitation ou dock) : accueil avec trois cartes, **Pronos**, **Paris**, **Règles** (la page des règles reprend tout ce qui suit, en clair pour les amis).
+Un invité non inscrit voit la carte Règles et le formulaire.
+
+## Points (v62 : rugby)
+- **Foot** : score exact 3, bon résultat (vainqueur ou nul) 1, sinon 0.
+- **Rugby** (compétition à identifiant ESPN sans point : Top 14…) : bon résultat 1 ; parmi les joueurs qui ont le bon résultat, le plus proche du score prend 3
+  (plus petite somme des écarts |dom − réel| + |ext − réel| ; ex æquo : 3 chacun ; seul à avoir le bon résultat : 3). Calculé dans la page (`points`), d'après les pronos du match.
+- Badge « 🎯 +3 · le plus proche » en rugby ; stats et trophée Sniper : « pronos à 3 points ».
+
 ## Présentation (v56)
 - **À pronostiquer** : en-tête (avatar, rang du mois, compte à rebours du prochain coup d'envoi, barre « pronos faits / matchs ouverts »), matchs par jour puis
   par compétition (logo de la compétition, sinon ⚽/🏉 ; n° de journée), logos des équipes (`t.logo`, sinon logo ESPN foot d'après l'identifiant ; repli : pastille
@@ -30,6 +40,8 @@ Jeu entre amis **sans argent** : les crédits ne s'achètent pas, ne s'échangen
 - **Règlement** (serveur, à chaque appel `paris` ou `miser`) : score final de `jours.json` / `passe.json` (sinon fichier de la compétition) ; gain = arrondi(mise × cote), 0 si perdu ;
   match reporté ou annulé depuis plus d'un jour : remboursé. Paris des autres visibles au coup d'envoi (avant : seulement qui a parié).
 - **Onglet Paris** du tableur : groupe, pseudo, match, ligue, choix (h/d/a), mise, cote, le, mois, dom, ext, coup d'envoi, gain (vide = en cours).
+- **v61 (serveur seul)** : `appendRow` lit les valeurs comme une saisie au clavier : « 2026-11 » devenait une date même en colonne texte (pari non compté, « Invalid Date »).
+  Lignes écrites par `setValues` (`ajouter`) ; mois d'un pari = mois du coup d'envoi (colonne L, `moisL`), les lignes déjà abîmées restent comptées.
 - Serveur : actions `miser` (`choix` vide = annuler) et `paris` (soldes du mois, podiums, général, cotes du jour, paris, qui). Simulation : pas de paris (message).
 
 ## Mode simulation (sans serveur)
