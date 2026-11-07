@@ -1,5 +1,6 @@
 # Pronos entre amis (v50, module d'essai ; v55 : mode partagé branché ; v56 : présentation « fun » ; v60 : paris en crédits fictifs ; v63 : reconnexion)
 
+Résultats : fichiers de la tâche Sport (toutes les 30 min les soirs et le week-end depuis la v67, sinon toutes les 2 h) ; points et paris réglés 15 à 45 min après la fin du match.
 Page `pronos.html` : tuile « Pronos » de l'accueil (pastille : pronos à faire cette semaine) et bouton trophée en haut de la page Sport (v66). Lien à partager : `https://zyavo.github.io/iPhone-Dock/pronos.html?groupe=CODE`
 (bouton de partage en haut de la page une fois inscrit).
 

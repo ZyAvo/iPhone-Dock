@@ -1,6 +1,6 @@
 {
- "lot": "v66",
- "date": "2026-11-07T14:30:15+00:00",
+ "lot": "v67",
+ "date": "2026-11-07T17:07:53+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/configuration.yml": "c5aae0f5",
@@ -10,7 +10,7 @@
   ".github/workflows/mise-a-jour.yml": "6e6ba9fd",
   ".github/workflows/programme-tv.yml": "3a0dff1e",
   ".github/workflows/publication.yml": "4c40213c",
-  ".github/workflows/sport.yml": "47f24f3f",
+  ".github/workflows/sport.yml": "74209416",
   ".github/workflows/tv.yml": "a0b896b9",
   ".github/workflows/videos.yml": "1faae103",
   "actus.html": "f7282c31",
