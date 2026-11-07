@@ -1,5 +1,9 @@
 # Rendre le dock public — relecture « nouvel utilisateur » (v42)
 
+> **v65 (07/11/2026)** : points 1, 2 et 4 faits (départs neutres + premier lancement ; clé TMDB et tâches désactivées signalées dans État) ; Tuto : points 5 et 6 ;
+> Pronos : adresse dans l'onglet Pronos du classeur, ignorée sur une copie sous un autre compte (classeur version 4). Reste : point 3 (étape « Autoriser les tâches à écrire », à vérifier sur une copie d'essai),
+> et les choix d'affichage pré-cochés du classeur (médias, fonds) qui restent ceux de Yoann sur une copie (dit dans le Tuto).
+
 Relu : `LISEZ-MOI.md`, les onglets Lisez-moi et Tuto du classeur (`outils/dev/classeur/tuto.py`), les tâches GitHub, ce qui est visible
 sur le dépôt et le site.
 

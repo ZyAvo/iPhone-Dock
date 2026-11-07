@@ -1,4 +1,4 @@
-// mon-ecran-version: cf04c5a9
+// mon-ecran-version: e60d6f08
 // Résumé « État des données » (etat.json) : un petit fichier lu par l'accueil (pastille) et par etat.html.
 // Lancé par la tâche « Publication », après la reprise des dernières données.
 import fs from 'node:fs';
@@ -60,6 +60,10 @@ const marches = mj && {
   erreurs:((mj.diag && mj.diag.ko) || []).slice(0, 12)
 };
 
+/* v65 : catalogue Films et séries (clé TMDB manquante : erreur écrite par la tâche Vidéos) */
+const vc = read('donnees/videos/catalogue.json');
+const videos = vc && {updated:vc.updated || null, titres:(vc.titres || []).length, erreur:vc.erreur || ''};
+
 const fj = read('fichiers.json');
 const fichiers = fj && {calendriers:fj.calendriers || [], logos:(fj.logos || []).length};
 
@@ -68,5 +72,5 @@ const lot = read('lot.json');
 const verOf = f => { try{ const t = fs.readFileSync(f, 'utf8'); return (t.match(/mon-ecran-version[":=\s]+(?:content=")?([\w.-]+)/) || [])[1] || null; }catch{ return undefined; } };
 const pages = lot && lot.fichiers ? {lot:lot.lot, date:lot.date, liste:Object.entries(lot.fichiers).map(([f, v]) => ({f, v:verOf(f), attendu:v}))} : null;
 
-fs.writeFileSync('etat.json', JSON.stringify({genere:new Date().toISOString(), sport, tv, actus, marches, fichiers, pages}));
-console.log('etat.json écrit', JSON.stringify({sport:!!sport, tv:!!tv, actus:!!actus, marches:!!marches, fichiers:!!fichiers}));
+fs.writeFileSync('etat.json', JSON.stringify({genere:new Date().toISOString(), sport, tv, actus, marches, videos, fichiers, pages}));
+console.log('etat.json écrit', JSON.stringify({sport:!!sport, tv:!!tv, actus:!!actus, marches:!!marches, videos:!!videos, fichiers:!!fichiers}));

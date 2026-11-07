@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: b31d21b4
+# mon-ecran-version: 4680be67
 # Lit le classeur de configuration (configuration.xlsx) et écrit les réglages du dock dans config/ :
 #   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json, applis.json
 #   config/config.js                     → les mêmes réglages en un seul fichier, chargé par les pages (window.MON_ECRAN_CONFIG)
@@ -407,6 +407,23 @@ def m_applis(m):
     for k in out['dossiers']:                                            # dossier sans tuile (nouveau, venu d'un ajout) : sa tuile sur l'accueil
         if k not in cibles: out['accueil'].append({'id': f'dossier:{k}', 'label': out['dossiers'][k]['title'], 'type': 'folder', 'target': k})
     out['accueil'] = [a for a in out['accueil'] if a.get('type') != 'folder' or a.get('target') in out['dossiers']]
+    return out
+
+def m_pronos(m):
+    """v65 : serveur des Pronos (onglet Pronos) : adresse /exec et compte GitHub de son propriétaire (une copie du dépôt sous un autre compte l'ignore)."""
+    out = {}
+    for s, rows in selection(m):
+        for x in rows:
+            v = txt(x['cells'].get('Valeur', ''))
+            if not v: continue
+            if x['d'] == 'api':
+                if not re.fullmatch(r'https://script\.google\.com/macros/s/[\w-]+/exec', v):
+                    note(m, x['r'], 'warn', "adresse inattendue : elle commence par https://script.google.com/macros/s/ et finit par /exec", x['nom'])
+                out['api'] = v
+            elif x['d'] == 'compte': out['compte'] = v.lstrip('@')
+    if out.get('api') and not out.get('compte'):
+        x = next((x for s in m['sections'] for x in s['rows'] if x['d'] == 'compte'), None)
+        if x: note(m, x['r'], 'warn', "compte GitHub vide : une copie de ton dépôt écrirait dans ton tableur", x['nom'])
     return out
 
 def m_apparence(m):
@@ -831,6 +848,7 @@ def main():
         'apparence': m_apparence(M['apparence']),
         'applis': m_applis(M['applis']),
     }
+    if 'pronos' in M: cfg['pronos'] = m_pronos(M['pronos'])        # v65 : onglet facultatif (classeur version 4)
     os.makedirs(OUT, exist_ok=True)
     cfg['icones'] = icones_appstore(cfg['applis'])          # v52 : icônes App Store cherchées ici (plus de JSONP dans la page)
     for k, v in cfg.items():

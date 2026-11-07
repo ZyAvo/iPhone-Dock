@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="0d1f5de0">
+<meta name="mon-ecran-version" content="7b6bbae3">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -267,7 +267,10 @@ function judge(e){
     const old = e.marches.series.filter(s => s.ancien), we = [0, 6].includes(new Date().getDay());
     out.marches = {lvl:worst([age(e.marches.updated, we ? 60 : 3, we ? 80 : 26), old.length ? 'warn' : 'ok']), msg:`Mis à jour ${ago(e.marches.updated)} · ${e.marches.series.length - old.length}/${e.marches.series.length} cours`};
   }
-  out.global = worst([out.sport.lvl, out.tv.lvl, out.actus.lvl, ...(out.marches ? [out.marches.lvl] : [])]);
+  if (e.videos) out.videos = /clé/i.test(e.videos.erreur) ? {lvl:'warn', msg:'Clé TMDB manquante : catalogue vide'}
+    : e.videos.erreur ? {lvl:'warn', msg:e.videos.erreur} : {lvl:age(e.videos.updated, 36, 80), msg:`Mis à jour ${ago(e.videos.updated)} · ${e.videos.titres} titres`};   // v65
+  out.vide = !e.sport && !e.tv && !e.actus && !e.marches;              // v65 : rien publié depuis l'installation (copie dont les tâches sont désactivées ?)
+  out.global = worst([out.sport.lvl, out.tv.lvl, out.actus.lvl, ...(out.marches ? [out.marches.lvl] : []), ...(out.videos ? [out.videos.lvl] : [])]);
   return out;
 }
 const chev = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
@@ -367,7 +370,19 @@ function autoHTML(){
 const grp = t => `<h2 class="grp">${t}</h2>`;
 const groupes = tech => cotesPart() + tvPart()
   + grp('Paramétrage') + part('Thème et icône', {lvl:'ok', msg:((Themes.liste().find(t => t.id === Themes.actuel()) || {}).nom || 'Thème') + ' · ' + ({auto:'mode de l\'appareil', clair:'clair', sombre:'sombre'})[modeNow()]}, themeHTML()) + autoHTML() + syncHTML() + sauvHTML()
-  + grp('Technique') + tech + confPart();
+  + grp('Technique') + tech + confPart() + pronosPart();
+/* v65 : d'où vient l'adresse du serveur des Pronos (noyau.js, Noyau.pronos.serveur) */
+function pronosPart(){
+  if (!window.Noyau || !Noyau.pronos) return '';
+  const s = Noyau.pronos.serveur();
+  const J = {classeur:{lvl:'ok', msg:'Serveur réglé dans le classeur'}, secours:{lvl:'warn', msg:'Adresse de secours : à mettre dans le classeur'},
+    autre:{lvl:'none', msg:'Simulation : le classeur vise le serveur d\'un autre compte'}, aucun:{lvl:'none', msg:'Simulation (aucun serveur réglé)'}}[s.source];
+  const txt = {classeur:'L\'adresse du serveur Apps Script vient de l\'onglet <b>Pronos</b> du classeur.',
+    secours:'Le classeur n\'a pas encore d\'adresse : la page utilise celle écrite dans le code (seulement sur ce dépôt). Remplis l\'onglet <b>Pronos</b> du classeur (adresse /exec et ton compte GitHub), dépose-le, puis lance la tâche Configuration.',
+    autre:`L'onglet <b>Pronos</b> du classeur vise le serveur du compte GitHub <b>${esc(s.pour)}</b>, pas ce dépôt (${esc(Noyau.pronos.compte())}) : c'est le cas d'une copie. Pour jouer avec tes amis, crée ton propre serveur (outils/dev/PRONOS.md), puis mets son adresse et ton compte GitHub dans l'onglet Pronos.`,
+    aucun:'Sans serveur, les Pronos restent sur l\'appareil, face à 3 amis fictifs. Pour jouer avec tes amis : outils/dev/PRONOS.md, puis l\'onglet <b>Pronos</b> du classeur.'}[s.source];
+  return part('Pronos entre amis', J, `<p class="note">${txt}</p>`, false);
+}
 function render(e){
   const j = judge(e);
   const label = {ok:'Tout est à jour', warn:'Quelques points à vérifier', err:'Des données ne se mettent plus à jour'}[j.global];
@@ -412,6 +427,15 @@ function render(e){
       <p class="note">« ancien » : la source n'a pas répondu, le dernier cours connu est gardé.</p>`, j.marches.lvl !== 'ok');
   }
 
+  if (e.videos){                                                     // v65
+    h += part('Catalogue Vidéos (TMDB)', j.videos, /clé/i.test(e.videos.erreur)
+      ? `<p class="note">La tâche « Vidéos » n'a pas de clé TMDB : le catalogue des plateformes reste vide (les chaînes YouTube marchent sans clé).</p>
+        <ol class="note"><li>Crée un compte gratuit sur <a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener">themoviedb.org</a>, puis Paramètres → API → demande une clé (usage personnel) et copie le « API Read Access Token ».</li>
+        <li>Sur GitHub : Settings → Secrets and variables → Actions → New repository secret, nom <b>TMDB_TOKEN</b>, colle le jeton.</li>
+        <li>Actions → « Vidéos » → Run workflow.</li></ol>`
+      : `<p class="note">${esc(e.videos.titres)} titres dans le catalogue (mis à jour chaque nuit par la tâche « Vidéos »).</p>`, j.videos.lvl !== 'ok');
+  }
+
   if (e.pages){
     const P = e.pages, mine = (document.querySelector('meta[name="mon-ecran-version"]') || {}).content || '';
     const vieux = P.liste.filter(x => x.v !== x.attendu), wf = vieux.filter(x => x.f.startsWith('.github/'));
@@ -429,7 +453,10 @@ function render(e){
       f.calendriers.length ? `<ul class="note">${f.calendriers.map(c => `<li>${esc(c.replace(/^calendriers\//, ''))}</li>`).join('')}</ul>` : '<p class="note">Aucun calendrier déposé.</p>', false);
   }
 
-  h = h.replace(/(<\/div><\/div>)/, '$1' + grp('Contenu')) + groupes(tech);
+  const taches = j.vide ? part('Tâches GitHub', {lvl:'err', msg:'Aucune donnée publiée depuis l\'installation'}, `<p class="note">Sur une copie du dépôt, GitHub désactive les tâches au départ :</p>
+    <ol class="note"><li>Onglet <b>Actions</b> de ton dépôt → bouton « I understand my workflows, go ahead and enable them ».</li>
+    <li>Lance chaque tâche une première fois (Actus, Sport, Marchés, Vidéos, Programme TV sport, Cotes, puis Publication) → Run workflow. Ensuite elles tournent seules.</li></ol>`, true) : '';   // v65
+  h = h.replace(/(<\/div><\/div>)/, '$1' + taches + grp('Contenu')) + groupes(tech);
   h += `<div class="actions"><a class="btn main" href="https://github.com/${esc(Noyau.depot.nom)}/actions" target="_blank" rel="noopener">Voir les tâches GitHub</a>
     <button type="button" class="btn" id="resetBtn">Vider la mémoire de l'appli</button></div>
     <p class="note" id="resetMsg">« Vider la mémoire » efface les données gardées sur cet appareil (matchs, actus, pages) ; tes réglages (lieu météo, Spotify, favoris, langue des actus, placements, rafraîchissement) sont conservés.</p>`;

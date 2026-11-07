@@ -18,7 +18,8 @@ copie du dépôt (Fork), activation des tâches et de GitHub Pages, clés facult
 - **Dans l'appli** : roue ⚙︎ en bas de l'accueil → Réglages (pages et widgets, écran d'accueil, médias, chaînes, compétitions, marchés).
   Thème de couleurs et mode clair/sombre : page **État** (on peut aussi y créer son propre thème à partir d'une palette coolors.co).
 - **Dans le classeur** `configuration.xlsx` : tout ce que le dock affiche, coché ligne par ligne ; le déposer à la racine du dépôt suffit.
-- **Choix personnels** (équipes favorites, abonnements vidéo, villes météo) : dans l'appli ; ils passent d'un appareil à l'autre par la synchronisation chiffrée.
+- **Choix personnels** (équipes favorites, abonnements vidéo, villes météo) : dans l'appli ; au premier lancement, l'accueil les propose. Ils passent d'un appareil à l'autre par la synchronisation chiffrée.
+- **Pronos entre amis** (facultatif) : ton propre serveur gratuit (Google Sheets), adresse dans l'onglet Pronos du classeur ; voir `outils/dev/PRONOS.md`.
 
 Aucun secret dans le dépôt : codes, montants, clés restent sur l'appareil ou dans les secrets GitHub.
 

@@ -6,8 +6,9 @@ Page `pronos.html` (lien en bas de la page Sport). Lien à partager : `https://z
 ## Serveur en service (v55)
 Appli web Apps Script du **compte Google perso** de Yoann (tableur « Pronos KiosK », déploiement `v55`) :
 `https://script.google.com/macros/s/AKfycby6vzzsVzPJ8DuTBqexvEqGBnqMGZy2Os5RU5DDvTxEAvUwFlbH9S9StR2nVjpLuGCLug/exec`
-Écrite comme valeur par défaut dans `pronos.html` (`API_TEST`) : `CFG('pronos.api', API_TEST)`. Une ligne `pronos.api` du classeur (à créer) passera devant ;
-`pronos.api` = vide → simulation. **À retirer avant de rendre le dock public** (sinon les copies du dépôt écrivent dans ce tableur).
+v65 : l'adresse est dans le classeur, onglet **Pronos** (« Adresse du serveur » et « Compte GitHub » = ZyAvo). La page la lit par `Noyau.pronos.serveur()` (`noyau.js`).
+Une copie du dépôt reprend ce classeur, mais sous un autre compte GitHub l'adresse est ignorée : simulation (rien n'arrive dans ton tableur). Tant que ton classeur n'a pas l'adresse,
+ton dépôt (et lui seul) utilise l'adresse de secours écrite dans `noyau.js`. La page État dit d'où vient l'adresse (« Pronos entre amis »).
 Adresse publique (lisible dans la page) : risque = faux joueurs dans le tableur, sans accès au reste du compte Google.
 
 ## Compte sur plusieurs appareils (v63)
@@ -63,7 +64,7 @@ remplit tes pronos sur les matchs déjà joués pour voir le classement ; « Tou
 4. Déployer › Nouveau déploiement › type « Application Web » : exécuter en tant que **moi**, accès **Tout le monde** → copier l'adresse
    `https://script.google.com/macros/s/…/exec` (pas l'adresse `script.googleusercontent.com/macros/echo…` vue après ouverture : temporaire).
    Vérifier en fenêtre privée : `{"ok":true,"service":"pronos"}`.
-5. Donner cette adresse à Claude (classeur `pronos.api`, ou `API_TEST` dans la page).
+5. Mettre cette adresse dans l'onglet Pronos du classeur (« Adresse du serveur »), avec ton pseudo GitHub (« Compte GitHub »), puis déposer le classeur.
 Modifier le script ensuite : Déployer › Gérer les déploiements › crayon › Version : **Nouvelle version** › Déployer (l'adresse /exec ne change pas).
 Les onglets Joueurs et Pronos se créent au premier usage (ou par `verifier`) ; tu peux les lire et corriger dans le tableau (le code des joueurs n'y est qu'en empreinte).
 v55 : colonnes groupe, pseudo, match, ligue au format texte et comparaisons en texte (sinon un groupe « 2026 » devenait un nombre : doublons, « mauvais code »).

@@ -1,4 +1,4 @@
-# mon-ecran-version: ecb4a8d8
+# mon-ecran-version: 4f06b568
 # Modèle du classeur : réglages actuels (reference.json, cochés « Oui ») + catalogue (non cochés).
 # Chaque module = un onglet ; chaque ligne a un identifiant fixe (colonne cachée) et sa définition technique (JSON caché).
 import json, re, unicodedata
@@ -6,7 +6,7 @@ from cat_sport import REGIONS_NOUVELLES, LIGUES_NOUVELLES, EQUIPES_PROPOSEES
 from cat_actus import SECTIONS_FR, FEEDS_FR, SECTIONS_EN, FEEDS_EN, G
 from cat_autres import *
 
-VERSION_CLASSEUR = 3
+VERSION_CLASSEUR = 4
 
 def slug(s):
     s = unicodedata.normalize('NFD', str(s).lower()).encode('ascii', 'ignore').decode()
@@ -222,6 +222,15 @@ def construire(ref):
     M.append(dict(id='apparence', feuille='Apparence', titre='Apparence · thèmes et mode',
         intro="Thèmes proposés dans la page État et thème de départ (« Par défaut ») pour un nouvel appareil. Chacun peut ensuite changer sur son appareil.",
         cols=[('nom', 'Thème / mode', 30), ('detail', 'Détail', 30)], coche2='Par défaut', sections=secs, ajout=None))
+
+    # ================= PRONOS (v65) =================
+    secs = [section('serveur', 'Serveur des Pronos (Google Apps Script)', [
+        row('pr:api', {'nom': 'Adresse du serveur', 'valeur': '', 'detail': "Adresse /exec de ton appli web Apps Script (mise en place : outils/dev/PRONOS.md). Vide : Pronos en simulation."}, 'Oui', 'api'),
+        row('pr:compte', {'nom': 'Compte GitHub', 'valeur': '', 'detail': "Ton pseudo GitHub (celui de l'adresse pseudo.github.io). Une copie de ton dépôt sous un autre compte ignore alors l'adresse : elle n'écrit pas dans ton tableur."}, 'Oui', 'compte')])]
+    M.append(dict(id='pronos', feuille='Pronos', titre='Pronos entre amis · serveur',
+        intro="Adresse du serveur qui garde les joueurs, les pronos et les paris (un Google Sheets avec son script, gratuit). Les cases jaunes de la colonne « Valeur » se remplissent à la main. "
+              "Jeu entre amis, sans argent.",
+        cols=[('nom', 'Réglage', 24), ('valeur', 'Valeur', 64), ('detail', 'Détail', 52)], sections=secs, ajout=None, saisie=('Valeur',)))
     return M
 
 if __name__ == '__main__':

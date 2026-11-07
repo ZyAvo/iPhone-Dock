@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="85ac30d8">
+<meta name="mon-ecran-version" content="fc4f07b0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1079,10 +1079,11 @@ function statusHTML(m){
 /* ---------- Affichage ---------- */
 function plays(m, name){ return [m.home.full, m.home.name, m.away.full, m.away.name].some(n => n === name); }
 /* ---------- Favoris (gardés sur cet appareil) ---------- */
-const FAV_DEFAULT = {equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']};   // favoris de départ d'un nouvel appareil (ensuite : étoiles, partagées par la synchronisation)
-let FAV = store.get('sport:favoris') || FAV_DEFAULT;
+const FAV_DEFAULT = {equipes:[], ligues:[]};   // v65 : favoris de départ d'un nouvel appareil (ensuite : ses favoris, partagés par la synchronisation)
+const FAV_DEPART = Noyau.depart('sport:favoris', FAV_DEFAULT);   // appareil utilisé avant la v65 : les anciens favoris de départ (noyau.js)
+let FAV = store.get('sport:favoris') || FAV_DEPART;
 const saveFav = () => { store.set('sport:favoris', FAV); try{ localStorage.setItem('sport:favoris:maj', String(Date.now())); }catch{} if (window.Synchro) Synchro.prefsPlusTard(); };
-window.addEventListener('synchro:prefs', () => { FAV = store.get('sport:favoris') || FAV_DEFAULT; render(); });   // favoris venus d'un autre appareil
+window.addEventListener('synchro:prefs', () => { FAV = store.get('sport:favoris') || FAV_DEPART; render(); });   // favoris venus d'un autre appareil
 const favTok = name => tokens({full:name});
 const teamIsFav = t => !!t && FAV.equipes.some(n => { const f = favTok(n), x = tokens(t); return f.length && f.every(w => x.includes(w)); });
 const isFav = m => FAV.ligues.includes(m.league) || (!!m.home && (teamIsFav(m.home) || teamIsFav(m.away)));

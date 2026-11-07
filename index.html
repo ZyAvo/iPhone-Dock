@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="f1ab4202">
+<meta name="mon-ecran-version" content="a961c8f2">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -444,6 +444,17 @@ html.desk .inv-r{padding-left:10px;font-size:.74rem}html.desk .inv-r b,html.desk
 .pl-search{display:flex;gap:6px;margin-bottom:8px}
 .pl-search input{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
 .pl-msg{font-size:.8rem;color:var(--ink-soft);margin:4px 4px 8px;min-height:1em}
+/* v65 : premier lancement */
+.bv-t{font-size:.84rem;color:var(--ink-soft);line-height:1.45;margin:0 4px 12px}
+.bv-t a{color:var(--accent);font-weight:600}
+.bv .pl-list{margin-bottom:12px}
+.bv-r{text-align:left}
+.bv-e{font-size:1.35rem;width:30px;text-align:center;flex:none}
+.bv-x{display:flex;flex-direction:column;min-width:0;gap:2px}
+.bv-x small{margin-left:0;white-space:normal}
+.bv-b{display:flex;gap:8px}
+.bv-b button{flex:1;padding:11px;border-radius:14px;font-weight:600;background:var(--card)}
+.bv-b .ok{background:var(--accent);color:var(--on-accent)}
 @keyframes fade{from{opacity:0}}
 @keyframes pop{from{transform:scale(.86)}}
 /* ---------- Toucher visible et fondu entre les pages ---------- */
@@ -538,6 +549,10 @@ html:not(.desk).haut-seul:not(.dispo-carre) .w-news .headline{-webkit-line-clamp
     <p class="pl-msg" id="placeMsg" role="status"></p>
     <ul class="pl-list" id="placeResults"></ul>
   </div>
+</div>
+
+<div class="scrim" id="bvScrim" hidden>
+  <div class="place-panel glass bv" role="dialog" aria-modal="true" aria-labelledby="bvTitle" id="bvPanel"></div>
 </div>
 
 <div class="scrim" id="spScrim" hidden>
@@ -870,18 +885,15 @@ async function loadWidget(){
 
 /* ---------- Lieu et météo (Open-Meteo, sans clé) ---------- */
 const FAV_DEFAULT = [
-  {name:'Réalmont', region:'Tarn', lat:43.7767, lon:2.1897},
-  {name:'Mazamet',  region:'Tarn', lat:43.4920, lon:2.3736},
-  {name:'Castres',  region:'Tarn', lat:43.6060, lon:2.2400},
-  {name:'Albi',     region:'Tarn', lat:43.9289, lon:2.1464},
-  {name:'Toulouse', region:'Haute-Garonne', lat:43.6045, lon:1.4440}
-];   // villes de départ d'un nouvel appareil (ensuite : liste de l'accueil, partagée par la synchronisation)
+  {name:'Paris', region:'Île-de-France', lat:48.8566, lon:2.3522}
+];   // v65 : ville de départ d'un nouvel appareil (ensuite : liste de l'accueil, partagée par la synchronisation)
+const FAV_DEPART = Noyau.depart('lieu:favoris', FAV_DEFAULT);   // appareil utilisé avant la v65 : les anciennes villes de départ (noyau.js)   // villes de départ d'un nouvel appareil (ensuite : liste de l'accueil, partagée par la synchronisation)
 const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } },
             set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }};
-let favs = LS.get('lieu:favoris', FAV_DEFAULT);
-let place = LS.get('lieu:actuel', {mode:'fav', ...FAV_DEFAULT[0]});    // mode 'gps' = ma position
+let favs = LS.get('lieu:favoris', FAV_DEPART);
+let place = LS.get('lieu:actuel', {mode:'fav', ...FAV_DEPART[0]});    // mode 'gps' = ma position
 const placeLabel = p => p.region ? `${p.name} · ${p.region}` : p.name;
-window.addEventListener('synchro:prefs', () => { favs = LS.get('lieu:favoris', FAV_DEFAULT); try{ renderBand(); }catch{} });   // villes et favoris venus d'un autre appareil
+window.addEventListener('synchro:prefs', () => { favs = LS.get('lieu:favoris', FAV_DEPART); try{ renderBand(); }catch{} });   // villes et favoris venus d'un autre appareil
 function showPlace(){ $('#placeName').textContent = place.mode === 'gps' ? `${place.name || 'Ma position'}` : placeLabel(place); }
 
 /* Icônes météo (codes WMO) : soleil, éclaircies, nuages, brouillard, pluie, neige, orage */
@@ -1630,7 +1642,7 @@ setInterval(() => { if (TVM.on && !document.hidden) renderTvActu(); }, 15 * 60e3
 setInterval(() => { if (DESK() && W('une') && !document.hidden && autoOn('actus') && Date.now() - deskNewsAt > 15 * 60e3) loadDeskNews(); }, 60e3);
 
 /* ---------- Témoin LIVE Sports (matchs du jour préparés + vérification ESPN des matchs censés être en cours) ---------- */
-const SPORT_FAV = {equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']};
+const SPORT_FAV = Noyau.depart('sport:favoris', {equipes:[], ligues:[]});   // v65 : aucun favori de départ (appareil utilisé avant : les anciens, noyau.js)
 const favWords = t => String(t || '').toLowerCase().replace(/[ßæœøłđðþıħ]/g, c => ({'ß':'ss', 'æ':'ae', 'œ':'oe', 'ø':'o', 'ł':'l', 'đ':'d', 'ð':'d', 'þ':'th', 'ı':'i', 'ħ':'h'})[c]).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ')
   .map(w => ({toulousain:'toulouse', rochelais:'rochelle', paloise:'pau', bayonnais:'bayonne'})[w] || w).filter(w => w.length >= 3 && !['stade', 'olympique', 'club', 'the', 'les'].includes(w));
 function favOf(){ try{ return JSON.parse(localStorage.getItem('sport:favoris')) || SPORT_FAV; }catch{ return SPORT_FAV; } }
@@ -1726,6 +1738,33 @@ if (W('une')){ loadWidget(); loadDeskNews(); } let widgetAt = Date.now();
 (() => { const o = new URLSearchParams(location.search).get('ouvrir'); if (!o) return;
   try{ history.replaceState(history.state, '', location.pathname + location.hash); }catch{}
   setTimeout(() => { try{ if (o === 'villes' && W('meteo')) openPlaces(); else if (o === 'spotify' && W('spotify') && MUS.id === 'spotify') spPanel(); }catch{} }, 300); })();
+/* ---------- Premier lancement (v65) : sur un appareil neuf, l'accueil propose ville, équipes et plateformes (tout peut être passé).
+   Jamais sur un appareil utilisé avant la v65 (noyau:departs = 'ancien'). Fini → accueil:bienvenue ; « Plus tard » → seulement pour cette session. ---------- */
+const bvFait = k => { try{ return localStorage.getItem(k) != null; }catch{ return false; } };
+function bvHTML(){
+  const L = [];
+  if (W('meteo')) L.push(['ville', '📍', 'Ta ville météo', bvFait('lieu:actuel') ? placeLabel(place) : 'Paris pour l\'instant : touche pour choisir la tienne', bvFait('lieu:actuel')]);
+  if (Noyau.accueil.page('sport')) L.push(['sport', '⚽', 'Tes équipes favorites', bvFait('sport:favoris') ? 'Choisies' : 'Leurs matchs et leurs scores en premier', bvFait('sport:favoris')]);
+  if (Noyau.accueil.page('videos')) L.push(['videos', '🎬', 'Tes plateformes vidéo', bvFait('videos:abos') ? 'Choisies' : 'Pour ne voir que ce qui est dans tes abonnements', bvFait('videos:abos')]);
+  return `<h3 id="bvTitle">Bienvenue sur ton dock 👋</h3><p class="bv-t">Quelques réglages pour qu'il soit à toi. Tout se change ensuite quand tu veux.</p>
+    <ul class="pl-list">${L.map(([k, e, t, d, ok]) => `<li class="pl-row"><button type="button" class="pl-pick bv-r" data-bv="${k}"><span class="bv-e" aria-hidden="true">${ok ? '✅' : e}</span><span class="bv-x"><b>${t}</b><small>${esc(d)}</small></span></button></li>`).join('')}</ul>
+    <p class="bv-t">Déjà un dock sur un autre appareil ? <a href="etat.html">Active la synchronisation</a> (page État) : tes choix reviennent tout seuls.</p>
+    <div class="bv-b"><button type="button" data-bv="plus-tard">Plus tard</button><button type="button" class="ok" data-bv="fini">C'est fait</button></div>`;
+}
+function bvOuvrir(){ $('#bvPanel').innerHTML = bvHTML(); $('#bvScrim').hidden = false; }
+function bvFermer(fini){ $('#bvScrim').hidden = true; try{ if (fini) localStorage.setItem('accueil:bienvenue', new Date().toISOString()); else sessionStorage.setItem('accueil:bienvenue', '1'); }catch{} }
+$('#bvScrim').addEventListener('click', e => {
+  const b = e.target.closest('[data-bv]'); if (!b) return;
+  const k = b.dataset.bv;
+  if (k === 'fini' || k === 'plus-tard') return bvFermer(k === 'fini');
+  if (k === 'ville'){ $('#bvScrim').hidden = true; openPlaces(); return; }
+  location.href = k === 'sport' ? 'sport.html?ouvrir=favoris' : 'videos.html?ouvrir=abos';
+});
+const bvAMontrer = () => { try{ return Noyau.departs === 'neuf' && !localStorage.getItem('accueil:bienvenue') && !sessionStorage.getItem('accueil:bienvenue') && !new URLSearchParams(location.search).get('ouvrir'); }catch{ return false; } };
+if (bvAMontrer()) setTimeout(bvOuvrir, 500);
+// la fenêtre des villes refermée pendant le premier lancement : on revient à la liste (la ville choisie y est cochée)
+new MutationObserver(() => { if ($('#placeScrim').hidden && bvAMontrer() && $('#bvScrim').hidden && document.visibilityState === 'visible') bvOuvrir(); })
+  .observe($('#placeScrim'), {attributes:true, attributeFilter:['hidden']});
 document.addEventListener('visibilitychange', () => {            // retour sur l'accueil : nouvelle « une » au plus tous les quarts d'heure
   if (!document.hidden && W('une') && autoOn('actus') && Date.now() - widgetAt > 15 * 60e3){ widgetAt = Date.now(); loadWidget(); }
 });

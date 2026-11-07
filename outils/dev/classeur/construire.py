@@ -1,4 +1,4 @@
-# mon-ecran-version: bb5c4935
+# mon-ecran-version: c20dd19d
 # Construit le classeur de configuration « Mon Écran » (openpyxl).
 # Usage : python3 construire.py reference.json sortie.xlsx [ancien.xlsx pour reprendre les choix]
 import sys, json
@@ -20,7 +20,7 @@ WR = Alignment(wrap_text=True, vertical='top')
 MID = Alignment(vertical='center')
 CENTER = Alignment(horizontal='center', vertical='center')
 
-LIENS = ('Lien iPhone', 'Lien Android', 'Lien web', 'Appli')   # modifiables dans l'appli (liens, nom d'une appli) : repris tels quels
+LIENS = ('Lien iPhone', 'Lien Android', 'Lien web', 'Appli', 'Valeur')   # modifiables dans l'appli (liens, nom d'une appli) : repris tels quels
 COLS_APPLIS = {'nom': 'Appli', 'ios': 'Lien iPhone', 'android': 'Lien Android', 'web': 'Lien web'}
 
 def anciens_choix(path):
@@ -124,6 +124,7 @@ def feuille_module(wb, m, choix, ajouts_prec):
                 v = x['vals'].get(k, '')
                 if p and h in p[2]: v = p[2][h] or ''
                 c = ws.cell(r, 3 + j, v if v != '' else None); c.font = F(); c.alignment = MID
+                if h in m.get('saisie', ()): c.fill = FILL(INPUT); c.border = BORD                  # v65 : case à remplir (onglet Pronos)
             coche(ws.cell(r, cOui), p[0] if p else x['oui'])
             if c2c: coche(ws.cell(r, c2c), p[1] if p else x['oui2'])
             res = ws.cell(r, cRes, x['resultat'] or None); res.font = F(size=9, color=GRIS)

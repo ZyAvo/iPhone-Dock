@@ -1,4 +1,4 @@
-// mon-ecran-version: 7fbfaa6d
+// mon-ecran-version: e1f98ff7
 /* Mon Écran — noyau commun à toutes les pages, et base des futures applis dédiées (iPhone, Android, PC).
    Rien ici ne dépend d'une astuce de Safari : ce qui est propre à « l'iPhone en mode web » est rangé dans Noyau.iphoneWeb,
    et une appli dédiée pourra fournir window.MonEcranNatif (ouvrir un lien, garder la clé…) que le noyau utilisera en priorité.
@@ -16,7 +16,9 @@
                                             applis de l'accueil telles qu'elles s'affichent sur cet appareil (accueil.applis)
    - Noyau.applis                           modèle de l'écran d'accueil (applis, dossiers, bandeau, Navigation) : depuis
                                             config/applis.json ou le catalogue, choix en attente appliqués, disposition à envoyer
-   - Noyau.icones                           pictogrammes des tuiles et du bandeau (communs à l'accueil et à Réglages) */
+   - Noyau.icones                           pictogrammes des tuiles et du bandeau (communs à l'accueil et à Réglages)
+   - Noyau.depart(clé, neuf)                valeur de départ d'un choix personnel (v65 : neutre sur un appareil neuf, l'ancienne ailleurs)
+   - Noyau.pronos.serveur()                 adresse du serveur des Pronos (v65 : classeur, onglet Pronos) et d'où elle vient */
 (() => {
 'use strict';
 const natif = () => window.MonEcranNatif || null;            // pont fourni par une future appli dédiée (absent sur le web)
@@ -537,7 +539,40 @@ async function json(url, {defaut = null, verif = null, cache = 'no-cache'} = {})
     return {ok:true, statut:200, donnees:d};
   }catch{ return {ok:false, statut:'reseau', donnees:defaut}; }
 }
-window.Noyau = {version:1, json, config, stockage, appareil, lien, iphoneWeb, depot, synchro, catalogue, modifs, accueil, applis, icones, MSG,
+/* ---------- Valeurs de départ des choix personnels (v65) ----------
+   Un nouvel utilisateur part de valeurs neutres (Paris, aucune équipe, aucun abonnement : écrites dans chaque page) et l'accueil
+   lui propose de les choisir. Un appareil déjà utilisé avant la v65 garde les anciennes valeurs de départ (celles de Yoann) pour
+   les choix qu'il n'a jamais enregistrés : rien n'est écrit dans sa mémoire (donc rien ne part dans la synchro), seul le départ diffère.
+   noyau:departs = 'ancien' | 'neuf', fixé au premier passage : appareil « utilisé » = une clé du dock déjà présente (hors Pronos). */
+const ANCIENS = {
+  'lieu:favoris':() => [{name:'Réalmont', region:'Tarn', lat:43.7767, lon:2.1897}, {name:'Mazamet', region:'Tarn', lat:43.4920, lon:2.3736},
+    {name:'Castres', region:'Tarn', lat:43.6060, lon:2.2400}, {name:'Albi', region:'Tarn', lat:43.9289, lon:2.1464}, {name:'Toulouse', region:'Haute-Garonne', lat:43.6045, lon:1.4440}],
+  'sport:favoris':() => ({equipes:['Liverpool', 'Arsenal', 'Marseille', 'Toulouse', 'Rodez', 'Castres', 'Stade Toulousain', 'Lakers', 'Packers', 'Steelers', 'Maple Leafs'], ligues:['f1', 'motogp']}),
+  'videos:abos':() => { const l = config('videos.plateformes', null); return Array.isArray(l) ? l.filter(p => p.abo).map(p => p.id) : ['netflix', 'prime']; }
+};
+const DEPARTS = (() => {
+  const d = stockage.lire('noyau:departs', null); if (d === 'ancien' || d === 'neuf') return d;
+  let utilise = false;
+  try{ const z = zoneDe('localStorage'); for (let i = 0; i < (z.length || 0); i++) if (/^(lieu|meteo|sport|videos|actus|invest|coffre|synchro|accueil|tv|spotify|modifs|cotes|musique|rafraichissement|theme|palette|mode)\b/.test(z.key(i) || '')){ utilise = true; break; } }catch{}
+  const v = utilise ? 'ancien' : 'neuf'; stockage.ecrire('noyau:departs', v); return v;
+})();
+const depart = (cle, neuf) => DEPARTS === 'ancien' && ANCIENS[cle] ? ANCIENS[cle]() : neuf;
+
+/* ---------- Serveur des Pronos (v65) ----------
+   Adresse dans le classeur (onglet Pronos : pronos.api et pronos.compte = le compte GitHub du propriétaire du serveur).
+   Une copie du dépôt reprend le classeur de l'original : une adresse réglée pour un autre compte est ignorée (simulation).
+   Secours : le serveur de Yoann, seulement sur son dépôt (compte zyavo) et tant que son classeur n'a pas l'adresse. */
+const PRONOS_SECOURS = {compte:'zyavo', api:'https://script.google.com/macros/s/AKfycby6vzzsVzPJ8DuTBqexvEqGBnqMGZy2Os5RU5DDvTxEAvUwFlbH9S9StR2nVjpLuGCLug/exec'};
+const pronos = {
+  compte:() => DEPOT.split('/')[0].toLowerCase(),
+  serveur(){
+    const moi = pronos.compte(), api = String(config('pronos.api', '') || '').trim(), pour = String(config('pronos.compte', '') || '').trim().replace(/^@/, '').toLowerCase();
+    if (api) return pour && pour !== moi ? {api:'', source:'autre', pour} : {api, source:'classeur'};
+    return moi === PRONOS_SECOURS.compte ? {api:PRONOS_SECOURS.api, source:'secours'} : {api:'', source:'aucun'};
+  }
+};
+
+window.Noyau = {version:1, json, config, stockage, appareil, lien, iphoneWeb, depot, synchro, catalogue, modifs, accueil, applis, icones, MSG, depart, departs:DEPARTS, pronos,
   message:code => MSG[String(code).replace(/^erreur:/, '')] || (window.Synchro && Synchro.MSG[String(code).replace(/^erreur:/, '')]) || String(code)};
 window.CFG = config;
 })();

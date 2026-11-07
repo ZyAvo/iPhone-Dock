@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="6b4f8b4d">
+<meta name="mon-ecran-version" content="68b1189e">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vidéos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -316,8 +316,9 @@ const IMG = (p, w = 'w342') => p ? `https://image.tmdb.org/t/p/${w}${p}` : '';
 const ago = t => { const m = Math.round((Date.now() - t) / 60000); if (m < 60) return `il y a ${Math.max(1, m)} min`; const h = Math.round(m / 60); if (h < 48) return `il y a ${h} h`; const d = Math.round(h / 24); return d < 30 ? `il y a ${d} j` : new Date(t).toLocaleDateString('fr-FR', {day:'numeric', month:'short', year:'numeric'}); };
 const TABS = [{id:'films', nom:'Films et séries'}, {id:'youtube', nom:'YouTube'}];
 const PBY = Object.fromEntries(PLATEFORMES.map(p => [p.id, p]));
-let ABOS = new Set(LS.get('videos:abos', PLATEFORMES.filter(p => p.abo).map(p => p.id)));
-window.addEventListener('synchro:prefs', () => { ABOS = new Set(LS.get('videos:abos', PLATEFORMES.filter(p => p.abo).map(p => p.id))); render(); });   // abonnements venus d'un autre appareil
+const ABOS_DEPART = Noyau.depart('videos:abos', []);   // v65 : aucun abonnement coché au départ (appareil utilisé avant : les anciens, noyau.js)
+let ABOS = new Set(LS.get('videos:abos', ABOS_DEPART));
+window.addEventListener('synchro:prefs', () => { ABOS = new Set(LS.get('videos:abos', ABOS_DEPART)); render(); });   // abonnements venus d'un autre appareil
 let tab = TABS.some(t => t.id === LS.get('videos:onglet', '')) ? LS.get('videos:onglet') : TABS[0].id;
 let CAT = null, RES = {}, YT = null, loadedAt = 0;
 /* Résumés : 16 petits fichiers (même règle que outils/videos-data.mjs) ; l'ancien gros fichier en secours */
@@ -349,7 +350,7 @@ function render(){
 /* ---------- Bibliothèque d'une plateforme ---------- */
 function filtrer(C){
   const q = fold(F.q).trim(), mois = Date.now() - 30 * 864e5, auj = new Date().toISOString().slice(0, 10);
-  const plat = x => F.plat === 'toutes' ? true : F.plat === 'abos' ? x.p.some(p => ABOS.has(p)) : x.p.includes(F.plat);
+  const plat = x => F.plat === 'toutes' || (F.plat === 'abos' && !ABOS.size) ? true : F.plat === 'abos' ? x.p.some(p => ABOS.has(p)) : x.p.includes(F.plat);   // v65 : aucun abonnement choisi → tout
   let l = C.titres.filter(x => plat(x) && (F.type === 'tout' || x.t === F.type) && (!F.genre || (x.genres || []).includes(F.genre)));
   if (q) l = l.filter(x => fold(x.titre + ' ' + (x.orig || '')).includes(q));
   if (F.tri === 'liste') l = l.filter(x => LISTE.has(x.k));
@@ -378,11 +379,13 @@ function catHTML(){
       <button class="chip ic" type="button" data-act="filtres" aria-pressed="${nf > 0}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filtres${nf ? `<span class="n">${nf}</span>` : ''}</button>
       <span class="vsep" aria-hidden="true"></span>
       ${chip('tri', 'pop', 'Populaires')}${chip('tri', 'recent', 'Récents')}${chip('tri', 'note', 'Mieux notés')}${nNew ? chip('tri', 'nouveau', `Nouveaux (${nNew})`) : ''}${chip('tri', 'liste', `Ma liste${LISTE.size ? ` (${LISTE.size})` : ''}`)}</div>
+    ${ABOS.size ? '' : `<div class="msgbox glass"><b>Choisis tes plateformes</b><span>Coche tes abonnements pour ne voir que ce qui est inclus dedans. En attendant, toutes les plateformes s'affichent.</span>
+      <button class="btn main" type="button" data-act="abos">⚙︎ Mes abonnements</button></div>`}
     <div id="res" style="display:flex;flex-direction:column;gap:12px">${catRes(P, l)}</div>
     <p class="credit">Catalogues en France, mis à jour chaque nuit. Données : TMDB (ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB) · disponibilités : JustWatch.</p>`;
 }
 function catRes(P, l = filtrer(CAT)){
-  const resume = [F.plat === 'abos' ? 'mes abonnements' : F.plat === 'toutes' ? 'toutes plateformes' : (PBY[F.plat] || {}).nom, F.type === 'film' ? 'films' : F.type === 'serie' ? 'séries' : '', F.genre.toLowerCase()].filter(Boolean).join(' · ');
+  const resume = [F.plat === 'abos' ? (ABOS.size ? 'mes abonnements' : 'toutes plateformes') : F.plat === 'toutes' ? 'toutes plateformes' : (PBY[F.plat] || {}).nom, F.type === 'film' ? 'films' : F.type === 'serie' ? 'séries' : '', F.genre.toLowerCase()].filter(Boolean).join(' · ');
   const st = CAT && CAT.updated ? `à jour ${ago(Date.parse(CAT.updated))}` : '';
   return `<span class="count"><span><b>${l.length}</b> titre${l.length > 1 ? 's' : ''} · ${esc(resume)}</span>${st ? `<span class="stamp" id="stamp">${st}</span>` : ''}</span>
     ${l.length ? `<div class="grid">${l.slice(0, shown).map(posterHTML).join('')}</div>` : `<div class="msgbox glass">${F.tri === 'liste' ? 'Ta liste est vide : ouvre un titre et touche « Ma liste ».' : 'Aucun titre ne correspond.'}</div>`}

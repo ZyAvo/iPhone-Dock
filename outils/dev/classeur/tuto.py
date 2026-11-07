@@ -1,4 +1,4 @@
-# mon-ecran-version: 8474672a
+# mon-ecran-version: 380fe5b5
 # Textes des onglets « Lisez-moi » et « Tuto ».
 LISEZMOI = [
     ('h', 'À quoi sert ce classeur'),
@@ -32,7 +32,8 @@ TUTO_REMPLIR = [
         ('Cocher ce que tu veux', 'Onglets Sport, Actus, Marchés…', "« Oui » dans la colonne Oui. « Non » pour exclure un élément d'une section prise en entier. Laisse vide pour ne rien changer.", None),
         ('Ajouter un élément absent', 'Bas de chaque onglet, bloc MES AJOUTS', "Remplis Section (existante ou nouvelle), Nom et Source (adresse d'un site, @nom YouTube, ISIN, clé ESPN…), puis « Oui ». La ligne d'exemple grise est ignorée.", None),
         ('Vérifier la synthèse', 'Onglet Lisez-moi', "Le tableau compte tes éléments cochés par onglet : un moyen rapide de voir si rien n'a été oublié.", None),
-        ('Enregistrer', 'Format .xlsx', "Nom du fichier : configuration.xlsx (exactement). Garde le format Excel, pas .numbers ni .csv.", None),
+        ('Enregistrer', 'Format .xlsx', "Nom du fichier : configuration.xlsx (exactement). Garde le format Excel, pas .numbers ni .csv. "
+         "Sur iPhone avec Numbers (qui enregistre en .numbers) : bouton ⋯ → Exporter → Excel, puis Enregistrer dans Fichiers sous le nom configuration.xlsx.", None),
         ('Déposer sur GitHub', 'Page de ton dépôt GitHub', "Sur la page du dépôt : Add file → Upload files → glisse configuration.xlsx → Commit changes. Il remplace l'ancien.", DEPOT),
         ('Suivre la tâche', 'Onglet Actions du dépôt', "La tâche « Configuration » démarre seule (1 à 3 minutes). Coche verte = réglages appliqués ; croix rouge = ouvre-la pour lire l'erreur.", DEPOT + '/actions'),
         ('Lire le résultat', 'Page État de l\'appli, ou config/configuration-resultat.xlsx', "Chaque nouveauté reçoit ✅ (fonctionne), ⚠️ (trouvé, à vérifier) ou ❌ (introuvable, avec la raison). Corrige et redépose si besoin.", None),
@@ -53,8 +54,11 @@ TUTO_PRIVE = [
         ('Choisir son code', 'Page Investissements ou Coffre', "Au premier usage, l'appli demande un code PIN : il chiffre tes montants et ton coffre sur l'appareil. Il n'est jamais envoyé nulle part.", None),
         ('Synchroniser ses appareils (facultatif)', 'État → Synchronisation', "Crée une clé GitHub « fine-grained » (Repository access : seulement ta copie ; Permissions → Contents : Read and write), puis suis l'assistant : il génère une phrase de 6 mots à garder précieusement. "
          "La même clé sert aussi à envoyer les choix faits dans Réglages vers le classeur.", 'https://github.com/settings/personal-access-tokens/new'),
-        ('Spotify (facultatif)', 'developer.spotify.com', "Create app → coche Web API → Redirect URI = l'adresse de ton dock → copie le Client ID et colle-le dans le widget Spotify de l'accueil.", 'https://developer.spotify.com/dashboard'),
-        ('Déposer ton classeur', 'Partie 1, étapes 5 à 8', "Décoche ce qui ne t'intéresse pas (les choix de départ sont ceux de Yoann), ajoute tes fonds, médias et chaînes, puis dépose configuration.xlsx. Tes équipes favorites, abonnements et villes se choisissent ensuite dans l'appli.", None),
+        ('Spotify (facultatif)', 'developer.spotify.com', "Create app → coche Web API → Redirect URI = l'adresse de ton dock → copie le Client ID et colle-le dans le widget Spotify de l'accueil. "
+         "Une appli Spotify reste en mode « développement » : seul ton compte Spotify y a accès, plus ceux que tu ajoutes dans User Management (chacun crée sinon sa propre appli).", 'https://developer.spotify.com/dashboard'),
+        ('Pronos entre amis (facultatif)', 'Google Sheets + onglet Pronos du classeur', "Crée ton serveur gratuit (un Google Sheets et son script, pas à pas dans outils/dev/PRONOS.md), puis mets son adresse /exec et ton pseudo GitHub dans l'onglet Pronos. "
+         "L'adresse déjà présente est celle de Yoann : elle est ignorée sur ta copie (tes Pronos restent en simulation tant que tu n'as pas la tienne).", None),
+        ('Déposer ton classeur', 'Partie 1, étapes 5 à 8', "Décoche ce qui ne t'intéresse pas (les choix de départ sont ceux de Yoann), ajoute tes fonds, médias et chaînes, puis dépose configuration.xlsx. Tes équipes favorites, abonnements et villes se choisissent ensuite dans l'appli : l'accueil te les propose au premier lancement.", None),
     ]),
     ('Mises à jour de l\'appli', "Quand une nouvelle version du dock est publiée.", [
         ('Récupérer la mise à jour', 'Fichier mise-a-jour-vNN.zip', "Dépose-le à la racine de ta copie (Add file → Upload files). La tâche « Mise à jour » l'installe toute seule.", None),
@@ -69,4 +73,6 @@ JOURNAL = [
                       "Onglet Cotes : réglages du rapport des écarts. Les pages lisent désormais ces réglages (config/config.js)."),
     (3, '30/10/2026', "Les choix personnels sortent du classeur : équipes et compétitions favorites, abonnements vidéo, villes météo. "
                       "Ils se règlent dans l'appli et passent d'un appareil à l'autre par la synchronisation chiffrée."),
+    (4, '07/11/2026', "Onglet Pronos : adresse du serveur des Pronos et compte GitHub (une copie du dépôt sous un autre compte l'ignore). "
+                      "Tuto : export Excel depuis Numbers, Spotify en mode développement, mise en place des Pronos ; premier lancement de l'appli."),
 ]

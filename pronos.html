@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="bc73b173">
+<meta name="mon-ecran-version" content="a6aceb58">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -458,9 +458,9 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } }, set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }};
 const LIGUES = CFG('pronos.ligues', [{id:'fra.1', f:'fra-1', nom:'Ligue 1'}, {id:'270559', f:'270559', nom:'Top 14'}, {id:'uefa.champions', f:'uefa-champions', nom:'Ligue des champions'}]);
-// v55 : serveur de test de Yoann (Apps Script, compte perso) en attendant la ligne pronos.api du classeur — à retirer avant de rendre le dock public.
-const API_TEST = 'https://script.google.com/macros/s/AKfycby6vzzsVzPJ8DuTBqexvEqGBnqMGZy2Os5RU5DDvTxEAvUwFlbH9S9StR2nVjpLuGCLug/exec';
-const API = String(CFG('pronos.api', API_TEST) || '').trim();
+// v65 : adresse du serveur dans le classeur (onglet Pronos) ; une copie du dépôt qui vise le serveur d'un autre compte passe en simulation (noyau.js, Noyau.pronos)
+const SERVEUR = Noyau.pronos.serveur();
+const API = SERVEUR.api;
 const SIM = !API;
 const JOURS_AVANT = 7, JOURS_APRES = 45;
 const hm = t => new Date(t).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
