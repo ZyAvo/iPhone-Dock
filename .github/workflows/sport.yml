@@ -1,13 +1,20 @@
-# mon-ecran-version: 47f24f3f
+# mon-ecran-version: 74209416
 name: Sport
 
 # Toutes les 2 heures (v51 : séparée du programme TV, qui la retardait de 35 à 50 min) :
 # matchs, journées et classements de la page Sport → donnees/sport/ (branche « donnees », sans historique),
 # puis la tâche « Publication » met le site à jour.
-# Le premier passage après minuit (UTC) relit toute la période ; les autres ne relisent que les jours de match (moins d'appels ESPN).
+# Le premier passage de la journée relit toute la période ; les autres ne relisent que les jours de match (moins d'appels ESPN).
+# v67 : toutes les 30 min pendant les créneaux de match, pour que les Pronos et les Paris se règlent vite après le coup de sifflet final :
+#   chaque soir 18 h - 1 h (heure de Paris en hiver ; 19 h - 2 h en été) et le week-end dès 12 h. Horaires en UTC, à :07 et :37
+#   (GitHub retarde surtout les tâches de :00 et :30). Une seule ligne par minute : jamais deux passages lancés en même temps.
 on:
   schedule:
-    - cron: '7 */2 * * *'
+    - cron: '7 */2 * * *'                # toute la journée, toutes les 2 h (heures paires UTC)
+    - cron: '7 17,19,21,23 * * *'        # soirées : les heures impaires qui manquent
+    - cron: '37 17-23 * * *'             # soirées : la demi-heure
+    - cron: '7 11,13,15 * * 0,6'         # samedi et dimanche après-midi : les heures impaires
+    - cron: '37 11-16 * * 0,6'           # samedi et dimanche après-midi : la demi-heure
   workflow_dispatch:            # bouton « Run workflow » pour lancer à la main
   push:                         # dès que tu ajoutes un logo ou un calendrier
     paths:
