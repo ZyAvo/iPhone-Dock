@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="d4e1f9c4">
+<meta name="mon-ecran-version" content="5a6d740c">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Réglages</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -721,6 +721,7 @@ function noteAccueil(it){
     const w = {actus:['une', 'À la une'], invest:['invest', 'Investissements'], sport:['sport', 'Bandeau Sports']}[it.def];
     if (w && wg(w[0])) n.push(`le widget ${w[1]} reste, sans lien vers la page`);
     if (it.def === 'cachee') n.push('plus d\'appui long pour l\'ouvrir');
+    if (it.def === 'pronos') n.push('la page se ferme aussi pour tes amis (leur lien ne s\'ouvre plus)');   // v66
   }
   return n.length ? `<span class="etq">${n.map(t => `<span class="bd gr">${esc(t)}</span>`).join('')}</span>` : '';
 }
@@ -773,7 +774,7 @@ const AP = Noyau.applis, IC = Noyau.icones;
 const ICS = S.lire('icons:v1', {}) || {};                                  // vraies icônes App Store gardées par l'accueil
 const cleIcone = d => d.icon && !d.store && !d.storeId ? '' : d.storeId ? 'id:' + d.storeId : d.store ? 's:' + d.store : '';
 const imgDe = d => { const k = cleIcone(d); return k && ICS[k] || ''; };
-const pageDe = url => { const m = String(url || '').match(/^(?:\.\/)?(actus|sport|ecarts|videos|invest|cachee|etat|reglages)\.html(?:[?#]|$)/); return m ? (m[1] === 'ecarts' ? 'sport' : m[1]) : null; };
+const pageDe = url => { const m = String(url || '').match(/^(?:\.\/)?(actus|sport|ecarts|videos|invest|cachee|etat|reglages|pronos)\.html(?:[?#]|$)/); return m ? (m[1] === 'ecarts' ? 'sport' : m[1]) : null; };
 const AUTO_INFO = {actus:{icon:'news', w:'À la une', page:'actus'}, invest:{icon:'invest', w:'Investissements', page:'invest'}, sport:{icon:'sport', w:'Bandeau Sports', page:'sport'}};
 let ED = null, FICHE = null, apresGlisse = 0, glisseId = '';
 const modApplis = () => moduleDe('applis');

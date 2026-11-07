@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 4680be67
+# mon-ecran-version: 5448094c
 # Lit le classeur de configuration (configuration.xlsx) et écrit les réglages du dock dans config/ :
 #   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json, applis.json
 #   config/config.js                     → les mêmes réglages en un seul fichier, chargé par les pages (window.MON_ECRAN_CONFIG)
@@ -317,7 +317,8 @@ def m_accueil(m):
     S = {s['id']: (s, rows) for s, rows in selection(m)}
     une = [x['d'] for x in S['une'][1]]
     if len(une) > 1: note(m, S['une'][1][1]['r'], 'warn', 'une seule source « À la une » : la première cochée est gardée', S['une'][1][1]['nom'])
-    return {'pages': [x['d'] for x in S['pages'][1]], 'widgets': [x['d'] for x in S['widgets'][1]], 'une': une[0] if une else None}
+    connues = [x['d'] for s in m['sections'] if s['id'] == 'pages' for x in s['rows']]          # v66 : toutes les pages du classeur (une page absente d'ici : noyau.js, SUIT)
+    return {'pages': [x['d'] for x in S['pages'][1]], 'pages_connues': connues, 'widgets': [x['d'] for x in S['widgets'][1]], 'une': une[0] if une else None}
 
 def def_ajout_appli(nom, src, android='', web=''):
     """Définition d'une appli ajoutée (Mes ajouts) : même règle dans l'appli (noyau.js, Noyau.applis.defAjout)."""

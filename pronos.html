@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="a6aceb58">
+<meta name="mon-ecran-version" content="7a32d31f">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,7 +20,7 @@ img{max-width:100%}
 <script src="noyau.js"></script>
 <script src="themes.js"></script>
 <script src="synchro.js"></script>
-<script>/* page désactivée dans Réglages › Pages et widgets : on s'arrête là (aucun chargement) */Noyau.accueil.garde('sport');</script>
+<script>/* page désactivée dans Réglages › Pages et widgets : on s'arrête là (aucun chargement) */Noyau.accueil.garde('pronos');</script>
 <link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="commun.css">
 <style>
@@ -432,7 +432,7 @@ html.desk .p-grille .jour{grid-column:1 / -1}
 <header>
   <div class="wrap">
     <div class="top">
-      <a class="back" href="sport.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Sport</a>
+      <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
       <span class="top-actions"><button class="icon-btn glass" id="invBtn" type="button" aria-label="Inviter des amis" hidden><svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span>
     </div>
@@ -457,7 +457,7 @@ html.desk .p-grille .jour{grid-column:1 / -1}
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } }, set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }};
-const LIGUES = CFG('pronos.ligues', [{id:'fra.1', f:'fra-1', nom:'Ligue 1'}, {id:'270559', f:'270559', nom:'Top 14'}, {id:'uefa.champions', f:'uefa-champions', nom:'Ligue des champions'}]);
+const LIGUES = Noyau.pronos.ligues();             // v66 : liste commune (noyau.js), aussi lue par la pastille de l'accueil
 // v65 : adresse du serveur dans le classeur (onglet Pronos) ; une copie du dépôt qui vise le serveur d'un autre compte passe en simulation (noyau.js, Noyau.pronos)
 const SERVEUR = Noyau.pronos.serveur();
 const API = SERVEUR.api;
@@ -1050,7 +1050,7 @@ function programmer(box){
   et.textContent = 'Enregistrement…';
   enAttente[id] = setTimeout(async () => {
     try{ const h = +a.value, v = +b.value, r = await BASE.parier(m, h, v);
-      if (r.ok){ const me = BASE.moi(); (ETAT.pronos[id] || (ETAT.pronos[id] = {}))[me.pseudo] = [h, v];
+      if (r.ok){ const me = BASE.moi(); (ETAT.pronos[id] || (ETAT.pronos[id] = {}))[me.pseudo] = [h, v]; try{ sessionStorage.removeItem('pronos:pastille'); }catch{}   // v66 : pastille de l'accueil à recompter
         if (ETAT.qui){ const l = ETAT.qui[id] || (ETAT.qui[id] = []); if (!l.includes(me.pseudo)) l.push(me.pseudo); }
         et.innerHTML = '<span class="ok pop">✓ enregistré</span>';
         const hero = $('#hero'); if (hero) hero.outerHTML = heroHTML(me); }

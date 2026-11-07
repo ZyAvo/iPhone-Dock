@@ -1,6 +1,6 @@
 # Pronos entre amis (v50, module d'essai ; v55 : mode partagé branché ; v56 : présentation « fun » ; v60 : paris en crédits fictifs ; v63 : reconnexion)
 
-Page `pronos.html` (lien en bas de la page Sport). Lien à partager : `https://zyavo.github.io/iPhone-Dock/pronos.html?groupe=CODE`
+Page `pronos.html` : tuile « Pronos » de l'accueil (pastille : pronos à faire cette semaine) et bouton trophée en haut de la page Sport (v66). Lien à partager : `https://zyavo.github.io/iPhone-Dock/pronos.html?groupe=CODE`
 (bouton de partage en haut de la page une fois inscrit).
 
 ## Serveur en service (v55)

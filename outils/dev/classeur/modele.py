@@ -1,4 +1,4 @@
-# mon-ecran-version: 4f06b568
+# mon-ecran-version: 8eac5b4e
 # Modèle du classeur : réglages actuels (reference.json, cochés « Oui ») + catalogue (non cochés).
 # Chaque module = un onglet ; chaque ligne a un identifiant fixe (colonne cachée) et sa définition technique (JSON caché).
 import json, re, unicodedata
@@ -6,7 +6,7 @@ from cat_sport import REGIONS_NOUVELLES, LIGUES_NOUVELLES, EQUIPES_PROPOSEES
 from cat_actus import SECTIONS_FR, FEEDS_FR, SECTIONS_EN, FEEDS_EN, G
 from cat_autres import *
 
-VERSION_CLASSEUR = 4
+VERSION_CLASSEUR = 5
 
 def slug(s):
     s = unicodedata.normalize('NFD', str(s).lower()).encode('ascii', 'ignore').decode()
@@ -191,7 +191,9 @@ def construire(ref):
         cols=[('nom', 'Élément', 34), ('detail', 'Détail', 52)], sections=secs, ajout=None))
 
     # ================= APPLIS (3 liens par appli) =================
-    A = ref['applis']
+    A = json.loads(json.dumps(ref['applis']))
+    if not any(a.get('url') == 'pronos.html' for a in A['accueil']):                   # v66 : tuile Pronos (accès dédié, à côté de Vidéos et Sports)
+        A['accueil'].append({'label': 'Pronos', 'type': 'page', 'url': 'pronos.html', 'icon': 'pronos', 'color': '--t-brick'})
     def arow(sec, a, i):
         t = dict(a); lab = a['label']
         if lab in ANDROID: t['android'] = lien_android(ANDROID[lab])

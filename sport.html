@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="fc4f07b0">
+<meta name="mon-ecran-version" content="d2dd7cf2">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -510,6 +510,7 @@ details.rk li em{grid-row:1;grid-column:3;font-style:normal;color:var(--ink-soft
       <span class="top-actions"><button class="icon-btn glass health" id="healthBtn" type="button" aria-label="État des données"><svg viewBox="0 0 24 24" id="healthIc"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2M12 7.8v.2"/></svg><b id="healthN" hidden></b></button>
       <button class="icon-btn glass" id="tablesBtn" type="button" aria-label="Classements"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5h18M4.5 20.5v-6h5v6M9.5 20.5V9h5v11.5M14.5 20.5v-8h5v8"/><path d="M12 3.2l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2-1.45-1.4 2-.3z"/></svg></button>
       <button class="icon-btn glass" id="calsBtn" type="button" aria-label="Calendriers"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 14h2M11 14h2M14.5 14h2M7.5 17.2h2M11 17.2h2"/></svg></button>
+      <a class="icon-btn glass" id="pronosBtn" href="pronos.html" aria-label="Pronos entre amis" title="Pronos entre amis"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 4h9v4.5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6H4.8a2.6 2.6 0 0 0 2.9 4.2M16.5 6h2.7a2.6 2.6 0 0 1-2.9 4.2"/><path d="M12 13v3.5M8.5 20.5h7M9.8 16.5h4.4l.8 4h-6z"/></svg></a>
       <a class="icon-btn glass" id="ecartsBtn" href="ecarts.html" aria-label="Écarts de cotes" title="Écarts de cotes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 20.5h17"/><path d="M5 16.5l4.5-5 3.5 3 6-7.5"/><path d="M15 7h4v4"/></svg></a>
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span>
     </div>
@@ -527,7 +528,6 @@ details.rk li em{grid-row:1;grid-column:3;font-style:normal;color:var(--ink-soft
 
 <main>
   <div class="wrap" id="content"></div>
-  <div class="wrap reg-lien"><a href="pronos.html">Pronos entre amis (essai) ›</a></div>
   <div class="wrap reg-lien"><a href="reglages.html?retour=sport#sport">Choisir les compétitions affichées ›</a></div>
 </main>
 
@@ -2670,6 +2670,7 @@ function useSample(){
 
 /* ---------- Démarrage ---------- */
 restoreEtat();
+if (!Noyau.accueil.page('pronos')){ const b = document.getElementById('pronosBtn'); if (b) b.remove(); }   // v66 : page Pronos coupée dans Réglages
 /* ouvert depuis Réglages : ?ouvrir=favoris → onglet Favoris */
 if (new URLSearchParams(location.search).get('ouvrir') === 'favoris' && GROUPS.some(g => g.id === 'fav')){
   group = 'fav'; selDay = 0; RESTORE_Y = null; try{ history.replaceState(history.state, '', location.pathname + location.hash); }catch{} }

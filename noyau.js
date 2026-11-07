@@ -1,4 +1,4 @@
-// mon-ecran-version: e1f98ff7
+// mon-ecran-version: 398d5da6
 /* Mon Écran — noyau commun à toutes les pages, et base des futures applis dédiées (iPhone, Android, PC).
    Rien ici ne dépend d'une astuce de Safari : ce qui est propre à « l'iPhone en mode web » est rangé dans Noyau.iphoneWeb,
    et une appli dédiée pourra fournir window.MonEcranNatif (ouvrir un lien, garder la clé…) que le noyau utilisera en priorité.
@@ -297,6 +297,7 @@ const icones = {
   gear:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/><path d="M4 12h5M13 12h7"/><circle cx="11" cy="12" r="2"/>',
   media:'<rect x="2.5" y="4.5" width="19" height="13" rx="2.5"/><path d="m10 8.2 4.8 2.8-4.8 2.8z"/><path d="M8 20.5h8"/>',
   news:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 8.5h6M7 12h10M7 15.5h10"/>',
+  pronos:'<path d="M7.5 4h9v4.5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6H4.8a2.6 2.6 0 0 0 2.9 4.2M16.5 6h2.7a2.6 2.6 0 0 1-2.9 4.2"/><path d="M12 13v3.5M8.5 20.5h7M9.8 16.5h4.4l.8 4h-6z"/>',
   invest:'<path d="M4 19.5h16"/><path d="m5 15.5 4.5-4.5 3.5 3.5 6.5-7.5"/><path d="M15 7h4.5v4.5"/>',
   meteo:'<circle cx="8.5" cy="8.5" r="3.2"/><path d="M8.5 2.5v1.3M2.5 8.5h1.3M4.3 4.3l.9.9M12.7 4.3l-.9.9"/><path d="M8 20h9.5a3.8 3.8 0 0 0 0-7.6 5 5 0 0 0-9.4 1.6A3 3 0 0 0 8 20z"/>',
   map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
@@ -458,9 +459,10 @@ const applis = {
 /* ---------- Accueil : pages et widgets activés ----------
    config/accueil.json (classeur, onglet Accueil) + les choix faits sur cet appareil pas encore reportés (pg:…, wg:…, un:…),
    pour que le changement se voie tout de suite ici ; les autres appareils le voient après le report. Sans le catalogue (léger). */
-const PAGES = ['actus', 'sport', 'videos', 'invest', 'cachee'], TOUJOURS = ['etat', 'reglages'];
+const PAGES = ['actus', 'sport', 'videos', 'invest', 'cachee', 'pronos'], TOUJOURS = ['etat', 'reglages'];
+const SUIT = {pronos:'sport'};   // v66 : page inconnue d'un classeur plus ancien (pas dans accueil.pages_connues) : suit Sport, comme avant
 const WIDGETS = ['meteo', 'une', 'invest', 'spotify', 'sport', 'live'];
-const NOMS_PAGES = {actus:'Actus', sport:'Sport', videos:'Vidéos', invest:'Investissements', cachee:'Coffre', etat:'État des données', reglages:'Réglages'};
+const NOMS_PAGES = {actus:'Actus', sport:'Sport', videos:'Vidéos', invest:'Investissements', cachee:'Coffre', pronos:'Pronos', etat:'État des données', reglages:'Réglages'};
 const UNE_CHOIX = 'accueil:une-choix', DISPOSITION = 'accueil:disposition', MUSIQUE = 'musique:source';
 /* source du widget musique (v42), propre à l'appareil. Spotify : lecture en cours et commandes (API Spotify) ; les autres n'offrent
    pas d'équivalent simple depuis une page web : widget raccourci qui ouvre l'appli (iPhone : app, Android : android, PC : web) */
@@ -478,7 +480,10 @@ const accueil = {
   PAGES, WIDGETS, TOUJOURS, NOMS_PAGES,
   /* page activée ? (État et Réglages : toujours) */
   page(id){ id = String(id).replace(/^pg:/, ''); if (TOUJOURS.includes(id)) return true;
-    const v = attenteOui('pg:' + id); return v !== undefined ? v === 'Oui' : actifDans('accueil.pages', id); },
+    const v = attenteOui('pg:' + id); if (v !== undefined) return v === 'Oui';
+    const L = config('accueil.pages', null), K = config('accueil.pages_connues', null);
+    if (SUIT[id] && Array.isArray(L) && !L.includes(id) && !(Array.isArray(K) && K.includes(id))) return accueil.page(SUIT[id]);
+    return actifDans('accueil.pages', id); },
   widget(id){ id = String(id).replace(/^wg:/, '');
     const v = attenteOui('wg:' + id); return v !== undefined ? v === 'Oui' : actifDans('accueil.widgets', id); },
   /* source choisie pour le widget « À la une » : {name, color, url}, ou null pour « Automatique » (l'info la plus reprise) ;
@@ -564,6 +569,8 @@ const depart = (cle, neuf) => DEPARTS === 'ancien' && ANCIENS[cle] ? ANCIENS[cle
    Secours : le serveur de Yoann, seulement sur son dépôt (compte zyavo) et tant que son classeur n'a pas l'adresse. */
 const PRONOS_SECOURS = {compte:'zyavo', api:'https://script.google.com/macros/s/AKfycby6vzzsVzPJ8DuTBqexvEqGBnqMGZy2Os5RU5DDvTxEAvUwFlbH9S9StR2nVjpLuGCLug/exec'};
 const pronos = {
+  // compétitions des Pronos : même liste dans la page, l'accueil (pastille) et Code.gs (LIGUES)
+  ligues:() => config('pronos.ligues', [{id:'fra.1', f:'fra-1', nom:'Ligue 1'}, {id:'270559', f:'270559', nom:'Top 14'}, {id:'uefa.champions', f:'uefa-champions', nom:'Ligue des champions'}]),
   compte:() => DEPOT.split('/')[0].toLowerCase(),
   serveur(){
     const moi = pronos.compte(), api = String(config('pronos.api', '') || '').trim(), pour = String(config('pronos.compte', '') || '').trim().replace(/^@/, '').toLowerCase();

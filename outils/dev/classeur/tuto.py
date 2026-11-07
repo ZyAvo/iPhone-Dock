@@ -1,4 +1,4 @@
-# mon-ecran-version: 380fe5b5
+# mon-ecran-version: e8575ba6
 # Textes des onglets « Lisez-moi » et « Tuto ».
 LISEZMOI = [
     ('h', 'À quoi sert ce classeur'),
@@ -75,4 +75,5 @@ JOURNAL = [
                       "Ils se règlent dans l'appli et passent d'un appareil à l'autre par la synchronisation chiffrée."),
     (4, '07/11/2026', "Onglet Pronos : adresse du serveur des Pronos et compte GitHub (une copie du dépôt sous un autre compte l'ignore). "
                       "Tuto : export Excel depuis Numbers, Spotify en mode développement, mise en place des Pronos ; premier lancement de l'appli."),
+    (5, '07/11/2026', "Pronos devient une page à part entière : ligne « Pronos entre amis » dans Accueil (pages de l'appli) et tuile Pronos dans Applis (écran d'accueil)."),
 ]
