@@ -1,5 +1,5 @@
 {
- "date": "2026-11-07T14:32:38+00:00",
+ "date": "2026-11-07T14:32:53+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -44,12 +44,12 @@
   },
   "accueil": {
    "onglet": "Accueil",
-   "coches": 12,
+   "coches": 13,
    "ajouts": 0
   },
   "applis": {
    "onglet": "Applis",
-   "coches": 40,
+   "coches": 41,
    "ajouts": 0
   },
   "apparence": {

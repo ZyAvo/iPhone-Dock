@@ -39,6 +39,14 @@
    "url": "sport.html",
    "live": true,
    "color": "--t-plum"
+  },
+  {
+   "id": "ap:accueil:pronos",
+   "label": "Pronos",
+   "type": "page",
+   "url": "pronos.html",
+   "icon": "pronos",
+   "color": "--t-brick"
   }
  ],
  "dossiers": {
