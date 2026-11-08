@@ -19,17 +19,19 @@
    "target": "medias"
   },
   {
-   "id": "ap:accueil:jeux",
-   "label": "Jeux",
-   "type": "folder",
-   "target": "jeux"
-  },
-  {
    "id": "ap:accueil:videos",
    "label": "Vidéos",
    "type": "page",
    "url": "videos.html",
    "icon": "play",
+   "color": "--t-brick"
+  },
+  {
+   "id": "ap:accueil:pronos",
+   "label": "Pronos",
+   "type": "page",
+   "url": "pronos.html",
+   "icon": "pronos",
    "color": "--t-brick"
   },
   {
@@ -39,14 +41,6 @@
    "url": "sport.html",
    "live": true,
    "color": "--t-plum"
-  },
-  {
-   "id": "ap:accueil:pronos",
-   "label": "Pronos",
-   "type": "page",
-   "url": "pronos.html",
-   "icon": "pronos",
-   "color": "--t-brick"
   }
  ],
  "dossiers": {
@@ -99,83 +93,6 @@
      "color": "--t-teal",
      "store": "Esalia",
      "app": "shortcuts://run-shortcut?name=Esalia"
-    }
-   ]
-  },
-  "medias": {
-   "title": "Médias",
-   "id": "sec:applis:dossier-medias",
-   "items": [
-    {
-     "id": "ap:medias:videolite",
-     "label": "VideoLite",
-     "mono": "VL",
-     "color": "--t-plum",
-     "store": "VideoLite",
-     "app": "videolite://",
-     "alt": "VideoLite"
-    },
-    {
-     "id": "ap:medias:canal",
-     "label": "Canal+",
-     "mono": "C+",
-     "color": "--t-char",
-     "store": "CANAL+",
-     "app": "mycanal://",
-     "alt": "CANAL+",
-     "web": "https://www.canalplus.com",
-     "android": "intent://#Intent;package=com.canal.android.canal;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.canal.android.canal;end"
-    },
-    {
-     "id": "ap:medias:prime-video",
-     "label": "Prime Video",
-     "mono": "PV",
-     "color": "--t-slate",
-     "store": "Amazon Prime Video",
-     "app": "aiv://",
-     "web": "https://www.primevideo.com",
-     "android": "intent://#Intent;package=com.amazon.avod.thirdpartyclient;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.amazon.avod.thirdpartyclient;end"
-    },
-    {
-     "id": "ap:medias:smartersplayerlite",
-     "label": "SmartersPlayerLite",
-     "mono": "SP",
-     "color": "--t-teal",
-     "store": "Smarters Player Lite",
-     "app": "smartersplayerlite://",
-     "alt": "SmartersPlayerLite"
-    }
-   ]
-  },
-  "jeux": {
-   "title": "Jeux",
-   "id": "sec:applis:dossier-jeux",
-   "items": [
-    {
-     "id": "ap:jeux:chess",
-     "label": "Chess",
-     "mono": "♞",
-     "color": "--t-olive",
-     "store": "Chess Play and Learn",
-     "app": "shortcuts://run-shortcut?name=Chess",
-     "android": "intent://#Intent;package=com.chess;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.chess;end"
-    },
-    {
-     "id": "ap:jeux:brawl-stars",
-     "label": "Brawl Stars",
-     "mono": "BS",
-     "color": "--t-ochre",
-     "store": "Brawl Stars",
-     "app": "brawlstars://",
-     "android": "intent://#Intent;package=com.supercell.brawlstars;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.supercell.brawlstars;end"
-    },
-    {
-     "id": "ap:jeux:songs-of-conquest",
-     "label": "Songs of Conquest",
-     "mono": "SC",
-     "color": "--t-plum",
-     "store": "Songs of Conquest",
-     "app": "shortcuts://run-shortcut?name=Songs%20of%20Conquest"
     }
    ]
   },
@@ -300,6 +217,83 @@
      "android": "intent://#Intent;package=com.linkedin.android;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.linkedin.android;end"
     }
    ]
+  },
+  "medias": {
+   "title": "Médias",
+   "id": "sec:applis:dossier-medias",
+   "items": [
+    {
+     "id": "ap:medias:videolite",
+     "label": "VideoLite",
+     "mono": "VL",
+     "color": "--t-plum",
+     "store": "VideoLite",
+     "app": "videolite://",
+     "alt": "VideoLite"
+    },
+    {
+     "id": "ap:medias:canal",
+     "label": "Canal+",
+     "mono": "C+",
+     "color": "--t-char",
+     "store": "CANAL+",
+     "app": "mycanal://",
+     "alt": "CANAL+",
+     "web": "https://www.canalplus.com",
+     "android": "intent://#Intent;package=com.canal.android.canal;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.canal.android.canal;end"
+    },
+    {
+     "id": "ap:medias:prime-video",
+     "label": "Prime Video",
+     "mono": "PV",
+     "color": "--t-slate",
+     "store": "Amazon Prime Video",
+     "app": "aiv://",
+     "web": "https://www.primevideo.com",
+     "android": "intent://#Intent;package=com.amazon.avod.thirdpartyclient;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.amazon.avod.thirdpartyclient;end"
+    },
+    {
+     "id": "ap:medias:smartersplayerlite",
+     "label": "SmartersPlayerLite",
+     "mono": "SP",
+     "color": "--t-teal",
+     "store": "Smarters Player Lite",
+     "app": "smartersplayerlite://",
+     "alt": "SmartersPlayerLite"
+    }
+   ]
+  },
+  "jeux": {
+   "title": "Jeux",
+   "id": "sec:applis:dossier-jeux",
+   "items": [
+    {
+     "id": "ap:jeux:chess",
+     "label": "Chess",
+     "mono": "♞",
+     "color": "--t-olive",
+     "store": "Chess Play and Learn",
+     "app": "shortcuts://run-shortcut?name=Chess",
+     "android": "intent://#Intent;package=com.chess;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.chess;end"
+    },
+    {
+     "id": "ap:jeux:brawl-stars",
+     "label": "Brawl Stars",
+     "mono": "BS",
+     "color": "--t-ochre",
+     "store": "Brawl Stars",
+     "app": "brawlstars://",
+     "android": "intent://#Intent;package=com.supercell.brawlstars;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.supercell.brawlstars;end"
+    },
+    {
+     "id": "ap:jeux:songs-of-conquest",
+     "label": "Songs of Conquest",
+     "mono": "SC",
+     "color": "--t-plum",
+     "store": "Songs of Conquest",
+     "app": "shortcuts://run-shortcut?name=Songs%20of%20Conquest"
+    }
+   ]
   }
  },
  "bas_gauche": [
@@ -387,6 +381,14 @@
   }
  ],
  "reserve": {
+  "ap:accueil:jeux": {
+   "id": "ap:accueil:jeux",
+   "label": "Jeux",
+   "type": "folder",
+   "target": "jeux",
+   "ou": "accueil",
+   "apres": "ap:accueil:medias"
+  },
   "ap:bas_gauche:x": {
    "id": "ap:bas_gauche:x",
    "label": "X",
