@@ -1,0 +1,56 @@
+# mon-ecran-version: 71fe94d4
+name: Appli iOS (essai)
+
+# Fabrique l'appli iOS d'essai « KiosK » (dossier appli-ios) sur un Mac de GitHub, sans signature (v71).
+# Lancement à la main : onglet Actions → « Appli iOS (essai) » → Run workflow (quelques minutes).
+# Résultat : « KiosK-ipa » dans Artifacts, en bas de la page du passage (un .zip qui contient KiosK.ipa).
+# Installation depuis un PC Windows avec Sideloadly et ton identifiant Apple : voir outils/dev/APPLIS.md (gratuit : 7 jours, puis réinstaller).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appli-ios
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Outil XcodeGen
+        run: brew install xcodegen
+
+      - name: Projet Xcode
+        working-directory: appli-ios
+        run: xcodegen generate
+
+      - name: Construction (sans signature)
+        working-directory: appli-ios
+        run: |
+          set -o pipefail
+          compte=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          depot="${GITHUB_REPOSITORY#*/}"
+          adresse="https://${compte}.github.io/${depot}/"
+          echo "Adresse du dock : $adresse"
+          xcodebuild -project KiosK.xcodeproj -target KiosK -configuration Release -sdk iphoneos \
+            SYMROOT="$PWD/build" KIOSK_URL="$adresse" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build | tail -n 60
+          test -d build/Release-iphoneos/KiosK.app
+
+      - name: Fichier KiosK.ipa
+        run: |
+          mkdir -p ipa/Payload
+          cp -R appli-ios/build/Release-iphoneos/KiosK.app ipa/Payload/
+          (cd ipa && zip -qry ../KiosK.ipa Payload)
+          ls -la KiosK.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KiosK-ipa
+          path: KiosK.ipa
+          retention-days: 14
