@@ -7,27 +7,32 @@
     {
      "name": "France Info",
      "color": "#f2b705",
-     "url": "https://www.francetvinfo.fr/titres.rss"
+     "url": "https://www.francetvinfo.fr/titres.rss",
+     "payant": "non"
     },
     {
      "name": "Le Monde",
      "color": "#2b2b2b",
-     "url": "https://www.lemonde.fr/rss/une.xml"
+     "url": "https://www.lemonde.fr/rss/une.xml",
+     "payant": "partiel"
     },
     {
      "name": "Le Figaro",
      "color": "#163860",
-     "url": "https://www.lefigaro.fr/rss/figaro_actualites.xml"
+     "url": "https://www.lefigaro.fr/rss/figaro_actualites.xml",
+     "payant": "partiel"
     },
     {
      "name": "Libération",
      "color": "#e2001a",
-     "url": "https://www.liberation.fr/arc/outboundfeeds/rss-all/?outputType=xml"
+     "url": "https://www.liberation.fr/arc/outboundfeeds/rss-all/?outputType=xml",
+     "payant": "partiel"
     },
     {
      "name": "20 Minutes",
      "color": "#0b5fb4",
-     "url": "https://www.20minutes.fr/feeds/rss-une.xml"
+     "url": "https://www.20minutes.fr/feeds/rss-une.xml",
+     "payant": "non"
     }
    ]
   },
@@ -38,17 +43,20 @@
     {
      "name": "France Info",
      "color": "#f2b705",
-     "url": "https://www.francetvinfo.fr/france.rss"
+     "url": "https://www.francetvinfo.fr/france.rss",
+     "payant": "non"
     },
     {
      "name": "Le Monde",
      "color": "#2b2b2b",
-     "url": "https://www.lemonde.fr/politique/rss_full.xml"
+     "url": "https://www.lemonde.fr/politique/rss_full.xml",
+     "payant": "partiel"
     },
     {
      "name": "Le Figaro",
      "color": "#163860",
-     "url": "https://www.lefigaro.fr/rss/figaro_politique.xml"
+     "url": "https://www.lefigaro.fr/rss/figaro_politique.xml",
+     "payant": "partiel"
     }
    ]
   },
@@ -59,17 +67,20 @@
     {
      "name": "France Info",
      "color": "#f2b705",
-     "url": "https://www.francetvinfo.fr/monde.rss"
+     "url": "https://www.francetvinfo.fr/monde.rss",
+     "payant": "non"
     },
     {
      "name": "Le Monde",
      "color": "#2b2b2b",
-     "url": "https://www.lemonde.fr/international/rss_full.xml"
+     "url": "https://www.lemonde.fr/international/rss_full.xml",
+     "payant": "partiel"
     },
     {
      "name": "Courrier international",
      "color": "#c8102e",
-     "url": "https://www.courrierinternational.com/feed/all/rss.xml"
+     "url": "https://www.courrierinternational.com/feed/all/rss.xml",
+     "payant": "oui"
     }
    ]
   },
@@ -84,7 +95,8 @@
      "site": "https://www.lesechos.fr/",
      "alt": [
       "https://news.google.com/rss/search?q=site:lesechos.fr&hl=fr&gl=FR&ceid=FR:fr"
-     ]
+     ],
+     "payant": "oui"
     },
     {
      "name": "La Tribune",
@@ -93,22 +105,26 @@
      "site": "https://www.latribune.fr/",
      "alt": [
       "https://news.google.com/rss/search?q=site:latribune.fr&hl=fr&gl=FR&ceid=FR:fr"
-     ]
+     ],
+     "payant": "partiel"
     },
     {
      "name": "L'Usine Nouvelle",
      "color": "#f08a00",
-     "url": "https://www.usinenouvelle.com/rss/"
+     "url": "https://www.usinenouvelle.com/rss/",
+     "payant": "oui"
     },
     {
      "name": "France Info",
      "color": "#f2b705",
-     "url": "https://www.francetvinfo.fr/economie.rss"
+     "url": "https://www.francetvinfo.fr/economie.rss",
+     "payant": "non"
     },
     {
      "name": "Le Monde",
      "color": "#2b2b2b",
-     "url": "https://www.lemonde.fr/economie/rss_full.xml"
+     "url": "https://www.lemonde.fr/economie/rss_full.xml",
+     "payant": "partiel"
     }
    ]
   },
@@ -119,12 +135,14 @@
     {
      "name": "L'Équipe",
      "color": "#e30613",
-     "url": "https://dwh.lequipe.fr/api/edito/rss?path=/"
+     "url": "https://dwh.lequipe.fr/api/edito/rss?path=/",
+     "payant": "partiel"
     },
     {
      "name": "L'Équipe Rugby",
      "color": "#a3121a",
-     "url": "https://dwh.lequipe.fr/api/edito/rss?path=/Rugby/"
+     "url": "https://dwh.lequipe.fr/api/edito/rss?path=/Rugby/",
+     "payant": "partiel"
     },
     {
      "name": "RMC Sport",
@@ -133,12 +151,14 @@
      "site": "https://rmcsport.bfmtv.com/",
      "alt": [
       "https://news.google.com/rss/search?q=site:rmcsport.bfmtv.com&hl=fr&gl=FR&ceid=FR:fr"
-     ]
+     ],
+     "payant": "non"
     },
     {
      "name": "France Info",
      "color": "#f2b705",
-     "url": "https://www.francetvinfo.fr/sports.rss"
+     "url": "https://www.francetvinfo.fr/sports.rss",
+     "payant": "non"
     }
    ]
   },
@@ -149,22 +169,26 @@
     {
      "name": "Numerama",
      "color": "#e4007c",
-     "url": "https://www.numerama.com/feed/"
+     "url": "https://www.numerama.com/feed/",
+     "payant": "non"
     },
     {
      "name": "Les Numériques",
      "color": "#0a8f6a",
-     "url": "https://www.lesnumeriques.com/rss.xml"
+     "url": "https://www.lesnumeriques.com/rss.xml",
+     "payant": "non"
     },
     {
      "name": "Frandroid",
      "color": "#29a8e0",
-     "url": "https://www.frandroid.com/feed"
+     "url": "https://www.frandroid.com/feed",
+     "payant": "non"
     },
     {
      "name": "01net",
      "color": "#d6002a",
-     "url": "https://www.01net.com/feed/"
+     "url": "https://www.01net.com/feed/",
+     "payant": "non"
     }
    ]
   },
@@ -179,7 +203,8 @@
      "site": "https://www.letarnlibre.com/",
      "alt": [
       "https://news.google.com/rss/search?q=site:letarnlibre.com&hl=fr&gl=FR&ceid=FR:fr"
-     ]
+     ],
+     "payant": "non"
     },
     {
      "name": "La Dépêche Tarn",
@@ -189,12 +214,14 @@
      "hint": "tarn",
      "alt": [
       "https://news.google.com/rss/search?q=site:ladepeche.fr+Tarn&hl=fr&gl=FR&ceid=FR:fr"
-     ]
+     ],
+     "payant": "partiel"
     },
     {
      "name": "France 3 Occitanie",
      "color": "#1f5ba8",
-     "url": "https://france3-regions.franceinfo.fr/occitanie/rss"
+     "url": "https://france3-regions.franceinfo.fr/occitanie/rss",
+     "payant": "non"
     }
    ]
   },
@@ -208,7 +235,8 @@
      "url": "https://www.lemonde.fr/sciences/rss_full.xml",
      "alt": [
       "https://news.google.com/rss/search?q=site:lemonde.fr&hl=fr&gl=FR&ceid=FR:fr"
-     ]
+     ],
+     "payant": "partiel"
     }
    ]
   },
@@ -223,7 +251,8 @@
      "site": "https://www.cieletespace.fr/",
      "alt": [
       "https://news.google.com/rss/search?q=site:cieletespace.fr&hl=fr&gl=FR&ceid=FR:fr"
-     ]
+     ],
+     "payant": "partiel"
     }
    ]
   }
@@ -240,7 +269,8 @@
      "site": "https://www.lesechos.fr/finance-marches",
      "alt": [
       "https://news.google.com/rss/search?q=site:lesechos.fr/finance-marches&hl=fr&gl=FR&ceid=FR:fr"
-     ]
+     ],
+     "payant": "oui"
     },
     {
      "name": "Investir",
@@ -249,7 +279,8 @@
      "site": "https://investir.lesechos.fr/",
      "alt": [
       "https://news.google.com/rss/search?q=site:investir.lesechos.fr&hl=fr&gl=FR&ceid=FR:fr"
-     ]
+     ],
+     "payant": "oui"
     },
     {
      "name": "Boursorama",
@@ -258,7 +289,8 @@
      "site": "https://www.boursorama.com/bourse/actualites/",
      "alt": [
       "https://news.google.com/rss/search?q=site:boursorama.com/bourse/actualites&hl=fr&gl=FR&ceid=FR:fr"
-     ]
+     ],
+     "payant": "non"
     },
     {
      "name": "Zonebourse",
@@ -267,7 +299,8 @@
      "site": "https://www.zonebourse.com/",
      "alt": [
       "https://news.google.com/rss/search?q=site:zonebourse.com&hl=fr&gl=FR&ceid=FR:fr"
-     ]
+     ],
+     "payant": "partiel"
     },
     {
      "name": "AMF",
@@ -276,7 +309,8 @@
      "site": "https://www.amf-france.org/fr/actualites-publications",
      "alt": [
       "https://news.google.com/rss/search?q=site:amf-france.org&hl=fr&gl=FR&ceid=FR:fr"
-     ]
+     ],
+     "payant": "non"
     }
    ]
   }
@@ -289,27 +323,32 @@
     {
      "name": "BBC News",
      "color": "#bb1919",
-     "url": "https://feeds.bbci.co.uk/news/rss.xml"
+     "url": "https://feeds.bbci.co.uk/news/rss.xml",
+     "payant": "non"
     },
     {
      "name": "Sky News",
      "color": "#c4122f",
-     "url": "https://feeds.skynews.com/feeds/rss/home.xml"
+     "url": "https://feeds.skynews.com/feeds/rss/home.xml",
+     "payant": "non"
     },
     {
      "name": "Euronews",
      "color": "#0b3c8c",
-     "url": "https://www.euronews.com/rss?format=mrss&level=theme&name=news"
+     "url": "https://www.euronews.com/rss?format=mrss&level=theme&name=news",
+     "payant": "non"
     },
     {
      "name": "The Guardian",
      "color": "#052962",
-     "url": "https://www.theguardian.com/international/rss"
+     "url": "https://www.theguardian.com/international/rss",
+     "payant": "non"
     },
     {
      "name": "New York Times",
      "color": "#2b2b2b",
-     "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"
+     "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
+     "payant": "oui"
     },
     {
      "name": "Wall Street Journal",
@@ -317,7 +356,8 @@
      "url": "https://feeds.content.dowjones.io/public/rss/RSSWorldNews",
      "alt": [
       "https://news.google.com/rss/search?q=site:wsj.com&hl=en-US&gl=US&ceid=US:en"
-     ]
+     ],
+     "payant": "oui"
     }
    ]
   },
@@ -328,7 +368,8 @@
     {
      "name": "France 24",
      "color": "#00a3e0",
-     "url": "https://www.france24.com/en/france/rss"
+     "url": "https://www.france24.com/en/france/rss",
+     "payant": "non"
     },
     {
      "name": "RFI",
@@ -336,7 +377,8 @@
      "url": "https://www.rfi.fr/en/france/rss",
      "alt": [
       "https://news.google.com/rss/search?q=site:rfi.fr/en&hl=en-US&gl=US&ceid=US:en"
-     ]
+     ],
+     "payant": "non"
     },
     {
      "name": "The Local",
@@ -345,7 +387,8 @@
      "site": "https://www.thelocal.fr/",
      "alt": [
       "https://news.google.com/rss/search?q=site:thelocal.fr&hl=en-US&gl=US&ceid=US:en"
-     ]
+     ],
+     "payant": "non"
     }
    ]
   },
@@ -356,32 +399,38 @@
     {
      "name": "BBC News",
      "color": "#bb1919",
-     "url": "https://feeds.bbci.co.uk/news/world/rss.xml"
+     "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
+     "payant": "non"
     },
     {
      "name": "The Guardian",
      "color": "#052962",
-     "url": "https://www.theguardian.com/world/rss"
+     "url": "https://www.theguardian.com/world/rss",
+     "payant": "non"
     },
     {
      "name": "New York Times",
      "color": "#2b2b2b",
-     "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
+     "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+     "payant": "oui"
     },
     {
      "name": "Sky News",
      "color": "#c4122f",
-     "url": "https://feeds.skynews.com/feeds/rss/world.xml"
+     "url": "https://feeds.skynews.com/feeds/rss/world.xml",
+     "payant": "non"
     },
     {
      "name": "Wall Street Journal",
      "color": "#0274b6",
-     "url": "https://feeds.content.dowjones.io/public/rss/RSSWorldNews"
+     "url": "https://feeds.content.dowjones.io/public/rss/RSSWorldNews",
+     "payant": "oui"
     },
     {
      "name": "Al Jazeera",
      "color": "#d39c1f",
-     "url": "https://www.aljazeera.com/xml/rss/all.xml"
+     "url": "https://www.aljazeera.com/xml/rss/all.xml",
+     "payant": "non"
     }
    ]
   },
@@ -395,7 +444,8 @@
      "url": "https://www.ft.com/rss/home",
      "alt": [
       "https://news.google.com/rss/search?q=site:ft.com&hl=en-US&gl=US&ceid=US:en"
-     ]
+     ],
+     "payant": "oui"
     },
     {
      "name": "The Economist",
@@ -403,7 +453,8 @@
      "url": "https://www.economist.com/finance-and-economics/rss.xml",
      "alt": [
       "https://news.google.com/rss/search?q=site:economist.com&hl=en-US&gl=US&ceid=US:en"
-     ]
+     ],
+     "payant": "oui"
     },
     {
      "name": "Wall Street Journal",
@@ -411,12 +462,14 @@
      "url": "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain",
      "alt": [
       "https://news.google.com/rss/search?q=site:wsj.com&hl=en-US&gl=US&ceid=US:en"
-     ]
+     ],
+     "payant": "oui"
     },
     {
      "name": "BBC News",
      "color": "#bb1919",
-     "url": "https://feeds.bbci.co.uk/news/business/rss.xml"
+     "url": "https://feeds.bbci.co.uk/news/business/rss.xml",
+     "payant": "non"
     }
    ]
   },
@@ -427,17 +480,20 @@
     {
      "name": "BBC Sport",
      "color": "#e8b400",
-     "url": "https://feeds.bbci.co.uk/sport/rss.xml"
+     "url": "https://feeds.bbci.co.uk/sport/rss.xml",
+     "payant": "non"
     },
     {
      "name": "The Guardian",
      "color": "#052962",
-     "url": "https://www.theguardian.com/uk/sport/rss"
+     "url": "https://www.theguardian.com/uk/sport/rss",
+     "payant": "non"
     },
     {
      "name": "Sky Sports",
      "color": "#d0021b",
-     "url": "https://www.skysports.com/rss/12040"
+     "url": "https://www.skysports.com/rss/12040",
+     "payant": "non"
     }
    ]
   },
@@ -448,17 +504,20 @@
     {
      "name": "The Verge",
      "color": "#5200ff",
-     "url": "https://www.theverge.com/rss/index.xml"
+     "url": "https://www.theverge.com/rss/index.xml",
+     "payant": "partiel"
     },
     {
      "name": "Ars Technica",
      "color": "#ff4e00",
-     "url": "https://feeds.arstechnica.com/arstechnica/index"
+     "url": "https://feeds.arstechnica.com/arstechnica/index",
+     "payant": "non"
     },
     {
      "name": "BBC News",
      "color": "#bb1919",
-     "url": "https://feeds.bbci.co.uk/news/technology/rss.xml"
+     "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+     "payant": "non"
     }
    ]
   }
