@@ -22,6 +22,12 @@ Adresse publique (lisible dans la page) : risque = faux joueurs dans le tableur,
 À chaque ouverture (lien d'invitation ou dock) : accueil avec trois cartes, **Pronos**, **Paris**, **Règles** (la page des règles reprend tout ce qui suit, en clair pour les amis).
 Un invité non inscrit voit la carte Règles et le formulaire.
 
+## Matchs en cours (v73)
+- Dès le coup d'envoi, la carte montre le **vrai score** (minute ou « Mi-temps » à gauche) et, dessous, ton prono avec les points qu'il rapporterait si le
+  match s'arrêtait là (« pour l'instant »). Les pronos des autres apparaissent en pointillé tant que c'est provisoire.
+- NBA, NFL : le score et si ton vainqueur **mène** ou **est mené**. Paris : le score et si ton pari **gagne** ou **perd** pour l'instant.
+- Le score vient d'ESPN, relu toutes les minutes quand la page est ouverte. Le classement, lui, ne compte que les matchs terminés (mis à jour par la tâche Sport).
+
 ## Points (v62 : rugby)
 - **Foot** : score exact 3, bon résultat (vainqueur ou nul) 1, sinon 0.
 - **Rugby** (compétition à identifiant ESPN sans point : Top 14…) : bon résultat 1 ; parmi les joueurs qui ont le bon résultat, le plus proche du score prend 3

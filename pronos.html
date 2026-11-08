@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="6cf3684e">
+<meta name="mon-ecran-version" content="4f4ff9f1">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -328,6 +328,16 @@ html.desk .f-sheet{border-radius:26px}
 .p-cd{font-variant-numeric:tabular-nums}
 .p-cd.urgent{color:#d4572e;font-weight:700}
 .p-live{color:#d63c3c;font-weight:700}
+.p-live::first-letter{animation:pouls 1.6s ease-in-out infinite}
+@keyframes pouls{50%{opacity:.25}}
+/* v73 : score en direct à la place de son prono, et points « pour l'instant » */
+.p-vrai{display:grid;place-items:center;min-width:46px;height:52px;font-size:1.7rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink)}
+.p-m.direct .p-vrai{color:#d63c3c}
+.p-moi-pr{font-size:.78rem;color:var(--ink-soft);display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.p-moi-pr b{color:var(--ink);font-variant-numeric:tabular-nums}
+.p-chip.prov{border-style:dashed}
+.p-vs:has(.p-vrai){max-width:none}
+.p-vs .p-vrai{height:auto;font-size:1.25rem;white-space:nowrap;letter-spacing:0}
 .pop{display:inline-block;animation:pop .45s ease-out}
 @keyframes pop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.18);opacity:1}100%{transform:none}}
 .p-chips{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:6px}
@@ -561,6 +571,60 @@ function points(p, m){
   const min = Math.min(ecart(p), ...Object.values((ETAT.pronos || {})[m.id] || {}).filter(bon).map(ecart));
   return ecart(p) <= min ? 3 : 1;
 }
+
+/* ---------- v73 : scores en direct (ESPN, lus depuis la page comme sur la page Sport) ----------
+   Seulement pour les compétitions qui ont un match commencé depuis moins de 4 h et pas encore fini ; relu toutes les minutes, page visible.
+   Points « pour l'instant » : ceux qu'on aurait si le match s'arrêtait là ; le classement reste calculé sur les matchs terminés (tâche Sport). */
+const DIRECT = {};                                                   // id du match → {h, a, state, detail, at}
+const SPORT_DE = id => id === 'nba' ? 'basketball' : id === 'nfl' ? 'football' : RUGBY({league:id}) ? 'rugby' : 'soccer';
+const ymdL = t => { const d = new Date(t); return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`; };
+const DETAIL = {HT:'Mi-temps', Halftime:'Mi-temps', FT:'Terminé', Final:'Terminé', 'Final/OT':'Terminé (prol.)', AET:'Terminé (prol.)', 'FT-Pens':'Terminé (t.a.b.)', Half:'Mi-temps'};
+const detailFr = d => DETAIL[d] || String(d)                         // NBA, NFL : « 5:21 - 3rd » → « 3e qt 5:21 »
+  .replace(/^(\d+:\d+) - (\d)(?:st|nd|rd|th)$/, '$2e qt $1').replace(/^End of (\d)(?:st|nd|rd|th)(?: Quarter)?$/, 'Fin du $1e qt').replace(/^(\d+:\d+) - OT$/, 'Prol. $1');
+function candidatsDirect(){
+  const now = Date.now(), l = [...MATCHS, ...PLUSM].map(m => ({id:String(m.id), league:m.league, t:m.t, state:m.state}));
+  Object.entries((PARIS && PARIS.cotes) || {}).forEach(([id, c]) => l.push({id, league:c.lg, t:c.t, state:(JOURS[id] || {}).state}));
+  return l.filter(m => m.t <= now && now - m.t < 4 * 3600e3 && m.state !== 'post' && !(DIRECT[m.id] && DIRECT[m.id].state === 'post'));
+}
+async function lireDirects(){
+  const c = candidatsDirect(), ligues = [...new Set(c.map(m => m.league).filter(Boolean))]; if (!ligues.length) return false;
+  const ids = new Set(c.map(m => m.id)), avant = JSON.stringify(DIRECT), now = Date.now();
+  await Promise.all(ligues.map(async lg => { for (const d of [...new Set([ymdL(now - 864e5), ymdL(now)])]){
+    try{
+      const j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${SPORT_DE(lg)}/${lg}/scoreboard?dates=${d}&limit=200`)).json();
+      (j.events || []).forEach(ev => { if (!ids.has(String(ev.id))) return;
+        const k = (ev.competitions || [])[0] || {}, st = (ev.status || k.status || {}), ty = st.type || {}, eq = k.competitors || [];
+        const cote = h => eq.find(x => x.homeAway === h) || {};
+        if (cote('home').score == null || cote('away').score == null || ty.state === 'pre') return;
+        const det = ty.shortDetail || st.displayClock || '';
+        DIRECT[ev.id] = {h:+cote('home').score, a:+cote('away').score, state:ty.state, detail:detailFr(det), at:now}; });
+    }catch{}
+  } }));
+  return JSON.stringify(DIRECT) !== avant;
+}
+/* score à montrer pour un match commencé : direct d'ESPN, sinon les données de la tâche Sport ; null si rien */
+function vivant(m){
+  const d = DIRECT[String(m.id)]; if (d) return d;
+  const H = m.home && m.home.score, A = m.away && m.away.score;
+  if ((m.state === 'in' || m.state === 'post') && H !== '' && H != null && A !== '' && A != null) return {h:+H, a:+A, state:m.state, detail:m.state === 'post' ? 'Terminé' : ''};
+  return null;
+}
+const enDirect = (m, d) => ({...m, state:'post', home:{...m.home, score:d.h}, away:{...m.away, score:d.a}});
+const mPoints = m => m.state === 'post' ? m : (vivant(m) ? enDirect(m, vivant(m)) : m);   // match tel qu'il est maintenant
+function etatDirect(m){
+  const d = vivant(m);
+  if (d && d.state === 'post') return '<span class="p-fini">🏁 Terminé</span>';
+  if (d || m.state === 'in') return `<span class="p-live">● ${esc((d && d.detail) || 'En direct')}</span>`;
+  return '🔒 Commencé';
+}
+const provBadge = (pt, fini) => pt == null ? '' : `${badge(pt)}<small>${fini ? 'en attente du classement' : 'pour l\'instant'}</small>`;
+let MAJ_ATTENTE = false;
+function majVue(){                                                   // pas pendant une saisie (score, mise) : au passage suivant
+  const a = document.activeElement;
+  if (a && a.closest && a.closest('#out') && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)){ MAJ_ATTENTE = true; return; }
+  MAJ_ATTENTE = false; rendre();
+}
+setInterval(async () => { if (document.hidden || !BASE.moi() || SIM) return; if (await lireDirects() || MAJ_ATTENTE) majVue(); }, 60e3);
 
 /* ---------- avatars : « emoji|n° de couleur » ---------- */
 const EMOJIS = ['🦊', '🐺', '🦁', '🐯', '🐻', '🐼', '🐨', '🦅', '🐙', '🦄', '🐸', '🐲', '🤖', '👽', '🔥', '⚡'];
@@ -1059,21 +1123,28 @@ const interInfos = () => `<label class="x-on p-infos glass"><span><b>📊 Forme 
   ? 'Rang, points et 5 derniers matchs : <span class="p-leg"><em class="v"></em> victoire <em class="n"></em> nul <em class="d"></em> défaite</span>' : 'Masqué · pour t\'aider à choisir'}</small></span><input type="checkbox" role="switch" data-infos${INFOS ? ' checked' : ''} aria-label="Forme et classement des équipes"></label>`;
 function matchVainqueur(m, me){                 // v68 : NBA, NFL : deux boutons, le vainqueur
   const now = Date.now(), c = choixV(monProno(m, me)), ferme = now >= m.t;
-  const gauche = ferme ? (m.state === 'in' ? '<span class="p-live">● En direct</span>' : '🔒 Commencé') : `<span class="p-cd${m.t - now < 3600e3 ? ' urgent' : ''}" data-cd="${m.t}" data-pre="⏳ ">⏳ ${esc(compte(m.t))}</span>`;
+  const gauche = ferme ? etatDirect(m) : `<span class="p-cd${m.t - now < 3600e3 ? ' urgent' : ''}" data-cd="${m.t}" data-pre="⏳ ">⏳ ${esc(compte(m.t))}</span>`;
   const eq = (k, t) => `<button type="button" class="p-eq p-vb" data-vq="${k}" aria-pressed="${c === k}"${ferme ? ' disabled' : ''}>${logoEq(m, t)}<span>${esc(t.name)}</span>${infoEq(m, t)}${c === k ? '<i>🏆</i>' : ''}</button>`;
-  return `<div class="p-m p-mv" data-m="${esc(m.id)}">${eq('h', m.home)}<span class="p-vs">${ferme || c ? '' : 'Qui gagne ?'}</span>${eq('a', m.away)}
-    <div class="p-pied">${gauche}<span data-etat>${!ferme && c ? '<span class="ok">✓ enregistré</span>' : ''}</span>${ferme ? '' : quiHTML(m, me)}</div>
+  const d = ferme ? vivant(m) : null, mene = d ? (d.h > d.a ? 'h' : d.h < d.a ? 'a' : '') : '';   // v73 : score en direct, ton vainqueur mène ?
+  const moi = d ? `<span class="p-moi-pr">${c ? `🏆 <b>${esc(nomV(m, monProno(m, me)))}</b> ${d.state === 'post' ? provBadge(points(monProno(m, me), enDirect(m, d)), true)
+    : mene === c ? '<span class="p-bd p3">mène</span>' : mene ? '<span class="p-bd p0">est mené</span>' : '<span class="p-bd p0">égalité</span>'}` : 'Pas de prono'}</span>` : '';
+  return `<div class="p-m p-mv${d && d.state !== 'post' ? ' direct' : ''}" data-m="${esc(m.id)}">${eq('h', m.home)}<span class="p-vs">${d ? `<b class="p-vrai">${d.h} – ${d.a}</b>` : ferme || c ? '' : 'Qui gagne ?'}</span>${eq('a', m.away)}
+    <div class="p-pied">${gauche}<span data-etat>${!ferme && c ? '<span class="ok">✓ enregistré</span>' : moi}</span>${ferme ? '' : quiHTML(m, me)}</div>
     ${ferme ? `<div class="p-chips">${autresHTML(m, me) || '<span class="note">Aucun prono</span>'}</div>` : ''}</div>`;
 }
 function matchJouer(m, me){
   if (VAINQUEUR(m)) return matchVainqueur(m, me);
   const now = Date.now(), p = monProno(m, me) || ['', ''], ferme = now >= m.t;
-  const gauche = ferme ? (m.state === 'in' ? '<span class="p-live">● En direct</span>' : '🔒 Commencé') : `<span class="p-cd${m.t - now < 3600e3 ? ' urgent' : ''}" data-cd="${m.t}" data-pre="⏳ ">⏳ ${esc(compte(m.t))}</span>`;
-  return `<div class="p-m" data-m="${esc(m.id)}">
+  const gauche = ferme ? etatDirect(m) : `<span class="p-cd${m.t - now < 3600e3 ? ' urgent' : ''}" data-cd="${m.t}" data-pre="⏳ ">⏳ ${esc(compte(m.t))}</span>`;
+  const d = ferme ? vivant(m) : null;                                // v73 : commencé → le vrai score au centre, son prono dessous
+  const centre = d ? `<div class="p-st"><b class="p-vrai" aria-label="${esc(m.home.name)} ${d.h}">${d.h}</b></div><span class="p-sep">–</span><div class="p-st"><b class="p-vrai" aria-label="${esc(m.away.name)} ${d.a}">${d.a}</b></div>`
+    : `${scoreHTML(m, p, 0, ferme)}<span class="p-sep">:</span>${scoreHTML(m, p, 1, ferme)}`;
+  const moi = d ? `<span class="p-moi-pr">${p[0] !== '' ? `Ton prono <b>${esc(p[0])}–${esc(p[1])}</b> ${provBadge(points(p, enDirect(m, d)), d.state === 'post')}` : 'Pas de prono'}</span>` : '';
+  return `<div class="p-m${d && d.state !== 'post' ? ' direct' : ''}" data-m="${esc(m.id)}">
     <div class="p-eq">${logoEq(m, m.home)}<span>${esc(m.home.name)}</span>${infoEq(m, m.home)}</div>
-    ${scoreHTML(m, p, 0, ferme)}<span class="p-sep">:</span>${scoreHTML(m, p, 1, ferme)}
+    ${centre}
     <div class="p-eq">${logoEq(m, m.away)}<span>${esc(m.away.name)}</span>${infoEq(m, m.away)}</div>
-    <div class="p-pied">${gauche}<span data-etat>${!ferme && p[0] !== '' ? '<span class="ok">✓ enregistré</span>' : ''}</span>${ferme ? '' : quiHTML(m, me)}</div>
+    <div class="p-pied">${gauche}<span data-etat>${!ferme && p[0] !== '' ? '<span class="ok">✓ enregistré</span>' : moi}</span>${ferme ? '' : quiHTML(m, me)}</div>
     ${ferme ? `<div class="p-chips">${autresHTML(m, me) || '<span class="note">Aucun prono</span>'}</div>` : ''}</div>`;
 }
 function jouerHTML(me){
@@ -1082,8 +1153,9 @@ function jouerHTML(me){
 }
 function autresHTML(m, me, sansMoi){
   const l = Object.entries(ETAT.pronos[m.id] || {}).filter(([n]) => !(sansMoi && n === me.pseudo));
-  return l.sort(([a], [b]) => (b === me.pseudo) - (a === me.pseudo)).map(([n, p]) => { const pt = points(p, m);
-    return `<span class="p-chip${n === me.pseudo ? ' moi' : ''}${pt === 3 ? ' p3' : pt === 1 ? ' p1' : ''}">${avHTML(n)}${esc(n)} <b>${VAINQUEUR(m) ? '🏆 ' + esc(nomV(m, p)) : `${esc(p[0])}–${esc(p[1])}`}</b>${pt ? ` · +${pt}` : ''}</span>`; }).join('');
+  const mm = mPoints(m), prov = m.state !== 'post' && mm !== m;           // v73 : en direct, points « pour l'instant » (pastilles en pointillé)
+  return l.sort(([a], [b]) => (b === me.pseudo) - (a === me.pseudo)).map(([n, p]) => { const pt = points(p, mm);
+    return `<span class="p-chip${n === me.pseudo ? ' moi' : ''}${pt === 3 ? ' p3' : pt === 1 ? ' p1' : ''}${prov ? ' prov' : ''}">${avHTML(n)}${esc(n)} <b>${VAINQUEUR(m) ? '🏆 ' + esc(nomV(m, p)) : `${esc(p[0])}–${esc(p[1])}`}</b>${pt ? ` · +${pt}` : ''}</span>`; }).join('');
 }
 const badge = (pt, rugby) => pt === 3 ? `<span class="p-bd p3">🎯 +3${rugby ? ' · le plus proche' : ''}</span>` : pt === 1 ? '<span class="p-bd p1">✓ +1</span>' : '<span class="p-bd p0">✗ 0</span>';
 function resHTML(me){
@@ -1203,16 +1275,16 @@ function matchParisHTML(m, me, x, now){
   const bt = (k, i, lib) => `<button type="button" class="pa-b${sel === k ? ' on' : ''}" data-ch="${k}" aria-pressed="${sel === k}"${ferme ? ' disabled' : ''}><span>${esc(lib)}</span><b>${cote(m.c[i])}</b></button>`;
   const qui = ((PARIS.qui || {})[m.id] || []).filter(n => n !== me.pseudo);
   const autres = (PARIS.paris || []).filter(y => y.match === m.id && y.p !== me.pseudo);
-  const gauche = ferme ? (m.state === 'in' ? '<span class="p-live">● En direct</span>' : '🔒 Commencé') : `<span class="p-cd${m.t - now < 3600e3 ? ' urgent' : ''}" data-cd="${m.t}" data-pre="⏳ ">⏳ ${esc(compte(m.t))}</span>`;
+  const gauche = ferme ? etatDirect(m) : `<span class="p-cd${m.t - now < 3600e3 ? ' urgent' : ''}" data-cd="${m.t}" data-pre="⏳ ">⏳ ${esc(compte(m.t))}</span>`;
   let corps = '';
   if (ch && !ferme){
     const dispo = x.solde + (p ? p.mise : 0), c = m.c['hda'.indexOf(ch.choix)];
     corps = `<div class="pa-mise"><div class="pa-chips">${[5, 10, 25].filter(v => v < dispo).map(v => `<button type="button" data-mise="${v}">${v}</button>`).join('')}<button type="button" data-mise="${dispo}">Tout (${dispo})</button></div>
       <div class="pa-ligne"><label class="champ">Mise sur ${esc(libChoix(ch.choix, m))}<input inputmode="numeric" maxlength="4" value="${ch.mise}" data-c="${c}"></label><span class="pa-gain">Gain possible<b data-gain>${Math.round(ch.mise * c)}</b></span></div>
       <div class="btns"><button type="button" class="btn main" data-valider>${p ? 'Modifier le pari' : 'Valider'}</button>${p ? '<button type="button" class="btn" data-annuler>Annuler le pari</button>' : ''}<button type="button" class="btn" data-fermer>Fermer</button></div><p class="msg" data-pmsg role="status"></p></div>`;
-  } else if (p) corps = `<div class="pa-moi">✓ <b>${p.mise}</b> sur ${esc(libChoix(p.choix, m))} à ${cote(p.cote)} → <b>${Math.round(p.mise * p.cote)}</b> possibles${ferme ? '' : ' <button type="button" class="pa-lien" data-modifier>Modifier</button>'}</div>`;
-  return `<div class="p-m pa-m" data-pm="${esc(m.id)}">
-    <div class="p-eq">${logoEq(m, m.home)}<span>${esc(m.home.name)}</span>${infoEq(m, m.home)}</div><div class="pa-h">${esc(hm(m.t))}</div><div class="p-eq">${logoEq(m, m.away)}<span>${esc(m.away.name)}</span>${infoEq(m, m.away)}</div>
+  } else if (p) corps = `<div class="pa-moi">✓ <b>${p.mise}</b> sur ${esc(libChoix(p.choix, m))} à ${cote(p.cote)} → <b>${Math.round(p.mise * p.cote)}</b> possibles${ferme ? (dv => !dv ? '' : (r => ` · <span class="p-bd ${p.choix === r ? 'p3' : 'p0'}">${p.choix === r ? 'gagne' : 'perd'} ${dv.state === 'post' ? '(en attente du règlement)' : 'pour l\'instant'}</span>`)(dv.h > dv.a ? 'h' : dv.h < dv.a ? 'a' : 'd'))(vivant(m)) : ' <button type="button" class="pa-lien" data-modifier>Modifier</button>'}</div>`;
+  return `<div class="p-m pa-m${ferme && vivant(m) && vivant(m).state !== 'post' ? ' direct' : ''}" data-pm="${esc(m.id)}">
+    <div class="p-eq">${logoEq(m, m.home)}<span>${esc(m.home.name)}</span>${infoEq(m, m.home)}</div><div class="pa-h">${ferme && vivant(m) ? `<b class="p-vrai">${vivant(m).h} – ${vivant(m).a}</b>` : esc(hm(m.t))}</div><div class="p-eq">${logoEq(m, m.away)}<span>${esc(m.away.name)}</span>${infoEq(m, m.away)}</div>
     <div class="pa-c">${bt('h', 0, '1')}${bt('d', 1, 'N')}${bt('a', 2, '2')}</div>
     ${corps}
     <div class="p-pied">${gauche}${!ferme && qui.length ? `<span class="p-qui"><span class="p-pile">${qui.slice(0, 5).map(n => avHTML(n)).join('')}</span> ${qui.length} ${qui.length > 1 ? 'ont parié' : 'a parié'}</span>` : ''}</div>
@@ -1302,7 +1374,8 @@ async function actualiser(){
         else PANNE = 'Serveur des pronos injoignable : les pronos affichés peuvent être incomplets. Réessaie avec ↻.'; } } }
     if (SECTION === 'paris' && BASE.moi() && !SIM) await chargerParis();                 // v60
     else if (BASE.moi() && !SIM) chargerParis().then(() => { if (SECTION === 'accueil' || SECTION === 'paris') rendre(); });   // v62 : résumé de l'accueil
-    rendre(); feterExacts(); }
+    rendre(); feterExacts();
+    if (!SIM) lireDirects().then(c => { if (c) majVue(); }); }                     // v73 : scores en direct
   finally{ $('#refreshBtn').classList.remove('spin'); }
 }
 document.addEventListener('submit', async e => {
