@@ -1,8 +1,9 @@
 {
- "lot": "v70",
- "date": "2026-11-08T10:09:33+00:00",
+ "lot": "v71",
+ "date": "2026-11-08T10:38:52+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
+  ".github/workflows/appli-ios.yml": "71fe94d4",
   ".github/workflows/configuration.yml": "c5aae0f5",
   ".github/workflows/cotes-mail.yml": "a397db3f",
   ".github/workflows/cotes.yml": "98c5ad67",
@@ -14,6 +15,7 @@
   ".github/workflows/tv.yml": "a0b896b9",
   ".github/workflows/videos.yml": "1faae103",
   "actus.html": "0f59bdea",
+  "appli-ios/project.yml": "82d4cbb5",
   "cachee.html": "968873fe",
   "commun.js": "fc411b5f",
   "ecarts.html": "85079838",

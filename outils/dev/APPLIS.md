@@ -24,3 +24,21 @@ Sans ce pont, tout marche comme sur le web : chaque crochet ci-dessous n'est uti
 4. **TV** : implémenter `MonEcranNatif.tv` (petit serveur local de l'appli, comme `outils/tv-relais.mjs`) ; iOS : autoriser le http pour les flux (ATS, `NSAllowsArbitraryLoads` limité aux médias).
 5. **Spotify** : déclarer `retourSpotify` dans le tableau de bord Spotify ; l'accueil lit déjà `?code=` au retour.
 6. **iOS** : `DecompressionStream` (catalogue TV) demande iOS 16.4 ou plus.
+
+## Essai iOS sans Mac (v71)
+Coquille SwiftUI + `WKWebView` dans `appli-ios/` (`KiosK/KiosKApp.swift`, projet `project.yml` pour XcodeGen, icône `icone-1024.png` tirée de `icone-512.png`).
+Elle affiche le dock publié (`KioskURL` = `https://<compte>.github.io/<dépôt>/`, calculée par la tâche : un dépôt renommé suit tout seul).
+Pages du dock dans l'appli ; tout le reste (autres sites, schémas `whatsapp://`, `weather://`…) confié à iOS ; liens « nouvel onglet » → Safari ;
+`alert` / `confirm` en boîtes iOS ; message « Pas de réseau » si l'ouverture échoue. Pas encore de pont `MonEcranNatif` : les pages marchent comme sur le web.
+Mémoire de l'appli à part de Safari : favoris, réglages et compte Pronos reviennent par la synchronisation (page État) ou le lien de reconnexion des Pronos.
+
+Fabrication : tâche « Appli iOS (essai) » (`.github/workflows/appli-ios.yml`, à déposer à la main ; lancée à la main) sur un Mac de GitHub
+(gratuit pour un dépôt public) : XcodeGen → `xcodebuild` sans signature → `KiosK.ipa` dans les Artifacts du passage (gardé 14 jours).
+
+Installation depuis un PC Windows (identifiant Apple gratuit) :
+1. iPhone : Réglages › Confidentialité et sécurité › Mode développeur → activé (l'iPhone redémarre).
+2. PC : installer iTunes et iCloud (versions du site d'Apple, pas celles du Microsoft Store, liens sur sideloadly.io) puis Sideloadly ; brancher l'iPhone en USB, « Faire confiance ».
+3. GitHub : Actions › « Appli iOS (essai) » › Run workflow ; à la fin, télécharger « KiosK-ipa » (un .zip) et en sortir KiosK.ipa.
+4. Sideloadly : glisser KiosK.ipa, choisir l'iPhone, taper l'identifiant Apple, Start (mot de passe, code de double authentification).
+5. iPhone : Réglages › Général › VPN et gestion de l'appareil › ton identifiant › Faire confiance. L'icône KiosK s'ouvre.
+Limites du compte gratuit : l'appli s'arrête au bout de 7 jours (refaire l'étape 4, ou laisser la réinstallation automatique de Sideloadly ; la mémoire de l'appli est gardée), 3 applis de ce type au plus.

@@ -1,0 +1,48 @@
+# mon-ecran-version: 82d4cbb5
+# KiosK — appli iOS d'essai (v71) : une coquille qui affiche le dock publié (GitHub Pages) en plein écran.
+# Projet Xcode fabriqué par XcodeGen sur le Mac de GitHub (tâche « Appli iOS (essai) », .github/workflows/appli-ios.yml).
+# Adresse du dock : réglage KIOSK_URL, donné par la tâche d'après le nom du dépôt (https://<compte>.github.io/<dépôt>/).
+name: KiosK
+options:
+  bundleIdPrefix: io.github.kiosk
+  deploymentTarget:
+    iOS: "16.4"
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    KIOSK_URL: "https://zyavo.github.io/iPhone-Dock/"
+targets:
+  KiosK:
+    type: application
+    platform: iOS
+    sources:
+      - KiosK
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.kiosk.dock
+        PRODUCT_NAME: KiosK
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: "NO"
+    info:
+      path: KiosK/Info.plist
+      properties:
+        CFBundleDisplayName: KiosK
+        KioskURL: $(KIOSK_URL)
+        UILaunchScreen: {}
+        UIStatusBarStyle: UIStatusBarStyleDefault
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSLocationWhenInUseUsageDescription: "Pour la météo de l'endroit où tu te trouves."
+        NSCameraUsageDescription: "Pour prendre ta photo de profil des Pronos."
+        NSPhotoLibraryUsageDescription: "Pour choisir ta photo de profil des Pronos."
+        ITSAppUsesNonExemptEncryption: false
