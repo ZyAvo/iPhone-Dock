@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="62fea487">
+<meta name="mon-ecran-version" content="3b57e5d0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -296,6 +296,14 @@ html.desk .f-sheet{border-radius:26px}
 .p-pm{width:50px;height:30px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--accent);font-size:20px;font-weight:700;line-height:1;touch-action:manipulation}
 .p-pm:active{transform:scale(.92);background:color-mix(in oklab, var(--accent) 18%, var(--card))}
 .p-sep{font-size:22px;font-weight:700;color:var(--ink-soft)}
+.p-mv{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+.p-vb{font:inherit;font-size:.82rem;font-weight:600;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:10px 6px;cursor:pointer;position:relative;transition:transform .12s,border-color .15s,background .15s}
+.p-vb:active:not(:disabled){transform:scale(.97)}
+.p-vb[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--card));box-shadow:0 0 0 1px var(--accent) inset}
+.p-vb:disabled{cursor:default;opacity:1}
+.p-vb:disabled:not([aria-pressed="true"]){opacity:.55}
+.p-vb i{position:absolute;top:-8px;right:-6px;font-style:normal;font-size:1.1rem}
+.p-vs{font-size:.72rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;text-align:center;max-width:64px;line-height:1.2}
 .p-pied{grid-column:1 / -1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.75rem;color:var(--ink-soft)}
 .p-pied .p-qui{margin-left:auto;display:inline-flex;align-items:center;gap:6px}
 .p-cd{font-variant-numeric:tabular-nums}
@@ -517,13 +525,17 @@ function compte(t){                         // « dans 2 h 15 », « dans 40 min
 
 /* ---------- points ---------- */
 const issue = (h, a) => h > a ? 1 : h < a ? 2 : 0;
-const RUGBY = m => !/\./.test(m.league || '');                     // règle du plus proche : identifiant ESPN sans point (rugby 270559… ; v68 : NBA, NFL)
-const DEPART_SCORE = {nba:110, nfl:20};                              // v68 : premier « + » d'un score vide (NBA, NFL)
+const RUGBY = m => !/\./.test(m.league || '');                     // règle du plus proche : identifiant ESPN sans point (rugby 270559… ; NBA, NFL : VAINQUEUR passe avant)
+/* v68 : NBA et NFL : on choisit seulement le vainqueur (prono gardé en [1, 0] = domicile, [0, 1] = extérieur ; 1 point s'il gagne, nul NFL : 0) */
+const VAINQUEUR = m => m.league === 'nba' || m.league === 'nfl';
+const choixV = p => p ? (+p[0] > +p[1] ? 'h' : +p[0] < +p[1] ? 'a' : '') : '';
+const nomV = (m, p) => { const c = choixV(p); return c ? (c === 'h' ? m.home : m.away).name : '?'; };
 /* Foot : score exact 3, bon résultat 1. Rugby (v62) : bon résultat (vainqueur ou nul) 1 ; parmi eux, le plus proche du score 3
    (plus petite somme des écarts |dom − réel| + |ext − réel|, ex æquo : 3 chacun). Le rugby compare les pronos du match entre eux. */
 function points(p, m){
   if (!p || m.state !== 'post' || m.home.score === '' || m.away.score === '') return null;
   const H = +m.home.score, A = +m.away.score, bon = q => issue(+q[0], +q[1]) === issue(H, A);
+  if (VAINQUEUR(m)) return bon(p) ? 1 : 0;                           // v68 : NBA, NFL
   if (!RUGBY(m)) return +p[0] === H && +p[1] === A ? 3 : bon(p) ? 1 : 0;
   if (!bon(p)) return 0;
   const ecart = q => Math.abs(+q[0] - H) + Math.abs(+q[1] - A);
@@ -549,8 +561,7 @@ const AMIS_AV = {Lucas:'🦁|1', Inès:'🦄|5', Théo:'🐙|3'};
 function pronoFictif(nom, m){              // tirage stable : même ami, même match → même prono
   const r = hash(nom + m.id), rugby = m.league === '270559';
   if (rugby){ const a = 10 + r % 25, b = 8 + (r >>> 5) % 25; return [a, b]; }
-  if (m.league === 'nba') return [96 + r % 30, 94 + (r >>> 5) % 30];                // v68
-  if (m.league === 'nfl') return [10 + r % 24, 7 + (r >>> 5) % 24];
+  if (VAINQUEUR(m)) return r % 2 ? [1, 0] : [0, 1];                               // v68
   return [(r % 7) % 4, ((r >>> 3) % 6) % 3];
 }
 const SIMU = {
@@ -758,7 +769,7 @@ function extrasHTML(){
     <label class="x-on"><span><b>Activer les pronos en plus</b><small>${x.on ? 'Activé' : 'Pas activé'}</small></span><input type="checkbox" role="switch" data-x="on"${x.on ? ' checked' : ''}></label>
     ${x.on ? `<div class="ong glass" role="tablist">${[['tout', 'Tout'], ['choix', 'Au cas par cas']].map(([k, t]) => `<button type="button" role="tab" data-xt="${k}" aria-selected="${(k === 'tout') === x.tout}">${t}</button>`).join('')}</div>
       <div class="x-liste">${EXTRAS.map(lig).join('')}</div>` : ''}
-    <p class="note">Foot : score exact 3 points, bon résultat 1 point. NBA et NFL : bon vainqueur 1 point ; parmi eux, le plus proche du score 3 points.</p>
+    <p class="note">Foot : score exact 3 points, bon résultat 1 point. NBA et NFL : tu choisis seulement le vainqueur, 1 point s'il gagne.</p>
     ${act.length ? `<div class="btns"><button type="button" class="btn main" data-section="plus">Jouer (${pl(act.length, 'compétition')})</button></div>` : ''}</div>`;
 }
 async function changerExtras(f){
@@ -780,7 +791,7 @@ function reglesHTML(){
     <div class="carte glass regles"><h2>➕ Les pronos en plus</h2><ul>
       <li>Au choix de chacun (accueil › Pronos en plus) : Liga, Serie A, Bundesliga, Ligue Europa, Ligue Conférence, NBA, NFL. Tout, ou au cas par cas.</li>
       <li>Ils ont <b>leur propre classement</b> (mois et saison), entre ceux qui y jouent. Le classement principal ne change pas.</li>
-      <li>Foot : comme les pronos (3 points le score exact, 1 point le bon résultat). <b>NBA et NFL</b> : bon vainqueur <b>1 point</b> ; parmi eux, le plus proche du score <b>3 points</b> (comme le rugby).</li></ul></div>
+      <li>Foot : comme les pronos (3 points le score exact, 1 point le bon résultat). <b>NBA et NFL</b> : tu choisis seulement le <b>vainqueur</b>, <b>1 point</b> s'il gagne (match nul en NFL : 0).</li></ul></div>
     <div class="carte glass regles"><h2>🎟️ Les paris</h2><ul>
       <li><b>100 crédits</b> au début de chaque mois pour tout le monde (aussi pour un joueur qui arrive en cours de mois).</li>
       <li>Le podium du mois reçoit un bonus au départ du mois suivant : <b>+20</b>, <b>+10</b>, <b>+5</b> (joueurs ayant parié au moins une fois).</li>
@@ -855,7 +866,16 @@ function quiHTML(m, me){
   const l = (ETAT.qui[m.id] || []).filter(n => n !== me.pseudo);
   return `<span class="p-qui">${l.length ? `<span class="p-pile">${l.slice(0, 5).map(n => avHTML(n)).join('')}</span>` : '👀'} ${l.length}/${autres.length} ${autres.length > 1 ? 'amis ont joué' : 'ami a joué'}</span>`;
 }
+function matchVainqueur(m, me){                 // v68 : NBA, NFL : deux boutons, le vainqueur
+  const now = Date.now(), c = choixV(monProno(m, me)), ferme = now >= m.t;
+  const gauche = ferme ? (m.state === 'in' ? '<span class="p-live">● En direct</span>' : '🔒 Commencé') : `<span class="p-cd${m.t - now < 3600e3 ? ' urgent' : ''}" data-cd="${m.t}" data-pre="⏳ ">⏳ ${esc(compte(m.t))}</span>`;
+  const eq = (k, t) => `<button type="button" class="p-eq p-vb" data-vq="${k}" aria-pressed="${c === k}"${ferme ? ' disabled' : ''}>${logoEq(m, t)}<span>${esc(t.name)}</span>${c === k ? '<i>🏆</i>' : ''}</button>`;
+  return `<div class="p-m p-mv" data-m="${esc(m.id)}">${eq('h', m.home)}<span class="p-vs">${ferme || c ? '' : 'Qui gagne ?'}</span>${eq('a', m.away)}
+    <div class="p-pied">${gauche}<span data-etat>${!ferme && c ? '<span class="ok">✓ enregistré</span>' : ''}</span>${ferme ? '' : quiHTML(m, me)}</div>
+    ${ferme ? `<div class="p-chips">${autresHTML(m, me) || '<span class="note">Aucun prono</span>'}</div>` : ''}</div>`;
+}
 function matchJouer(m, me){
+  if (VAINQUEUR(m)) return matchVainqueur(m, me);
   const now = Date.now(), p = monProno(m, me) || ['', ''], ferme = now >= m.t;
   const gauche = ferme ? (m.state === 'in' ? '<span class="p-live">● En direct</span>' : '🔒 Commencé') : `<span class="p-cd${m.t - now < 3600e3 ? ' urgent' : ''}" data-cd="${m.t}" data-pre="⏳ ">⏳ ${esc(compte(m.t))}</span>`;
   return `<div class="p-m" data-m="${esc(m.id)}">
@@ -872,7 +892,7 @@ function jouerHTML(me){
 function autresHTML(m, me, sansMoi){
   const l = Object.entries(ETAT.pronos[m.id] || {}).filter(([n]) => !(sansMoi && n === me.pseudo));
   return l.sort(([a], [b]) => (b === me.pseudo) - (a === me.pseudo)).map(([n, p]) => { const pt = points(p, m);
-    return `<span class="p-chip${n === me.pseudo ? ' moi' : ''}${pt === 3 ? ' p3' : pt === 1 ? ' p1' : ''}">${avHTML(n)}${esc(n)} <b>${esc(p[0])}–${esc(p[1])}</b>${pt ? ` · +${pt}` : ''}</span>`; }).join('');
+    return `<span class="p-chip${n === me.pseudo ? ' moi' : ''}${pt === 3 ? ' p3' : pt === 1 ? ' p1' : ''}">${avHTML(n)}${esc(n)} <b>${VAINQUEUR(m) ? '🏆 ' + esc(nomV(m, p)) : `${esc(p[0])}–${esc(p[1])}`}</b>${pt ? ` · +${pt}` : ''}</span>`; }).join('');
 }
 const badge = (pt, rugby) => pt === 3 ? `<span class="p-bd p3">🎯 +3${rugby ? ' · le plus proche' : ''}</span>` : pt === 1 ? '<span class="p-bd p1">✓ +1</span>' : '<span class="p-bd p0">✗ 0</span>';
 function resHTML(me){
@@ -884,7 +904,7 @@ function resHTML(me){
       return `<div class="p-m"><div class="p-eq">${logoEq(m, m.home)}<span>${esc(m.home.name)}</span></div>
         <div class="p-reel">${esc(m.home.score)}<span>–</span>${esc(m.away.score)}</div>
         <div class="p-eq">${logoEq(m, m.away)}<span>${esc(m.away.name)}</span></div>
-        <div class="p-moi">${p ? `Ton prono <b>${esc(p[0])}–${esc(p[1])}</b> ${badge(points(p, m), RUGBY(m))}` : 'Pas de prono pour toi'}</div>
+        <div class="p-moi">${p ? `Ton prono <b>${VAINQUEUR(m) ? '🏆 ' + esc(nomV(m, p)) : `${esc(p[0])}–${esc(p[1])}`}</b> ${badge(points(p, m), RUGBY(m) && !VAINQUEUR(m))}` : 'Pas de prono pour toi'}</div>
         ${autres ? `<div class="p-chips">${autres}</div>` : ''}</div>`; });
 }
 function podiumHTML(l, avant, me){
@@ -911,7 +931,7 @@ function clHTML(me){
   const corps = joue
     ? podiumHTML(l, avant, me) + tropheesHTML(l) + (l.length > 3 ? `<div class="p-liste glass">${l.slice(3).map(x => `<div class="p-r${x.n === me.pseudo ? ' moi' : ''}"><b>${x.pos}</b>${avHTML(x.n)}<span class="p-r-n">${esc(x.n)}<small>${stats(x)}</small></span>${fleche(x, avant)}<span class="p-r-pts">${x.pts}</span></div>`).join('')}</div>` : '')
     : `<div class="carte glass"><h2>🏁 Le classement démarre au premier match terminé</h2><p>Dans le groupe : ${l.map(x => `${avHTML(x.n)} ${esc(x.n)}`).join(' &nbsp; ')}</p></div>`;
-  return per + corps + (JEU === 'plus' ? `<p class="note">Pronos en plus : classement entre ceux qui y jouent. Foot : score exact 3 points, bon résultat 1 point. NBA et NFL : bon vainqueur 1 point, et 3 points pour le plus proche du score parmi eux. À égalité : le plus de pronos à 3 points, puis le moins de pronos.</p>` + (SIM ? simOutils() : '') : '') + (JEU === 'plus' ? '' : `<p class="note">Foot : score exact 3 points, bon résultat (vainqueur ou nul) 1 point. Rugby : bon résultat 1 point, et 3 points pour le plus proche du score parmi ceux qui ont le bon résultat (plus petite somme des écarts de points). À égalité : le plus de pronos à 3 points, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison = les ${JOURS_APRES} derniers jours dans cet essai.` : ''} ▲▼ : places gagnées ou perdues depuis la dernière journée.</p>`
+  return per + corps + (JEU === 'plus' ? `<p class="note">Pronos en plus : classement entre ceux qui y jouent. Foot : score exact 3 points, bon résultat 1 point. NBA et NFL : bon vainqueur 1 point. À égalité : le plus de pronos à 3 points, puis le moins de pronos.</p>` + (SIM ? simOutils() : '') : '') + (JEU === 'plus' ? '' : `<p class="note">Foot : score exact 3 points, bon résultat (vainqueur ou nul) 1 point. Rugby : bon résultat 1 point, et 3 points pour le plus proche du score parmi ceux qui ont le bon résultat (plus petite somme des écarts de points). À égalité : le plus de pronos à 3 points, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison = les ${JOURS_APRES} derniers jours dans cet essai.` : ''} ▲▼ : places gagnées ou perdues depuis la dernière journée.</p>`
     + (SIM ? simOutils() : '')) + appareilHTML(me);
 }
 const simOutils = () => `<div class="carte glass"><h2>Outils de simulation</h2><p>Pour voir le classement vivre tout de suite : des pronos tirés au hasard pour toi sur les matchs déjà joués.</p>
@@ -1119,6 +1139,22 @@ document.addEventListener('submit', async e => {                          // v63
     if (!BASE.moi()){ SYNC = 'vide'; rendre(); } }
   finally{ b.disabled = false; }
 });
+async function choisirVainqueur(box, k){        // v68 : NBA, NFL
+  const id = box.dataset.m, m = tous().find(x => x.id === id), me = BASE.moi(), et = box.querySelector('[data-etat]');
+  if (!m || Date.now() >= m.t) return;
+  const avant = (ETAT.pronos[id] || {})[me.pseudo], h = k === 'h' ? 1 : 0, a = k === 'a' ? 1 : 0;
+  (ETAT.pronos[id] || (ETAT.pronos[id] = {}))[me.pseudo] = [h, a];
+  box.outerHTML = matchVainqueur(m, me); const b2 = document.querySelector(`[data-m="${CSS.escape(id)}"]`), e2 = b2 && b2.querySelector('[data-etat]');
+  if (e2) e2.textContent = 'Enregistrement…';
+  try{ const r = await BASE.parier(m, h, a);
+    if (r.ok){ try{ sessionStorage.removeItem('pronos:pastille'); }catch{}
+      if (ETAT.qui){ const l = ETAT.qui[id] || (ETAT.qui[id] = []); if (!l.includes(me.pseudo)) l.push(me.pseudo); }
+      if (e2) e2.innerHTML = '<span class="ok pop">✓ enregistré</span>'; const hero = $('#hero'); if (hero) hero.outerHTML = heroHTML(me); return; }
+    if (avant) ETAT.pronos[id][me.pseudo] = avant; else delete ETAT.pronos[id][me.pseudo];
+    const b3 = document.querySelector(`[data-m="${CSS.escape(id)}"]`); if (b3){ b3.outerHTML = matchVainqueur(m, me); const e3 = document.querySelector(`[data-m="${CSS.escape(id)}"] [data-etat]`);
+      if (e3) e3.textContent = {ferme:'Trop tard : le match a commencé.', code:'Pseudo ou code non reconnu : actualise la page.', match:'Match pas encore connu du serveur : réessaie dans 10 min.'}[r.err] || 'Refusé par le serveur.'; } }
+  catch{ if (e2) e2.textContent = 'Pas enregistré (réseau) : réessaie.'; }
+}
 const enAttente = {};
 function programmer(box){
   const id = box.dataset.m, m = tous().find(x => x.id === id), [a, b] = box.querySelectorAll('.p-st input'), et = box.querySelector('[data-etat]');
@@ -1166,6 +1202,7 @@ document.addEventListener('click', async e => {
   if (e.target.closest('[data-lienreco]')){ const me = BASE.moi(), n = ($('#recoQui') || {}).value || me.pseudo;
     partager(n === me.pseudo ? `🔗 Mon lien pour revenir dans les pronos du groupe ${me.groupe} (le code à 4 chiffres reste secret) :` : `🔗 ${n}, ton lien pour revenir dans les pronos du groupe ${me.groupe} : il te reste à taper ton code à 4 chiffres.`, lienReco(me.groupe, n));
     return; }
+  const vq = e.target.closest('[data-vq]'); if (vq){ choisirVainqueur(vq.closest('[data-m]'), vq.dataset.vq); return; }   // v68
   const xt = e.target.closest('[data-xt]'); if (xt){ changerExtras(x => { x.tout = xt.dataset.xt === 'tout'; if (!x.tout && !x.ids.length) x.ids = EXTRAS.map(L => L.id); }); return; }   // v68
   const sec = e.target.closest('[data-section]');
   if (sec){ SECTION = sec.dataset.section; rendre(); window.scrollTo(0, 0); if (SECTION === 'paris' && !SIM && !PARIS && BASE.moi()){ await chargerParis(); rendre(); } return; }   // v62
@@ -1188,9 +1225,8 @@ document.addEventListener('click', async e => {
   const pas = e.target.closest('[data-pas]');
   if (pas){
     const box = pas.closest('[data-m]'), i = pas.parentNode.querySelector('input'), d = +pas.dataset.pas;
-    const m0 = tous().find(x => x.id === box.dataset.m), dep = (m0 && DEPART_SCORE[m0.league]) || 0;   // v68 : NBA, NFL : on part d'un score courant
-    i.value = Math.max(0, Math.min(200, i.value === '' ? (dep ? dep + d : d < 0 ? 0 : d) : +i.value + d));   // NBA : « + » → 111 contre 110
-    box.querySelectorAll('.p-st input').forEach(x => { if (x.value === '') x.value = String(dep); });   // un seul côté touché : l'autre à 0 (ou au score de départ)
+    i.value = Math.max(0, Math.min(200, (i.value === '' ? 0 : +i.value) + (i.value === '' && d < 0 ? 0 : d)));
+    box.querySelectorAll('.p-st input').forEach(x => { if (x.value === '') x.value = '0'; });   // un seul côté touché : l'autre à 0
     if (navigator.vibrate) navigator.vibrate(8);
     programmer(box); return;
   }

@@ -127,11 +127,12 @@ Base des écrans de réglages et des futures applis dédiées. Rien de propre à
   Choix `pronos:extras` = `{on, tout, ids}` (`Noyau.pronos.extrasActifs()`), partagé par la synchro (prefs `pronosx`, « si présent » ; ne diffère que par lui → pas de question).
   Page : 4e carte de l'accueil (`carteExtras`), réglage `SECTION = 'extras'` (`extrasHTML`, interrupteur, Tout / au cas par cas), sous-section `SECTION = 'plus'` (`JEU = 'plus'`) :
   mêmes onglets, `aJouer()` = compétitions choisies, `liste()` = tous les matchs en plus (`PLUSM`, chargés dès qu'une compétition est choisie) pour un classement juste.
-  Classement en plus : seulement ceux qui y ont un prono (et moi). Le classement principal (`MATCHS`) ne change pas. NBA, NFL : règle du plus proche (`RUGBY` : identifiant sans point) ;
-  premier « + » : 111 contre 110 (NBA), 21 contre 20 (NFL) (`DEPART_SCORE`). Pastille de l'accueil : + compétitions choisies (clé de session avec le choix).
+  Classement en plus : seulement ceux qui y ont un prono (et moi). Le classement principal (`MATCHS`) ne change pas.
+  **NBA, NFL : vainqueur seulement** (`VAINQUEUR`, `matchVainqueur`, `choisirVainqueur`) : deux boutons, prono gardé en `[1, 0]` / `[0, 1]` (serveur inchangé), 1 point s'il gagne (nul NFL : 0).
+  Pastille de l'accueil : + compétitions choisies (clé de session avec le choix).
 - `Code.gs` : horaires gardés par compétition (`h:<fichier>`, `getAll` / `putAll`, plus grosse : NBA ≈ 13 Ko, limite 100 Ko) et lus en parallèle (`fetchAll`). `verifier` vide ces clés.
-- Vérifié (en plus) : pronos NBA, NFL, Liga acceptés par le vrai Code.gs ; 11 valeurs en mémoire < 100 Ko ; réglage Tout puis NBA + NFL ; prono NBA 111–110 enregistré ;
-  classement en plus (Yoann 9, Julie 9, Marc absent) ; classement principal inchangé ; Marc sans choix : rien de chargé, pas de NBA ; pastille ; choix reçu sur un 2ᵉ appareil par la synchro.
+- Vérifié (en plus) : pronos NBA, NFL, Liga acceptés par le vrai Code.gs ; 11 valeurs en mémoire < 100 Ko ; réglage Tout puis NBA + NFL ; vainqueur NBA choisi puis changé (une seule ligne, [0, 1] puis [1, 0]) ;
+  classement en plus (Yoann 3, Julie 8, Marc absent) ; classement principal inchangé ; Marc sans choix : rien de chargé, pas de NBA ; pastille ; choix reçu sur un 2ᵉ appareil par la synchro.
 - Vérifié : vrai Code.gs v67 (prono PL refusé) et v68 (accepté ; commencé → refusé ; Ligue 1 inchangée ; pronos des autres cachés avant le coup d'envoi) ; page : section Premier League,
   logos ESPN, pastille avec les matchs anglais ; captures 390 clair/sombre et 1440.
 
