@@ -75,7 +75,7 @@ Page : bandeau si le serveur ne répond pas ; « code non reconnu » → retour 
 ## Règles
 Score exact 3 points, bon résultat (vainqueur ou nul) 1 point. Prono modifiable jusqu'au coup d'envoi (vérifié par le script avec les horaires
 publiés par la tâche Sport) ; pronos des autres visibles une fois le match commencé. Classement du mois et de la saison, calculé par la page.
-Compétitions : `CFG('pronos.ligues', [{id, f, nom}])` dans la page et `LIGUES` dans Code.gs (à garder identiques).
+Compétitions (v68 : Ligue 1, Premier League, Top 14, Ligue des champions ; « Pronos en plus » au choix de chaque joueur, classement à part : Liga, Serie A, Bundesliga, Ligue Europa, Ligue Conférence, NBA, NFL — `Noyau.pronos.extras()` et `EXTRAS` dans Code.gs) : `Noyau.pronos.ligues()` (`noyau.js`, page et pastille de l'accueil) et `LIGUES` dans Code.gs (à garder identiques : un match d'une compétition absente de Code.gs est refusé, `err:'match'`).
 Gratuit, entre amis, sans mise ni gain : rester hors des jeux d'argent (pas de droit d'entrée, pas de lot).
 
 ## Renommage du dépôt (iPhone-Dock → kiosk)

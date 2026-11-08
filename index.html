@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="c306d2f9">
+<meta name="mon-ecran-version" content="39dfc80e">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -777,10 +777,10 @@ function pastilles(){
 async function pronosPastille(){
   if (!PG('pronos')) return;
   const me = Noyau.stockage.lire('pronos:moi', null), S = Noyau.pronos.serveur(); if (!me || !me.pseudo || !S.api) return;
-  const cle = `${me.groupe}|${me.pseudo}`, c = Noyau.stockage.session.lire('pronos:pastille', null);
+  const cle = `${me.groupe}|${me.pseudo}|${Noyau.pronos.extrasActifs().map(L => L.id).join(',')}`, c = Noyau.stockage.session.lire('pronos:pastille', null);
   if (c && c.cle === cle && Date.now() - c.at < 5 * 60e3){ PRONOS_N = c.n; pastilles(); return; }
   try{
-    const ids = new Set(Noyau.pronos.ligues().map(L => String(L.id))), now = Date.now();
+    const ids = new Set([...Noyau.pronos.ligues(), ...Noyau.pronos.extrasActifs()].map(L => String(L.id))), now = Date.now();   // v68 : + pronos en plus choisis
     const [p, e] = await Promise.all([fetch('donnees/sport/prochains.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : {events:[]}),
       fetch(S.api, {method:'POST', body:JSON.stringify({action:'etat', groupe:me.groupe, pseudo:me.pseudo, pin:me.pin})}).then(r => r.json())]);
     if (!e || e.err) return;

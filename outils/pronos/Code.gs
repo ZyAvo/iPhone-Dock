@@ -1,4 +1,4 @@
-/* KiosK — serveur des pronos entre amis (Google Apps Script, v61).
+/* KiosK — serveur des pronos entre amis (Google Apps Script, v68).
    Garde les joueurs et les pronos dans le Google Sheets auquel ce script est attaché (onglets « Joueurs » et « Pronos », créés tout seuls).
    Refuse un prono après le coup d'envoi (horaires lus sur le site publié, pas envoyés par le téléphone) et ne montre
    les pronos des autres qu'une fois le match commencé. Les points et le classement sont calculés par la page.
@@ -9,9 +9,13 @@
    Jeu sans argent : les crédits ne s'achètent pas, ne s'échangent pas et ne valent rien.
    v61 : appendRow lit les valeurs comme une saisie au clavier (« 2026-11 » devenait une date, même en colonne texte : pari non compté).
    Les lignes sont écrites avec setValues (le format texte est respecté) et le mois d'un pari se calcule depuis le coup d'envoi (colonne L).
+   v68 : Premier League (eng.1) dans LIGUES (horaires des pronos), et les « Pronos en plus » (EXTRAS : Liga, Serie A, Bundesliga, Ligue Europa,
+   Ligue Conférence, NBA, NFL ; chaque joueur choisit dans la page, classement à part calculé par la page). Horaires gardés en mémoire par compétition
+   (une valeur de CacheService ne dépasse pas 100 Ko) et lus en parallèle (fetchAll). Les paris n'en dépendent pas (cotes du matin).
    Mise en place : voir outils/dev/PRONOS.md. */
 const SITE = 'https://zyavo.github.io/iPhone-Dock/';            // adresse du dock publié
-const LIGUES = {'fra.1':'fra-1', '270559':'270559', 'uefa.champions':'uefa-champions'};   // id ESPN → fichier donnees/sport/<fichier>.json
+const LIGUES = {'fra.1':'fra-1', 'eng.1':'eng-1', '270559':'270559', 'uefa.champions':'uefa-champions'};   // id ESPN → fichier donnees/sport/<fichier>.json
+const EXTRAS = {'esp.1':'esp-1', 'ita.1':'ita-1', 'ger.1':'ger-1', 'uefa.europa':'uefa-europa', 'uefa.europa.conf':'uefa-europa-conf', 'nba':'nba', 'nfl':'nfl'};   // v68 : pronos en plus
 
 function doPost(e){
   let r;
@@ -49,14 +53,19 @@ function joueur(q){
 
 /* horaires des matchs : fichiers publiés par la tâche Sport (mémoire 10 min) */
 function horaires(){
-  const c = CacheService.getScriptCache(), m = c.get('horaires');
-  if (m) return JSON.parse(m);
-  const out = {};
-  Object.values(LIGUES).forEach(f => { try{
-    const j = JSON.parse(UrlFetchApp.fetch(SITE + 'donnees/sport/' + f + '.json', {muteHttpExceptions:true}).getContentText());
-    (j.events || []).forEach(e => { out[e.id] = e.t; });
-  }catch(x){} });
-  try{ c.put('horaires', JSON.stringify(out), 600); }catch(x){}
+  const c = CacheService.getScriptCache(), fichiers = Object.values(LIGUES).concat(Object.values(EXTRAS));
+  const cles = fichiers.map(f => 'h:' + f), deja = c.getAll(cles), out = {}, manque = fichiers.filter(f => !deja['h:' + f]);
+  fichiers.forEach(f => { if (deja['h:' + f]) Object.assign(out, JSON.parse(deja['h:' + f])); });
+  if (manque.length){
+    let rep = [];
+    try{ rep = UrlFetchApp.fetchAll(manque.map(f => ({url:SITE + 'donnees/sport/' + f + '.json', muteHttpExceptions:true}))); }catch(x){}
+    const neuf = {};
+    manque.forEach((f, i) => { try{
+      const h = {}; (JSON.parse(rep[i].getContentText()).events || []).forEach(e => { h[e.id] = e.t; });
+      Object.assign(out, h); neuf['h:' + f] = JSON.stringify(h);
+    }catch(x){} });
+    try{ if (Object.keys(neuf).length) c.putAll(neuf, 600); }catch(x){}
+  }
   return out;
 }
 
@@ -216,7 +225,7 @@ const ACTIONS = {
 /* À lancer une fois depuis l'éditeur (menu des fonctions › verifier › Exécuter) : demande les autorisations
    et vérifie que les horaires des matchs se lisent sur le site publié (journal : nombre de matchs trouvés). */
 function verifier(){
-  CacheService.getScriptCache().remove('horaires');
+  CacheService.getScriptCache().removeAll(Object.values(LIGUES).concat(Object.values(EXTRAS)).map(f => 'h:' + f));
   const n = Object.keys(horaires()).length;
   Logger.log(n ? n + ' matchs trouvés sur ' + SITE : 'Aucun match lu : vérifier SITE (' + SITE + ')');
   JOUEURS(); PRONOS(); PARIS();

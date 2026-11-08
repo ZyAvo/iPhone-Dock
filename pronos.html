@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="7a32d31f">
+<meta name="mon-ecran-version" content="62fea487">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -400,6 +400,27 @@ html.desk .f-sheet{border-radius:26px}
 .ong button{white-space:nowrap}
 /* accueil et règles (v62) */
 .acc-grille{display:grid;gap:12px}
+/* v68 : pronos en plus */
+.x-tete{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px 10px 16px;border-radius:18px;margin-bottom:12px}
+.x-tete>span{display:flex;flex-direction:column;min-width:0;font-size:.92rem}
+.x-tete small{font-size:.74rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.x-tete .btn{flex:none;min-height:36px;padding:7px 12px;font-size:.8rem}
+.x-reg{display:flex;flex-direction:column;gap:12px}
+.x-on{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:14px;background:var(--card);border:1px solid var(--line);cursor:pointer}
+.x-on>span{display:flex;flex-direction:column}
+.x-on small{font-size:.76rem;color:var(--ink-soft)}
+.x-on input{appearance:none;-webkit-appearance:none;flex:none;width:51px;height:31px;border-radius:16px;background:var(--line);position:relative;transition:background .2s;cursor:pointer;margin:0}
+.x-on input::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.25);transition:transform .2s}
+.x-on input:checked{background:#34c759}
+.x-on input:checked::after{transform:translateX(20px)}
+.x-liste{display:flex;flex-direction:column;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.x-l{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:10px 14px;background:var(--card);cursor:pointer}
+.x-l+.x-l{border-top:1px solid var(--line)}
+.x-l>span{display:flex;align-items:center;gap:8px;min-width:0}
+.x-l small{font-size:.74rem;color:var(--ink-soft);text-align:right}
+.x-l input{width:20px;height:20px;accent-color:var(--accent);margin:0}
+.x-l input:disabled{opacity:.6}
+.x-l .p-cl{width:24px;height:24px}
 html.desk .acc-grille{grid-template-columns:repeat(3,minmax(0,1fr))}
 .acc-c{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:16px;border-radius:24px;color:var(--ink);min-height:96px}
 .acc-c:active{transform:scale(.98)}
@@ -432,7 +453,7 @@ html.desk .p-grille .jour{grid-column:1 / -1}
 <header>
   <div class="wrap">
     <div class="top">
-      <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
+      <a class="back" href="index.html" aria-label="Retour au dock"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Dock</a>
       <span class="top-actions"><button class="icon-btn glass" id="invBtn" type="button" aria-label="Inviter des amis" hidden><svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span>
     </div>
@@ -458,6 +479,11 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 const LS = {get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } }, set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }};
 const LIGUES = Noyau.pronos.ligues();             // v66 : liste commune (noyau.js), aussi lue par la pastille de l'accueil
+/* v68 : « Pronos en plus » : compétitions au choix de chaque joueur (pronos:extras, synchronisé), sous-section et classement à part.
+   PLUSM = tous les matchs « en plus » (pour un classement juste, même ceux d'une compétition que je n'ai pas choisie), chargés dès qu'une est choisie. */
+const EXTRAS = Noyau.pronos.extras();
+const XCHOIX = () => { const x = LS.get('pronos:extras', null) || {}; return {on:!!x.on, tout:x.tout !== false, ids:Array.isArray(x.ids) ? x.ids : []}; };
+const actifs = () => Noyau.pronos.extrasActifs().map(L => L.id);
 // v65 : adresse du serveur dans le classeur (onglet Pronos) ; une copie du dépôt qui vise le serveur d'un autre compte passe en simulation (noyau.js, Noyau.pronos)
 const SERVEUR = Noyau.pronos.serveur();
 const API = SERVEUR.api;
@@ -491,7 +517,8 @@ function compte(t){                         // « dans 2 h 15 », « dans 40 min
 
 /* ---------- points ---------- */
 const issue = (h, a) => h > a ? 1 : h < a ? 2 : 0;
-const RUGBY = m => !/\./.test(m.league || '');                     // compétitions de rugby : identifiant ESPN sans point (270559…)
+const RUGBY = m => !/\./.test(m.league || '');                     // règle du plus proche : identifiant ESPN sans point (rugby 270559… ; v68 : NBA, NFL)
+const DEPART_SCORE = {nba:110, nfl:20};                              // v68 : premier « + » d'un score vide (NBA, NFL)
 /* Foot : score exact 3, bon résultat 1. Rugby (v62) : bon résultat (vainqueur ou nul) 1 ; parmi eux, le plus proche du score 3
    (plus petite somme des écarts |dom − réel| + |ext − réel|, ex æquo : 3 chacun). Le rugby compare les pronos du match entre eux. */
 function points(p, m){
@@ -522,6 +549,8 @@ const AMIS_AV = {Lucas:'🦁|1', Inès:'🦄|5', Théo:'🐙|3'};
 function pronoFictif(nom, m){              // tirage stable : même ami, même match → même prono
   const r = hash(nom + m.id), rugby = m.league === '270559';
   if (rugby){ const a = 10 + r % 25, b = 8 + (r >>> 5) % 25; return [a, b]; }
+  if (m.league === 'nba') return [96 + r % 30, 94 + (r >>> 5) % 30];                // v68
+  if (m.league === 'nfl') return [10 + r % 24, 7 + (r >>> 5) % 24];
   return [(r % 7) % 4, ((r >>> 3) % 6) % 3];
 }
 const SIMU = {
@@ -565,7 +594,7 @@ const BASE = SIM ? SIMU : DISTANT;
 
 /* ---------- matchs ---------- */
 let SECTION = 'accueil';                                          // v62 : accueil à chaque ouverture ; puis regles, pronos ou paris
-let MATCHS = [], ETAT = {joueurs:[], pronos:{}}, PANNE = '', VUE = (v => ['jouer', 'res', 'cl'].includes(v) ? v : 'jouer')(LS.get('pronos:vue', 'jouer')), PERIODE = 'mois', CHOIX = null, EDITER = false;
+let MATCHS = [], PLUSM = [], JEU = 'base', ETAT = {joueurs:[], pronos:{}}, PANNE = '', VUE = (v => ['jouer', 'res', 'cl'].includes(v) ? v : 'jouer')(LS.get('pronos:vue', 'jouer')), PERIODE = 'mois', CHOIX = null, EDITER = false;
 const COMP = {};
 /* v62 : tes logos (logos/clubs/<pays>/<club>.png, logos/competitions/<compétition>[-sombre].png, listés par la Publication dans fichiers.json) passent en premier */
 let FICHIERS = null;
@@ -580,22 +609,31 @@ async function chargerFichiers(){
       comps:Object.fromEntries(l.filter(f => f.startsWith('logos/competitions/')).map(f => [base(f).toLowerCase(), encodeURI(f)]))};
   }catch{ FICHIERS = {clubs:[], comps:{}}; }
 }
+const PAYS_L = {'eng.1':'angleterre', 'esp.1':'espagne', 'ita.1':'italie', 'ger.1':'allemagne', nba:'usa', nfl:'usa'};
 function logoManuel(m, t){                                       // même mot (ou 6 premières lettres) entre le nom du club et le nom du fichier ; ex æquo : aucun
   if (!FICHIERS || !FICHIERS.clubs.length) return '';
-  const a = mots(`${t.name || ''} ${t.full || ''}`), pays = ['fra.1', '270559'].includes(m.league) ? 'france' : '';
+  const a = mots(`${t.name || ''} ${t.full || ''}`), pays = ['fra.1', '270559'].includes(m.league) ? 'france' : PAYS_L[m.league] || '';   // v68 : pas de logo de club français sur un club étranger
   const sc = FICHIERS.clubs.filter(x => !pays || x.pays === pays).map(x => ({u:x.u, s:a.filter(w => x.k.some(v => v === w || (w.length >= 6 && v.length >= 6 && v.slice(0, 6) === w.slice(0, 6)))).length}))
     .filter(x => x.s).sort((p, q) => q.s - p.s);
   return sc.length && (sc.length === 1 || sc[0].s > sc[1].s) ? sc[0].u : '';
 }
+const liste = () => JEU === 'plus' ? PLUSM : MATCHS;                // v68 : matchs de la sous-section affichée (classement, résultats)
+const aJouer = () => JEU === 'plus' ? PLUSM.filter(m => actifs().includes(m.league)) : MATCHS;   // à pronostiquer : seulement les compétitions choisies
+const tous = () => [...MATCHS, ...PLUSM];
+function avecJeu(j, f){ const v = JEU; JEU = j; try{ return f(); }finally{ JEU = v; } }
 async function chargerMatchs(){
-  const now = Date.now(), out = [];
   await chargerFichiers();
-  await Promise.all(LIGUES.map(async L => { try{
+  const [a, b] = await Promise.all([chargerLigues(LIGUES), actifs().length ? chargerLigues(EXTRAS) : []]);
+  MATCHS = a; PLUSM = b;
+}
+async function chargerLigues(LS_){
+  const now = Date.now(), out = [];
+  await Promise.all(LS_.map(async L => { try{
     const j = await (await fetch(`donnees/sport/${L.f}.json`, {cache:'no-cache'})).json();
     COMP[L.id] = {logo:j.logo || '', logoDark:j.logoDark || ''};
     (j.events || []).forEach(e => { if (e.home && e.away && e.t > now - JOURS_APRES * 86400e3 && e.t < now + JOURS_AVANT * 86400e3 && !/POSTPONED|CANCEL/.test(e.code || '')) out.push({...e, nomL:L.nom, L}); });
   }catch{} }));
-  MATCHS = out.sort((a, b) => a.t - b.t);
+  return out.sort((a, b) => a.t - b.t);
 }
 
 /* ---------- logos ---------- */
@@ -610,7 +648,7 @@ function logoEq(m, t){
   return u ? `<img class="p-lg" src="${esc(petit(u))}" alt="" loading="lazy" onerror="${esc(remplace('p-lg', ab, coul))}">` : `<span class="p-lg ph" style="--eq:${coul}">${esc(ab)}</span>`;
 }
 function compLogo(L){
-  const emo = /\./.test(L.id) ? '⚽' : '🏉', F = (FICHIERS || {}).comps || {};
+  const emo = {nba:'🏀', nfl:'🏈'}[L.id] || (/\./.test(L.id) ? '⚽' : '🏉'), F = (FICHIERS || {}).comps || {};
   const own = F[slugL(L.nom)] || F[slugL(L.id)], ownD = own && (F[slugL(L.nom) + '-sombre'] || F[slugL(L.id) + '-sombre']);   // v62 : tes logos d'abord
   const c = own ? {logo:own, logoDark:ownD || ''} : COMP[L.id] || {};
   if (!c.logo || /ESPN-icon/i.test(c.logo)) return `<span class="p-cl ph">${emo}</span>`;           // ESPN n'a qu'une icône générique pour le Top 14
@@ -637,7 +675,7 @@ function blocs(l, f){
 function classement(per, sansDernierJour){
   const mois = moisDe(Date.now()), T = {};
   ETAT.joueurs.forEach(n => { T[n] = {n, pts:0, ex:0, nb:0, bons:0, serie:0}; });
-  let l = MATCHS.filter(m => m.state === 'post' && ETAT.pronos[m.id] && (per === 'saison' || moisDe(m.t) === mois));
+  let l = liste().filter(m => m.state === 'post' && ETAT.pronos[m.id] && (per === 'saison' || moisDe(m.t) === mois));
   if (sansDernierJour && l.length){ const der = new Date(l[l.length - 1].t).toDateString(); l = l.filter(m => new Date(m.t).toDateString() !== der); if (!l.length) return null; }
   l.forEach(m => Object.entries(ETAT.pronos[m.id] || {}).forEach(([n, p]) => {
     const pt = points(p, m); if (pt == null) return;
@@ -645,7 +683,9 @@ function classement(per, sansDernierJour){
     x.pts += pt; x.nb++; if (pt === 3) x.ex++; if (pt) x.bons++;
     x.serie = pt ? x.serie + 1 : 0;                         // série en cours : bons pronos d'affilée (ordre des matchs)
   }));
-  return Object.values(T).sort((a, b) => b.pts - a.pts || b.ex - a.ex || a.nb - b.nb || a.n.localeCompare(b.n)).map((x, i) => ({...x, pos:i + 1}));
+  const me = (BASE.moi() || {}).pseudo;                    // v68 : classement « en plus » : seulement ceux qui y jouent (et moi)
+  return Object.values(T).filter(x => JEU !== 'plus' || x.nb || x.n === me || l.some(m => (ETAT.pronos[m.id] || {})[x.n]))
+    .sort((a, b) => b.pts - a.pts || b.ex - a.ex || a.nb - b.nb || a.n.localeCompare(b.n)).map((x, i) => ({...x, pos:i + 1}));
 }
 const rangTxt = p => p === 1 ? '1ᵉʳ' : `${p}ᵉ`;
 const stats = x => x.nb ? [x.ex ? `🎯 ${x.ex}` : '', `✓ ${Math.round(100 * x.bons / x.nb)} %`, x.serie >= 2 ? `🔥 ${x.serie}` : ''].filter(Boolean).join(' · ') : 'Pas encore de prono noté';
@@ -666,12 +706,16 @@ function rendre(){
     + (me && !SIM && LIEN.p && (LIEN.p.toLowerCase() !== me.pseudo.toLowerCase() || (LIEN.g && LIEN.g !== me.groupe))
       ? `<div class="bandeau glass b-lien"><span>🔗</span><span>Ce lien est celui de <b>${esc(LIEN.p)}</b>${LIEN.g ? ` (groupe ${esc(LIEN.g)})` : ''}. Sur cet appareil, tu es connecté en <b>${esc(me.pseudo)}</b>.
         <span class="btns"><button type="button" class="btn" data-autre>Me connecter en ${esc(LIEN.p)}</button><button type="button" class="btn" data-garder>Rester ${esc(me.pseudo)}</button></span></span></div>` : '');
+  JEU = SECTION === 'plus' ? 'plus' : 'base';
   if (SECTION === 'regles'){ out.innerHTML = retourHTML() + reglesHTML(); return; }
   if (!me){ out.innerHTML = bandeau + inscriptionHTML(); return; }
   if (SECTION === 'accueil'){ out.innerHTML = bandeau + accueilHTML(me); return; }
   if (SECTION === 'paris'){ out.innerHTML = bandeau + retourHTML() + parisHTML(me); return; }
+  if (SECTION === 'extras'){ out.innerHTML = bandeau + retourHTML() + extrasHTML(); return; }
+  if (SECTION === 'plus' && !actifs().length){ SECTION = 'extras'; return rendre(); }
   const ong = `<div class="ong glass" role="tablist">${[['jouer', 'À pronostiquer'], ['res', 'Résultats'], ['cl', 'Classement']].map(([k, t]) => `<button type="button" role="tab" data-vue="${k}" aria-selected="${VUE === k}">${t}</button>`).join('')}</div>`;
-  out.innerHTML = bandeau + retourHTML() + ong + (VUE === 'jouer' ? jouerHTML(me) : VUE === 'res' ? resHTML(me) : clHTML(me));
+  const tete = JEU === 'plus' ? `<div class="x-tete glass"><span><b>➕ Pronos en plus</b><small>${esc(Noyau.pronos.extrasActifs().map(L => L.nom).join(' · '))}</small></span><button type="button" class="btn" data-section="extras">⚙︎ Choisir</button></div>` : '';
+  out.innerHTML = bandeau + retourHTML() + tete + ong + (VUE === 'jouer' ? jouerHTML(me) : VUE === 'res' ? resHTML(me) : clHTML(me));
 }
 /* ---------- accueil et règles (v62) : à chaque ouverture, l'accueil mène aux Règles, aux Pronos et aux Paris ---------- */
 const retourHTML = () => '<button type="button" class="acc-retour" data-section="accueil">‹ Accueil</button>';
@@ -691,19 +735,52 @@ function accueilHTML(me){
     la1 = `<b class="acc-cr">${s.solde}</b> crédits${s.enJeu ? ` · ${s.enJeu} en jeu` : ''}`;
     la2 = n ? `${pl(n, 'match')} avec cote aujourd'hui` : "Cotes vers 8 h le jour du match"; }
   return `<section class="p-hero glass"><div class="p-hero-t">${avHTML(me.pseudo, 'xl')}<div><b>Salut ${esc(me.pseudo)} !</b><span>Groupe ${esc(me.groupe)} · ${pl(ETAT.joueurs.length, 'joueur')}</span></div></div></section>
-    <div class="acc-grille">${carteAcc('pronos', '🎯', 'Pronos', lp1, lp2)}${carteAcc('paris', '🎟️', 'Paris', la1, la2)}${carteAcc('regles', '📖', 'Règles', 'Points, crédits et comment jouer', '')}</div>
+    <div class="acc-grille">${carteAcc('pronos', '🎯', 'Pronos', lp1, lp2)}${carteAcc('paris', '🎟️', 'Paris', la1, la2)}${carteExtras(me)}${carteAcc('regles', '📖', 'Règles', 'Points, crédits et comment jouer', '')}</div>
     <p class="note">Jeu entre amis, gratuit et sans argent.</p>`;
+}
+/* v68 : « Pronos en plus » : carte de l'accueil et réglage */
+function carteExtras(me){
+  if (!actifs().length) return carteAcc('extras', '➕', 'Pronos en plus', 'Liga, Serie A, Bundesliga, Ligue Europa, Ligue Conférence, NBA, NFL', 'Pas activé · classement à part, au choix');
+  return avecJeu('plus', () => {
+    const now = Date.now(), ouverts = aJouer().filter(m => m.state !== 'post' && m.t > now), reste = ouverts.filter(m => !monProno(m, me)).length;
+    const cl = classement('mois'), x = cl.find(y => y.n === me.pseudo), joue = cl.some(y => y.nb);
+    return carteAcc('plus', '➕', 'Pronos en plus', ouverts.length ? (reste ? `${pl(reste, 'prono')} à faire cette semaine` : 'Tout est pronostiqué ✅') : 'Pas de match cette semaine',
+      [x && joue ? `${rangTxt(x.pos)} sur ${cl.length} ce mois-ci · ${pl(x.pts, 'point')}` : '', esc(Noyau.pronos.extrasActifs().map(L => L.nom).join(' · '))].filter(Boolean).join('<br>'));
+  });
+}
+function extrasHTML(){
+  const x = XCHOIX(), now = Date.now(), act = actifs();
+  const nb = id => PLUSM.length ? PLUSM.filter(m => m.league === id && m.t > now && m.t < now + 7 * 864e5).length : null;
+  const lig = L => { const n = nb(L.id); return `<label class="x-l"><input type="checkbox" data-xid="${esc(L.id)}"${x.tout || x.ids.includes(L.id) ? ' checked' : ''}${x.tout ? ' disabled' : ''}>
+    <span>${compLogo(L)}<b>${esc(L.nom)}</b></span><small>${n == null ? '' : n ? `${pl(n, 'match')} cette semaine` : 'pas de match cette semaine'}</small></label>`; };
+  return `<div class="carte glass x-reg"><h2>➕ Pronos en plus</h2>
+    <p>D'autres compétitions à pronostiquer, avec <b>leur propre classement</b> (du mois et de la saison). Le classement principal ne change pas. Ce choix ne concerne que toi : tes amis choisissent les leurs.</p>
+    <label class="x-on"><span><b>Activer les pronos en plus</b><small>${x.on ? 'Activé' : 'Pas activé'}</small></span><input type="checkbox" role="switch" data-x="on"${x.on ? ' checked' : ''}></label>
+    ${x.on ? `<div class="ong glass" role="tablist">${[['tout', 'Tout'], ['choix', 'Au cas par cas']].map(([k, t]) => `<button type="button" role="tab" data-xt="${k}" aria-selected="${(k === 'tout') === x.tout}">${t}</button>`).join('')}</div>
+      <div class="x-liste">${EXTRAS.map(lig).join('')}</div>` : ''}
+    <p class="note">Foot : score exact 3 points, bon résultat 1 point. NBA et NFL : bon vainqueur 1 point ; parmi eux, le plus proche du score 3 points.</p>
+    ${act.length ? `<div class="btns"><button type="button" class="btn main" data-section="plus">Jouer (${pl(act.length, 'compétition')})</button></div>` : ''}</div>`;
+}
+async function changerExtras(f){
+  const x = XCHOIX(); f(x); LS.set('pronos:extras', x); synchroPlusTard();
+  try{ sessionStorage.removeItem('pronos:pastille'); }catch{}
+  if (actifs().length && !PLUSM.length){ rendre(); PLUSM = await chargerLigues(EXTRAS); if (SIM && BASE.moi()) ETAT = await BASE.tout(tous()); }
+  rendre();
 }
 function reglesHTML(){
   return `<div class="carte glass regles"><h2>🤝 Le principe</h2><p>Un groupe d'amis, un code de groupe, deux jeux : les <b>Pronos</b> (des points) et les <b>Paris</b> (des crédits).
       Gratuit et <b>sans argent</b> : les crédits ne s'achètent pas, ne s'échangent pas et ne valent rien. Aucun lot, juste le classement.</p></div>
     <div class="carte glass regles"><h2>🎯 Les pronos</h2><ul>
-      <li>Pronostique le score des matchs de Ligue 1, du Top 14 et de la Ligue des champions, au clavier ou avec − / +. Modifiable jusqu'au coup d'envoi.</li>
+      <li>Pronostique le score des matchs de Ligue 1, de Premier League, du Top 14 et de la Ligue des champions, au clavier ou avec − / +. Modifiable jusqu'au coup d'envoi.</li>
       <li>Les pronos des autres s'affichent au coup d'envoi ; avant, tu vois seulement qui a déjà joué.</li>
       <li><b>Foot</b> : score exact <b>3 points</b>, bon résultat (vainqueur ou nul) <b>1 point</b>.</li>
       <li><b>Rugby</b> : bon résultat <b>1 point</b> ; parmi ceux qui ont le bon résultat, le plus proche du score prend <b>3 points</b> (plus petite somme des écarts de points ; ex æquo : 3 chacun).
         Exemple, score final 27–20 : 25–20 et 28–21 (écart de 2) prennent 3 points, 30–10 prend 1 point, 20–25 prend 0.</li>
       <li>Classement du mois et de la saison. À égalité : le plus de pronos à 3 points, puis le moins de pronos.</li></ul></div>
+    <div class="carte glass regles"><h2>➕ Les pronos en plus</h2><ul>
+      <li>Au choix de chacun (accueil › Pronos en plus) : Liga, Serie A, Bundesliga, Ligue Europa, Ligue Conférence, NBA, NFL. Tout, ou au cas par cas.</li>
+      <li>Ils ont <b>leur propre classement</b> (mois et saison), entre ceux qui y jouent. Le classement principal ne change pas.</li>
+      <li>Foot : comme les pronos (3 points le score exact, 1 point le bon résultat). <b>NBA et NFL</b> : bon vainqueur <b>1 point</b> ; parmi eux, le plus proche du score <b>3 points</b> (comme le rugby).</li></ul></div>
     <div class="carte glass regles"><h2>🎟️ Les paris</h2><ul>
       <li><b>100 crédits</b> au début de chaque mois pour tout le monde (aussi pour un joueur qui arrive en cours de mois).</li>
       <li>Le podium du mois reçoit un bonus au départ du mois suivant : <b>+20</b>, <b>+10</b>, <b>+5</b> (joueurs ayant parié au moins une fois).</li>
@@ -759,7 +836,7 @@ function syncHTML(){
 }
 const monProno = (m, me) => (ETAT.pronos[m.id] || {})[me.pseudo];
 function heroHTML(me){
-  const now = Date.now(), ouverts = MATCHS.filter(m => m.state !== 'post' && m.t > now), faits = ouverts.filter(m => monProno(m, me)), prochain = ouverts[0];
+  const now = Date.now(), ouverts = aJouer().filter(m => m.state !== 'post' && m.t > now), faits = ouverts.filter(m => monProno(m, me)), prochain = ouverts[0];
   const cl = classement('mois'), x = cl.find(y => y.n === me.pseudo), joue = cl.some(y => y.nb);
   const reste = ouverts.length - faits.length, pct = ouverts.length ? Math.round(100 * faits.length / ouverts.length) : 100;
   return `<section class="p-hero glass" id="hero">
@@ -789,7 +866,7 @@ function matchJouer(m, me){
     ${ferme ? `<div class="p-chips">${autresHTML(m, me) || '<span class="note">Aucun prono</span>'}</div>` : ''}</div>`;
 }
 function jouerHTML(me){
-  const now = Date.now(), l = MATCHS.filter(m => m.state !== 'post' && m.t > now - 3 * 3600e3);
+  const now = Date.now(), l = aJouer().filter(m => m.state !== 'post' && m.t > now - 3 * 3600e3);
   return heroHTML(me) + (l.length ? blocs(l, m => matchJouer(m, me)) : '<p class="vide">Aucun match dans les 7 prochains jours pour ces compétitions.</p>');
 }
 function autresHTML(m, me, sansMoi){
@@ -799,7 +876,7 @@ function autresHTML(m, me, sansMoi){
 }
 const badge = (pt, rugby) => pt === 3 ? `<span class="p-bd p3">🎯 +3${rugby ? ' · le plus proche' : ''}</span>` : pt === 1 ? '<span class="p-bd p1">✓ +1</span>' : '<span class="p-bd p0">✗ 0</span>';
 function resHTML(me){
-  const l = MATCHS.filter(m => m.state === 'post' && ETAT.pronos[m.id]).reverse();
+  const l = liste().filter(m => m.state === 'post' && ETAT.pronos[m.id] && (JEU !== 'plus' || actifs().includes(m.league) || monProno(m, me))).reverse();
   if (!l.length) return '<p class="vide">Pas encore de match terminé avec des pronos.</p>' + (SIM ? simOutils() : '');
   const x = classement('mois').find(y => y.n === me.pseudo) || {pts:0, ex:0, bons:0, nb:0};
   return `<section class="p-bilan glass"><div><b>${x.pts}</b><span>points ce mois-ci</span></div><div><b>${x.ex}</b><span>🎯 pronos à 3 points</span></div><div><b>${x.nb ? Math.round(100 * x.bons / x.nb) : 0} %</b><span>✓ bons résultats</span></div></section>`
@@ -834,8 +911,8 @@ function clHTML(me){
   const corps = joue
     ? podiumHTML(l, avant, me) + tropheesHTML(l) + (l.length > 3 ? `<div class="p-liste glass">${l.slice(3).map(x => `<div class="p-r${x.n === me.pseudo ? ' moi' : ''}"><b>${x.pos}</b>${avHTML(x.n)}<span class="p-r-n">${esc(x.n)}<small>${stats(x)}</small></span>${fleche(x, avant)}<span class="p-r-pts">${x.pts}</span></div>`).join('')}</div>` : '')
     : `<div class="carte glass"><h2>🏁 Le classement démarre au premier match terminé</h2><p>Dans le groupe : ${l.map(x => `${avHTML(x.n)} ${esc(x.n)}`).join(' &nbsp; ')}</p></div>`;
-  return per + corps + `<p class="note">Foot : score exact 3 points, bon résultat (vainqueur ou nul) 1 point. Rugby : bon résultat 1 point, et 3 points pour le plus proche du score parmi ceux qui ont le bon résultat (plus petite somme des écarts de points). À égalité : le plus de pronos à 3 points, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison = les ${JOURS_APRES} derniers jours dans cet essai.` : ''} ▲▼ : places gagnées ou perdues depuis la dernière journée.</p>`
-    + (SIM ? simOutils() : '') + appareilHTML(me);
+  return per + corps + (JEU === 'plus' ? `<p class="note">Pronos en plus : classement entre ceux qui y jouent. Foot : score exact 3 points, bon résultat 1 point. NBA et NFL : bon vainqueur 1 point, et 3 points pour le plus proche du score parmi eux. À égalité : le plus de pronos à 3 points, puis le moins de pronos.</p>` + (SIM ? simOutils() : '') : '') + (JEU === 'plus' ? '' : `<p class="note">Foot : score exact 3 points, bon résultat (vainqueur ou nul) 1 point. Rugby : bon résultat 1 point, et 3 points pour le plus proche du score parmi ceux qui ont le bon résultat (plus petite somme des écarts de points). À égalité : le plus de pronos à 3 points, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison = les ${JOURS_APRES} derniers jours dans cet essai.` : ''} ▲▼ : places gagnées ou perdues depuis la dernière journée.</p>`
+    + (SIM ? simOutils() : '')) + appareilHTML(me);
 }
 const simOutils = () => `<div class="carte glass"><h2>Outils de simulation</h2><p>Pour voir le classement vivre tout de suite : des pronos tirés au hasard pour toi sur les matchs déjà joués.</p>
   <div class="btns"><button type="button" class="btn" data-sim="remplir">Simuler mes pronos passés</button><button type="button" class="btn" data-sim="effacer">Tout effacer</button></div></div>`;
@@ -982,7 +1059,7 @@ function fete(texte){
 function feterExacts(){
   const me = BASE.moi(); if (!me) return;
   const vus = LS.get('pronos:fete', null), now = Date.now();
-  const exacts = MATCHS.filter(m => points(monProno(m, me), m) === 3);
+  const exacts = tous().filter(m => points(monProno(m, me), m) === 3);
   if (vus){ const neufs = exacts.filter(m => !vus.includes(m.id) && now - m.t < 4 * 86400e3);
     if (neufs.length){ const m = neufs[neufs.length - 1]; fete(neufs.length > 1 ? `🎯 ${neufs.length} pronos à 3 points ! +${3 * neufs.length}` : `🎯 ${RUGBY(m) ? 'Le plus proche' : 'Score exact'} : ${m.home.name} ${m.home.score}–${m.away.score} ${m.away.name} · +3`); } }
   LS.set('pronos:fete', [...new Set([...(vus || []), ...exacts.map(m => m.id)])].slice(-300));   // première visite : on retient sans fêter
@@ -992,7 +1069,7 @@ function feterExacts(){
 async function actualiser(){
   $('#refreshBtn').classList.add('spin');
   PANNE = '';
-  try{ await chargerMatchs(); if (BASE.moi()){ try{ ETAT = await BASE.tout(MATCHS); if (ETAT.err) throw new Error(ETAT.err);
+  try{ await chargerMatchs(); if (BASE.moi()){ try{ ETAT = await BASE.tout(tous()); if (ETAT.err) throw new Error(ETAT.err);
       const me = BASE.moi(), vrai = !SIM && !ETAT.joueurs.includes(me.pseudo) && ETAT.joueurs.find(n => n.toLowerCase() === me.pseudo.toLowerCase());
       if (vrai) LS.set('pronos:moi', {...me, pseudo:vrai}); }                         // v63 : « marc » tapé, « Marc » sur le serveur
     catch(e){ ETAT = {joueurs:[], pronos:{}};
@@ -1044,7 +1121,7 @@ document.addEventListener('submit', async e => {                          // v63
 });
 const enAttente = {};
 function programmer(box){
-  const id = box.dataset.m, m = MATCHS.find(x => x.id === id), [a, b] = box.querySelectorAll('.p-st input'), et = box.querySelector('[data-etat]');
+  const id = box.dataset.m, m = tous().find(x => x.id === id), [a, b] = box.querySelectorAll('.p-st input'), et = box.querySelector('[data-etat]');
   clearTimeout(enAttente[id]);
   if (a.value === '' || b.value === ''){ et.textContent = 'Complète les deux scores'; return; }
   et.textContent = 'Enregistrement…';
@@ -1067,6 +1144,10 @@ document.addEventListener('input', e => {
   i.value = i.value.replace(/\D/g, '').slice(0, 3);
   programmer(i.closest('[data-m]'));
 });
+document.addEventListener('change', e => {                                       // v68 : réglage des pronos en plus
+  const on = e.target.closest('[data-x="on"]'); if (on){ changerExtras(x => { x.on = on.checked; }); return; }
+  const c = e.target.closest('[data-xid]'); if (c) changerExtras(x => { const l = new Set(x.ids); c.checked ? l.add(c.dataset.xid) : l.delete(c.dataset.xid); x.ids = EXTRAS.map(L => L.id).filter(id => l.has(id)); });
+});
 document.addEventListener('focusin', e => { const i = e.target.closest('.p-st input'); if (i) setTimeout(() => i.select(), 0); });   // taper remplace le chiffre
 async function changerAvatar(){
   const msg = t => { const m = $('#avMsg'); if (m) m.textContent = t; };
@@ -1085,6 +1166,7 @@ document.addEventListener('click', async e => {
   if (e.target.closest('[data-lienreco]')){ const me = BASE.moi(), n = ($('#recoQui') || {}).value || me.pseudo;
     partager(n === me.pseudo ? `🔗 Mon lien pour revenir dans les pronos du groupe ${me.groupe} (le code à 4 chiffres reste secret) :` : `🔗 ${n}, ton lien pour revenir dans les pronos du groupe ${me.groupe} : il te reste à taper ton code à 4 chiffres.`, lienReco(me.groupe, n));
     return; }
+  const xt = e.target.closest('[data-xt]'); if (xt){ changerExtras(x => { x.tout = xt.dataset.xt === 'tout'; if (!x.tout && !x.ids.length) x.ids = EXTRAS.map(L => L.id); }); return; }   // v68
   const sec = e.target.closest('[data-section]');
   if (sec){ SECTION = sec.dataset.section; rendre(); window.scrollTo(0, 0); if (SECTION === 'paris' && !SIM && !PARIS && BASE.moi()){ await chargerParis(); rendre(); } return; }   // v62
   const v = e.target.closest('[data-vue]'); if (v){ VUE = v.dataset.vue; LS.set('pronos:vue', VUE); rendre(); return; }
@@ -1106,8 +1188,9 @@ document.addEventListener('click', async e => {
   const pas = e.target.closest('[data-pas]');
   if (pas){
     const box = pas.closest('[data-m]'), i = pas.parentNode.querySelector('input'), d = +pas.dataset.pas;
-    i.value = Math.max(0, Math.min(200, (i.value === '' ? 0 : +i.value) + (i.value === '' && d < 0 ? 0 : d)));
-    box.querySelectorAll('.p-st input').forEach(x => { if (x.value === '') x.value = '0'; });   // un seul côté touché : l'autre à 0
+    const m0 = tous().find(x => x.id === box.dataset.m), dep = (m0 && DEPART_SCORE[m0.league]) || 0;   // v68 : NBA, NFL : on part d'un score courant
+    i.value = Math.max(0, Math.min(200, i.value === '' ? (dep ? dep + d : d < 0 ? 0 : d) : +i.value + d));   // NBA : « + » → 111 contre 110
+    box.querySelectorAll('.p-st input').forEach(x => { if (x.value === '') x.value = String(dep); });   // un seul côté touché : l'autre à 0 (ou au score de départ)
     if (navigator.vibrate) navigator.vibrate(8);
     programmer(box); return;
   }
@@ -1127,7 +1210,7 @@ document.addEventListener('click', async e => {
   }
   if (e.target.closest('[data-quitter]')){ BASE.effacer(); ETAT = {joueurs:[], pronos:{}}; CHOIX = null; rendre(); return; }
   const s = e.target.closest('[data-sim]');
-  if (s && SIM){ if (s.dataset.sim === 'remplir'){ SIMU.remplirPasses(MATCHS); } else if (confirm('Effacer la simulation (pseudo et pronos) ?')) SIMU.effacer(); else return; actualiser(); return; }
+  if (s && SIM){ if (s.dataset.sim === 'remplir'){ SIMU.remplirPasses(liste()); } else if (confirm('Effacer la simulation (pseudo et pronos) ?')) SIMU.effacer(); else return; actualiser(); return; }
 });
 $('#refreshBtn').addEventListener('click', actualiser);
 async function partager(t, url){
@@ -1136,6 +1219,8 @@ async function partager(t, url){
 $('#invBtn').addEventListener('click', () => { const me = BASE.moi(); partager(`⚽🏉 Rejoins mon groupe de pronos ${me.groupe} (gratuit, entre amis) :`, `${location.origin}${location.pathname}?groupe=${encodeURIComponent(me.groupe)}`); });
 /* v63 : identité arrivée d'un autre appareil par la synchro → la page se recharge sur ce joueur */
 let MOI_VU = JSON.stringify(LS.get('pronos:moi', null));
+let X_VU = JSON.stringify(LS.get('pronos:extras', null));
+window.addEventListener('synchro:prefs', () => { const x = JSON.stringify(LS.get('pronos:extras', null)); if (x !== X_VU){ X_VU = x; if (actifs().length && !PLUSM.length) actualiser(); else rendre(); } });   // v68
 window.addEventListener('synchro:prefs', () => { if (SIM) return; const m = JSON.stringify(LS.get('pronos:moi', null)); if (m === MOI_VU) return; MOI_VU = m; RECO = false; SYNC = 'ouverte'; oublierLien(); actualiser(); });
 if (!SIM && window.Synchro && Synchro.actif()) Synchro.pret().then(p => { SYNC = p ? 'ouverte' : 'verrou'; if (!BASE.moi()) rendre(); }).catch(() => {});
 setInterval(() => {                         // comptes à rebours ; fermeture au coup d'envoi sans recharger (pas pendant une saisie)

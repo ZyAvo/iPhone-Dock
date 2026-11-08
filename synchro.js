@@ -1,4 +1,4 @@
-// mon-ecran-version: 19ab3e0b
+// mon-ecran-version: 75b5b5f6
 /* Mon Écran — synchronisation chiffrée entre tes appareils (iPhone, PC…).
    - Un fichier chiffré (synchro/mon-ecran.json, branche « synchro » de ton dépôt GitHub) contient tes placements,
      versements, réglages d'investissement et le Coffre. Sans la phrase secrète, c'est un bloc illisible.
@@ -160,8 +160,8 @@ const investAppliquer = v => { const reg = LSg('invest:reglages', {}); LSs('inve
 /* partie « prefs » : tes choix personnels, réglés dans l'appli (plus dans le classeur) :
    équipes et compétitions favorites (Sport), abonnements cochés (Vidéos), villes météo (Accueil), thème perso (État, v42), chaînes TV favorites (v44), liste « À regarder » et séries vues (v45),
    identité Pronos (v63 : groupe, pseudo, code à 4 chiffres, avatar ; seulement dans le fichier chiffré) */
-const PREFS = {sport:'sport:favoris', abos:'videos:abos', villes:'lieu:favoris', theme:'theme:perso', tv:'tv:favoris', tvliste:'tv:liste', tvvus:'tv:vus', tvfav:'tv:favf', spotify:'spotify:client', pronos:'pronos:moi'};
-const PREFS_SI_PRESENT = ['theme', 'tv', 'tvliste', 'tvvus', 'tvfav', 'spotify', 'pronos'];      // absentes du contenu tant qu'elles sont vides : l'empreinte des favoris d'avant la v42 ne change pas
+const PREFS = {sport:'sport:favoris', abos:'videos:abos', villes:'lieu:favoris', theme:'theme:perso', tv:'tv:favoris', tvliste:'tv:liste', tvvus:'tv:vus', tvfav:'tv:favf', spotify:'spotify:client', pronos:'pronos:moi', pronosx:'pronos:extras'};
+const PREFS_SI_PRESENT = ['theme', 'tv', 'tvliste', 'tvvus', 'tvfav', 'spotify', 'pronos', 'pronosx'];   // v68 : pronosx = choix des « Pronos en plus »      // absentes du contenu tant qu'elles sont vides : l'empreinte des favoris d'avant la v42 ne change pas
 const prefsLocal = () => Object.fromEntries(Object.entries(PREFS).map(([k, c]) => [k, LSg(c, null)]).filter(([k, v]) => v != null || !PREFS_SI_PRESENT.includes(k)));
 const prefsAppliquer = v => {
   for (const [k, c] of Object.entries(PREFS)) if (v && v[k] != null) LSs(c, v[k]);
@@ -170,10 +170,10 @@ const prefsAppliquer = v => {
 };
 const prefsVide = p => !p || Object.values(p).every(x => x == null);
 // v63 : seule l'identité Pronos diffère (deux appareils déjà connectés au passage à la v63, ou avatar changé) → pas de question : celle déjà partagée gagne
-const sansPronos = p => JSON.stringify({...(p || {}), pronos:null});
+const sansPronos = p => JSON.stringify({...(p || {}), pronos:null, pronosx:null});
 const PREFS_OPTS = {local:prefsLocal, appliquer:prefsAppliquer,
   choisir:(ici, ailleurs) => prefsVide(ici) ? 'ailleurs' : prefsVide(ailleurs) ? 'ici'
-    : sansPronos(ici) === sansPronos(ailleurs) ? (ailleurs.pronos == null ? 'ici' : 'ailleurs')
+    : sansPronos(ici) === sansPronos(ailleurs) ? (ailleurs.pronos == null && ailleurs.pronosx == null ? 'ici' : 'ailleurs')
     : conflit('Tes favoris (sport, abonnements, villes, thème perso, chaînes TV, identité Pronos)')()};
 const prefsSync = () => LSg('synchro:cfg', null) ? partie('prefs', PREFS_OPTS) : Promise.resolve('inactif');
 /* au chargement : si la session est déjà ouverte (code saisi), on échange les préférences sans rien demander */
