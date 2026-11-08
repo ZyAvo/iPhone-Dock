@@ -1,0 +1,47 @@
+# mon-ecran-version: ff51e367
+name: Rappels des pronos
+
+# v72 : rappels sur les téléphones abonnés (Pronos › Mon profil › Rappels) : le matin les pronos du jour pas encore faits,
+# puis environ une heure avant un match pas pronostiqué. Toutes les 30 min de 8 h à 23 h (heure de Paris en hiver ; 9 h - minuit en été),
+# à :07 et :37 (GitHub retarde surtout les tâches de :00 et :30).
+# Secrets à créer une fois (Settings › Secrets and variables › Actions) : PUSH_PUBLIC, PUSH_PRIVE, PRONOS_CLE
+# (créés par la page outils/cles-notifications.html ; PRONOS_CLE aussi dans la propriété du script CLE_TACHE d'Apps Script).
+# Sans ces secrets, la tâche ne fait rien (et reste verte).
+on:
+  schedule:
+    - cron: '7,37 7-22 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rappels-pronos
+  cancel-in-progress: false
+
+jobs:
+  rappels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Reprise des données précédentes
+        run: bash outils/reprendre-donnees.sh
+
+      - name: Outil d'envoi (web-push)
+        run: npm install --no-save --no-audit --no-fund web-push@3.6.7
+
+      - name: Rappels
+        run: node outils/rappels-pronos.mjs
+        env:
+          PUSH_PUBLIC: ${{ secrets.PUSH_PUBLIC }}
+          PUSH_PRIVE: ${{ secrets.PUSH_PRIVE }}
+          PRONOS_CLE: ${{ secrets.PRONOS_CLE }}
+
+      - name: Envoi des données
+        run: bash outils/publier-donnees.sh donnees/pronos
