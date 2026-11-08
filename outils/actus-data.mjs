@@ -1,4 +1,4 @@
-// mon-ecran-version: 67a7ae79
+// mon-ecran-version: a9c3ac7a
 // Prépare les actus de la page Actus (lancé par la tâche GitHub « Actus », toutes les 30 min).
 // Lit la liste des onglets et des flux directement dans actus.html, télécharge chaque flux RSS/Atom
 // sans passer par un service tiers, regroupe les mêmes infos venant de plusieurs sites et écrit :
@@ -49,6 +49,16 @@ function imageOf(x){
     || attr(x, 'itunes:image', 'href') || (decode(tag(x, ['content:encoded', 'description', 'summary', 'content'])).match(/<img[^>]+src=["']([^"']+)/i) || [])[1] || '';
   return /^https?:\/\//.test(img) ? img.replace(/^http:/, 'https:') : '';
 }
+/* v69 : article réservé aux abonnés, quand le flux le dit (catégorie, balise ou titre) ; sinon le badge vient du média (colonne Payant) */
+const CAT_PAYANT = /^(premium|abonn[ée]s?|r[ée]serv[ée]s? aux abonn[ée]s|contenu abonn[ée]s?|subscribers?(?:[ -]only)?|paywall(?:ed)?|payant|exclusivit[ée] abonn[ée]s?)$/i;
+function payant(x, title){
+  const cats = [...x.matchAll(/<(category|dc:subject|media:keywords)\b[^>]*>([\s\S]*?)<\/\1>/gi)].map(m => strip(m[2]).trim());
+  return cats.some(c => CAT_PAYANT.test(c))
+    || /<([\w:-]*(?:premium|paywall|subscriber|abonne)[\w:-]*)\b[^>]*>\s*(?:true|1|yes|oui)\s*<\/\1>/i.test(x)
+    || /<[\w:-]*(?:premium|paywall)[\w:-]*\s*\/>/i.test(x)
+    || /\b(?:isAccessibleForFree|accessibleForFree)\b[^<]{0,20}(?:false|>\s*false)/i.test(x)
+    || /^\s*(?:\[(?:abonn[ée]s?|premium)\]|premium\s*[:|–-]|🔒)/i.test(title);
+}
 function parse(xml){
   const blocks = [...xml.matchAll(/<(item|entry)\b[\s\S]*?<\/\1>/gi)].map(m => m[0]);
   return blocks.map(x => {
@@ -56,7 +66,8 @@ function parse(xml){
     const when = strip(tag(x, ['pubDate', 'dc:date', 'published', 'updated']));
     const g = /news\.google\./.test(link);              // Google Actualités : « Titre - Média », sans résumé utile
     const title = strip(tag(x, ['title']));
-    return {title:g ? title.replace(/\s+[-–]\s+[^-–]+$/, '') : title, link:link.trim(), date:Date.parse(when) || null,
+    const p = !g && payant(x, title);
+    return {...(p ? {p:1} : {}), title:g ? title.replace(/\s+[-–]\s+[^-–]+$/, '') : title.replace(/^\s*(?:\[(?:abonn[ée]s?|premium)\]|🔒)\s*/i, ''), link:link.trim(), date:Date.parse(when) || null,
             desc:g ? '' : strip(tag(x, ['description', 'summary', 'content:encoded', 'content'])).slice(0, 260), img:(imageOf(x) || '').replace(/^http:\/\//i, 'https://') || undefined};   // images en http:// : bloquées par l'iPhone sur une page https
   }).filter(i => i.title && /^https?:\/\//.test(i.link));
 }
@@ -143,7 +154,7 @@ const got = await pool(feeds.map(f => async () => {
     const d = await discover(f);
     if (d){ items = d.items; state[f.url] = {name:f.name, url:f.url, ok:true, n:items.length, img:items.filter(i => i.img).length, trouve:d.url, err:`adresse à mettre à jour (${err})`}; return [f.url, items]; }
   }
-  state[f.url] = items.length ? {name:f.name, url:f.url, ok:true, n:items.length, img:items.filter(i => i.img).length} : {name:f.name, url:f.url, ok:false, err};
+  state[f.url] = items.length ? {name:f.name, url:f.url, ok:true, n:items.length, img:items.filter(i => i.img).length, ...(items.some(i => i.p) ? {payants:items.filter(i => i.p).length} : {})} : {name:f.name, url:f.url, ok:false, err};   // v69 : articles « abonnés » repérés
   return [f.url, items];
 }), 6);
 const BY = Object.fromEntries(got);
@@ -186,14 +197,14 @@ if (UNE && UNE.url){
   let L = BY[UNE.url];
   if (!L || !L.length){ try{ L = parse(await get(UNE.url)); }catch(e){ console.log('À la une : flux injoignable', UNE.url, e.message || e); } }
   const it = (L || []).filter(i => i.title && (!i.date || i.date < NOW + H)).sort((x, y) => (y.date || 0) - (x.date || 0))[0];
-  if (it) choix = {url:UNE.url, source:UNE.name, color:UNE.color || '--t-slate', title:it.title, date:it.date || NOW, img:it.img || '', link:it.link};
+  if (it) choix = {url:UNE.url, source:UNE.name, color:UNE.color || '--t-slate', title:it.title, date:it.date || NOW, img:it.img || '', link:it.link, ...(it.p ? {p:1} : {})};
 }
-fs.writeFileSync(`${OUT}/une.json`, JSON.stringify({v:1, updated:UPD, top:top && {source:top.source, color:top.color, title:top.title, date:top.date, img:top.img || '', link:top.link}, choix}));
+fs.writeFileSync(`${OUT}/une.json`, JSON.stringify({v:1, updated:UPD, top:top && {source:top.source, color:top.color, title:top.title, date:top.date, img:top.img || '', link:top.link, ...(top.p ? {p:1} : {})}, choix}));
 // v52 : les 14 premières de « À la une » pour l'accueil sur ordinateur et le mode TV (≈ 3 Ko au lieu de tout actus-fr.json)
 fs.writeFileSync(`${OUT}/une-liste.json`, JSON.stringify({v:1, updated:UPD,
-  items:((visibles.une || {}).items || []).slice(0, 14).map((i, n) => ({title:i.title, link:i.link, source:i.source, color:i.color, date:i.date, img:i.img || '', ...(n === 0 && i.desc ? {desc:i.desc} : {})}))}));   // résumé : le premier seulement (affiché en grand)
+  items:((visibles.une || {}).items || []).slice(0, 14).map((i, n) => ({title:i.title, link:i.link, source:i.source, color:i.color, date:i.date, img:i.img || '', ...(i.p ? {p:1} : {}), ...(n === 0 && i.desc ? {desc:i.desc} : {})}))}));   // résumé : le premier seulement (affiché en grand)
 for (const id of autres) fs.writeFileSync(`${OUT}/onglet-${id}.json`, JSON.stringify({v:1, updated:UPD,
-  items:((tabs[id] || {}).items || []).slice(0, 15).map(i => ({title:i.title, link:i.link, source:i.source, color:i.color, date:i.date}))}));
+  items:((tabs[id] || {}).items || []).slice(0, 15).map(i => ({title:i.title, link:i.link, source:i.source, color:i.color, date:i.date, ...(i.p ? {p:1} : {})}))}));
 const ko = Object.values(state).filter(s => !s.ok);
 console.log(`${feeds.length - ko.length}/${feeds.length} flux lus.` + Object.entries(tabs).map(([k, v]) => ` ${k}:${v.items.length}`).join('') + ' | EN' + Object.entries(tabsEN).map(([k, v]) => ` ${k}:${v.items.length}`).join(''));
 ko.forEach(s => console.log(`  ✗ ${s.name} (${s.url}) : ${s.err}`));

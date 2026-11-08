@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="39dfc80e">
+<meta name="mon-ecran-version" content="5a3da47e">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -137,6 +137,7 @@ a{color:inherit;text-decoration:none}
 .w-news.has-img{padding:0;background:var(--wimg) center / cover no-repeat, var(--base)}
 .w-news.has-img::before{background:linear-gradient(180deg, rgba(8,18,31,.42), transparent 34%)}
 .w-news.has-img .src{position:absolute;top:14px;left:16px;right:16px}
+.w-news.has-img .pay.plein{background:#fff;color:#10233a}
 .w-news.has-img .w-label{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .w-news.has-img .src i{box-shadow:0 0 0 2px rgba(255,255,255,.85)}
 .w-news.has-img .w-body{padding:11px 14px 13px;gap:6px;color:#fff;
@@ -181,9 +182,23 @@ html.desk #deskSport{grid-area:sport;display:flex;align-self:stretch;position:re
 #deskSport .ds-row{cursor:pointer}
 #deskSport .ds-row[aria-current="true"]{background:var(--accent-soft);border-radius:12px;border-top-color:transparent;padding-left:6px;padding-right:6px;margin:0 -6px}
 html.desk .grid{grid-area:apps;display:flex;flex-wrap:wrap;justify-content:center;gap:18px 28px;margin-top:4px}
-html.desk .grid .app-btn{width:92px}
+html.desk .grid .app-btn{width:118px;gap:9px}                        /* v69 : tuiles plus grandes sur PC */
+html.desk .grid{gap:22px 34px}
+html.desk .app-btn .name{font-size:.82rem;font-weight:600}
+html.desk .tile svg{width:46%;height:46%}
 html.desk .spacer{display:none}
-html.desk .quick{grid-area:quick;justify-self:center;width:min(520px,100%)}
+html.desk .quick{grid-area:quick;justify-self:center;width:auto;max-width:100%;gap:18px;padding:10px 18px;margin:6px 0 4px;border-radius:26px;   /* v69 : barre du bas en vrai dock */
+  background:linear-gradient(160deg, var(--glass, rgba(255,255,255,.55)), var(--glass-tint, rgba(255,255,255,.3)));box-shadow:var(--shadow, 0 10px 30px -18px rgba(0,0,0,.35));
+  -webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4)}
+@media (max-height:960px){                                                /* écran bas (1440 × 900…) : tout tient sans faire défiler */
+  html.desk #deskSport{min-height:520px} html.desk #home{gap:16px;padding-top:22px}
+  html.desk .grid .app-btn{width:100px} html.desk .grid{gap:16px 30px}
+}
+html.desk .q-side{gap:12px}
+html.desk .q{width:50px;height:50px;border-radius:15px}
+html.desk .q svg{width:25px;height:25px;stroke-width:1.6}
+html.desk .q .qm{font-size:.95rem}
+html.desk .quick .etat{transform:scale(1.25)}
 html.desk a[data-app][data-web=""] .tile,html.desk a.q[data-app][data-web=""]{opacity:.38}
 html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);transition:transform .15s}
 .dn,.ds{border-radius:30px;padding:18px 20px;flex-direction:column;gap:12px;min-width:0}
@@ -195,6 +210,7 @@ html.desk .app-btn:hover .tile,html.desk .q:hover{transform:translateY(-2px);tra
 .dn-hero b{overflow-wrap:anywhere;display:block;font-size:1.3rem;line-height:1.25;letter-spacing:-.015em;margin-top:6px}
 .dn-hero p{margin:8px 0 0;font-size:.86rem;line-height:1.45;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .dn-src{display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;color:var(--ink-soft)}
+.dn-src .pay{margin:0 0 0 -2px}
 .dn-src i{width:8px;height:8px;border-radius:50%;flex:none}
 .dn-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 22px}
 .dn-it{display:flex;flex-direction:column;gap:4px;padding:11px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none}
@@ -876,7 +892,7 @@ function renderWidget(){
     wImg = img; w.classList.remove('has-img');
     if (img){ const pic = new Image(); pic.onload = () => { if (wImg === img){ w.style.setProperty('--wimg', `url("${img.replace(/"/g, '%22')}")`); w.classList.add('has-img'); } }; pic.src = img; }
   }
-  $('#wSrc').textContent = headline.source;
+  $('#wSrc').innerHTML = esc(headline.source) + (Noyau.payant ? Noyau.payant.badge(headline.source, headline.p) : '');   // v69 : € / $ des médias payants
   $('#wDot').style.background = (headline.color || '').startsWith('#') ? headline.color : `var(${headline.color || '--t-slate'})`;
   $('#wTitle').textContent = headline.title;
   $('#wTime').textContent = (headline.sample ? '' : ago(headline.date)) + (autoOn('actus') ? '' : ' · ⚠ auto coupé');
@@ -894,12 +910,12 @@ async function loadWidget(){
     const j = r.ok ? await r.json() : null, fresh = j && Date.now() - Date.parse(j.updated) < 3 * 3600e3;
     // source choisie : son dernier titre, préparé par la tâche (« choix ») s'il vient bien de cette source
     const c = fresh && choix && j.choix && j.choix.url === choix.url && j.choix.title ? j.choix : null;
-    if (c){ headline = {source:c.source || choix.name, color:c.color || choix.color || '--t-slate', title:c.title, date:c.date, img:c.img || ''}; renderWidget(); return; }
+    if (c){ headline = {source:c.source || choix.name, color:c.color || choix.color || '--t-slate', title:c.title, date:c.date, img:c.img || '', p:c.p}; renderWidget(); return; }
     const list = !fresh ? [] : j.top !== undefined ? (j.top ? [j.top] : []) : (((j.tabs || {}).une || {}).items || []);
     // même choix que la « une » de la page Actus : l'info la plus reprise, avec une image de préférence
     const score = i => (i.also || []).length * 2 + (i.img ? 1 : 0);
     const it = list.slice(0, 8).reduce((b, i) => !b || score(i) > score(b) ? i : b, null);
-    if (it) top = {source:it.source, color:it.color || '--t-slate', title:it.title, date:it.date, img:it.img || ''};
+    if (it) top = {source:it.source, color:it.color || '--t-slate', title:it.title, date:it.date, img:it.img || '', p:it.p};
     if (top && !choix){ headline = top; renderWidget(); return; }
   }catch{}
   try{                                                   // flux direct : la source choisie (choix pas encore reporté, ou une.json pas à jour), sinon celle par défaut
@@ -1512,8 +1528,8 @@ async function loadDeskNews(){
     if (!it.length) throw 0;
     const [h, ...rest] = it, ext = 'target="_blank" rel="noopener"';
     el.innerHTML = `<div class="d-head"><span class="w-label">À la une</span><button type="button" class="d-tv" data-tvmode>Mode TV</button>${PG('actus') ? '<a href="actus.html">Toutes les actus ›</a>' : ''}</div>
-      <a class="dn-hero" href="${esc(h.link)}" ${ext}>${h.img ? `<img src="${esc(String(h.img || '').replace(/^http:\/\//i, 'https://'))}" alt="" onerror="this.remove()">` : ''}<span><span class="dn-src"><i style="background:${esc(colD(h.color))}"></i>${esc(h.source)} · ${agoD(h.date)}</span><b>${esc(h.title)}</b>${h.desc ? `<p>${esc(h.desc)}</p>` : ''}</span></a>
-      <div class="dn-list">${rest.map(i => `<a class="dn-it" href="${esc(i.link)}" ${ext}><span class="dn-src"><i style="background:${esc(colD(i.color))}"></i>${esc(i.source)} · ${agoD(i.date)}</span><b>${esc(i.title)}</b></a>`).join('')}</div>`;
+      <a class="dn-hero" href="${esc(h.link)}" ${ext}>${h.img ? `<img src="${esc(String(h.img || '').replace(/^http:\/\//i, 'https://'))}" alt="" onerror="this.remove()">` : ''}<span><span class="dn-src"><i style="background:${esc(colD(h.color))}"></i>${esc(h.source)}${(Noyau.payant ? Noyau.payant.badge(h.source, h.p) : '')} · ${agoD(h.date)}</span><b>${esc(h.title)}</b>${h.desc ? `<p>${esc(h.desc)}</p>` : ''}</span></a>
+      <div class="dn-list">${rest.map(i => `<a class="dn-it" href="${esc(i.link)}" ${ext}><span class="dn-src"><i style="background:${esc(colD(i.color))}"></i>${esc(i.source)}${(Noyau.payant ? Noyau.payant.badge(i.source, i.p) : '')} · ${agoD(i.date)}</span><b>${esc(i.title)}</b></a>`).join('')}</div>`;
   }catch{ el.innerHTML = `<div class="d-head"><span class="w-label">À la une</span><button type="button" class="d-tv" data-tvmode>Mode TV</button>${PG('actus') ? '<a href="actus.html">Actus ›</a>' : ''}</div><p class="d-empty">Les actus arrivent…</p>`; }
 }
 function renderDeskSport(events, live, F){
@@ -1583,7 +1599,7 @@ async function renderTvActu(){
   try{
     const it = (await uneListe()).slice(0, 14);
     el.innerHTML = `<div class="d-head"><span class="w-label">À la une</span>${PG('actus') ? '<a href="actus.html">Actus ›</a>' : ''}</div>`
-      + it.map(i => `<a class="tvm-a" href="${esc(i.link)}" target="_blank" rel="noopener"><span class="dn-src"><i style="background:${esc(colD(i.color))}"></i>${esc(i.source)} · ${agoD(i.date)}</span><b>${esc(i.title)}</b></a>`).join('');
+      + it.map(i => `<a class="tvm-a" href="${esc(i.link)}" target="_blank" rel="noopener"><span class="dn-src"><i style="background:${esc(colD(i.color))}"></i>${esc(i.source)}${(Noyau.payant ? Noyau.payant.badge(i.source, i.p) : '')} · ${agoD(i.date)}</span><b>${esc(i.title)}</b></a>`).join('');
   }catch{ el.innerHTML = '<p class="d-empty">Les actus arrivent…</p>'; }
 }
 function renderTvMatchs(){

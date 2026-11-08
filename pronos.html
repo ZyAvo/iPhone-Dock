@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="3b57e5d0">
+<meta name="mon-ecran-version" content="de7c8745">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -259,6 +259,10 @@ html.desk .f-sheet{border-radius:26px}
   background:color-mix(in oklab, var(--av) 30%, var(--base));box-shadow:inset 0 0 0 2px var(--av)}
 .p-av.lg{width:46px;height:46px;font-size:24px;box-shadow:inset 0 0 0 3px var(--av)}
 .p-av.xl{width:58px;height:58px;font-size:30px;box-shadow:inset 0 0 0 3px var(--av), 0 6px 16px -8px var(--av)}
+.p-av.ph{background-color:var(--av);background-position:center;background-size:cover;background-repeat:no-repeat}
+.p-av.ph i{visibility:hidden;font-style:normal}   /* emoji caché mais gardé : même alignement que les autres avatars */   /* v69 : photo (image posée par #photosCSS) */
+.p-photo{display:flex;align-items:center;gap:12px;margin:4px 0 2px}
+.p-photo .btns{margin:0}
 .p-pile{display:inline-flex;align-items:center;padding-left:6px}
 .p-pile .p-av{width:22px;height:22px;font-size:12px;margin-left:-6px;box-shadow:inset 0 0 0 2px var(--av), 0 0 0 2px var(--base)}
 /* en-tête « Salut » */
@@ -296,6 +300,14 @@ html.desk .f-sheet{border-radius:26px}
 .p-pm{width:50px;height:30px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--accent);font-size:20px;font-weight:700;line-height:1;touch-action:manipulation}
 .p-pm:active{transform:scale(.92);background:color-mix(in oklab, var(--accent) 18%, var(--card))}
 .p-sep{font-size:22px;font-weight:700;color:var(--ink-soft)}
+/* v69 : forme et classement des équipes (interrupteur « pronos:infos », masqué par défaut) */
+.p-inf{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:.7rem;font-weight:500;color:var(--ink-soft);font-variant-numeric:tabular-nums;line-height:1.15}
+.p-fo{display:inline-flex;gap:3px;font-style:normal}
+.p-fo em,.p-leg em{display:inline-block;width:7px;height:7px;border-radius:50%;background:#9aa3ab;font-style:normal}
+.p-fo em.v,.p-leg em.v{background:#2fa35a}
+.p-fo em.d,.p-leg em.d{background:#e0453a}
+.p-leg{white-space:nowrap}
+.p-infos{border-radius:18px;margin:2px 0}
 .p-mv{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
 .p-vb{font:inherit;font-size:.82rem;font-weight:600;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:10px 6px;cursor:pointer;position:relative;transition:transform .12s,border-color .15s,background .15s}
 .p-vb:active:not(:disabled){transform:scale(.97)}
@@ -553,7 +565,53 @@ function avatarDe(n){
   const me = BASE.moi();
   return (me && n === me.pseudo && avLire(me.avatar)) || avLire((ETAT.avatars || {})[n]) || avHasard(n);
 }
-const avHTML = (n, cls = '') => { const a = avatarDe(n); return `<span class="p-av ${cls}" style="--av:${COULEURS[a.c]}" title="${esc(n)}" aria-hidden="true">${esc(a.e)}</span>`; };
+const avHTML = (n, cls = '') => { const a = avatarDe(n), ph = photoCls(n);
+  return `<span class="p-av ${cls}${ph ? ' ph ' + ph : ''}" style="--av:${COULEURS[a.c]}" title="${esc(n)}" aria-hidden="true">${ph ? `<i>${esc(a.e)}</i>` : esc(a.e)}</span>`; };
+
+/* ---------- v69 : photos de profil ----------
+   Le serveur (etat) donne { pseudo: version } ; les images (JPEG 128 × 128, ≈ 8 Ko) sont demandées une fois (action photos)
+   et gardées sur l'appareil (pronos:photos, par groupe). Une feuille de style (#photosCSS) les pose : pas d'image recopiée à chaque avatar. */
+const PHOTOS = (() => { const x = LS.get('pronos:photos', null); return x && x.l && typeof x.l === 'object' ? x : {g:'', l:{}}; })();
+const photoCls = n => { const v = (ETAT.photos || {})[n], x = PHOTOS.l[n]; return v && x && x.v === v && x.d ? 'ph-' + hash(n).toString(36) : ''; };
+function photosCSS(){
+  let st = document.getElementById('photosCSS'); if (!st){ st = document.createElement('style'); st.id = 'photosCSS'; document.head.appendChild(st); }
+  st.textContent = Object.entries(PHOTOS.l).filter(([n, x]) => x && x.d && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(x.d))
+    .map(([n, x]) => `.p-av.ph-${hash(n).toString(36)}{background-image:url("${x.d}")}`).join('\n');
+}
+function photosGarder(){ LS.set('pronos:photos', PHOTOS); photosCSS(); }
+photosCSS();
+async function photosAJour(){                                     // images manquantes ou changées des joueurs du groupe
+  const me = BASE.moi(); if (!me) return false;
+  if (PHOTOS.g !== me.groupe){ PHOTOS.g = me.groupe; PHOTOS.l = {}; }
+  const P = ETAT.photos || {}, manque = Object.keys(P).filter(n => !PHOTOS.l[n] || PHOTOS.l[n].v !== P[n]);
+  let change = false;
+  Object.keys(PHOTOS.l).forEach(n => { if (!P[n]){ delete PHOTOS.l[n]; change = true; } });   // photo retirée
+  if (manque.length && BASE.photos){ try{ const r = await BASE.photos(manque); Object.entries((r && r.photos) || {}).forEach(([n, x]) => { PHOTOS.l[n] = x; change = true; }); }catch{} }
+  if (change) photosGarder();
+  return change;
+}
+/* image choisie → carré du centre, 128 × 128, JPEG (qualité baissée tant que c'est trop lourd) */
+async function photoReduite(fichier){
+  const url = URL.createObjectURL(fichier);
+  try{
+    const img = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = url; });
+    const c = Math.min(img.naturalWidth, img.naturalHeight); if (!c) throw new Error('image');
+    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+    const x = cv.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 128, 128);
+    x.drawImage(img, (img.naturalWidth - c) / 2, (img.naturalHeight - c) / 2, c, c, 0, 0, 128, 128);
+    for (const q of [.82, .7, .58, .45]){ const d = cv.toDataURL('image/jpeg', q); if (d.length < 30000) return d; }
+    throw new Error('lourde');
+  } finally { URL.revokeObjectURL(url); }
+}
+async function changerPhoto(d){
+  const msg = t => { const m = $('#phMsg'); if (m) m.textContent = t; };
+  msg(d ? 'Envoi de la photo…' : 'Retrait de la photo…');
+  try{ const r = await BASE.photo(d);
+    if (!r.ok) return msg(r.err === 'action' ? 'Le serveur des pronos doit être mis à jour (v69) pour garder les photos.' : r.err === 'photo' ? 'Photo refusée par le serveur.' : 'Pseudo ou code non reconnu.');
+    const n = BASE.moi().pseudo; ETAT.photos = {...(ETAT.photos || {})};
+    if (d){ PHOTOS.g = BASE.moi().groupe; PHOTOS.l[n] = {v:r.v, d}; ETAT.photos[n] = r.v; } else { delete PHOTOS.l[n]; delete ETAT.photos[n]; }
+    photosGarder(); rendre(); }catch{ msg('Serveur des pronos injoignable.'); }
+}
 
 /* ---------- simulation : tout sur cet appareil, 3 amis fictifs ---------- */
 const AMIS = ['Lucas', 'Inès', 'Théo'];
@@ -570,6 +628,8 @@ const SIMU = {
   async inscrire(pseudo, pin, groupe, avatar){ const s = this.etat(); s.moi = {pseudo, pin, avatar}; s.groupe = groupe; this.garder(s); return {ok:true}; },
   moi(){ const s = this.etat(); return s.moi ? {...s.moi, groupe:s.groupe} : null; },
   async avatar(av){ const s = this.etat(); s.moi.avatar = av; this.garder(s); return {ok:true}; },
+  async photo(d){ const s = this.etat(); s.moi.pv = d ? 'v' + Date.now().toString(36) : ''; this.garder(s); return {ok:true, v:s.moi.pv}; },   // v69 : image gardée par la page (pronos:photos)
+  async photos(){ return {photos:{}}; },
   async parier(m, h, a){ if (Date.now() >= m.t) return {err:'ferme'}; const s = this.etat(); s.p[m.id] = [h, a, Date.now()]; this.garder(s); return {ok:true}; },
   async tout(matchs){
     const s = this.etat(), moi = s.moi.pseudo, pr = {}, qui = {};
@@ -580,7 +640,7 @@ const SIMU = {
       else { const d = joue.filter(n => hash(n + m.id + 'deja') % 3); if (s.p[m.id]) d.push(moi); if (d.length) qui[m.id] = d; }
       if (Object.keys(l).length) pr[m.id] = l;
     }
-    return {joueurs:[moi, ...AMIS], pronos:pr, avatars:{...AMIS_AV}, qui};
+    return {joueurs:[moi, ...AMIS], pronos:pr, avatars:{...AMIS_AV}, photos:s.moi.pv ? {[moi]:s.moi.pv} : {}, qui};
   },
   remplirPasses(matchs){ const s = this.etat(); matchs.filter(m => m.state === 'post' && !s.p[m.id]).forEach(m => { if (hash('moi' + m.id) % 10 < 9) s.p[m.id] = [...pronoFictif('Moi' + s.moi.pseudo, m), m.t - 3600e3]; }); this.garder(s); },
   effacer(){ localStorage.removeItem('pronos:sim'); }
@@ -599,6 +659,8 @@ const DISTANT = {
   async tout(matchs){ const me = this.moi(); return this.appel('etat', {...me}); },
   async paris(){ const me = this.moi(); return this.appel('paris', {...me}); },                                // v60
   async miser(match, choix, mise){ const me = this.moi(); return this.appel('miser', {...me, match, choix, mise}); },
+  async photo(d){ const me = this.moi(); return this.appel('photo', {...me, photo:d}); },                      // v69
+  async photos(noms){ const me = this.moi(); return this.appel('photos', {...me, noms}); },
   effacer(){ localStorage.removeItem('pronos:moi'); }
 };
 const BASE = SIM ? SIMU : DISTANT;
@@ -642,6 +704,7 @@ async function chargerLigues(LS_){
   await Promise.all(LS_.map(async L => { try{
     const j = await (await fetch(`donnees/sport/${L.f}.json`, {cache:'no-cache'})).json();
     COMP[L.id] = {logo:j.logo || '', logoDark:j.logoDark || ''};
+    TABLES[L.id] = tableDe(j, L.id);                                                   // v69
     (j.events || []).forEach(e => { if (e.home && e.away && e.t > now - JOURS_APRES * 86400e3 && e.t < now + JOURS_AVANT * 86400e3 && !/POSTPONED|CANCEL/.test(e.code || '')) out.push({...e, nomL:L.nom, L}); });
   }catch{} }));
   return out.sort((a, b) => a.t - b.t);
@@ -866,10 +929,45 @@ function quiHTML(m, me){
   const l = (ETAT.qui[m.id] || []).filter(n => n !== me.pseudo);
   return `<span class="p-qui">${l.length ? `<span class="p-pile">${l.slice(0, 5).map(n => avHTML(n)).join('')}</span>` : '👀'} ${l.length}/${autres.length} ${autres.length > 1 ? 'amis ont joué' : 'ami a joué'}</span>`;
 }
+/* ---------- v69 : forme et classement des équipes ----------
+   Interrupteur dans « À pronostiquer » et dans les paris du jour (pronos:infos, masqué par défaut). Rang et points du classement
+   publié par la tâche Sport (NBA, NFL : bilan et place dans la conférence), et les 5 derniers matchs (du plus ancien au plus récent). */
+let INFOS = LS.get('pronos:infos', false) === true;
+const TABLES = {}, TABLES_EN_COURS = new Set();
+const ord = n => n === 1 ? '1ᵉʳ' : `${n}ᵉ`;
+const CONF = t => /^East/i.test(t) ? 'Est' : /^West/i.test(t) ? 'Ouest' : /^American/i.test(t) ? 'AFC' : /^National/i.test(t) ? 'NFC' : '';
+function tableDe(j, id){
+  const out = {}, us = /^(nba|nfl)$/.test(id);
+  ((j.table || {}).tables || []).forEach(tb => (tb.entries || []).forEach((e, i) => {
+    const st = Object.fromEntries((e.stats || []).map(x => [x.name, x.v]));
+    out[e.id] = {r:+st.rank || +st.playoffSeed || i + 1, pts:st.points, bil:st.overall, conf:CONF(tb.title || ''), us};
+  }));
+  (j.events || []).filter(e => e.state === 'post' && e.home && e.away && e.home.score != null && e.away.score != null && e.home.score !== '' && e.away.score !== '')
+    .sort((a, b) => b.t - a.t).forEach(e => [[e.home, e.away], [e.away, e.home]].forEach(([a, b]) => {
+      const x = out[a.id] || (out[a.id] = {us}); x.f = x.f || [];
+      if (x.f.length < 5) x.f.push(+a.score > +b.score ? 'v' : +a.score < +b.score ? 'd' : 'n');
+    }));
+  return out;
+}
+async function chargerTables(ids){                               // compétitions des paris pas chargées par les pronos
+  const l = [...new Set(ids)].filter(id => !TABLES[id] && !TABLES_EN_COURS.has(id)); if (!l.length) return false;
+  l.forEach(id => TABLES_EN_COURS.add(id));
+  await Promise.all(l.map(async id => { try{ TABLES[id] = tableDe(await (await fetch(`donnees/sport/${String(id).replace(/\./g, '-')}.json`, {cache:'no-cache'})).json(), id); }catch{ TABLES[id] = {}; } TABLES_EN_COURS.delete(id); }));
+  return true;
+}
+function infoEq(m, t){
+  if (!INFOS || !t || !t.id) return '';
+  const x = (TABLES[m.league] || {})[t.id]; if (!x) return '';
+  const txt = (x.us ? [x.bil, x.conf && x.r ? `${ord(x.r)} ${x.conf}` : ''] : [x.r && x.pts !== undefined ? ord(x.r) : '', x.pts !== undefined && x.pts !== '' ? `${x.pts} pts` : '']).filter(Boolean).join(' · ');
+  const f = (x.f || []).slice().reverse().map(k => `<em class="${k}"></em>`).join('');
+  return txt || f ? `<small class="p-inf">${txt ? `<b>${esc(txt)}</b>` : ''}${f ? `<em class="p-fo" title="5 derniers matchs, du plus ancien au plus récent">${f}</em>` : ''}</small>` : '';
+}
+const interInfos = () => `<label class="x-on p-infos glass"><span><b>📊 Forme et classement des équipes</b><small>${INFOS
+  ? 'Rang, points et 5 derniers matchs : <span class="p-leg"><em class="v"></em> victoire <em class="n"></em> nul <em class="d"></em> défaite</span>' : 'Masqué · pour t\'aider à choisir'}</small></span><input type="checkbox" role="switch" data-infos${INFOS ? ' checked' : ''} aria-label="Forme et classement des équipes"></label>`;
 function matchVainqueur(m, me){                 // v68 : NBA, NFL : deux boutons, le vainqueur
   const now = Date.now(), c = choixV(monProno(m, me)), ferme = now >= m.t;
   const gauche = ferme ? (m.state === 'in' ? '<span class="p-live">● En direct</span>' : '🔒 Commencé') : `<span class="p-cd${m.t - now < 3600e3 ? ' urgent' : ''}" data-cd="${m.t}" data-pre="⏳ ">⏳ ${esc(compte(m.t))}</span>`;
-  const eq = (k, t) => `<button type="button" class="p-eq p-vb" data-vq="${k}" aria-pressed="${c === k}"${ferme ? ' disabled' : ''}>${logoEq(m, t)}<span>${esc(t.name)}</span>${c === k ? '<i>🏆</i>' : ''}</button>`;
+  const eq = (k, t) => `<button type="button" class="p-eq p-vb" data-vq="${k}" aria-pressed="${c === k}"${ferme ? ' disabled' : ''}>${logoEq(m, t)}<span>${esc(t.name)}</span>${infoEq(m, t)}${c === k ? '<i>🏆</i>' : ''}</button>`;
   return `<div class="p-m p-mv" data-m="${esc(m.id)}">${eq('h', m.home)}<span class="p-vs">${ferme || c ? '' : 'Qui gagne ?'}</span>${eq('a', m.away)}
     <div class="p-pied">${gauche}<span data-etat>${!ferme && c ? '<span class="ok">✓ enregistré</span>' : ''}</span>${ferme ? '' : quiHTML(m, me)}</div>
     ${ferme ? `<div class="p-chips">${autresHTML(m, me) || '<span class="note">Aucun prono</span>'}</div>` : ''}</div>`;
@@ -879,15 +977,15 @@ function matchJouer(m, me){
   const now = Date.now(), p = monProno(m, me) || ['', ''], ferme = now >= m.t;
   const gauche = ferme ? (m.state === 'in' ? '<span class="p-live">● En direct</span>' : '🔒 Commencé') : `<span class="p-cd${m.t - now < 3600e3 ? ' urgent' : ''}" data-cd="${m.t}" data-pre="⏳ ">⏳ ${esc(compte(m.t))}</span>`;
   return `<div class="p-m" data-m="${esc(m.id)}">
-    <div class="p-eq">${logoEq(m, m.home)}<span>${esc(m.home.name)}</span></div>
+    <div class="p-eq">${logoEq(m, m.home)}<span>${esc(m.home.name)}</span>${infoEq(m, m.home)}</div>
     ${scoreHTML(m, p, 0, ferme)}<span class="p-sep">:</span>${scoreHTML(m, p, 1, ferme)}
-    <div class="p-eq">${logoEq(m, m.away)}<span>${esc(m.away.name)}</span></div>
+    <div class="p-eq">${logoEq(m, m.away)}<span>${esc(m.away.name)}</span>${infoEq(m, m.away)}</div>
     <div class="p-pied">${gauche}<span data-etat>${!ferme && p[0] !== '' ? '<span class="ok">✓ enregistré</span>' : ''}</span>${ferme ? '' : quiHTML(m, me)}</div>
     ${ferme ? `<div class="p-chips">${autresHTML(m, me) || '<span class="note">Aucun prono</span>'}</div>` : ''}</div>`;
 }
 function jouerHTML(me){
   const now = Date.now(), l = aJouer().filter(m => m.state !== 'post' && m.t > now - 3 * 3600e3);
-  return heroHTML(me) + (l.length ? blocs(l, m => matchJouer(m, me)) : '<p class="vide">Aucun match dans les 7 prochains jours pour ces compétitions.</p>');
+  return heroHTML(me) + (l.length ? interInfos() + blocs(l, m => matchJouer(m, me)) : '<p class="vide">Aucun match dans les 7 prochains jours pour ces compétitions.</p>');
 }
 function autresHTML(m, me, sansMoi){
   const l = Object.entries(ETAT.pronos[m.id] || {}).filter(([n]) => !(sansMoi && n === me.pseudo));
@@ -946,7 +1044,10 @@ function lienRecoHTML(me){                  // v63 : lien de reconnexion, pour s
 function appareilHTML(me){
   return `<div class="carte glass" id="appareil"><h2>Mon profil</h2><p>Connecté en tant que <b>${esc(me.pseudo)}</b> dans le groupe <b>${esc(me.groupe)}</b>.${SIM ? '' : ' Tes pronos restent sur le serveur : tu peux revenir avec le même pseudo et le même code.'}</p>
     ${EDITER ? choixHTML() + '<div class="btns"><button type="button" class="btn main" data-av="garder">Enregistrer</button><button type="button" class="btn" data-av="annuler">Annuler</button></div><p class="msg" id="avMsg" role="status"></p>'
-      : `<div class="btns"><button type="button" class="btn" data-av="changer">${avHTML(me.pseudo)} Changer mon avatar</button>${SIM ? '' : '<button type="button" class="btn" data-quitter>Changer de joueur ou de groupe</button>'}</div>`}
+      : `<div class="btns"><button type="button" class="btn" data-av="changer">${avHTML(me.pseudo)} Changer mon avatar</button>${SIM ? '' : '<button type="button" class="btn" data-quitter>Changer de joueur ou de groupe</button>'}</div>
+        <div class="btns"><button type="button" class="btn" data-photo="choisir">📷 ${photoCls(me.pseudo) ? 'Changer de photo' : 'Choisir une photo'}</button>${photoCls(me.pseudo) ? '<button type="button" class="btn" data-photo="retirer">Retirer la photo</button>' : ''}</div>
+        <input type="file" id="photoIn" accept="image/*" hidden>
+        <p class="note">La photo remplace l'emoji pour tout le groupe. Elle est réduite à un petit carré (le centre de l'image) avant l'envoi.</p><p class="msg" id="phMsg" role="status"></p>`}
     ${SIM || EDITER ? '' : lienRecoHTML(me)}</div>`;
 }
 
@@ -996,7 +1097,8 @@ function parisJourHTML(me, x){
     Résultat : score final (prolongation comprise). 100 crédits au début de chaque mois, +20 / +10 / +5 pour le podium du mois précédent.
     <b>Jeu entre amis, sans argent</b> : les crédits ne s'achètent pas, ne s'échangent pas et ne valent rien.</p>`;
   if (!l.length) return `<div class="carte glass"><h2>⏳ Pas encore de cote aujourd'hui</h2><p>Les cotes arrivent vers 8 h le jour du match, pour la Ligue 1, la Premier League, la Liga, la Serie A, la Bundesliga et les coupes d'Europe.</p></div>` + regles;
-  return blocs(l, m => matchParisHTML(m, me, x, now)) + regles;
+  if (INFOS) chargerTables(l.map(m => m.league)).then(n => { if (n && SECTION === 'paris') rendre(); });   // v69
+  return interInfos() + blocs(l, m => matchParisHTML(m, me, x, now)) + regles;
 }
 function matchParisHTML(m, me, x, now){
   const ferme = now >= m.t, p = monPari(m.id, me), ch = PCHOIX[m.id], sel = ch ? ch.choix : p && p.choix;
@@ -1012,7 +1114,7 @@ function matchParisHTML(m, me, x, now){
       <div class="btns"><button type="button" class="btn main" data-valider>${p ? 'Modifier le pari' : 'Valider'}</button>${p ? '<button type="button" class="btn" data-annuler>Annuler le pari</button>' : ''}<button type="button" class="btn" data-fermer>Fermer</button></div><p class="msg" data-pmsg role="status"></p></div>`;
   } else if (p) corps = `<div class="pa-moi">✓ <b>${p.mise}</b> sur ${esc(libChoix(p.choix, m))} à ${cote(p.cote)} → <b>${Math.round(p.mise * p.cote)}</b> possibles${ferme ? '' : ' <button type="button" class="pa-lien" data-modifier>Modifier</button>'}</div>`;
   return `<div class="p-m pa-m" data-pm="${esc(m.id)}">
-    <div class="p-eq">${logoEq(m, m.home)}<span>${esc(m.home.name)}</span></div><div class="pa-h">${esc(hm(m.t))}</div><div class="p-eq">${logoEq(m, m.away)}<span>${esc(m.away.name)}</span></div>
+    <div class="p-eq">${logoEq(m, m.home)}<span>${esc(m.home.name)}</span>${infoEq(m, m.home)}</div><div class="pa-h">${esc(hm(m.t))}</div><div class="p-eq">${logoEq(m, m.away)}<span>${esc(m.away.name)}</span>${infoEq(m, m.away)}</div>
     <div class="pa-c">${bt('h', 0, '1')}${bt('d', 1, 'N')}${bt('a', 2, '2')}</div>
     ${corps}
     <div class="p-pied">${gauche}${!ferme && qui.length ? `<span class="p-qui"><span class="p-pile">${qui.slice(0, 5).map(n => avHTML(n)).join('')}</span> ${qui.length} ${qui.length > 1 ? 'ont parié' : 'a parié'}</span>` : ''}</div>
@@ -1091,7 +1193,8 @@ async function actualiser(){
   PANNE = '';
   try{ await chargerMatchs(); if (BASE.moi()){ try{ ETAT = await BASE.tout(tous()); if (ETAT.err) throw new Error(ETAT.err);
       const me = BASE.moi(), vrai = !SIM && !ETAT.joueurs.includes(me.pseudo) && ETAT.joueurs.find(n => n.toLowerCase() === me.pseudo.toLowerCase());
-      if (vrai) LS.set('pronos:moi', {...me, pseudo:vrai}); }                         // v63 : « marc » tapé, « Marc » sur le serveur
+      if (vrai) LS.set('pronos:moi', {...me, pseudo:vrai});                           // v63 : « marc » tapé, « Marc » sur le serveur
+      photosAJour().then(c => { if (c) rendre(); }); }
     catch(e){ ETAT = {joueurs:[], pronos:{}};
       if (e.message === 'code'){ BASE.effacer(); PANNE = 'Pseudo ou code non reconnu par le serveur : reconnecte-toi.'; }      // v55 : plus de page vide sans explication
       else PANNE = 'Serveur des pronos injoignable : les pronos affichés peuvent être incomplets. Réessaie avec ↻.'; } }
@@ -1180,7 +1283,10 @@ document.addEventListener('input', e => {
   i.value = i.value.replace(/\D/g, '').slice(0, 3);
   programmer(i.closest('[data-m]'));
 });
-document.addEventListener('change', e => {                                       // v68 : réglage des pronos en plus
+document.addEventListener('change', async e => {                                 // v68 : réglage des pronos en plus ; v69 : photo choisie
+  if (e.target.matches('[data-infos]')){ INFOS = e.target.checked; LS.set('pronos:infos', INFOS); rendre(); return; }   // v69
+  if (e.target.id === 'photoIn'){ const f = e.target.files && e.target.files[0]; if (!f) return;
+    try{ changerPhoto(await photoReduite(f)); }catch{ const m = $('#phMsg'); if (m) m.textContent = 'Image illisible : essaie une autre photo (JPEG ou PNG).'; } return; }
   const on = e.target.closest('[data-x="on"]'); if (on){ changerExtras(x => { x.on = on.checked; }); return; }
   const c = e.target.closest('[data-xid]'); if (c) changerExtras(x => { const l = new Set(x.ids); c.checked ? l.add(c.dataset.xid) : l.delete(c.dataset.xid); x.ids = EXTRAS.map(L => L.id).filter(id => l.has(id)); });
 });
@@ -1244,6 +1350,8 @@ document.addEventListener('click', async e => {
     else changerAvatar();
     return;
   }
+  const ph = e.target.closest('[data-photo]');                                     // v69 : photo de profil
+  if (ph){ if (ph.dataset.photo === 'retirer'){ if (confirm('Retirer ta photo ?')) changerPhoto(''); } else { const i = $('#photoIn'); if (i){ i.value = ''; i.click(); } } return; }
   if (e.target.closest('[data-quitter]')){ BASE.effacer(); ETAT = {joueurs:[], pronos:{}}; CHOIX = null; rendre(); return; }
   const s = e.target.closest('[data-sim]');
   if (s && SIM){ if (s.dataset.sim === 'remplir'){ SIMU.remplirPasses(liste()); } else if (confirm('Effacer la simulation (pseudo et pronos) ?')) SIMU.effacer(); else return; actualiser(); return; }

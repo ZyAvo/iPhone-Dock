@@ -1,4 +1,4 @@
-// mon-ecran-version: ec66eb1a
+// mon-ecran-version: 28de6015
 /* Mon Écran — noyau commun à toutes les pages, et base des futures applis dédiées (iPhone, Android, PC).
    Rien ici ne dépend d'une astuce de Safari : ce qui est propre à « l'iPhone en mode web » est rangé dans Noyau.iphoneWeb,
    et une appli dédiée pourra fournir window.MonEcranNatif (ouvrir un lien, garder la clé…) que le noyau utilisera en priorité.
@@ -585,7 +585,45 @@ const pronos = {
   }
 };
 
-window.Noyau = {version:1, json, config, stockage, appareil, lien, iphoneWeb, depot, synchro, catalogue, modifs, accueil, applis, icones, MSG, depart, departs:DEPARTS, pronos,
+/* ---------- Médias payants (v69) : badge € (médias français) ou $ (médias en anglais) ----------
+   Classeur v6 : colonne « Payant » des onglets Actus (Oui / Partiel / vide) → feeds[].payant = oui | partiel | non.
+   Classeur plus ancien : liste intégrée ci-dessous (même liste que outils/dev/classeur/cat_actus.py PAYANTS).
+   Un article repéré « abonnés » dans son flux (p:1, outils/actus-data.mjs) a toujours le badge plein. */
+const PAYANTS_DEF = {o:['Les Échos', 'Les Échos Marchés', 'Investir', 'Courrier international', "L'Usine Nouvelle", 'Mediapart', "L'Opinion", 'Le Canard enchaîné',
+    'New York Times', 'Wall Street Journal', 'Financial Times', 'The Economist', 'Bloomberg', 'The Athletic', 'Washington Post', 'The Times'],
+  p:['Challenges', 'Le Point', "L'Express", 'Le Monde', 'Le Monde Sciences', 'Le Figaro', 'Libération', "L'Équipe", "L'Équipe Rugby", 'La Dépêche Tarn', 'La Dépêche',
+    'La Tribune', 'Zonebourse', 'Ciel & Espace', 'Le Parisien', 'Ouest-France', 'Sud Ouest', 'Midi Libre', 'La Croix', 'Les Inrocks', 'Télérama',
+    'The Atlantic', 'Wired', 'The Verge', 'The Telegraph'],
+  en:['New York Times', 'Wall Street Journal', 'Financial Times', 'The Economist', 'Bloomberg', 'The Athletic', 'Washington Post', 'The Times', 'The Atlantic', 'Wired', 'The Verge', 'The Telegraph']};
+const payant = (() => {
+  let M = null;
+  const carte = () => {
+    if (M) return M;
+    M = {}; let v6 = false; const A = config('actus', null) || {};
+    for (const [lang, L] of Object.entries(A)) for (const t of (Array.isArray(L) ? L : [])) for (const f of (t.feeds || [])){
+      if (!f || !f.name) continue;
+      if ('payant' in f) v6 = true;
+      M[f.name] = {m:f.payant, d:lang === 'en' ? '$' : '€'};
+    }
+    const def = n => PAYANTS_DEF.o.includes(n) ? 'oui' : PAYANTS_DEF.p.includes(n) ? 'partiel' : 'non';
+    for (const n of [...PAYANTS_DEF.o, ...PAYANTS_DEF.p]) if (!M[n]) M[n] = {m:undefined, d:PAYANTS_DEF.en.includes(n) ? '$' : '€'};
+    for (const [n, x] of Object.entries(M)) if (!v6 || x.m === undefined) x.m = def(n);
+    return M;
+  };
+  const TXT = {oui:'Média surtout réservé aux abonnés', partiel:'Une partie des articles est réservée aux abonnés', article:'Article réservé aux abonnés'};
+  return {
+    info(source){ const x = carte()[source]; return x ? {mode:x.m, devise:x.d} : {mode:'non', devise:'€'}; },
+    // badge(source, p) : '' (gratuit), contour (en partie payant) ou plein (payant, ou article repéré « abonnés »)
+    badge(source, p){
+      const {mode, devise} = payant.info(source), plein = p || mode === 'oui';
+      if (!plein && mode !== 'partiel') return '';
+      const t = p ? TXT.article : TXT[mode];
+      return `<span class="pay${plein ? ' plein' : ''}" title="${t}" aria-label="${t}">${devise}</span>`;
+    }
+  };
+})();
+
+window.Noyau = {version:1, json, config, stockage, appareil, lien, iphoneWeb, depot, synchro, catalogue, modifs, accueil, applis, icones, MSG, depart, departs:DEPARTS, pronos, payant,
   message:code => MSG[String(code).replace(/^erreur:/, '')] || (window.Synchro && Synchro.MSG[String(code).replace(/^erreur:/, '')]) || String(code)};
 window.CFG = config;
 })();

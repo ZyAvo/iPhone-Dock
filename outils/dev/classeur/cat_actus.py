@@ -1,4 +1,4 @@
-# mon-ecran-version: 63822f0f
+# mon-ecran-version: 70f24e88
 # Catalogue Actus : rubriques et médias en plus de ceux du dock actuel.
 # url = flux RSS supposé ; site = page d'accueil (la tâche y cherche le bon flux si l'adresse ne répond pas) ;
 # alt = secours Google Actualités limité au site. Tout ce qui est nouveau est « à vérifier » par la tâche.
@@ -329,4 +329,16 @@ FEEDS_EN = {
         e('NME', '#e2001a', 'https://www.nme.com/feed', 'https://www.nme.com/'),
         e('Rolling Stone', '#d6001c', 'https://www.rollingstone.com/feed/', 'https://www.rollingstone.com/'),
     ],
+}
+
+# v69 : médias payants (colonne « Payant » des onglets Actus) : « Oui » = la plupart des articles réservés aux abonnés,
+# « Partiel » = une partie seulement. État connu en novembre 2026, à corriger dans le classeur si un média change.
+PAYANTS = {
+    'Les Échos': 'Oui', 'Les Échos Marchés': 'Oui', 'Investir': 'Oui', 'Courrier international': 'Oui', "L'Usine Nouvelle": 'Oui',
+    'Mediapart': 'Oui', "L'Opinion": 'Oui', 'Le Canard enchaîné': 'Oui', 'Challenges': 'Partiel', 'Le Point': 'Partiel', "L'Express": 'Partiel',
+    'Le Monde': 'Partiel', 'Le Monde Sciences': 'Partiel', 'Le Figaro': 'Partiel', 'Libération': 'Partiel', "L'Équipe": 'Partiel', "L'Équipe Rugby": 'Partiel',
+    'La Dépêche Tarn': 'Partiel', 'La Dépêche': 'Partiel', 'La Tribune': 'Partiel', 'Zonebourse': 'Partiel', 'Ciel & Espace': 'Partiel', 'Le Parisien': 'Partiel',
+    'Ouest-France': 'Partiel', 'Sud Ouest': 'Partiel', 'Midi Libre': 'Partiel', 'La Croix': 'Partiel', 'Les Inrocks': 'Partiel', 'Télérama': 'Partiel',
+    'New York Times': 'Oui', 'Wall Street Journal': 'Oui', 'Financial Times': 'Oui', 'The Economist': 'Oui', 'Bloomberg': 'Oui', 'The Athletic': 'Oui',
+    'Washington Post': 'Oui', 'The Atlantic': 'Partiel', 'Wired': 'Partiel', 'The Verge': 'Partiel', 'The Telegraph': 'Partiel', 'The Times': 'Oui',
 }

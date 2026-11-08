@@ -1,4 +1,4 @@
-# mon-ecran-version: c20dd19d
+# mon-ecran-version: bc9e2e7d
 # Construit le classeur de configuration « Mon Écran » (openpyxl).
 # Usage : python3 construire.py reference.json sortie.xlsx [ancien.xlsx pour reprendre les choix]
 import sys, json
@@ -20,7 +20,7 @@ WR = Alignment(wrap_text=True, vertical='top')
 MID = Alignment(vertical='center')
 CENTER = Alignment(horizontal='center', vertical='center')
 
-LIENS = ('Lien iPhone', 'Lien Android', 'Lien web', 'Appli', 'Valeur')   # modifiables dans l'appli (liens, nom d'une appli) : repris tels quels
+LIENS = ('Lien iPhone', 'Lien Android', 'Lien web', 'Appli', 'Valeur', 'Payant')   # v69 : Payant (onglets Actus)   # modifiables dans l'appli (liens, nom d'une appli) : repris tels quels
 COLS_APPLIS = {'nom': 'Appli', 'ios': 'Lien iPhone', 'android': 'Lien Android', 'web': 'Lien web'}
 
 def anciens_choix(path):

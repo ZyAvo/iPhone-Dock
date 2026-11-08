@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 5448094c
+# mon-ecran-version: 651febe1
 # Lit le classeur de configuration (configuration.xlsx) et écrit les réglages du dock dans config/ :
 #   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json, applis.json
 #   config/config.js                     → les mêmes réglages en un seul fichier, chargé par les pages (window.MON_ECRAN_CONFIG)
@@ -228,9 +228,15 @@ def m_actus(m):
         d['ajout'] = True
         s['rows'].append(dict(id='ajout', r=a['r'], oui='Oui', oui2='', support='ok', d=d, nom=a['nom'], resultat=''))
     out = {'principal': [], 'autres': []}
+    def feed(x):                                                       # v69 : colonne « Payant » (Oui : surtout réservé aux abonnés ; Partiel : en partie)
+        d = dict(x['d']); c = x.get('cells') or {}
+        if 'Payant' not in c: d.pop('payant', None); return d            # classeur d'avant la v6 : la page garde sa liste intégrée
+        p = txt(c.get('Payant', '')).strip().lower()
+        d['payant'] = 'oui' if p in ('oui', 'o', 'x', '€', '$', 'payant', 'yes') else 'partiel' if p.startswith('part') else 'non'
+        return d
     for s, rows in selection(m, tst):
         if not rows: continue
-        out[s['tech'].get('liste', 'principal')].append({'id': s['tech']['id'], 'label': s['tech']['label'], 'feeds': [x['d'] for x in rows]})
+        out[s['tech'].get('liste', 'principal')].append({'id': s['tech']['id'], 'label': s['tech']['label'], 'feeds': [feed(x) for x in rows]})
     return out
 
 def m_marches(m):

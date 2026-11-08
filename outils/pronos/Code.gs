@@ -1,4 +1,4 @@
-/* KiosK — serveur des pronos entre amis (Google Apps Script, v68).
+/* KiosK — serveur des pronos entre amis (Google Apps Script, v69).
    Garde les joueurs et les pronos dans le Google Sheets auquel ce script est attaché (onglets « Joueurs » et « Pronos », créés tout seuls).
    Refuse un prono après le coup d'envoi (horaires lus sur le site publié, pas envoyés par le téléphone) et ne montre
    les pronos des autres qu'une fois le match commencé. Les points et le classement sont calculés par la page.
@@ -12,6 +12,8 @@
    v68 : Premier League (eng.1) dans LIGUES (horaires des pronos), et les « Pronos en plus » (EXTRAS : Liga, Serie A, Bundesliga, Ligue Europa,
    Ligue Conférence, NBA, NFL ; chaque joueur choisit dans la page, classement à part calculé par la page). Horaires gardés en mémoire par compétition
    (une valeur de CacheService ne dépasse pas 100 Ko) et lus en parallèle (fetchAll). Les paris n'en dépendent pas (cotes du matin).
+   v69 : photo de profil de chaque joueur (colonnes F « photo » : petite image JPEG 128 × 128 envoyée par la page, et G « photo v » : son numéro de version).
+   « etat » donne seulement les numéros de version ; la page demande les images qu'elle n'a pas encore (action « photos ») et les garde.
    Mise en place : voir outils/dev/PRONOS.md. */
 const SITE = 'https://zyavo.github.io/iPhone-Dock/';            // adresse du dock publié
 const LIGUES = {'fra.1':'fra-1', 'eng.1':'eng-1', '270559':'270559', 'uefa.champions':'uefa-champions'};   // id ESPN → fichier donnees/sport/<fichier>.json
@@ -31,13 +33,14 @@ function feuille(nom, entetes, texte){
   else if (f.getLastColumn() < entetes.length) f.getRange(1, 1, 1, entetes.length).setValues([entetes]);   // v56 : colonne ajoutée à un onglet existant
   return f;
 }
-const JOUEURS = () => feuille('Joueurs', ['groupe', 'pseudo', 'code (empreinte)', 'inscrit le', 'avatar'], 'A:C');
+const JOUEURS = () => feuille('Joueurs', ['groupe', 'pseudo', 'code (empreinte)', 'inscrit le', 'avatar', 'photo', 'photo v'], ['A:C', 'F:G']);
 const PRONOS = () => feuille('Pronos', ['groupe', 'pseudo', 'match', 'ligue', 'dom', 'ext', 'le'], 'A:D');
 const PARIS = () => feuille('Paris', ['groupe', 'pseudo', 'match', 'ligue', 'choix', 'mise', 'cote', 'le', 'mois', 'dom', 'ext', 'coup d\'envoi', 'gain'], ['A:E', 'I:K']);
 const T = v => String(v);                                          // valeur de cellule en texte
 const ajouter = (f, ligne) => f.getRange(f.getLastRow() + 1, 1, 1, ligne.length).setValues([ligne]);   // v61 : pas d'appendRow (conversions)
 const moisL = r => +r[11] ? moisDe(+r[11]) : (r[8] instanceof Date ? moisDe(r[8]) : T(r[8]));         // v61 : mois d'une ligne de Paris
 const AV = s => { const m = /^([^|]{1,8})\|([0-7])$/.exec(String(s || '')); return m ? m[0] : ''; };   // avatar « emoji|n° de couleur »
+const PHOTO = s => { s = String(s || ''); return s.length < 40000 && /^data:image\/jpeg;base64,[A-Za-z0-9+\/]+=*$/.test(s) ? s : ''; };   // v69
 const net = s => String(s || '').trim().slice(0, 20);
 const grp = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
 const empreinte = (g, p, pin) => Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, g + '|' + p.toLowerCase() + '|' + pin + '|mon-ecran'));
@@ -172,6 +175,19 @@ const ACTIONS = {
     JOUEURS().getRange(j.ligne, 5).setValue(av);
     return {ok:true};
   },
+  photo(q){                                                        // v69 : photo de profil (vide = retirer)
+    const j = joueur(q); if (!j) return {err:'code'};
+    const d = String(q.photo || ''), ph = PHOTO(d); if (d && !ph) return {err:'photo'};
+    const v = ph ? 'v' + Date.now().toString(36) : '';
+    JOUEURS().getRange(j.ligne, 6, 1, 2).setValues([[ph, v]]);
+    return {ok:true, v};
+  },
+  photos(q){                                                       // v69 : images des joueurs demandés (même groupe)
+    const j = joueur(q); if (!j) return {err:'code'};
+    const noms = [].concat(q.noms || []).map(String).slice(0, 60), photos = {};
+    JOUEURS().getDataRange().getValues().slice(1).forEach(r => { if (T(r[0]) === j.g && noms.includes(T(r[1])) && PHOTO(r[5])) photos[T(r[1])] = {v:T(r[6]), d:T(r[5])}; });
+    return {photos};
+  },
   miser(q){
     const j = joueur(q); if (!j) return {err:'code'};
     const id = String(q.match), C = cotesMatin()[id];
@@ -216,9 +232,9 @@ const ACTIONS = {
       if (nom !== j.p && !commence) return;                    // pronos des autres : seulement une fois le match commencé
       (pronos[id] || (pronos[id] = {}))[nom] = [r[4], r[5]];
     });
-    const joueurs = [], avatars = {};
-    JOUEURS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === j.g).forEach(r => { joueurs.push(T(r[1])); if (AV(r[4])) avatars[T(r[1])] = T(r[4]); });
-    return {joueurs, pronos, avatars, qui};
+    const joueurs = [], avatars = {}, photos = {};
+    JOUEURS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === j.g).forEach(r => { joueurs.push(T(r[1])); if (AV(r[4])) avatars[T(r[1])] = T(r[4]); if (r[5] && T(r[6])) photos[T(r[1])] = T(r[6]); });
+    return {joueurs, pronos, avatars, photos, qui};
   }
 };
 

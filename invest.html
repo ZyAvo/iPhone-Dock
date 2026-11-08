@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="181cdd4f">
+<meta name="mon-ecran-version" content="5a3dc77e">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Investissements</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -627,7 +627,7 @@ function marchesHTML(){
     <span class="k" style="padding:4px 4px 0">À venir</span>
     <div class="agenda glass">${items.map(a => `<div><time datetime="${a.d}">${Date.parse(a.d) / DAY < TODAY + 1 && Date.parse(a.d) / DAY >= TODAY ? 'aujourd\'hui' : new Date(a.d).toLocaleDateString('fr-FR', {weekday:'short', day:'numeric', month:'short'})}</time><span>${esc(a.t)}</span></div>`).join('')}</div>
     <span class="k" style="padding:4px 4px 0">À lire</span>
-    ${arts.length ? arts.map(i => `<a class="art glass" href="${esc(i.link)}" target="_blank" rel="noopener"><span class="src"><i style="background:${esc((i.color || '').startsWith('#') ? i.color : '#6096ba')}"></i>${esc(i.source)} · ${agoTxt(i.date)}</span><b>${esc(i.title)}</b></a>`).join('') : '<p class="msg">Les articles arrivent avec le prochain passage de la tâche « Actus ».</p>'}
+    ${arts.length ? arts.map(i => `<a class="art glass" href="${esc(i.link)}" target="_blank" rel="noopener"><span class="src"><i style="background:${esc((i.color || '').startsWith('#') ? i.color : '#6096ba')}"></i>${esc(i.source)}${(Noyau.payant ? Noyau.payant.badge(i.source, i.p) : '')} · ${agoTxt(i.date)}</span><b>${esc(i.title)}</b></a>`).join('') : '<p class="msg">Les articles arrivent avec le prochain passage de la tâche « Actus ».</p>'}
     <span class="k" style="padding:4px 4px 0">Fiches pratiques</span>
     ${FICHES.map(f => `<details class="fiche glass"><summary>${esc(f[0])}</summary>${f.slice(1).map(p => `<p>${p}</p>`).join('')}</details>`).join('')}`;
 }
@@ -1005,7 +1005,7 @@ async function load(force){
   try{
     let r = await fetch('donnees/actus/onglet-marches.json', {cache:'no-cache'});        // 8 Ko au lieu de tout le fichier des actus
     if (r.status === 404) r = await fetch('donnees/actus/actus.json', {cache:'no-cache'});
-    if (r.ok){ const j = await r.json(), it = j.items || ((j.tabs || {}).marches || {}).items || []; LS.set('invest:lire', {items:it.slice(0, 15).map(i => ({title:i.title, link:i.link, source:i.source, color:i.color, date:i.date}))}); }
+    if (r.ok){ const j = await r.json(), it = j.items || ((j.tabs || {}).marches || {}).items || []; LS.set('invest:lire', {items:it.slice(0, 15).map(i => ({title:i.title, link:i.link, source:i.source, color:i.color, date:i.date, ...(i.p ? {p:1} : {})}))}); }
   }catch{}
   loadedAt = Date.now();
   $('#refreshBtn').classList.remove('spin');

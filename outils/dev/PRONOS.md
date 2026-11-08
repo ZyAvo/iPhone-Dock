@@ -37,6 +37,10 @@ Un invité non inscrit voit la carte Règles et le formulaire.
 - **Classement** : podium, ▲▼ depuis la dernière journée (classement sans le dernier jour joué), stats (🎯 exacts, ✓ %, 🔥 série), trophées de la période
   (🎯 Sniper, 🔥 En feu ≥ 2, 💪 Assidu, 🐢 Lanterne rouge dès 3 joueurs), Mon profil (changer d'avatar, changer de joueur).
 - **Avatars** : « emoji|n° de couleur » (16 emojis, 8 couleurs) choisis à l'inscription ; sans avatar enregistré, tirage stable d'après le pseudo.
+- **Photo de profil (v69)** : Mon profil › « 📷 Choisir une photo » ; réduite à un carré 128 × 128 (le centre de l'image) avant l'envoi, elle remplace l'emoji pour tout le groupe.
+  Gardée dans l'onglet Joueurs (colonnes F et G) ; chaque appareil la télécharge une fois. « Retirer la photo » remet l'emoji. Il faut le Code.gs v69.
+- **Forme et classement des équipes (v69)** : interrupteur en haut de « À pronostiquer » et des paris du jour, masqué par défaut : rang, points et 5 derniers matchs sous chaque équipe
+  (NBA, NFL : bilan et place dans la conférence).
 - Serveur v55 : la page marche (pas d'avatars des autres ni de « qui a joué » ; changer d'avatar → message « serveur à mettre à jour »).
 
 ## Paris en crédits fictifs (v60, onglet « Paris »)

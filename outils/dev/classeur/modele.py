@@ -1,12 +1,12 @@
-# mon-ecran-version: 8eac5b4e
+# mon-ecran-version: d6457128
 # Modèle du classeur : réglages actuels (reference.json, cochés « Oui ») + catalogue (non cochés).
 # Chaque module = un onglet ; chaque ligne a un identifiant fixe (colonne cachée) et sa définition technique (JSON caché).
 import json, re, unicodedata
 from cat_sport import REGIONS_NOUVELLES, LIGUES_NOUVELLES, EQUIPES_PROPOSEES
-from cat_actus import SECTIONS_FR, FEEDS_FR, SECTIONS_EN, FEEDS_EN, G
+from cat_actus import SECTIONS_FR, FEEDS_FR, SECTIONS_EN, FEEDS_EN, G, PAYANTS
 from cat_autres import *
 
-VERSION_CLASSEUR = 5
+VERSION_CLASSEUR = 6
 
 def slug(s):
     s = unicodedata.normalize('NFD', str(s).lower()).encode('ascii', 'ignore').decode()
@@ -55,7 +55,7 @@ def construire(ref):
         def feed_row(tab, F, oui):
             fid = f"{mid}:{tab}:{slug(F['name'])}"
             t = {k: v for k, v in F.items() if k != 'google'}
-            return row(fid, {'nom': F['name'], 'url': F['url'], 'site': F.get('site', '')}, oui, t, resultat='' if oui else NOUVEAU,
+            return row(fid, {'nom': F['name'], 'url': F['url'], 'site': F.get('site', ''), 'payant': PAYANTS.get(F['name'], '')}, oui, t, resultat='' if oui else NOUVEAU,
                        note='Flux Google Actualités (mot-clé)' if F.get('google') or 'news.google.com' in F['url'] else '')
         for liste, tabs in (('principal', tabs_ref), ('autres', autres_ref)):
             for T in tabs:
@@ -68,7 +68,7 @@ def construire(ref):
             if sid in vus: continue
             secs.append(section(sid, lab, [feed_row(sid, F, '') for F in feeds_new.get(sid, [])], {'id': sid, 'label': lab, 'liste': 'principal'}))
         return dict(id=mid, feuille=feuille, titre=titre, intro=intro,
-            cols=[('nom', 'Média', 30), ('url', 'Adresse du flux', 52), ('site', 'Site (secours)', 30)], sections=secs,
+            cols=[('nom', 'Média', 30), ('url', 'Adresse du flux', 52), ('site', 'Site (secours)', 30), ('payant', 'Payant', 12)], sections=secs, saisie=('Payant',),   # v69
             ajout=('Rubrique (existante ou nouvelle)', 'Nom du média', "Adresse du site ou du flux, ou un mot-clé", 'Exemple', 'Numerama', 'https://www.numerama.com/'))
     M.append(actus_module('actus', 'Actus', 'Actus · rubriques et médias (français)', 'fr', ref['actus']['fr'], ref['actus']['autres'], SECTIONS_FR, FEEDS_FR,
         "Une rubrique = un onglet de la page Actus. Coche un média : sa rubrique apparaît avec lui. Coche la ligne « toute la rubrique » pour prendre tous ses médias "
