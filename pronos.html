@@ -2,14 +2,15 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="1e0c0142">
+<meta name="mon-ecran-version" content="6cf3684e">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pronos">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest-pronos.json">   <!-- v72 : installée depuis cette page, l'appli s'ouvre directement sur les Pronos -->
 <style>
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0;font-size:14px}
@@ -576,6 +577,80 @@ const avHTML = (n, cls = '') => { const a = avatarDe(n), ph = photoCls(n);
 
 /* v70 : son propre avatar (en-têtes) ouvre Mon profil (photo, avatar, lien de reconnexion), avant tout en bas de Classement */
 const avMoi = me => `<button type="button" class="p-moi-av" data-profil aria-label="Mon profil : photo et avatar">${avHTML(me.pseudo, 'xl')}<i aria-hidden="true">✎</i></button>`;
+/* ---------- v72 : installer les Pronos sur le téléphone (appli de l'écran d'accueil) ----------
+   Sur iPhone, l'appli de l'écran d'accueil a sa propre mémoire (il faut s'y reconnecter) ; c'est là que marchent les rappels.
+   Android (Chrome) : bouton « Installer » quand Chrome le propose, sinon le menu ⋮. Rien dans l'appli KiosK d'essai (vue web iOS). */
+let INSTALLER = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); INSTALLER = e; if (SECTION === 'accueil' || !BASE.moi()) rendre(); });
+addEventListener('appinstalled', () => { INSTALLER = null; LS.set('pronos:installer-vu', true); rendre(); });
+function installHTML(me){
+  const a = Noyau.appareil(), vueWebIOS = a.os === 'ios' && !/Safari\//.test(navigator.userAgent);
+  if (a.installe || a.os === 'autre' || vueWebIOS || window.MonEcranNatif || LS.get('pronos:installer-vu', false)) return '';
+  const recon = me ? `Ouvre-les ensuite depuis l'icône et reconnecte-toi (groupe <b>${esc(me.groupe)}</b>, ton pseudo et ton code).` : 'Ouvre-les ensuite depuis l\'icône pour t\'inscrire.';
+  const comment = a.os === 'ios'
+    ? `Touche <b>Partager</b> <span aria-hidden="true">⬆︎</span> en bas de Safari, puis <b>« Sur l'écran d'accueil »</b>. ${recon} Les rappels ne marchent que là.`
+    : INSTALLER ? 'Une icône sur ton écran d\'accueil, plein écran, et des rappels quand un prono t\'attend.'
+    : `Menu <b>⋮</b> de Chrome, puis <b>« Installer l'application »</b> (ou « Ajouter à l'écran d'accueil »).`;
+  return `<div class="carte glass p-install"><h2>📲 Installer les Pronos</h2><p>${comment}</p>
+    <div class="btns">${INSTALLER ? '<button type="button" class="btn main" data-installer>Installer</button>' : ''}<button type="button" class="btn" data-installer-vu>Plus tard</button></div></div>`;
+}
+
+/* ---------- v72 : rappels sur le téléphone (notifications web) ----------
+   L'appareil s'abonne (navigateur → adresse d'envoi et clés) et le serveur des pronos le garde (action abonner, onglet Abonnements).
+   La tâche GitHub « Rappels des pronos » envoie : le matin, les pronos du jour pas encore faits ; avant un match, s'il manque ton prono.
+   Clé publique de l'envoi : donnees/pronos/notifications.json, publiée par cette tâche. */
+const b64u = t => { const s = atob(String(t).replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - String(t).length % 4) % 4)); return Uint8Array.from(s, c => c.charCodeAt(0)); };
+const NOTIF = {
+  support: () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
+  async cle(){ try{ const r = await fetch('donnees/pronos/notifications.json', {cache:'no-cache'}); const j = r.ok ? await r.json() : null; return (j && j.cle) || ''; }catch{ return ''; } },
+  async abo(){ try{ const r = await navigator.serviceWorker.getRegistration(); return r ? await r.pushManager.getSubscription() : null; }catch{ return null; } },
+  ligues: () => [...LIGUES.map(L => L.id), ...actifs()],
+};
+let NOTIF_MSG = '';
+async function notifMaj(){
+  const el = $('#notif'), me = BASE.moi(); if (!el || !me) return;
+  const a = Noyau.appareil(), ios = a.os === 'ios', m = NOTIF_MSG ? `<p class="msg" role="status">${esc(NOTIF_MSG)}</p>` : '';
+  let corps;
+  if (SIM) corps = '<p class="note">Les rappels marchent avec le serveur des pronos, pas en simulation.</p>';
+  else if (!NOTIF.support()) corps = `<p class="note">${ios && !a.installe
+    ? 'Sur iPhone, les rappels marchent quand les Pronos sont installés : dans Safari, Partager ⬆︎ › « Sur l\'écran d\'accueil », puis ouvre-les depuis l\'icône (iOS 16.4 ou plus).'
+    : 'Cet appareil ou cette appli ne sait pas recevoir de rappels. Utilise les Pronos installés depuis Safari (iPhone) ou Chrome (Android).'}</p>`;
+  else if (Notification.permission === 'denied') corps = `<p class="note">Notifications refusées pour les Pronos. Pour les autoriser : ${ios ? 'Réglages › Notifications › Pronos' : 'réglages du site dans Chrome (cadenas ou ⋮ › Infos sur le site) › Notifications'}.</p>`;
+  else {
+    const sub = await NOTIF.abo(), moi = LS.get('pronos:notif', null), on = !!sub && !!moi && moi.p === me.pseudo && moi.g === me.groupe;
+    corps = `<label class="x-on"><span><b>Me prévenir sur cet appareil</b><small>${on ? 'Activé' : 'Pas activé'}</small></span><input type="checkbox" role="switch" data-notif${on ? ' checked' : ''}></label>
+      <p class="note">Le matin, s'il reste des pronos à faire dans la journée ; puis environ une heure avant un match que tu n'as pas pronostiqué${actifs().length ? ' (pronos en plus compris)' : ''}. Rien d'autre.</p>`;
+  }
+  if ($('#notif')) $('#notif').innerHTML = `<h2>🔔 Rappels</h2>${corps}${m}`;
+}
+async function notifActiver(){
+  const me = BASE.moi();
+  const perm = await Notification.requestPermission();                 // d'abord, dans le geste : sinon l'iPhone refuse de demander
+  if (perm !== 'granted'){ NOTIF_MSG = 'Sans ton autorisation, pas de rappel.'; return notifMaj(); }
+  NOTIF_MSG = 'Activation…'; notifMaj();
+  try{
+    const cle = await NOTIF.cle();
+    if (!cle){ NOTIF_MSG = 'Les rappels ne sont pas encore en place (tâche GitHub « Rappels des pronos »).'; return notifMaj(); }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    const meme = sub && sub.options && sub.options.applicationServerKey && b64u(cle).every((x, i) => x === new Uint8Array(sub.options.applicationServerKey)[i]);
+    if (sub && !meme){ await sub.unsubscribe(); sub = null; }                // clé d'envoi changée : nouvel abonnement
+    if (!sub) sub = await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64u(cle)});
+    const r = await BASE.abonner(sub.toJSON(), NOTIF.ligues(), Noyau.appareil().nom);
+    if (!r.ok){ NOTIF_MSG = r.err === 'action' ? 'Le serveur des pronos doit être mis à jour (v72).' : r.err === 'code' ? 'Pseudo ou code non reconnu.' : 'Abonnement refusé par le serveur.'; return notifMaj(); }
+    LS.set('pronos:notif', {g:me.groupe, p:me.pseudo, at:Date.now()}); NOTIF_MSG = 'C\'est activé : tu seras prévenu sur cet appareil.';
+  }catch{ NOTIF_MSG = 'Activation impossible (réseau ou navigateur). Réessaie plus tard.'; }
+  notifMaj();
+}
+async function notifCouper(serveur = true){
+  try{ const sub = await NOTIF.abo(); if (sub){ if (serveur && BASE.moi()) await BASE.desabonner(sub.endpoint).catch(() => {}); await sub.unsubscribe(); } }catch{}
+  localStorage.removeItem('pronos:notif'); NOTIF_MSG = serveur ? 'Rappels coupés sur cet appareil.' : ''; notifMaj();
+}
+async function notifResync(){                                         // compétitions suivies changées (pronos en plus)
+  const moi = LS.get('pronos:notif', null), me = BASE.moi(); if (!moi || !me || SIM || !NOTIF.support()) return;
+  const sub = await NOTIF.abo(); if (sub) BASE.abonner(sub.toJSON(), NOTIF.ligues(), Noyau.appareil().nom).catch(() => {});
+}
+
 /* ---------- v69 : photos de profil ----------
    Le serveur (etat) donne { pseudo: version } ; les images (JPEG 128 × 128, ≈ 8 Ko) sont demandées une fois (action photos)
    et gardées sur l'appareil (pronos:photos, par groupe). Une feuille de style (#photosCSS) les pose : pas d'image recopiée à chaque avatar. */
@@ -668,6 +743,8 @@ const DISTANT = {
   async paris(){ const me = this.moi(); return this.appel('paris', {...me}); },                                // v60
   async miser(match, choix, mise){ const me = this.moi(); return this.appel('miser', {...me, match, choix, mise}); },
   async photo(d){ const me = this.moi(); return this.appel('photo', {...me, photo:d}); },                      // v69
+  async abonner(sub, ligues, appareil){ const me = this.moi(); return this.appel('abonner', {...me, sub, ligues, appareil}); },   // v72 : rappels
+  async desabonner(endpoint){ const me = this.moi(); return this.appel('desabonner', {...me, endpoint}); },
   async photos(noms){ const me = this.moi(); return this.appel('photos', {...me, noms}); },
   effacer(){ localStorage.removeItem('pronos:moi'); }
 };
@@ -784,7 +861,8 @@ function fleche(x, avant){
 }
 
 /* ---------- affichage ---------- */
-function rendre(){
+function rendre(){ rendreTout(); if ($('#notif')) notifMaj(); }   // v72 : état des rappels mis à jour après chaque affichage
+function rendreTout(){
   const me = BASE.moi(), out = $('#out');
   $('#stamp').textContent = SIM ? 'Simulation' : me ? me.groupe : '';
   $('#invBtn').hidden = !me;
@@ -794,9 +872,10 @@ function rendre(){
       ? `<div class="bandeau glass b-lien"><span>🔗</span><span>Ce lien est celui de <b>${esc(LIEN.p)}</b>${LIEN.g ? ` (groupe ${esc(LIEN.g)})` : ''}. Sur cet appareil, tu es connecté en <b>${esc(me.pseudo)}</b>.
         <span class="btns"><button type="button" class="btn" data-autre>Me connecter en ${esc(LIEN.p)}</button><button type="button" class="btn" data-garder>Rester ${esc(me.pseudo)}</button></span></span></div>` : '');
   JEU = SECTION === 'plus' ? 'plus' : 'base';
+  const pose = (!me || SECTION === 'accueil') ? installHTML(me) : '';                // v72 : comment installer les Pronos sur le téléphone
   if (SECTION === 'regles'){ out.innerHTML = retourHTML() + reglesHTML(); return; }
-  if (!me){ out.innerHTML = bandeau + inscriptionHTML(); return; }
-  if (SECTION === 'accueil'){ out.innerHTML = bandeau + accueilHTML(me); return; }
+  if (!me){ out.innerHTML = bandeau + pose + inscriptionHTML(); return; }
+  if (SECTION === 'accueil'){ out.innerHTML = bandeau + pose + accueilHTML(me); return; }
   if (SECTION === 'paris'){ out.innerHTML = bandeau + retourHTML() + parisHTML(me); return; }
   if (SECTION === 'extras'){ out.innerHTML = bandeau + retourHTML() + extrasHTML(); return; }
   if (SECTION === 'plus' && !actifs().length){ SECTION = 'extras'; return rendre(); }
@@ -849,7 +928,7 @@ function extrasHTML(){
     ${act.length ? `<div class="btns"><button type="button" class="btn main" data-section="plus">Jouer (${pl(act.length, 'compétition')})</button></div>` : ''}</div>`;
 }
 async function changerExtras(f){
-  const x = XCHOIX(); f(x); LS.set('pronos:extras', x); synchroPlusTard();
+  const x = XCHOIX(); f(x); LS.set('pronos:extras', x); synchroPlusTard(); notifResync();
   try{ sessionStorage.removeItem('pronos:pastille'); }catch{}
   if (actifs().length && !PLUSM.length){ rendre(); PLUSM = await chargerLigues(EXTRAS); if (SIM && BASE.moi()) ETAT = await BASE.tout(tous()); }
   rendre();
@@ -1062,7 +1141,8 @@ function appareilHTML(me){
         <div class="btns"><button type="button" class="btn" data-photo="choisir">📷 ${photoCls(me.pseudo) ? 'Changer de photo' : 'Choisir une photo'}</button>${photoCls(me.pseudo) ? '<button type="button" class="btn" data-photo="retirer">Retirer la photo</button>' : ''}</div>
         <input type="file" id="photoIn" accept="image/*" hidden>
         <p class="note">La photo remplace l'emoji pour tout le groupe. Elle est réduite à un petit carré (le centre de l'image) avant l'envoi.</p><p class="msg" id="phMsg" role="status"></p>`}
-    ${SIM || EDITER ? '' : lienRecoHTML(me)}</div>`;
+    ${SIM || EDITER ? '' : lienRecoHTML(me)}</div>
+    ${EDITER ? '' : '<div class="carte glass" id="notif" aria-live="polite"><h2>🔔 Rappels</h2><p class="note">…</p></div>'}`;
 }
 
 /* ---------- Paris entre amis (v60) : crédits fictifs, jeu sans argent ----------
@@ -1306,6 +1386,7 @@ document.addEventListener('input', e => {
   programmer(i.closest('[data-m]'));
 });
 document.addEventListener('change', async e => {                                 // v68 : réglage des pronos en plus ; v69 : photo choisie
+  if (e.target.matches('[data-notif]')){ e.target.checked ? notifActiver() : notifCouper(); return; }   // v72 : rappels
   if (e.target.matches('[data-infos]')){ INFOS = e.target.checked; LS.set('pronos:infos', INFOS); rendre(); return; }   // v69
   if (e.target.id === 'photoIn'){ const f = e.target.files && e.target.files[0]; if (!f) return;
     try{ changerPhoto(await photoReduite(f)); }catch{ const m = $('#phMsg'); if (m) m.textContent = 'Image illisible : essaie une autre photo (JPEG ou PNG).'; } return; }
@@ -1378,7 +1459,9 @@ document.addEventListener('click', async e => {
     if (!['pronos', 'plus'].includes(SECTION)) SECTION = 'pronos';
     VUE = 'cl'; LS.set('pronos:vue', VUE); EDITER = false; rendre();
     const a = $('#appareil'); if (a) a.scrollIntoView({block:'start', behavior:'smooth'}); return; }
-  if (e.target.closest('[data-quitter]')){ BASE.effacer(); ETAT = {joueurs:[], pronos:{}}; CHOIX = null; rendre(); return; }
+  if (e.target.closest('[data-installer]') && INSTALLER){ const ev = INSTALLER; INSTALLER = null; ev.prompt(); ev.userChoice.finally(() => rendre()); return; }   // v72
+  if (e.target.closest('[data-installer-vu]')){ LS.set('pronos:installer-vu', true); rendre(); return; }
+  if (e.target.closest('[data-quitter]')){ if (LS.get('pronos:notif', null)) notifCouper(); BASE.effacer(); ETAT = {joueurs:[], pronos:{}}; CHOIX = null; rendre(); return; }
   const s = e.target.closest('[data-sim]');
   if (s && SIM){ if (s.dataset.sim === 'remplir'){ SIMU.remplirPasses(liste()); } else if (confirm('Effacer la simulation (pseudo et pronos) ?')) SIMU.effacer(); else return; actualiser(); return; }
 });
@@ -1386,7 +1469,7 @@ $('#refreshBtn').addEventListener('click', actualiser);
 async function partager(t, url){
   try{ if (navigator.share){ await navigator.share({title:'Pronos', text:t, url}); return; } await navigator.clipboard.writeText(`${t} ${url}`); alert('Lien copié : ' + url); }catch{}
 }
-$('#invBtn').addEventListener('click', () => { const me = BASE.moi(); partager(`⚽🏉 Rejoins mon groupe de pronos ${me.groupe} (gratuit, entre amis) :`, `${location.origin}${location.pathname}?groupe=${encodeURIComponent(me.groupe)}`); });
+$('#invBtn').addEventListener('click', () => { const me = BASE.moi(); partager(`⚽🏉 Rejoins mon groupe de pronos ${me.groupe} : jeu entre amis, gratuit et sans argent. Ouvre le lien, installe les Pronos sur ton écran d'accueil (la page t'explique comment), puis inscris-toi avec le code de groupe ${me.groupe}.`, `${location.origin}${location.pathname}?groupe=${encodeURIComponent(me.groupe)}`); });
 /* v63 : identité arrivée d'un autre appareil par la synchro → la page se recharge sur ce joueur */
 let MOI_VU = JSON.stringify(LS.get('pronos:moi', null));
 let X_VU = JSON.stringify(LS.get('pronos:extras', null));

@@ -90,3 +90,24 @@ Gratuit, entre amis, sans mise ni gain : rester hors des jeux d'argent (pas de d
 - Lien d'invitation : construit à partir de l'adresse de la page, il suit tout seul. Mais l'ancien site ne répond plus : renvoyer le lien aux amis.
   v63 : envoyer à chacun son **lien de reconnexion** (Mon profil › choisir l'ami › Partager le lien) : il n'a plus qu'à taper son code.
   Le Sheets garde joueurs et pronos ; sur un nouveau site, chacun se reconnecte avec le même groupe, pseudo et code.
+
+## Partager avec des amis et rappels (v72)
+- **Inviter** : bouton de partage en haut des Pronos. Le message donne le lien, le code de groupe et rappelle que c'est un jeu entre amis, gratuit et sans argent.
+- **Installer** : la page explique comment mettre les Pronos sur l'écran d'accueil (iPhone : Safari › Partager › « Sur l'écran d'accueil » ;
+  Android : bouton « Installer » de Chrome, ou menu ⋮ › « Installer l'application »). Installée depuis la page Pronos, l'appli s'appelle « Pronos »
+  et s'ouvre directement sur les Pronos (`manifest-pronos.json`). Sur iPhone, l'appli de l'écran d'accueil a sa propre mémoire : on s'y reconnecte
+  (groupe, pseudo, code).
+- **Rappels** : Mon profil › 🔔 Rappels › « Me prévenir sur cet appareil ». Le matin s'il reste des pronos à faire dans la journée, puis environ une heure
+  avant un match pas pronostiqué (compétitions des Pronos, et « en plus » si activées). iPhone : iOS 16.4 ou plus, Pronos installés sur l'écran d'accueil.
+  Pas dans l'appli KiosK d'essai (vue web iOS).
+
+### Mise en place des rappels (une seule fois)
+1. Apps Script : coller `outils/pronos/Code.gs` v72, Enregistrer, puis Déployer › Gérer les déploiements › ✏️ › Version : Nouvelle version › Déployer.
+2. Sur l'ordinateur, ouvrir `https://<compte>.github.io/<dépôt>/outils/cles-notifications.html` › « Créer les clés » (trois valeurs, créées dans la page).
+3. GitHub › Settings › Secrets and variables › Actions › New repository secret : `PUSH_PUBLIC`, `PUSH_PRIVE`, `PRONOS_CLE`.
+4. Apps Script › ⚙︎ Paramètres du projet › Propriétés du script › Ajouter : `CLE_TACHE` = la valeur de `PRONOS_CLE`.
+5. Déposer à la main `.github/workflows/rappels-pronos.yml`, puis Actions › « Rappels des pronos » › Run workflow (publie la clé publique,
+   en ligne à la publication suivante, un quart d'heure environ).
+6. Chaque joueur active les rappels dans Mon profil.
+Contrôle : le journal de la tâche donne le nombre d'appareils abonnés et de rappels envoyés ; « Rappels pas encore en place » = secrets absents ;
+« clé refusée » = `CLE_TACHE` différente de `PRONOS_CLE`. Onglet « Abonnements » du Google Sheets : un appareil par ligne (supprimer une ligne = plus de rappels sur cet appareil).

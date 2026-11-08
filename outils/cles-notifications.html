@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="mon-ecran-version" content="e11caca6">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clés des rappels</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{color-scheme:light dark;--fond:#e7ecef;--carte:#fff;--encre:#10233a;--doux:#56636f;--bord:#c9d3db;--accent:#274c77}
+  @media (prefers-color-scheme:dark){:root{--fond:#0f1720;--carte:#1a2633;--encre:#e7ecef;--doux:#a7b6c4;--bord:#2d3c4b;--accent:#8fb3dc}}
+  body{margin:0;background:var(--fond);color:var(--encre);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+  main{max-width:720px;margin:0 auto;padding:24px 16px 48px}
+  h1{font-size:1.4rem;margin:0 0 8px}
+  p,li{color:var(--doux)} b{color:var(--encre)}
+  .carte{background:var(--carte);border:1px solid var(--bord);border-radius:14px;padding:16px;margin:16px 0}
+  button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 16px;background:var(--accent);color:#fff;cursor:pointer;min-height:44px}
+  button.sec{background:transparent;color:var(--accent);border:1px solid var(--bord);padding:6px 12px;min-height:36px}
+  .cle{display:grid;gap:6px;margin:14px 0}
+  .cle code{display:block;word-break:break-all;background:var(--fond);border:1px solid var(--bord);border-radius:8px;padding:8px 10px;font:13px/1.4 ui-monospace,Consolas,monospace;color:var(--encre)}
+  .cle span{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  ol{padding-left:20px}
+</style>
+</head>
+<body>
+<main>
+  <h1>🔔 Clés des rappels des Pronos</h1>
+  <p>À faire <b>une seule fois</b>, sur ton ordinateur. Les clés sont créées dans cette page (rien n'est envoyé nulle part) :
+    tu les copies dans les secrets GitHub et dans Apps Script, puis tu fermes la page. Elles ne sont gardées nulle part ici.</p>
+  <div class="carte">
+    <button type="button" id="creer">Créer les clés</button>
+    <div id="sortie"></div>
+  </div>
+  <div class="carte">
+    <b>Où les mettre</b>
+    <ol>
+      <li>GitHub › ton dépôt › <b>Settings › Secrets and variables › Actions › New repository secret</b> : un secret par clé,
+        avec exactement ces noms : <b>PUSH_PUBLIC</b>, <b>PUSH_PRIVE</b>, <b>PRONOS_CLE</b>.</li>
+      <li>Apps Script (projet des Pronos) › <b>⚙︎ Paramètres du projet › Propriétés du script › Ajouter une propriété</b> :
+        nom <b>CLE_TACHE</b>, valeur = la même que PRONOS_CLE. Enregistrer.</li>
+      <li>GitHub › Actions › <b>Rappels des pronos</b> › Run workflow (une fois) : la clé publique est publiée,
+        le dock la reçoit à la mise en ligne suivante (un quart d'heure environ).</li>
+    </ol>
+    <p>Ne recrée pas les clés plus tard sans raison : les téléphones déjà abonnés devraient réactiver leurs rappels.</p>
+  </div>
+</main>
+<script>
+const b64u = b => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c]));
+document.getElementById('creer').addEventListener('click', async () => {
+  const sortie = document.getElementById('sortie');
+  try{
+    const k = await crypto.subtle.generateKey({name:'ECDSA', namedCurve:'P-256'}, true, ['sign', 'verify']);
+    const pub = b64u(await crypto.subtle.exportKey('raw', k.publicKey));         // 65 octets : clé publique de l'envoi (VAPID)
+    const priv = (await crypto.subtle.exportKey('jwk', k.privateKey)).d;          // 32 octets : clé privée de l'envoi
+    const cle = b64u(crypto.getRandomValues(new Uint8Array(24)));                 // clé partagée tâche ↔ serveur des pronos
+    const ligne = (nom, val) => `<div class="cle"><span><b>${nom}</b><button type="button" class="sec" data-copie="${esc(val)}">Copier</button></span><code>${esc(val)}</code></div>`;
+    sortie.innerHTML = ligne('PUSH_PUBLIC', pub) + ligne('PUSH_PRIVE', priv) + ligne('PRONOS_CLE (et CLE_TACHE)', cle);
+  }catch(e){ sortie.innerHTML = '<p>Ce navigateur ne sait pas créer ces clés. Essaie avec Chrome ou Edge à jour.</p>'; }
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-copie]'); if (!b) return;
+  try{ await navigator.clipboard.writeText(b.dataset.copie); b.textContent = 'Copié ✓'; setTimeout(() => { b.textContent = 'Copier'; }, 1500); }catch{}
+});
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-/* KiosK — serveur des pronos entre amis (Google Apps Script, v69).
+/* KiosK — serveur des pronos entre amis (Google Apps Script, v72).
    Garde les joueurs et les pronos dans le Google Sheets auquel ce script est attaché (onglets « Joueurs » et « Pronos », créés tout seuls).
    Refuse un prono après le coup d'envoi (horaires lus sur le site publié, pas envoyés par le téléphone) et ne montre
    les pronos des autres qu'une fois le match commencé. Les points et le classement sont calculés par la page.
@@ -14,6 +14,9 @@
    (une valeur de CacheService ne dépasse pas 100 Ko) et lus en parallèle (fetchAll). Les paris n'en dépendent pas (cotes du matin).
    v69 : photo de profil de chaque joueur (colonnes F « photo » : petite image JPEG 128 × 128 envoyée par la page, et G « photo v » : son numéro de version).
    « etat » donne seulement les numéros de version ; la page demande les images qu'elle n'a pas encore (action « photos ») et les garde.
+   v72 : rappels sur le téléphone (notifications). Onglet « Abonnements » (un appareil par ligne : adresse d'envoi et clés fournies
+   par le navigateur, compétitions suivies). La tâche GitHub « Rappels des pronos » lit les abonnements et qui a déjà pronostiqué
+   (action « rappels », protégée par la propriété du script CLE_TACHE = secret GitHub PRONOS_CLE), puis envoie les rappels elle-même.
    Mise en place : voir outils/dev/PRONOS.md. */
 const SITE = 'https://zyavo.github.io/iPhone-Dock/';            // adresse du dock publié
 const LIGUES = {'fra.1':'fra-1', 'eng.1':'eng-1', '270559':'270559', 'uefa.champions':'uefa-champions'};   // id ESPN → fichier donnees/sport/<fichier>.json
@@ -35,6 +38,8 @@ function feuille(nom, entetes, texte){
 }
 const JOUEURS = () => feuille('Joueurs', ['groupe', 'pseudo', 'code (empreinte)', 'inscrit le', 'avatar', 'photo', 'photo v'], ['A:C', 'F:G']);
 const PRONOS = () => feuille('Pronos', ['groupe', 'pseudo', 'match', 'ligue', 'dom', 'ext', 'le'], 'A:D');
+const ABONNEMENTS = () => feuille('Abonnements', ['groupe', 'pseudo', 'adresse', 'p256dh', 'auth', 'ligues', 'appareil', 'le'], 'A:G');   // v72
+const tache = q => { const c = PropertiesService.getScriptProperties().getProperty('CLE_TACHE'); return !!c && c.length >= 16 && String(q.cle || '') === c; };
 const PARIS = () => feuille('Paris', ['groupe', 'pseudo', 'match', 'ligue', 'choix', 'mise', 'cote', 'le', 'mois', 'dom', 'ext', 'coup d\'envoi', 'gain'], ['A:E', 'I:K']);
 const T = v => String(v);                                          // valeur de cellule en texte
 const ajouter = (f, ligne) => f.getRange(f.getLastRow() + 1, 1, 1, ligne.length).setValues([ligne]);   // v61 : pas d'appendRow (conversions)
@@ -188,6 +193,38 @@ const ACTIONS = {
     JOUEURS().getDataRange().getValues().slice(1).forEach(r => { if (T(r[0]) === j.g && noms.includes(T(r[1])) && PHOTO(r[5])) photos[T(r[1])] = {v:T(r[6]), d:T(r[5])}; });
     return {photos};
   },
+  abonner(q){                                                      // v72 : rappels sur cet appareil (remplace un abonnement de la même adresse)
+    const j = joueur(q); if (!j) return {err:'code'};
+    const s = q.sub || {}, k = s.keys || {}, adr = String(s.endpoint || ''), cle = String(k.p256dh || ''), aut = String(k.auth || '');
+    if (!/^https:\/\/[^\s"<>]{10,900}$/.test(adr) || !/^[A-Za-z0-9_-]{80,100}$/.test(cle) || !/^[A-Za-z0-9_-]{16,30}$/.test(aut)) return {err:'abonnement'};
+    const ligues = [].concat(q.ligues || []).map(String).filter(x => /^[\w.]{1,30}$/.test(x)).slice(0, 20).join(',');
+    const verrou = LockService.getScriptLock(); verrou.waitLock(10000);
+    try{
+      const f = ABONNEMENTS(), l = f.getDataRange().getValues();
+      const ligne = [j.g, j.p, adr, cle, aut, ligues, String(q.appareil || '').slice(0, 30), new Date()];
+      const i = l.findIndex((r, n) => n > 0 && T(r[2]) === adr);
+      if (i > 0) f.getRange(i + 1, 1, 1, ligne.length).setValues([ligne]); else ajouter(f, ligne);
+      return {ok:true};
+    }finally{ verrou.releaseLock(); }
+  },
+  desabonner(q){                                                   // v72 : par le joueur (son appareil) ou par la tâche (adresse expirée)
+    const t = tache(q), j = t ? null : joueur(q); if (!t && !j) return {err:'code'};
+    const adr = String(q.endpoint || ''); if (!adr) return {err:'abonnement'};
+    const verrou = LockService.getScriptLock(); verrou.waitLock(10000);
+    try{
+      const f = ABONNEMENTS(), l = f.getDataRange().getValues();
+      for (let n = l.length - 1; n > 0; n--) if (T(l[n][2]) === adr && (t || (T(l[n][0]) === j.g && T(l[n][1]) === j.p))) f.deleteRow(n + 1);
+      return {ok:true};
+    }finally{ verrou.releaseLock(); }
+  },
+  rappels(q){                                                      // v72 : pour la tâche « Rappels des pronos » seulement
+    if (!tache(q)) return {err:'cle'};
+    const H = horaires(), now = Date.now(), faits = {};
+    PRONOS().getDataRange().getValues().slice(1).forEach(r => { const id = T(r[2]); if (H[id] && H[id] > now - 3 * 3600e3) (faits[T(r[0]) + '|' + T(r[1])] || (faits[T(r[0]) + '|' + T(r[1])] = [])).push(id); });
+    const abonnements = ABONNEMENTS().getDataRange().getValues().slice(1).filter(r => T(r[2]))
+      .map(r => ({g:T(r[0]), p:T(r[1]), endpoint:T(r[2]), keys:{p256dh:T(r[3]), auth:T(r[4])}, ligues:T(r[5]).split(',').filter(Boolean)}));
+    return {abonnements, faits};
+  },
   miser(q){
     const j = joueur(q); if (!j) return {err:'code'};
     const id = String(q.match), C = cotesMatin()[id];
@@ -244,6 +281,7 @@ function verifier(){
   CacheService.getScriptCache().removeAll(Object.values(LIGUES).concat(Object.values(EXTRAS)).map(f => 'h:' + f));
   const n = Object.keys(horaires()).length;
   Logger.log(n ? n + ' matchs trouvés sur ' + SITE : 'Aucun match lu : vérifier SITE (' + SITE + ')');
-  JOUEURS(); PRONOS(); PARIS();
+  JOUEURS(); PRONOS(); PARIS(); ABONNEMENTS();
+  Logger.log(PropertiesService.getScriptProperties().getProperty('CLE_TACHE') ? 'Rappels : CLE_TACHE en place' : 'Rappels : propriété du script CLE_TACHE absente (voir PRONOS.md)');
   Logger.log(Object.keys(cotesMatin()).length + ' matchs avec la cote du matin');
 }

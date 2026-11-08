@@ -1,4 +1,4 @@
-// mon-ecran-version: 9e24073b
+// mon-ecran-version: e9d8df28
 /* Mon Écran — mise en mémoire sur l'iPhone pour un démarrage instantané, même sans réseau.
    - Pages (accueil, actus, sport, état) : dernière version si le réseau répond en moins de 1,5 s,
      sinon la version en mémoire tout de suite, mise à jour en arrière-plan (la page se recharge seule
@@ -7,7 +7,7 @@
    - Polices Google : gardées en mémoire.
    Les sites extérieurs (ESPN, Spotify, flux RSS…) ne passent pas par ici. */
 const PAGES = 'pages-v1', DATA = 'donnees-v1', FONTS = 'polices-v1';
-const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'pronos.html', 'reglages.html', 'tv.html', 'noyau.js', 'themes.js', 'tv.js', 'match.js', 'synchro.js', 'commun.js', 'commun.css', 'polices/Geist-Variable.woff2', 'manifest.json', 'apple-touch-icon.png', 'icone-192.png', 'icone-512.png'];
+const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'pronos.html', 'reglages.html', 'tv.html', 'noyau.js', 'themes.js', 'tv.js', 'match.js', 'synchro.js', 'commun.js', 'commun.css', 'polices/Geist-Variable.woff2', 'manifest.json', 'manifest-pronos.json', 'apple-touch-icon.png', 'icone-192.png', 'icone-512.png'];
 
 self.addEventListener('install', e => {
   // v70 : la police va dans la réserve des polices, là où elle est cherchée ensuite (avant : retéléchargée au 2e passage)
@@ -79,4 +79,20 @@ self.addEventListener('fetch', e => {
   if (/\/donnees\/tv\//.test(url.pathname) || req.headers.has('range')) return;
   if (/\.json$/.test(url.pathname)) return e.respondWith(networkFirst(e));
   if (isPage(req, url)) return e.respondWith(pageFirstFromCache(e, url));
+});
+
+/* v72 : rappels des Pronos (tâche GitHub « Rappels des pronos », notifications web) : {titre, texte, url, tag} */
+self.addEventListener('push', e => {
+  let d = {};
+  try{ d = e.data ? e.data.json() : {}; }catch{ d = {texte:e.data ? e.data.text() : ''}; }
+  e.waitUntil(self.registration.showNotification(d.titre || 'Pronos', {
+    body:d.texte || 'Un prono t\'attend.', icon:'icone-192.png', badge:'icone-192.png', tag:d.tag || 'pronos', data:{url:d.url || 'pronos.html'}}));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || 'pronos.html', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({type:'window', includeUncontrolled:true}).then(l => {
+    const c = l.find(x => x.url.split('?')[0] === url.split('?')[0]);
+    return c ? c.focus() : self.clients.openWindow(url);
+  }));
 });
