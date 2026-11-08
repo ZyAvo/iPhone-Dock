@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="68b1189e">
+<meta name="mon-ecran-version" content="0501a3ba">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vidéos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -124,7 +124,7 @@ header .wrap{padding-block:8px;display:flex;flex-direction:column;gap:8px}
 
 .tabs{display:flex;gap:2px;padding:3px;border-radius:16px;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity}
 .tabs::-webkit-scrollbar{display:none}
-.tab{flex:none;scroll-snap-align:center;padding:6px 12px;border-radius:13px;font-size:.82rem;font-weight:500;color:var(--ink-soft);white-space:nowrap;
+.tab{flex:none;scroll-snap-align:center;padding:9px 12px;border-radius:13px;font-size:.82rem;font-weight:500;color:var(--ink-soft);white-space:nowrap;
   transition:background .2s ease,color .2s ease}
 .tab[aria-selected="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
 
@@ -187,7 +187,7 @@ main .wrap{padding-block:12px 40px;display:flex;flex-direction:column;gap:12px}
 .fsec h3{margin:0;font-size:.74rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft)}
 .fsec .chips{flex-wrap:wrap;overflow:visible}
 .vsep{width:1px;flex:none;background:var(--line);margin:6px 2px}
-.pl{display:inline-grid;place-items:center;min-width:20px;height:16px;padding:0 4px;border-radius:5px;background:var(--pc);color:#fff;font-style:normal;font-size:.58rem;font-weight:800;letter-spacing:.02em;margin-right:5px;vertical-align:1px}
+.pl{display:inline-grid;place-items:center;min-width:20px;height:16px;padding:0 4px;border-radius:5px;background:linear-gradient(rgba(0,0,0,.25),rgba(0,0,0,.25)),var(--pc);   /* v70 : couleur de la plateforme assombrie, texte blanc lisible */color:#fff;font-style:normal;font-size:.58rem;font-weight:800;letter-spacing:.02em;margin-right:5px;vertical-align:1px}
 .chip .pl{margin-right:6px}
 .poster .pls{position:absolute;left:6px;right:6px;bottom:6px;display:flex;flex-wrap:wrap;gap:3px}
 .poster .pls .pl{margin:0;box-shadow:0 1px 3px rgba(0,0,0,.4)}
@@ -278,7 +278,7 @@ html.desk .ytplay:empty::after{content:"Choisis une vidéo dans la liste";margin
 <header>
   <div class="wrap">
     <div class="top">
-      <a class="back" href="index.html" aria-label="Accueil"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span class="bk">Accueil</span></a>
+      <a class="back" href="index.html" aria-label="Retour au dock"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span class="bk">Dock</span></a>
       <h1 class="vh">Vidéos</h1>
       <div class="tabs glass" role="tablist" aria-label="Sources" id="tabs"></div>
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>

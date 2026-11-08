@@ -1,4 +1,4 @@
-// mon-ecran-version: 4aac78a0
+// mon-ecran-version: 719ca7ca
 // Prépare les données de la page Sport (lancé par la tâche GitHub « Sport », v51 ; avant : « Programme TV sport »).
 // Lit la liste des compétitions et les fonctions de lecture dans sport.html et match.js,
 // interroge ESPN côté serveur, numérote les journées et écrit :
@@ -438,4 +438,21 @@ const TV_OF = Object.fromEntries(LEAGUES.map(L => [L.id, (L.tv || [])[0] || ''])
 write(`${OUT}/prochains.json`, {v:1, updated:index.updated, events:upcoming.filter(m => m.t >= NOW - 4 * 3600e3 && m.t <= NOW + 8 * DAY && m.state !== 'post').sort((a, b) => a.t - b.t).map(m => m.home
   ? {id:m.id, l:m.league, ln:NAME_OF[m.league], sp:SPORT_OF[m.league], t:m.t, d:DUREE[SPORT_OF[m.league]] || 120, s:m.state, h:m.home.full || m.home.name, a:m.away.full || m.away.name, hc:m.home.name, ac:m.away.name, tv:TV_OF[m.league] || undefined}
   : {id:m.id, l:m.league, ln:NAME_OF[m.league], sp:'racing', t:m.t, d:m.dur || 60, s:m.state, h:m.gp ? m.gp.name : '', a:m.label || ''})});
+// v70 : fichier allégé pour la page Pronos et ses paris : compétitions des Pronos (et « en plus »), matchs de J-46 à J+8 sans le déroulé,
+// logos et classement résumé (rang, points, bilan, place en conférence). Avant : les fichiers de saison complets, environ 4 fois plus lourds.
+{
+  const DEF_L = [{id:'fra.1'}, {id:'eng.1'}, {id:'270559'}, {id:'uefa.champions'}], DEF_X = ['esp.1', 'ita.1', 'ger.1', 'uefa.europa', 'uefa.europa.conf', 'nba', 'nfl'].map(id => ({id}));
+  const ids = [...new Set([...CFG('pronos.ligues', DEF_L), ...CFG('pronos.extras', DEF_X)].map(x => String(x && x.id || '')).filter(Boolean))];
+  const GARDE = ['rank', 'points', 'overall', 'playoffSeed'], pr = {v:1, updated:index.updated, leagues:{}};
+  for (const id of ids){
+    const f = read(`${OUT}/${slug(id)}.json`); if (!f || f.idle) continue;
+    const forme = {};                                       // 5 derniers résultats de chaque équipe, du plus récent au plus ancien (v, n, d), sur toute la saison
+    (f.events || []).filter(m => m.home && m.away && m.state === 'post' && m.home.score != null && m.away.score != null && m.home.score !== '' && m.away.score !== '')
+      .sort((a, b) => b.t - a.t).forEach(m => [[m.home, m.away], [m.away, m.home]].forEach(([a, b]) => { const x = forme[a.id] || ''; if (x.length < 5) forme[a.id] = x + (+a.score > +b.score ? 'v' : +a.score < +b.score ? 'd' : 'n'); }));
+    pr.leagues[id] = {logo:f.logo || '', logoDark:f.logoDark || '', forme,
+      table:f.table && f.table.tables ? {tables:f.table.tables.map(tb => ({title:tb.title, entries:(tb.entries || []).map(e => ({id:e.id, stats:(e.stats || []).filter(x => GARDE.includes(x.name)).map(x => ({name:x.name, v:x.v}))}))}))} : null,
+      events:(f.events || []).filter(m => m.home && m.t >= NOW - 46 * DAY && m.t <= NOW + 8 * DAY).map(({details, link, detail, roundSrc, ...m}) => m)};
+  }
+  write(`${OUT}/pronos.json`, pr);
+}
 console.log(`Terminé : ${calls} appels, ${fails} échecs, ${upcoming.length} matchs dans jours.json`);

@@ -39,6 +39,8 @@ Un invité non inscrit voit la carte Règles et le formulaire.
 - **Avatars** : « emoji|n° de couleur » (16 emojis, 8 couleurs) choisis à l'inscription ; sans avatar enregistré, tirage stable d'après le pseudo.
 - **Photo de profil (v69)** : Mon profil › « 📷 Choisir une photo » ; réduite à un carré 128 × 128 (le centre de l'image) avant l'envoi, elle remplace l'emoji pour tout le groupe.
   Gardée dans l'onglet Joueurs (colonnes F et G) ; chaque appareil la télécharge une fois. « Retirer la photo » remet l'emoji. Il faut le Code.gs v69.
+- **v70** : toucher son avatar (en haut) ouvre Mon profil. Serveur injoignable : la page montre le dernier état connu du groupe, avec sa date.
+  Données : `donnees/sport/pronos.json`, préparé par la tâche Sport (4 fois plus léger que les fichiers de saison, lus en secours).
 - **Forme et classement des équipes (v69)** : interrupteur en haut de « À pronostiquer » et des paris du jour, masqué par défaut : rang, points et 5 derniers matchs sous chaque équipe
   (NBA, NFL : bilan et place dans la conférence).
 - Serveur v55 : la page marche (pas d'avatars des autres ni de « qui a joué » ; changer d'avatar → message « serveur à mettre à jour »).

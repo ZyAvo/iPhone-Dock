@@ -1,4 +1,4 @@
-// mon-ecran-version: a474fdb0
+// mon-ecran-version: 9e24073b
 /* Mon Écran — mise en mémoire sur l'iPhone pour un démarrage instantané, même sans réseau.
    - Pages (accueil, actus, sport, état) : dernière version si le réseau répond en moins de 1,5 s,
      sinon la version en mémoire tout de suite, mise à jour en arrière-plan (la page se recharge seule
@@ -10,7 +10,8 @@ const PAGES = 'pages-v1', DATA = 'donnees-v1', FONTS = 'polices-v1';
 const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'pronos.html', 'reglages.html', 'tv.html', 'noyau.js', 'themes.js', 'tv.js', 'match.js', 'synchro.js', 'commun.js', 'commun.css', 'polices/Geist-Variable.woff2', 'manifest.json', 'apple-touch-icon.png', 'icone-192.png', 'icone-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(PAGES).then(c => Promise.all(SHELL.map(u => c.add(new Request(u, {cache:'reload'})).catch(() => {})))).then(() => self.skipWaiting()));
+  // v70 : la police va dans la réserve des polices, là où elle est cherchée ensuite (avant : retéléchargée au 2e passage)
+  e.waitUntil(Promise.all([caches.open(PAGES), caches.open(FONTS)]).then(([p, f]) => Promise.all(SHELL.map(u => (/^polices\//.test(u) ? f : p).add(new Request(u, {cache:'reload'})).catch(() => {})))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => ![PAGES, DATA, FONTS].includes(k)).map(k => caches.delete(k))))

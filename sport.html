@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="d2dd7cf2">
+<meta name="mon-ecran-version" content="999087ac">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sport</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -139,6 +139,7 @@ h1{font-weight:700;font-size:2.2rem;letter-spacing:-.035em;margin:0;line-height:
 /* Favoris */
 .favbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 2px}
 .fav-bas{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.charge .reg-lien{display:none}   /* v70 : le lien n'apparaît qu'une fois les matchs affichés (avant : il sautait hors de l'écran) */
 .reg-lien{text-align:center;padding-block:4px calc(28px + env(safe-area-inset-bottom, 0px))}
 .reg-lien a{display:inline-block;padding:10px 14px;font-size:.84rem;font-weight:600;color:var(--accent)}
 .fav-bas .k{width:100%;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
@@ -175,7 +176,7 @@ section.comp{display:flex;flex-direction:column;gap:8px}
 .ctag{display:flex;align-items:center;gap:6px;padding:10px 14px 0;font-size:.68rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft)}
 .ctag .flag{font-size:.86rem}.ctag .clogo{width:16px;height:16px}
 .comp-head h2.live-title{color:var(--live);display:flex;align-items:center;gap:7px}
-.comp-head .sp{font-size:.72rem;color:var(--ink-faint)}
+.comp-head .sp{font-size:.72rem;color:var(--ink-soft)}   /* v70 : contraste 5,6 (avant 2,8) */
 .list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 
 .match{border-radius:22px;overflow:hidden}
@@ -327,6 +328,7 @@ html.desk #dsheet{width:min(480px,33vw)}
 html.desk body:has(#csheet.gauche:not([hidden])){padding-left:min(420px,29vw)}
 html.desk body:has(#csheet.gauche:not([hidden])):not(:has(#sheet:not([hidden]),#dsheet:not([hidden]),#csheet:not(.gauche):not([hidden]))){padding-right:0}
 html.desk body:has(#dsheet:not([hidden])){padding-right:min(480px,33vw)}
+html.desk body.duo-prevu{padding-left:min(420px,29vw);padding-right:min(480px,33vw)}   /* v70 : place du duo réservée avant son arrivée (plus de saut) */
 html.desk .match.sel{outline:2px solid var(--accent);outline-offset:-2px}
 .ds-detail{list-style:none;margin:0}
 .ds-detail .more[hidden]{display:flex!important}
@@ -506,7 +508,7 @@ details.rk li em{grid-row:1;grid-column:3;font-style:normal;color:var(--ink-soft
 <header>
   <div class="wrap">
     <div class="top">
-      <a class="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Accueil</a>
+      <a class="back" href="index.html" aria-label="Retour au dock"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Dock</a>
       <span class="top-actions"><button class="icon-btn glass health" id="healthBtn" type="button" aria-label="État des données"><svg viewBox="0 0 24 24" id="healthIc"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2M12 7.8v.2"/></svg><b id="healthN" hidden></b></button>
       <button class="icon-btn glass" id="tablesBtn" type="button" aria-label="Classements"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5h18M4.5 20.5v-6h5v6M9.5 20.5V9h5v11.5M14.5 20.5v-8h5v8"/><path d="M12 3.2l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2-1.45-1.4 2-.3z"/></svg></button>
       <button class="icon-btn glass" id="calsBtn" type="button" aria-label="Calendriers"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M7.5 14h2M11 14h2M14.5 14h2M7.5 17.2h2M11 17.2h2"/></svg></button>
@@ -526,7 +528,7 @@ details.rk li em{grid-row:1;grid-column:3;font-style:normal;color:var(--ink-soft
   </div>
 </header>
 
-<main>
+<main class="charge">
   <div class="wrap" id="content"></div>
   <div class="wrap reg-lien"><a href="reglages.html?retour=sport#sport">Choisir les compétitions affichées ›</a></div>
 </main>
@@ -732,6 +734,8 @@ function norm(ev, L){
           round:(ev.week && ev.week.number) || null};
 }
 
+/* v70 : une coupure réseau avait pu marquer des compétitions « pas de lecture groupée » pour toujours : remis à zéro une fois (les vraies refusées se remarquent seules) */
+try{ if (!localStorage.getItem('sport:norange:v70')){ const rk = store.get('sport:norange') || {}; Object.keys(rk).forEach(k => { if (!k.startsWith('cal:')) delete rk[k]; }); store.set('sport:norange', rk); localStorage.setItem('sport:norange:v70', '1'); } }catch{}
 async function fetchLeague(L){
   const base = `${API}/${L.sport}/${L.id}/scoreboard`;
   const from = ymd(dayAt(-PAST - 1)), to = ymd(dayAt(MAXOFF));
@@ -742,7 +746,11 @@ async function fetchLeague(L){
       const j = await getJSON(`${base}?dates=${from}-${to}&limit=300`);
       if (!Array.isArray(j.events)) throw 0;
       events = j.events; leagueInfo = j.leagues;
-    }catch{ rangeKo[L.id] = 1; store.set('sport:norange', rangeKo); }
+    }catch(e){
+      // v70 : seulement si ESPN répond « demande refusée » ; une coupure réseau ne doit pas faire passer la compétition en lecture jour par jour (8 appels) pour toujours
+      if (!/^HTTP 4/.test(String(e && e.message))) throw e;
+      rangeKo[L.id] = 1; store.set('sport:norange', rangeKo);
+    }
   }
   if (!events){                                  // repli : un appel par jour (J-4 à J+3, la suite à la demande)
     const days = [-4,-3,-2,-1,0,1,2,3].map(n => ymd(dayAt(n)));
@@ -930,8 +938,8 @@ async function loadAll(force = false){
   if (!PRE.tried && !force){ if (await loadPre()) render(); }
   const order = [...LEAGUES].sort((a,b) => (a.group === group || group === 'all' ? 0 : 1) - (b.group === group || group === 'all' ? 0 : 1));
   let pending = 0;
-  await pool(order.map(L => async () => { await loadLeague(L, force); if (++pending % 3 === 0) render(); }), 5);
-  $('#refreshBtn').classList.remove('spin');
+  await pool(order.map(L => async () => { await loadLeague(L, force); if (!PRE.ok && ++pending % 3 === 0) render(); }), 5);   // v70 : données préparées : un seul affichage à la fin (avant : toutes les 3 compétitions)
+  $('#refreshBtn').classList.remove('spin'); CHARGE_FINI = true;
   if (!Object.values(DATA).some(d => d.events.length) && LEAGUES.filter(L => !L.seasonal && L.sport !== 'racing').every(L => failed.has(L.id))) useSample();
   render();
 }
@@ -1265,7 +1273,7 @@ function majOuverts(){
   const par = new Map(Object.values(DATA).flatMap(d => d.events).filter(x => COTES_LG.includes(x.league)).map(x => [String(x.id), x]));
   document.querySelectorAll('li.match').forEach(li => {      // toutes les tuiles, ouvertes ou non : une tuile fermée garde sinon un contenu préparé avant l'arrivée des cotes
     const m = par.get(li.dataset.id); const mo = li.querySelector('.more');
-    if (m && mo && COTES_LG.includes(m.league)){ mo.outerHTML = moreHTML(m); const st = li.querySelector('.row .st'); if (st) st.outerHTML = statusHTML(m); } });
+    if (m && mo && COTES_LG.includes(m.league)){ if (open.has(m.id) || mo.childElementCount) mo.outerHTML = moreHTML(m); const st = li.querySelector('.row .st'); if (st) st.outerHTML = statusHTML(m); } });
 }
 const COTE_F = new Intl.NumberFormat('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2});   // v52 : formateur gardé
 const cote = v => v == null ? '—' : COTE_F.format(Number(v));
@@ -1361,7 +1369,7 @@ function matchHTML(m, showComp){
   return `<li class="match glass${cls}${isFav(m) ? ' is-fav' : ''}${open.has(m.id) ? ' ouvert' : ''}" data-id="${esc(m.id)}">${showComp ? `<div class="ctag">${compBadge(LBY[m.league])}<span>${esc(LBY[m.league].name)}</span></div>` : ''}
     <button type="button" class="row" aria-expanded="${open.has(m.id)}" aria-label="${esc(m.home.name)} contre ${esc(m.away.name)}${showComp ? ', ' + esc(LBY[m.league].name) : ''}">
       ${statusHTML(m)}<span class="teams">${US_SP.includes(LBY[m.league].sport) ? teamHTML(m, m.away) + teamHTML(m, m.home) : teamHTML(m, m.home) + teamHTML(m, m.away)}</span>
-    </button>${tvHTML(m)}${moreHTML(m)}</li>`;
+    </button>${tvHTML(m)}${open.has(m.id) ? moreHTML(m) : '<div class="more" hidden></div>'}</li>`;   // v70 : détail construit à l'ouverture (avant : 1 500 éléments cachés)
 }
 
 /* ---------- F1 / MotoGP ---------- */
@@ -1451,6 +1459,7 @@ function raceCalHTML(L, c){
       <p class="hint">${esc(g.circuit)}</p></details></li>`; }).join('')}</ol>`;
 }
 
+let RENDU = '', CHARGE_FINI = false;
 function render(){
   TOUS = null;
   refreshRaceStates();
@@ -1489,7 +1498,8 @@ function render(){
   html += favBar;
   html += `<p class="kbd-help">Clavier : ← → pour changer de jour · Maj + ← → pour changer de sport · Échap pour fermer</p>`;
   html += `<p class="foot-note">Scores : ESPN · Chaînes France : droits 2026-27, à confirmer selon le match · v${VERSION}</p>`;
-  box.innerHTML = html;
+  if (html !== RENDU){ box.innerHTML = html; RENDU = html; }
+  if (evs.length || CHARGE_FINI || sample) document.querySelector('main').classList.remove('charge');                      // v70 : rien de changé → la page n'est pas reconstruite
   updateReset();
   if (RESTORE_Y != null && evs.length){ const y = RESTORE_Y; RESTORE_Y = null; requestAnimationFrame(() => window.scrollTo(0, y)); }
   if (typeof suivreDuo === 'function'){ suivreDuo(); autoDuo(); }
@@ -1536,7 +1546,8 @@ function matchClick(e, extra = []){
   if (m && isUS(m) && m.state !== 'pre'){ openBox(m); return; }
   open.has(id) ? open.delete(id) : open.add(id);
   row.setAttribute('aria-expanded', open.has(id)); li.classList.toggle('ouvert', open.has(id));
-  li.querySelector('.more').hidden = !open.has(id);
+  if (m && open.has(id)) li.querySelector('.more').outerHTML = moreHTML(m);        // v70 : détail construit à l'ouverture
+  else li.querySelector('.more').hidden = !open.has(id);
   if (m && open.has(id) && COTES_LG.includes(m.league)) loadCotes();
   if (m && open.has(id) && ['rugby', 'soccer'].includes(LBY[m.league].sport) && m.state !== 'pre'){
     if (!FULL[m.id]) li.querySelector('.more').outerHTML = moreHTML(m);
@@ -1864,14 +1875,16 @@ $('#dsheetBody').addEventListener('click', e => {
    Fermé (× ou Échap) : plus d'ouverture automatique pendant la session. Téléphone : rien ne change. */
 let DUO_AUTO = false;
 function autoDuo(){
-  if (DUO_AUTO || DUO || !document.documentElement.classList.contains('desk') || selDay !== 0) return;
-  try{ if (sessionStorage.getItem('sport:duo-ferme')) return; }catch{}
+  const fin = () => document.body.classList.remove('duo-prevu');
+  if (DUO_AUTO || DUO || !document.documentElement.classList.contains('desk') || selDay !== 0){ fin(); return; }
+  try{ if (sessionStorage.getItem('sport:duo-ferme')){ fin(); return; } }catch{}
   const evs = eventsOfDay(0).filter(m => m.home && m.away), now = Date.now();
   const live = evs.filter(m => m.state === 'in'), avenir = evs.filter(m => m.state === 'pre' && m.t > now - 600e3).sort((a, b) => a.t - b.t);
   const m = live.find(isFav) || live[0] || avenir.find(isFav) || avenir[0];
-  if (!m || !document.querySelector(`#content .match[data-id="${CSS.escape(String(m.id))}"]`)) return;
-  DUO_AUTO = true; ouvrirDuo(m);
+  if (!m || !document.querySelector(`#content .match[data-id="${CSS.escape(String(m.id))}"]`)){ if (PRE.ok || Object.keys(DATA).length) fin(); return; }
+  DUO_AUTO = true; ouvrirDuo(m); fin();
 }
+try{ if (DESKP() && !sessionStorage.getItem('sport:duo-ferme')) document.body.classList.add('duo-prevu'); }catch{}
 function suivreDuo(){
   if (!DUO) return;
   document.querySelector(`#content .match[data-id="${CSS.escape(String(DUO.id))}"]`)?.classList.add('sel');

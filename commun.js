@@ -1,4 +1,4 @@
-// mon-ecran-version: 759ac82b
+// mon-ecran-version: fc411b5f
 /* Mon Écran — comportements communs à toutes les pages (v53 ; avant : recopiés dans chaque page).
    Chargé en fin de page, après le code de la page : rond de toucher, mise en mémoire (service worker) et avis de nouvelle version,
    « tirer pour rafraîchir » (si la page a un #ptr). Pas de rechargement automatique pendant une lecture vidéo
@@ -13,6 +13,16 @@ document.addEventListener('pointerdown', e => {
   d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
   document.body.appendChild(d); setTimeout(() => d.remove(), 650);
 }, {passive:true, capture:true});
+
+/* v70 : hors ligne, une pastille le dit (les pages montrent alors les dernières données gardées) */
+const horsLigne = () => {
+  let el = document.querySelector('.hors-ligne');
+  if (navigator.onLine !== false){ if (el) el.remove(); return; }
+  if (el) return;
+  el = document.createElement('div'); el.className = 'hors-ligne'; el.setAttribute('role', 'status');
+  el.textContent = 'Hors ligne · dernières données gardées'; document.body.appendChild(el);
+};
+addEventListener('online', horsLigne); addEventListener('offline', horsLigne); horsLigne();
 
 /* Mise en mémoire sur l'iPhone (démarrage instantané, hors ligne) + avis quand une nouvelle version est déposée */
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){

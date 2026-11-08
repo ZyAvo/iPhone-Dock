@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="de7c8745">
+<meta name="mon-ecran-version" content="1e0c0142">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -263,6 +263,10 @@ html.desk .f-sheet{border-radius:26px}
 .p-av.ph i{visibility:hidden;font-style:normal}   /* emoji caché mais gardé : même alignement que les autres avatars */   /* v69 : photo (image posée par #photosCSS) */
 .p-photo{display:flex;align-items:center;gap:12px;margin:4px 0 2px}
 .p-photo .btns{margin:0}
+.p-moi-av{position:relative;flex:none;padding:0;margin:0;border:0;background:none;border-radius:50%;cursor:pointer;line-height:0}
+.p-moi-av i{position:absolute;right:-2px;bottom:-2px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;line-height:1;
+  background:var(--sheet-solid, var(--base));color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.p-moi-av:active{transform:scale(.95)}
 .p-pile{display:inline-flex;align-items:center;padding-left:6px}
 .p-pile .p-av{width:22px;height:22px;font-size:12px;margin-left:-6px;box-shadow:inset 0 0 0 2px var(--av), 0 0 0 2px var(--base)}
 /* en-tête « Salut » */
@@ -297,7 +301,9 @@ html.desk .f-sheet{border-radius:26px}
   background:var(--card);border:1px solid var(--line);border-radius:14px;padding:0}
 .p-st input::placeholder{color:var(--ink-soft);opacity:.5}
 .p-st input:disabled{background:transparent;border-color:transparent;opacity:1;-webkit-text-fill-color:var(--ink)}
-.p-pm{width:50px;height:30px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--accent);font-size:20px;font-weight:700;line-height:1;touch-action:manipulation}
+.p-pm{width:50px;height:38px;position:relative;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--accent);font-size:20px;font-weight:700;line-height:1;touch-action:manipulation}
+.p-st .p-pm:first-child::after{content:"";position:absolute;inset:-6px 0 0}        /* v70 : 38 px + 6 px vers l'extérieur = 44 px, sans empiéter sur le score */
+.p-st .p-pm:last-child::after{content:"";position:absolute;inset:0 0 -6px}
 .p-pm:active{transform:scale(.92);background:color-mix(in oklab, var(--accent) 18%, var(--card))}
 .p-sep{font-size:22px;font-weight:700;color:var(--ink-soft)}
 /* v69 : forme et classement des équipes (interrupteur « pronos:infos », masqué par défaut) */
@@ -568,6 +574,8 @@ function avatarDe(n){
 const avHTML = (n, cls = '') => { const a = avatarDe(n), ph = photoCls(n);
   return `<span class="p-av ${cls}${ph ? ' ph ' + ph : ''}" style="--av:${COULEURS[a.c]}" title="${esc(n)}" aria-hidden="true">${ph ? `<i>${esc(a.e)}</i>` : esc(a.e)}</span>`; };
 
+/* v70 : son propre avatar (en-têtes) ouvre Mon profil (photo, avatar, lien de reconnexion), avant tout en bas de Classement */
+const avMoi = me => `<button type="button" class="p-moi-av" data-profil aria-label="Mon profil : photo et avatar">${avHTML(me.pseudo, 'xl')}<i aria-hidden="true">✎</i></button>`;
 /* ---------- v69 : photos de profil ----------
    Le serveur (etat) donne { pseudo: version } ; les images (JPEG 128 × 128, ≈ 8 Ko) sont demandées une fois (action photos)
    et gardées sur l'appareil (pronos:photos, par groupe). Une feuille de style (#photosCSS) les pose : pas d'image recopiée à chaque avatar. */
@@ -694,20 +702,25 @@ const liste = () => JEU === 'plus' ? PLUSM : MATCHS;                // v68 : mat
 const aJouer = () => JEU === 'plus' ? PLUSM.filter(m => actifs().includes(m.league)) : MATCHS;   // à pronostiquer : seulement les compétitions choisies
 const tous = () => [...MATCHS, ...PLUSM];
 function avecJeu(j, f){ const v = JEU; JEU = j; try{ return f(); }finally{ JEU = v; } }
+/* v70 : fichier allégé préparé par la tâche Sport (donnees/sport/pronos.json : matchs de J-46 à J+8, logos, classement résumé, forme) ;
+   une compétition absente (fichier pas encore produit, ou compétition ajoutée depuis) est lue comme avant dans son fichier de saison */
+let PRONOS_F = null;
+async function lirePronosF(){ try{ const r = await fetch('donnees/sport/pronos.json', {cache:'no-cache'}); if (!r.ok) return null; const j = await r.json(); return j && j.leagues ? j : null; }catch{ return null; } }
 async function chargerMatchs(){
   await chargerFichiers();
+  PRONOS_F = await lirePronosF();
   const [a, b] = await Promise.all([chargerLigues(LIGUES), actifs().length ? chargerLigues(EXTRAS) : []]);
   MATCHS = a; PLUSM = b;
 }
 async function chargerLigues(LS_){
   const now = Date.now(), out = [];
   await Promise.all(LS_.map(async L => { try{
-    const j = await (await fetch(`donnees/sport/${L.f}.json`, {cache:'no-cache'})).json();
+    const j = (PRONOS_F && PRONOS_F.leagues[L.id]) || await (await fetch(`donnees/sport/${L.f}.json`, {cache:'no-cache'})).json();
     COMP[L.id] = {logo:j.logo || '', logoDark:j.logoDark || ''};
     TABLES[L.id] = tableDe(j, L.id);                                                   // v69
     (j.events || []).forEach(e => { if (e.home && e.away && e.t > now - JOURS_APRES * 86400e3 && e.t < now + JOURS_AVANT * 86400e3 && !/POSTPONED|CANCEL/.test(e.code || '')) out.push({...e, nomL:L.nom, L}); });
   }catch{} }));
-  return out.sort((a, b) => a.t - b.t);
+  return out.sort((a, b) => a.t - b.t || LS_.indexOf(a.L) - LS_.indexOf(b.L));          // v70 : même heure → ordre des compétitions (avant : ordre d'arrivée des fichiers)
 }
 
 /* ---------- logos ---------- */
@@ -808,7 +821,7 @@ function accueilHTML(me){
   else if (PARIS){ const s = soldeDe(me), n = Object.values(PARIS.cotes || {}).filter(c => c.t > now).length;
     la1 = `<b class="acc-cr">${s.solde}</b> crédits${s.enJeu ? ` · ${s.enJeu} en jeu` : ''}`;
     la2 = n ? `${pl(n, 'match')} avec cote aujourd'hui` : "Cotes vers 8 h le jour du match"; }
-  return `<section class="p-hero glass"><div class="p-hero-t">${avHTML(me.pseudo, 'xl')}<div><b>Salut ${esc(me.pseudo)} !</b><span>Groupe ${esc(me.groupe)} · ${pl(ETAT.joueurs.length, 'joueur')}</span></div></div></section>
+  return `<section class="p-hero glass"><div class="p-hero-t">${avMoi(me)}<div><b>Salut ${esc(me.pseudo)} !</b><span>Groupe ${esc(me.groupe)} · ${pl(ETAT.joueurs.length, 'joueur')}</span></div></div></section>
     <div class="acc-grille">${carteAcc('pronos', '🎯', 'Pronos', lp1, lp2)}${carteAcc('paris', '🎟️', 'Paris', la1, la2)}${carteExtras(me)}${carteAcc('regles', '📖', 'Règles', 'Points, crédits et comment jouer', '')}</div>
     <p class="note">Jeu entre amis, gratuit et sans argent.</p>`;
 }
@@ -914,7 +927,7 @@ function heroHTML(me){
   const cl = classement('mois'), x = cl.find(y => y.n === me.pseudo), joue = cl.some(y => y.nb);
   const reste = ouverts.length - faits.length, pct = ouverts.length ? Math.round(100 * faits.length / ouverts.length) : 100;
   return `<section class="p-hero glass" id="hero">
-    <div class="p-hero-t">${avHTML(me.pseudo, 'xl')}<div><b>Salut ${esc(me.pseudo)} !</b><span>${x && joue ? `${rangTxt(x.pos)} sur ${cl.length} ce mois-ci · ${pl(x.pts, 'point')}` : `${pl(ETAT.joueurs.length, 'joueur')} dans le groupe`}</span></div></div>
+    <div class="p-hero-t">${avMoi(me)}<div><b>Salut ${esc(me.pseudo)} !</b><span>${x && joue ? `${rangTxt(x.pos)} sur ${cl.length} ce mois-ci · ${pl(x.pts, 'point')}` : `${pl(ETAT.joueurs.length, 'joueur')} dans le groupe`}</span></div></div>
     ${prochain ? `<div class="p-hero-n"><span>Prochain coup d'envoi</span><b data-cd="${prochain.t}">${esc(compte(prochain.t))}</b><small>${esc(prochain.home.name)} – ${esc(prochain.away.name)} · ${esc(prochain.L.nom)}</small></div>` : ''}
     ${ouverts.length ? `<div><div class="p-prog-t"><span>${reste ? `${pl(reste, 'prono')} à faire cette semaine` : 'Tout est pronostiqué ✅'}</span><b>${faits.length}/${ouverts.length}</b></div><div class="p-barre"><i style="width:${pct}%"></i></div></div>` : ''}
   </section>`;
@@ -947,12 +960,13 @@ function tableDe(j, id){
       const x = out[a.id] || (out[a.id] = {us}); x.f = x.f || [];
       if (x.f.length < 5) x.f.push(+a.score > +b.score ? 'v' : +a.score < +b.score ? 'd' : 'n');
     }));
+  Object.entries(j.forme || {}).forEach(([eq, f]) => { const x = out[eq] || (out[eq] = {us}); x.f = String(f).split('').filter(k => 'vnd'.includes(k)).slice(0, 5); });   // v70 : forme calculée sur la saison par la tâche
   return out;
 }
 async function chargerTables(ids){                               // compétitions des paris pas chargées par les pronos
   const l = [...new Set(ids)].filter(id => !TABLES[id] && !TABLES_EN_COURS.has(id)); if (!l.length) return false;
   l.forEach(id => TABLES_EN_COURS.add(id));
-  await Promise.all(l.map(async id => { try{ TABLES[id] = tableDe(await (await fetch(`donnees/sport/${String(id).replace(/\./g, '-')}.json`, {cache:'no-cache'})).json(), id); }catch{ TABLES[id] = {}; } TABLES_EN_COURS.delete(id); }));
+  await Promise.all(l.map(async id => { try{ TABLES[id] = tableDe((PRONOS_F && PRONOS_F.leagues[id]) || await (await fetch(`donnees/sport/${String(id).replace(/\./g, '-')}.json`, {cache:'no-cache'})).json(), id); }catch{ TABLES[id] = {}; } TABLES_EN_COURS.delete(id); }));
   return true;
 }
 function infoEq(m, t){
@@ -1060,10 +1074,14 @@ const cote = c => Number(c).toFixed(2).replace('.', ',');
 const nomMois = M => { const [a, m] = M.split('-').map(Number); return new Date(a, m - 1, 1).toLocaleDateString('fr-FR', {month:'long', year:'numeric'}); };
 const moisSuivant = M => { const [a, m] = M.split('-').map(Number); return new Date(a, m, 1).toLocaleDateString('fr-FR', {day:'numeric', month:'long'}).replace(/^1 /, '1ᵉʳ '); };
 async function chargerParis(){
-  try{ const j = await (await fetch('donnees/sport/jours.json', {cache:'no-cache'})).json();          // équipes (logos) et logos des compétitions
-    JOURS = {}; (j.events || []).forEach(e => { JOURS[e.id] = e; });
-    Object.entries(j.leagues || {}).forEach(([id, v]) => { if (!COMP[id] && v) COMP[id] = {logo:v.logo || '', logoDark:v.logoDark || ''}; }); }catch{}
+  const jours = async () => { try{ const j = await (await fetch('donnees/sport/jours.json', {cache:'no-cache'})).json();          // équipes (logos) et logos des compétitions
+    (j.events || []).forEach(e => { if (!JOURS[e.id]) JOURS[e.id] = e; });
+    Object.entries(j.leagues || {}).forEach(([id, v]) => { if (!COMP[id] && v) COMP[id] = {logo:v.logo || '', logoDark:v.logoDark || ''}; }); }catch{} };
+  JOURS = {};
+  if (PRONOS_F) Object.entries(PRONOS_F.leagues).forEach(([id, l]) => { (l.events || []).forEach(e => { JOURS[e.id] = e; }); if (!COMP[id]) COMP[id] = {logo:l.logo || '', logoDark:l.logoDark || ''}; });   // v70
+  else await jours();
   try{ PARIS = await BASE.paris(); }catch{ PARIS = {err:'reseau'}; }
+  if (PRONOS_F && PARIS && PARIS.cotes && Object.keys(PARIS.cotes).some(id => !JOURS[id])) await jours();       // match d'une compétition hors Pronos : le fichier des jours en plus
 }
 function matchParis(id, c){
   const e = JOURS[id] || {}, nom = NOMS_PARIS[c.lg] || e.league || c.lg;
@@ -1084,7 +1102,7 @@ function parisHTML(me){
   const fini = x.solde < 1 && !x.enJeu;
   const sous = `<div class="ong glass" role="tablist">${[['jour', "Aujourd'hui"], ['mes', 'Mes paris'], ['cl', 'Classement']].map(([k, t]) => `<button type="button" role="tab" data-pvue="${k}" aria-selected="${PVUE === k}">${t}</button>`).join('')}</div>`;
   const hero = `<section class="p-hero glass pa-hero">
-    <div class="p-hero-t">${avHTML(me.pseudo, 'xl')}<div><b>${esc(me.pseudo)}</b><span>${r && r.nb ? `${rangTxt(r.pos)} sur ${joue} en ${nomMois(PARIS.mois).split(' ')[0]}` : `Mois de ${nomMois(PARIS.mois)}`}</span></div>
+    <div class="p-hero-t">${avMoi(me)}<div><b>${esc(me.pseudo)}</b><span>${r && r.nb ? `${rangTxt(r.pos)} sur ${joue} en ${nomMois(PARIS.mois).split(' ')[0]}` : `Mois de ${nomMois(PARIS.mois)}`}</span></div>
       <div class="pa-cr"><b data-compteur="${x.solde}">${x.solde}</b><span>crédits</span></div></div>
     <div class="pa-detail"><span>Départ <b>${x.depart}</b>${x.bonus ? ` <em class="pa-bonus">dont +${x.bonus} de bonus</em>` : ''}</span><span>En jeu <b>${x.enJeu}</b></span><span>Paris <b>${x.nb}</b></span></div>
     ${fini ? `<div class="pa-fini">Plus de crédits ce mois-ci : tu repars avec 100 crédits le ${moisSuivant(PARIS.mois)}.</div>` : ''}
@@ -1194,10 +1212,14 @@ async function actualiser(){
   try{ await chargerMatchs(); if (BASE.moi()){ try{ ETAT = await BASE.tout(tous()); if (ETAT.err) throw new Error(ETAT.err);
       const me = BASE.moi(), vrai = !SIM && !ETAT.joueurs.includes(me.pseudo) && ETAT.joueurs.find(n => n.toLowerCase() === me.pseudo.toLowerCase());
       if (vrai) LS.set('pronos:moi', {...me, pseudo:vrai});                           // v63 : « marc » tapé, « Marc » sur le serveur
-      photosAJour().then(c => { if (c) rendre(); }); }
+      photosAJour().then(c => { if (c) rendre(); });
+      if (!SIM) LS.set('pronos:etat', {g:BASE.moi().groupe, p:BASE.moi().pseudo, at:Date.now(), e:ETAT}); }   // v70 : dernier état gardé (serveur injoignable)
     catch(e){ ETAT = {joueurs:[], pronos:{}};
-      if (e.message === 'code'){ BASE.effacer(); PANNE = 'Pseudo ou code non reconnu par le serveur : reconnecte-toi.'; }      // v55 : plus de page vide sans explication
-      else PANNE = 'Serveur des pronos injoignable : les pronos affichés peuvent être incomplets. Réessaie avec ↻.'; } }
+      if (e.message === 'code'){ BASE.effacer(); localStorage.removeItem('pronos:etat'); PANNE = 'Pseudo ou code non reconnu par le serveur : reconnecte-toi.'; }      // v55 : plus de page vide sans explication
+      else { const c = !SIM && LS.get('pronos:etat', null), me = BASE.moi();                 // v70 : dernier état connu du groupe plutôt qu'un groupe vide
+        if (c && c.e && me && c.g === me.groupe && c.p === me.pseudo){ ETAT = c.e;
+          PANNE = `Serveur des pronos injoignable : dernier état connu du groupe (${new Date(c.at).toLocaleString('fr-FR', {weekday:'long', hour:'2-digit', minute:'2-digit'})}). Réessaie avec ↻.`; }
+        else PANNE = 'Serveur des pronos injoignable : les pronos affichés peuvent être incomplets. Réessaie avec ↻.'; } } }
     if (SECTION === 'paris' && BASE.moi() && !SIM) await chargerParis();                 // v60
     else if (BASE.moi() && !SIM) chargerParis().then(() => { if (SECTION === 'accueil' || SECTION === 'paris') rendre(); });   // v62 : résumé de l'accueil
     rendre(); feterExacts(); }
@@ -1352,6 +1374,10 @@ document.addEventListener('click', async e => {
   }
   const ph = e.target.closest('[data-photo]');                                     // v69 : photo de profil
   if (ph){ if (ph.dataset.photo === 'retirer'){ if (confirm('Retirer ta photo ?')) changerPhoto(''); } else { const i = $('#photoIn'); if (i){ i.value = ''; i.click(); } } return; }
+  if (e.target.closest('[data-profil]')){                                          // v70 : Mon profil depuis son avatar
+    if (!['pronos', 'plus'].includes(SECTION)) SECTION = 'pronos';
+    VUE = 'cl'; LS.set('pronos:vue', VUE); EDITER = false; rendre();
+    const a = $('#appareil'); if (a) a.scrollIntoView({block:'start', behavior:'smooth'}); return; }
   if (e.target.closest('[data-quitter]')){ BASE.effacer(); ETAT = {joueurs:[], pronos:{}}; CHOIX = null; rendre(); return; }
   const s = e.target.closest('[data-sim]');
   if (s && SIM){ if (s.dataset.sim === 'remplir'){ SIMU.remplirPasses(liste()); } else if (confirm('Effacer la simulation (pseudo et pronos) ?')) SIMU.effacer(); else return; actualiser(); return; }

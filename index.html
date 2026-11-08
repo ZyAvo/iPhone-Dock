@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="5a3da47e">
+<meta name="mon-ecran-version" content="3152b98e">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -114,6 +114,9 @@ a{color:inherit;text-decoration:none}
 .w-clock .place span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .w-clock .place svg{width:11px;height:11px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .w-clock .place:active{opacity:.6}
+.w-clock .day,.w-clock .place{position:relative}          /* v70 : zones tactiles agrandies sans bouger le dessin (date → Calendrier, lieu → météo) */
+.w-clock .day::after{content:"";position:absolute;inset:-8px -10px -1px}
+.w-clock .place::after{content:"";position:absolute;inset:-1px -8px -12px}
 .w-top{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}
 .w-clock .wx{display:flex;align-self:auto;align-items:center;gap:4px;margin:-6px 0 0;padding:2px 4px;border-radius:12px;font-size:.92rem;font-weight:500;font-variant-numeric:tabular-nums}
 .wx-more{margin-top:-6px;font-size:.72rem;line-height:1.25;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -464,7 +467,7 @@ html.desk .inv-r{padding-left:10px;font-size:.74rem}html.desk .inv-r b,html.desk
 .pl-search input{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
 .pl-msg{font-size:.8rem;color:var(--ink-soft);margin:4px 4px 8px;min-height:1em}
 /* v65 : premier lancement */
-.bv-t{font-size:.84rem;color:var(--ink-soft);line-height:1.45;margin:0 4px 12px}
+.bv-t{font-size:.84rem;color:var(--ink);line-height:1.45;margin:0 4px 12px}
 .bv-t a{color:var(--accent);font-weight:600}
 .bv .pl-list{margin-bottom:12px}
 .bv-r{text-align:left}
@@ -677,6 +680,9 @@ const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
 
 /* ====================================================== */
 const $ = s => document.querySelector(s);
+/* v70 : prochains.json lu une seule fois pour la pastille Pronos et le bandeau des matchs (gardé 1 min) */
+const lireProchains = (() => { let pr = null, at = 0; return () => { if (!pr || Date.now() - at > 60e3){ at = Date.now();
+  pr = fetch('donnees/sport/prochains.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : {ok:false, events:[]}).catch(() => ({ok:false, events:[]})); } return pr; }; })();
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* ---------- Pages et widgets activés (Réglages › Pages et widgets ; Noyau.accueil : classeur + choix en attente sur cet appareil) ----------
@@ -797,7 +803,7 @@ async function pronosPastille(){
   if (c && c.cle === cle && Date.now() - c.at < 5 * 60e3){ PRONOS_N = c.n; pastilles(); return; }
   try{
     const ids = new Set([...Noyau.pronos.ligues(), ...Noyau.pronos.extrasActifs()].map(L => String(L.id))), now = Date.now();   // v68 : + pronos en plus choisis
-    const [p, e] = await Promise.all([fetch('donnees/sport/prochains.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : {events:[]}),
+    const [p, e] = await Promise.all([lireProchains(),
       fetch(S.api, {method:'POST', body:JSON.stringify({action:'etat', groupe:me.groupe, pseudo:me.pseudo, pin:me.pin})}).then(r => r.json())]);
     if (!e || e.err) return;
     const ouverts = (p.events || []).filter(m => ids.has(String(m.l)) && m.t > now && m.t < now + 7 * 864e5);
@@ -1770,7 +1776,7 @@ function renderBand(){
 }
 const renderProchains = renderBand;
 async function loadProchains(){
-  try{ const r = await fetch('donnees/sport/prochains.json', {cache:'no-cache'}); PROCH = r.ok ? (await r.json()).events || [] : (PROCH || []); }catch{ PROCH = PROCH || []; }
+  try{ const j = await lireProchains(); PROCH = j.ok === false ? (PROCH || []) : j.events || []; }catch{ PROCH = PROCH || []; }
   renderBand();
 }
 if (W('sport')){
