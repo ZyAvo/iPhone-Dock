@@ -1,6 +1,6 @@
 {
- "lot": "v73",
- "date": "2026-11-08T18:17:50+00:00",
+ "lot": "v74",
+ "date": "2026-11-08T21:42:21+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/appli-ios.yml": "71fe94d4",
@@ -21,7 +21,7 @@
   "commun.js": "fc411b5f",
   "ecarts.html": "85079838",
   "etat.html": "094f8f68",
-  "index.html": "3152b98e",
+  "index.html": "65c70c90",
   "invest.html": "7cae9fe7",
   "match.js": "ed101192",
   "noyau.js": "5e1443e2",
