@@ -51,6 +51,12 @@ Un invité non inscrit voit la carte Règles et le formulaire.
   (NBA, NFL : bilan et place dans la conférence).
 - Serveur v55 : la page marche (pas d'avatars des autres ni de « qui a joué » ; changer d'avatar → message « serveur à mettre à jour »).
 
+## Mode compact (v77)
+À pronostiquer, Résultats et Paris du jour : un match par ligne (score à saisir sur la ligne, cotes 1 / N / 2), le détail s'ouvre à l'appui. Bouton Compact / Détaillé, gardé sur l'appareil.
+
+## Paris combinés (v77, Code.gs v77)
+De 2 à 8 matchs du jour dans un seul pari, onglet « 🧩 Combiné » des paris : les cotes se multiplient. Tout juste : mise × cote totale (arrondi). Un match faux : mise perdue. Match reporté ou annulé : retiré du calcul ; tous annulés : remboursé. Modifiable ou annulable jusqu'au premier coup d'envoi. Sélections des autres visibles match par match, au coup d'envoi. Dans le classement : un pari comme un autre pour les crédits, colonne Comb. (gagnés / joués) et tuile « Plus gros combiné ».
+
 ## Paris en crédits fictifs (v60, onglet « Paris »)
 Jeu entre amis **sans argent** : les crédits ne s'achètent pas, ne s'échangent pas, ne valent rien ; aucun lot réel, aucun lien vers un site de paris.
 - **Crédits** : 100 au début de chaque mois (mois du coup d'envoi, heure de Paris) ; podium du mois fini (joueurs ayant parié au moins une fois ; égalité : ordre alphabétique) :

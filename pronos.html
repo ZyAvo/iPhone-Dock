@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="4ba1fde0">
+<meta name="mon-ecran-version" content="be90e222">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -499,10 +499,85 @@ html.desk .acc-grille{grid-template-columns:repeat(3,minmax(0,1fr))}
 .acc-f{font-size:1.6rem;color:var(--ink-soft);flex:none}
 .top-g{display:flex;align-items:center;gap:12px;min-width:0}   /* v75 : KiosK et Accueil côte à côte, toujours visibles (en-tête collant) */
 .acc-retour[hidden]{display:none}
+@media (max-width:350px){ .m-pr{display:none} }
 .acc-retour{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;white-space:nowrap;border-radius:99px;font-size:.86rem;font-weight:600;color:var(--accent);
   background:var(--card);border:1px solid var(--line)}
 .regles ul{margin:0;padding-left:18px;display:grid;gap:7px;font-size:.84rem;color:var(--ink-soft);line-height:1.45}
 .regles li b,.regles p b{color:var(--ink)}
+/* v77 : mode compact */
+.p-aff{align-self:flex-end;display:inline-flex;gap:2px;padding:3px;border-radius:99px;background:var(--card);border:1px solid var(--line)}
+.p-aff button{position:relative;padding:5px 12px;border-radius:99px;font-size:.76rem;font-weight:600;color:var(--ink-soft)}
+.p-aff button::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+.p-aff button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.pl{display:grid;align-items:center;gap:5px;min-height:46px;padding:5px 0;border-top:1px solid var(--line);cursor:pointer}
+.pl-j{grid-template-columns:34px minmax(0,1fr) auto minmax(0,1fr) 20px}
+.pl-r{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) 62px}
+.pl-p{grid-template-columns:33px minmax(0,1fr) auto 16px}
+.pl-h{font-size:.74rem;font-weight:700;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+.pl.direct .pl-h,.pl.direct .pl-v{color:#d63c3c}
+.pl-e{display:flex;align-items:center;justify-content:flex-end;gap:5px;min-width:0;font-size:.8rem;font-weight:600}
+.pl-e.d{justify-content:flex-start}
+.pl-e > span:not(.p-lg),.pl-eb > span:not(.p-lg),.pl-n span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pl .p-lg{width:20px;height:20px}
+.pl .p-lg.ph{font-size:.42rem;box-shadow:inset 0 0 0 1px color-mix(in oklab, var(--eq) 70%, transparent)}
+.pl-sc{display:flex;align-items:center;justify-content:center;gap:3px}
+.pl .p-st{display:block}
+.pl .p-st input{display:block;width:34px;height:34px;padding:0;font-size:16px;border-radius:10px}
+.pl-sep{color:var(--ink-soft);font-weight:700}
+.pl-v{min-width:42px;text-align:center;font-weight:800;font-size:.95rem;font-variant-numeric:tabular-nums;letter-spacing:-.01em;color:var(--ink)}
+.pl-v.pl-pr{color:var(--ink-soft);font-weight:600}
+.pl-f{width:20px;min-height:34px;display:grid;place-items:center;font-size:.86rem;line-height:1;color:var(--ink-soft)}
+.pl-f .p-bd,.pl-mp .p-bd{padding:1px 5px;font-size:.66rem}
+.pl-f:has(.p-bd){justify-content:end}
+.pl-eb{display:flex;align-items:center;gap:5px;min-width:0;padding:5px 6px;border-radius:10px;font-size:.78rem;font-weight:600;background:var(--card);border:1px solid var(--line);color:var(--ink)}
+.pl-eb[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 16%, var(--card))}
+.pl-eb:disabled:not([aria-pressed="true"]){opacity:.55}
+.pl-mp{display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.pl-mp small{font-size:.74rem;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pl-n{display:flex;align-items:center;gap:3px;min-width:0;font-size:.76rem;font-weight:600;letter-spacing:-.01em}
+.pl-n span{flex:0 1 auto}
+.pl-n i{font-style:normal;color:var(--ink-soft);flex:none}
+.pl .pa-c{grid-column:auto;grid-template-columns:repeat(3,40px);gap:3px}
+.pl .pa-b{padding:2px 0;border-radius:10px;min-height:36px;align-content:center}
+.pl .pa-b span{font-size:.54rem;line-height:1}
+.pl .pa-b b{font-size:.78rem;line-height:1.15}
+.pl-o{border-top:1px solid var(--line)}
+.pl-o .p-m{border-top:0;padding-top:2px}
+.pl-fermer{position:relative;display:block;margin:6px 0 0 auto;font-size:.74rem;font-weight:600;color:var(--accent)}
+.pl-fermer::after{content:"";position:absolute;inset:-12px -6px}
+html.desk .pl-j{grid-template-columns:40px minmax(0,1fr) auto minmax(0,1fr) 22px}
+/* v77 : paris combinés */
+.pa-esp{height:176px}
+.pa-slip{position:fixed;z-index:20;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom, 0px));width:min(528px, calc(100% - 24px));box-sizing:border-box;display:grid;gap:8px;padding:12px;border-radius:20px;
+  background:var(--sheet-solid, var(--base));border:1px solid var(--line);box-shadow:0 14px 34px -10px rgba(0,0,0,.55)}
+.pa-sl-t{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.88rem}
+.pa-slip .pa-gain b{font-size:1.15rem}
+.pa-sl-l{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.pa-sl-l::-webkit-scrollbar{display:none}
+.pa-s{flex:none;padding:5px 9px;border-radius:99px;background:color-mix(in oklab, var(--accent) 12%, transparent);font-size:.74rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pa-s i{font-style:normal;margin-left:3px;color:var(--ink-soft)}
+.pa-sl-b{display:flex;align-items:center;gap:6px}
+.pa-sl-b .pa-chips{flex-wrap:nowrap;gap:4px;min-width:0}
+.pa-sl-b .pa-chips button{padding:6px 9px}
+.pa-sl-b input{width:54px;flex:none;box-sizing:border-box;margin-left:auto;padding:7px 4px;text-align:center;font:inherit;font-size:16px;font-weight:700;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px}
+.pa-sl-b .btn{flex:none;padding:9px 12px}
+.pa-sl-b .btn:disabled{opacity:.45}
+.pa-slip .msg{margin:0;font-size:.74rem}.pa-slip .msg:empty{display:none}
+.pa-cb{padding:10px 0;border-top:1px solid var(--line)}   /* v77 : replié en mode compact, ouvert en Détaillé */
+.pa-cb > :not(summary){margin-top:6px}
+.pa-cb-f{color:var(--ink-soft);font-size:.86rem;transition:transform .15s}
+.pa-cb[open] .pa-cb-f{transform:rotate(180deg)}
+summary.pa-cb-t{list-style:none;cursor:pointer}
+summary.pa-cb-t::-webkit-details-marker{display:none}
+.pa-cb:first-child{border-top:0}
+.pa-cb-t{display:flex;align-items:center;gap:8px;min-height:36px}
+.pa-js{display:grid;gap:1px;padding:2px 0 0 2px}
+.pa-j{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:6px;align-items:center;font-size:.78rem}
+.pa-j > b{font-size:.76rem;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+.pa-j-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pa-j-n small{display:block;font-size:.68rem;color:var(--ink-soft)}
+.pa-cb .msg{margin:0}.pa-cb .msg:empty{display:none}
+.p-tro-1{grid-template-columns:minmax(0,1fr)}
 /* fête */
 .p-conf{position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden}
 .p-conf i{position:absolute;top:-14px;width:8px;height:13px;border-radius:2px;animation:tombe var(--d) cubic-bezier(.25,.6,.45,1) var(--w) forwards}
@@ -521,7 +596,7 @@ html.desk .p-grille .jour{grid-column:1 / -1}
 <header>
   <div class="wrap">
     <div class="top">
-      <span class="top-g"><a class="back" href="index.html" aria-label="Retour à KiosK"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span class="k-marque"><svg class="k-logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9.2" height="9.2" rx="2.6"/><rect x="12.8" y="2" width="9.2" height="9.2" rx="2.6" opacity=".6"/><rect x="2" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".78"/><rect x="12.8" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".4"/></svg><span class="k-nom">KiosK</span></span></a><button type="button" class="acc-retour" id="accBtn" data-section="accueil" hidden>‹ Accueil</button></span>
+      <span class="top-g"><a class="back" href="index.html" aria-label="Retour à KiosK"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span class="k-marque"><svg class="k-logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9.2" height="9.2" rx="2.6"/><rect x="12.8" y="2" width="9.2" height="9.2" rx="2.6" opacity=".6"/><rect x="2" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".78"/><rect x="12.8" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".4"/></svg><span class="k-nom">KiosK</span></span></a><button type="button" class="acc-retour" id="accBtn" data-section="accueil" hidden>‹ Menu<span class="m-pr">Pronos</span></button></span>
       <span class="top-actions"><button class="icon-btn glass" id="invBtn" type="button" aria-label="Inviter des amis" hidden><svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span>
     </div>
@@ -835,6 +910,7 @@ const DISTANT = {
     LS.set('pronos:moi', {pseudo:vrai, pin, groupe, avatar:av}); synchroPlusTard(); return {ok:true}; },
   async parier(m, h, a){ const me = this.moi(); return this.appel('parier', {...me, match:m.id, ligue:m.league, h, a}); },
   async tout(matchs){ const me = this.moi(); return this.appel('etat', {...me}); },
+  async combiner(selections, mise, id, annuler){ const me = this.moi(); return this.appel('combiner', {...me, selections, mise, id, annuler}); },   // v77
   async paris(){ const me = this.moi(); return this.appel('paris', {...me}); },                                // v60
   async miser(match, choix, mise){ const me = this.moi(); return this.appel('miser', {...me, match, choix, mise}); },
   async photo(d){ const me = this.moi(); return this.appel('photo', {...me, photo:d}); },                      // v69
@@ -1038,7 +1114,7 @@ function reglesHTML(){
         Exemple, score final 27–20 : 25–20 et 28–21 (écart de 2) prennent 3 points, 30–10 prend 1 point, 20–25 prend 0.</li>
       <li>Classement du mois et de la saison. À égalité : le plus de pronos à 3 points, puis le moins de pronos.</li></ul></div>
     <div class="carte glass regles"><h2>➕ Les pronos en plus</h2><ul>
-      <li>Au choix de chacun (accueil › Pronos en plus) : Liga, Serie A, Bundesliga, Ligue Europa, Ligue Conférence, NBA, NFL. Tout, ou au cas par cas.</li>
+      <li>Au choix de chacun (Menu Pronos › Pronos en plus) : Liga, Serie A, Bundesliga, Ligue Europa, Ligue Conférence, NBA, NFL. Tout, ou au cas par cas.</li>
       <li>Ils ont <b>leur propre classement</b> (mois et saison), entre ceux qui y jouent. Le classement principal ne change pas.</li>
       <li>Foot : comme les pronos (3 points le score exact, 1 point le bon résultat). <b>NBA et NFL</b> : tu choisis seulement le <b>vainqueur</b>, <b>1 point</b> s'il gagne (match nul en NFL : 0).</li></ul></div>
     <div class="carte glass regles"><h2>🎟️ Les paris</h2><ul>
@@ -1048,6 +1124,8 @@ function reglesHTML(){
         Foot uniquement : Ligue 1, Premier League, Liga, Serie A, Bundesliga et les coupes d'Europe.</li>
       <li>La mise est retirée de ton solde tout de suite. Gagné : tu reçois <b>mise × cote</b> (arrondi) ; perdu : rien ; match reporté ou annulé : remboursé.
         Modifiable ou annulable jusqu'au coup d'envoi.</li>
+      <li><b>Combiné</b> : de 2 à 8 matchs du jour dans un seul pari, les cotes se multiplient. Il faut <b>tout juste</b> pour gagner mise × cote totale ; un seul match faux et la mise est perdue.
+        Match reporté ou annulé : il est retiré du calcul. Modifiable ou annulable jusqu'au premier coup d'envoi. Il compte pour un pari dans le classement.</li>
       <li>À 0 crédit (et rien en jeu), plus de pari jusqu'au 1ᵉʳ du mois suivant.</li>
       <li>Classement du mois par crédits ; <b>général</b> : cumul des crédits de fin de mois.</li></ul></div>
     <div class="carte glass regles"><h2>👤 Ton compte</h2><ul>
@@ -1151,6 +1229,40 @@ function infoEq(m, t){
 }
 const interInfos = () => `<label class="x-on p-infos glass"><span><b>📊 Forme et classement des équipes</b><small>${INFOS
   ? 'Rang, points et 5 derniers matchs : <span class="p-leg"><em class="v"></em> victoire <em class="n"></em> nul <em class="d"></em> défaite</span>' : 'Masqué · pour t\'aider à choisir'}</small></span><input type="checkbox" role="switch" data-infos${INFOS ? ' checked' : ''} aria-label="Forme et classement des équipes"></label>`;
+/* ---------- v77 : mode compact (À pronostiquer, Résultats, Paris du jour) : un match par ligne, le détail s'ouvre à l'appui.
+   Choix sur l'appareil (pronos:compact, compact par défaut) ; « Détaillé » = l'affichage d'avant, inchangé. ---------- */
+let COMPACT = LS.get('pronos:compact', true); const OUVERTS = new Set(), LIGNES = {};
+const affHTML = () => `<div class="p-aff" role="group" aria-label="Affichage des matchs">${[[true, 'Compact'], [false, 'Détaillé']].map(([v, t]) => `<button type="button" data-compact="${v ? 1 : 0}" aria-pressed="${COMPACT === v}">${t}</button>`).join('')}</div>`;
+function ligne(m, court, long, force){
+  if (!COMPACT) return long();
+  const id = String(m.id), f = () => OUVERTS.has(id) || (force && force()) ? `<div class="pl-o"><button type="button" class="pl-fermer" data-plier>Réduire ⌃</button>${long()}</div>` : court();
+  LIGNES[id] = f; return `<div data-lig="${esc(id)}">${f()}</div>`;
+}
+const fleCh = (etat = '⌄') => `<button type="button" class="pl-f" data-deplier aria-label="Voir le détail"><span data-etat>${etat}</span></button>`;
+const tempsCourt = (m, d) => !d ? '🔒' : d.state === 'post' ? 'Fin' : /mi-?temps|half/i.test(d.detail || '') ? 'MT' : esc(String(d.detail || '●').split(' ')[0]);
+const ptCourt = pt => pt == null ? '' : `<span class="p-bd ${pt === 3 ? 'p3' : pt ? 'p1' : 'p0'}">${pt ? '+' + pt : '0'}</span>`;
+const eqCourt = (m, t, cote) => `<span class="pl-e${cote ? ' d' : ''}">${cote ? logoEq(m, t) : ''}<span>${esc(t.name)}</span>${cote ? '' : logoEq(m, t)}</span>`;
+function ligneJouer(m, me){
+  const ferme = Date.now() >= m.t, d = ferme ? vivant(m) : null, dir = d && d.state !== 'post', cls = `pl pl-j${dir ? ' direct' : ''}`, h = `<span class="pl-h">${ferme ? tempsCourt(m, d) : esc(hm(m.t))}</span>`;
+  if (VAINQUEUR(m)){
+    const pr = monProno(m, me), c = choixV(pr), eq = (k, t) => `<button type="button" class="pl-eb" data-vq="${k}" aria-pressed="${c === k}"${ferme ? ' disabled' : ''}>${logoEq(m, t)}<span>${esc(t.name)}</span></button>`;
+    return `<div class="${cls}" data-m="${esc(m.id)}">${h}${eq('h', m.home)}<span class="pl-sc">${d ? `<b class="pl-v">${d.h}–${d.a}</b>` : '<span class="pl-sep">–</span>'}</span>${eq('a', m.away)}${fleCh(d && c ? (d.state === 'post' ? ptCourt(points(pr, enDirect(m, d))) : (d.h > d.a ? 'h' : d.h < d.a ? 'a' : '') === c ? '🟢' : '🔴') : !ferme && c ? '<span class="ok">✓</span>' : '⌄')}</div>`;
+  }
+  const p = monProno(m, me) || ['', ''], saisi = p[0] !== '';
+  const champ = (i, t) => `<div class="p-st"><input inputmode="numeric" maxlength="3" placeholder="?" aria-label="Score ${esc(t.name)}" value="${esc(p[i])}"></div>`;
+  const centre = d ? `<b class="pl-v">${d.h}–${d.a}</b>` : ferme ? `<b class="pl-v pl-pr">${saisi ? `${esc(p[0])}–${esc(p[1])}` : '–'}</b>` : `${champ(0, m.home)}<span class="pl-sep">:</span>${champ(1, m.away)}`;
+  return `<div class="${cls}" data-m="${esc(m.id)}">${h}${eqCourt(m, m.home)}<span class="pl-sc">${centre}</span>${eqCourt(m, m.away, true)}${fleCh(d && saisi ? ptCourt(points(p, enDirect(m, d))) : !ferme && saisi ? '<span class="ok">✓</span>' : '⌄')}</div>`;
+}
+function ligneRes(m, me){
+  const p = monProno(m, me), pr = !p ? '–' : VAINQUEUR(m) ? esc((p[0] > p[1] ? m.home : m.away).abbr || '🏆') : `${esc(p[0])}–${esc(p[1])}`;
+  return `<div class="pl pl-r" data-res="${esc(m.id)}">${eqCourt(m, m.home)}<span class="pl-sc"><b class="pl-v">${esc(m.home.score)}–${esc(m.away.score)}</b></span>${eqCourt(m, m.away, true)}<span class="pl-mp"><small>${pr}</small>${p ? ptCourt(points(p, m)) : ''}</span></div>`;
+}
+function ligneParis(m, me, now){
+  const ferme = now >= m.t, p = monPari(m.id, me), d = ferme ? vivant(m) : null, sel = COMBI.on ? COMBI.sel[m.id] : p && p.choix;
+  const bt = (k, i, lib) => `<button type="button" class="pa-b${sel === k ? ' on' : ''}" data-ch="${k}" aria-pressed="${sel === k}" aria-label="${lib} : cote ${cote(m.c[i])}"${ferme ? ' disabled' : ''}><span>${lib}</span><b>${cote(m.c[i])}</b></button>`;
+  return `<div class="pl pl-p${d && d.state !== 'post' ? ' direct' : ''}${p ? ' pari' : ''}" data-pm="${esc(m.id)}"><span class="pl-h">${d ? `<b>${d.h}–${d.a}</b>` : ferme ? '🔒' : esc(hm(m.t))}</span>
+    <span class="pl-n"><span>${esc(m.home.name)}</span><i>–</i><span>${esc(m.away.name)}</span></span><div class="pa-c">${bt('h', 0, '1')}${bt('d', 1, 'N')}${bt('a', 2, '2')}</div>${fleCh(p ? '<span class="ok">✓</span>' : '⌄')}</div>`;
+}
 function matchVainqueur(m, me){                 // v68 : NBA, NFL : deux boutons, le vainqueur
   const now = Date.now(), c = choixV(monProno(m, me)), ferme = now >= m.t;
   const gauche = ferme ? etatDirect(m) : `<span class="p-cd${m.t - now < 3600e3 ? ' urgent' : ''}" data-cd="${m.t}" data-pre="⏳ ">⏳ ${esc(compte(m.t))}</span>`;
@@ -1179,7 +1291,7 @@ function matchJouer(m, me){
 }
 function jouerHTML(me){
   const now = Date.now(), l = aJouer().filter(m => m.state !== 'post' && m.t > now - 3 * 3600e3);
-  return heroHTML(me) + (l.length ? interInfos() + blocs(l, m => matchJouer(m, me)) : '<p class="vide">Aucun match dans les 7 prochains jours pour ces compétitions.</p>');
+  return heroHTML(me) + (l.length ? affHTML() + (COMPACT ? '' : interInfos()) + blocs(l, m => ligne(m, () => ligneJouer(m, me), () => matchJouer(m, me))) : '<p class="vide">Aucun match dans les 7 prochains jours pour ces compétitions.</p>');
 }
 function autresHTML(m, me, sansMoi){
   const l = Object.entries(ETAT.pronos[m.id] || {}).filter(([n]) => !(sansMoi && n === me.pseudo));
@@ -1193,12 +1305,12 @@ function resHTML(me){
   if (!l.length) return '<p class="vide">Pas encore de match terminé avec des pronos.</p>' + (SIM ? simOutils() : '');
   const x = classement('mois').find(y => y.n === me.pseudo) || {pts:0, ex:0, bons:0, nb:0};
   return `<section class="p-bilan glass"><div><b>${x.pts}</b><span>points ce mois-ci</span></div><div><b>${x.ex}</b><span>🎯 pronos à 3 points</span></div><div><b>${x.nb ? Math.round(100 * x.bons / x.nb) : 0} %</b><span>✓ bons résultats</span></div></section>`
-    + blocs(l, m => { const p = monProno(m, me), autres = autresHTML(m, me, true);
+    + affHTML() + blocs(l, m => ligne(m, () => ligneRes(m, me), () => { const p = monProno(m, me), autres = autresHTML(m, me, true);
       return `<div class="p-m"><div class="p-eq">${logoEq(m, m.home)}<span>${esc(m.home.name)}</span></div>
         <div class="p-reel">${esc(m.home.score)}<span>–</span>${esc(m.away.score)}</div>
         <div class="p-eq">${logoEq(m, m.away)}<span>${esc(m.away.name)}</span></div>
         <div class="p-moi">${p ? `Ton prono <b>${VAINQUEUR(m) ? '🏆 ' + esc(nomV(m, p)) : `${esc(p[0])}–${esc(p[1])}`}</b> ${badge(points(p, m), RUGBY(m) && !VAINQUEUR(m))}` : 'Pas de prono pour toi'}</div>
-        ${autres ? `<div class="p-chips">${autres}</div>` : ''}</div>`; });
+        ${autres ? `<div class="p-chips">${autres}</div>` : ''}</div>`; }));
 }
 function podiumHTML(l, avant, me){
   const pod = x => x ? `<div class="p-pod r${x.pos}${x.n === me.pseudo ? ' moi' : ''}"><span class="med">${['🥇', '🥈', '🥉'][x.pos - 1]}</span>${avHTML(x.n, x.pos === 1 ? 'xl' : 'lg')}
@@ -1310,14 +1422,70 @@ function parisHTML(me){
 function parisJourHTML(me, x){
   const now = Date.now(), l = Object.entries(PARIS.cotes || {}).map(([id, c]) => matchParis(id, c)).sort((a, b) => a.t - b.t);
   const regles = `<p class="note">Un pari 1 / N / 2 par match, le jour du match, à la cote moyenne du relevé du matin (5 sites français). Gain = mise × cote, arrondi.
-    Résultat : score final (prolongation comprise). 100 crédits au début de chaque mois, +20 / +10 / +5 pour le podium du mois précédent.
+    Résultat : score final (prolongation comprise). Combiné : 2 à 8 matchs, cotes multipliées, tout juste pour gagner. 100 crédits au début de chaque mois, +20 / +10 / +5 pour le podium du mois précédent.
     <b>Jeu entre amis, sans argent</b> : les crédits ne s'achètent pas, ne s'échangent pas et ne valent rien.</p>`;
-  if (!l.length) return `<div class="carte glass"><h2>⏳ Pas encore de cote aujourd'hui</h2><p>Les cotes arrivent vers 8 h le jour du match, pour la Ligue 1, la Premier League, la Liga, la Serie A, la Bundesliga et les coupes d'Europe.</p></div>` + regles;
+  const modes = `<div class="ong glass" role="tablist" aria-label="Type de pari">${[[false, 'Pari simple'], [true, '🧩 Combiné']].map(([v, t]) => `<button type="button" role="tab" data-cmode="${v ? 1 : 0}" aria-selected="${COMBI.on === v}">${t}</button>`).join('')}</div>`;
+  if (!l.length) return combisHTML(me) + `<div class="carte glass"><h2>⏳ Pas encore de cote aujourd'hui</h2><p>Les cotes arrivent vers 8 h le jour du match, pour la Ligue 1, la Premier League, la Liga, la Serie A, la Bundesliga et les coupes d'Europe.</p></div>` + regles;
   if (INFOS) chargerTables(l.map(m => m.league)).then(n => { if (n && SECTION === 'paris') rendre(); });   // v69
-  return interInfos() + blocs(l, m => matchParisHTML(m, me, x, now)) + regles;
+  return modes + combisHTML(me) + affHTML() + (COMPACT ? '' : interInfos()) + blocs(l, m => ligne(m, () => ligneParis(m, me, Date.now()), () => matchParisHTML(m, me, x, Date.now()), () => !COMBI.on && PCHOIX[m.id])) + regles + slipHTML(x, now);
+}
+/* ---------- v77 : paris combinés ----------
+   COMBI : mode en cours (sel = {id du match : h|d|a}, mise, edit = combiné modifié). Le serveur refait tout le calcul (cotes, solde, horaires). */
+let COMBI = {on:false, sel:{}, mise:10, edit:null};
+const COMBI_MAX = 8, coteTotale = ids => Math.round(100 * ids.reduce((p, id) => p * PARIS.cotes[id].c['hda'.indexOf(COMBI.sel[id])], 1)) / 100;
+const idsCombi = now => Object.keys(COMBI.sel).filter(id => PARIS.cotes[id] && PARIS.cotes[id].t > now).sort((a, b) => PARIS.cotes[a].t - PARIS.cotes[b].t);
+function slipHTML(x, now){
+  if (!COMBI.on) return '';
+  const ids = idsCombi(now), n = ids.length, c = n ? coteTotale(ids) : 0, ancien = COMBI.edit ? ((PARIS.paris || []).find(y => y.match === COMBI.edit) || {}).mise || 0 : 0, dispo = x.solde + ancien;
+  const pret = n >= 2, gens = id => { const k = COMBI.sel[id], y = PARIS.cotes[id], m = matchParis(id, y); return `<button type="button" class="pa-s" data-cs="${esc(id)}" aria-label="Retirer ${esc(m.home.name)} – ${esc(m.away.name)}"><b>${esc(libChoix(k, m))}</b> ${cote(y.c['hda'.indexOf(k)])} <i aria-hidden="true">×</i></button>`; };
+  return `<div class="pa-esp" aria-hidden="true"></div><aside class="pa-slip" aria-label="Combiné en cours">
+    <div class="pa-sl-t"><b>🧩 ${n ? `${pl(n, 'match')} · cote <span data-ctot>${cote(c)}</span>` : 'Choisis tes matchs'}</b><span class="pa-gain">Gain possible<b data-cgain>${pret ? Math.round(COMBI.mise * c) : '–'}</b></span></div>
+    ${n ? `<div class="pa-sl-l">${ids.map(gens).join('')}</div>` : ''}
+    <div class="pa-sl-b"><div class="pa-chips">${[5, 10, 25].filter(v => v < dispo).map(v => `<button type="button" data-cmise="${v}">${v}</button>`).join('')}<button type="button" data-cmise="${Math.max(dispo, 0)}">Tout</button></div>
+      <input inputmode="numeric" maxlength="4" value="${COMBI.mise}" aria-label="Mise du combiné" data-cc="${c}"><button type="button" class="btn main" data-cvalider${pret ? '' : ' disabled'}>${COMBI.edit ? 'Modifier' : 'Valider'}</button></div>
+    <p class="msg" data-cmsg role="status">${n === 1 ? 'Ajoute au moins un autre match.' : ''}</p></aside>`;
+}
+function jambeHTML(s){
+  if (s.cache) return '<div class="pa-j"><span>🔒</span><span class="pa-j-n">Match pas encore commencé</span></div>';
+  const y = (PARIS.cotes || {})[s.m], m = y ? matchParis(s.m, y) : null, d = m && Date.now() >= m.t ? vivant(m) : null, v = d ? (d.h > d.a ? 'h' : d.h < d.a ? 'a' : 'd') : '';
+  const mk = s.r === 'ok' ? '✅' : s.r === 'ko' ? '❌' : s.r === 'nul' ? '↩️' : d ? (v === s.c ? '🟢' : '🔴') : '⏳';
+  return `<div class="pa-j"><span>${mk}</span><span class="pa-j-n">${esc(s.d)} – ${esc(s.e)}<small>${esc(s.c === 'h' ? s.d : s.c === 'a' ? s.e : 'Nul')}${d ? ` · ${d.h}–${d.a}` : ''}${s.r === 'nul' ? ' · annulé' : ''}</small></span><b>${cote(s.o)}</b></div>`;
+}
+function combiHTML(y, me){
+  const moi = y.p === me.pseudo, ouvert = moi && Date.now() < y.t, n = y.sel.length;
+  return `<details class="pa-cb"${COMPACT ? '' : ' open'}><summary class="pa-cb-t">${moi ? '' : avHTML(y.p)}<span class="pa-r-m"><b>${moi ? '' : `${esc(y.p)} · `}🧩 Combiné · ${pl(n, 'match')}</b><small>${y.mise} à ${cote(y.cote)} → ${Math.round(y.mise * y.cote)} possibles</small></span>${statut(y)}<span class="pa-cb-f" aria-hidden="true">⌄</span></summary>
+    <div class="pa-js">${y.sel.map(jambeHTML).join('')}</div>
+    ${ouvert ? `<div class="btns"><button type="button" class="btn" data-cedit="${esc(y.match)}">Modifier</button><button type="button" class="btn" data-cannuler="${esc(y.match)}">Annuler</button></div><p class="msg" data-cmsg2 role="status"></p>` : ''}</details>`;
+}
+function combisHTML(me){
+  const auj = new Date().toDateString(), l = (PARIS.paris || []).filter(y => y.sel && (y.gain === null || new Date(y.t).toDateString() === auj)).sort((a, b) => (b.p === me.pseudo) - (a.p === me.pseudo) || a.t - b.t);
+  return l.length ? `<p class="jour">Combinés</p><div class="p-liste glass">${l.map(y => combiHTML(y, me)).join('')}</div>` : '';
+}
+const ERR_COMBI = r => ({solde:`Pas assez de crédits (disponible : ${r.dispo}).`, ferme:'Trop tard : un des matchs a commencé.', cote:'Pas de cote du matin pour un de ces matchs.', mise:'Mise : 1 crédit au moins.', nombre:`De 2 à ${COMBI_MAX} matchs.`, double:'Un match est en double.', combi:'Combiné introuvable : actualise la page.', code:'Pseudo ou code non reconnu : actualise la page.', action:'Le serveur des pronos doit être mis à jour (v77) : colle le nouveau Code.gs dans Apps Script, puis Déployer › Gérer les déploiements › Nouvelle version.'}[r.err] || 'Refusé par le serveur.');
+async function validerCombi(){
+  const now = Date.now(), ids = idsCombi(now), msg = t => { const m = document.querySelector('[data-cmsg]'); if (m) m.textContent = t; }, mise = COMBI.mise;
+  if (ids.length < 2) return msg('Ajoute au moins un autre match.'); if (!(mise >= 1)) return msg('Mise : 1 crédit au moins.');
+  msg('Enregistrement…');
+  try{ const r = await BASE.combiner(ids.map(id => ({match:id, choix:COMBI.sel[id]})), mise, COMBI.edit || '', false);
+    if (!r.ok) return msg(ERR_COMBI(r));
+    COMBI = {on:false, sel:{}, mise:10, edit:null}; PARIS = await BASE.paris(); rendre(); window.scrollTo(0, 0); if (navigator.vibrate) navigator.vibrate(12); toast('🧩 Combiné enregistré'); }
+  catch{ msg('Pas enregistré (réseau) : réessaie.'); }
+}
+async function annulerCombi(id, b){
+  const msg = t => { const m = b.closest('.pa-cb').querySelector('[data-cmsg2]'); if (m) m.textContent = t; };
+  msg('Annulation…');
+  try{ const r = await BASE.combiner([], 0, id, true); if (!r.ok) return msg(ERR_COMBI(r)); PARIS = await BASE.paris(); rendre(); }
+  catch{ msg('Pas annulé (réseau) : réessaie.'); }
+}
+/* v77 : clavier ouvert (iPhone) : le ticket remonte au-dessus */
+if (window.visualViewport) visualViewport.addEventListener('resize', () => { const s = document.querySelector('.pa-slip'); if (!s) return; const k = Math.max(0, innerHeight - visualViewport.height - visualViewport.offsetTop); s.style.bottom = k > 40 ? `${k + 8}px` : ''; });
+/* v77 : plus gros combiné gagné (tuile sous le tableau du classement) */
+function meilleurCombi(garde){
+  const x = (PARIS.paris || []).filter(y => y.sel && y.gain > y.mise && garde(y)).sort((a, b) => (b.gain - b.mise) - (a.gain - a.mise) || b.cote - a.cote)[0];
+  return x ? `<div class="p-tro p-tro-1"><div class="glass"><span class="e">🧩</span><span class="t">Plus gros combiné</span><span class="w">${avHTML(x.p)}<span>${esc(x.p)}</span></span><span class="v">+${x.gain - x.mise} crédits · cote ${cote(x.cote)} · ${pl(x.sel.length, 'match')}</span></div></div>` : '';
 }
 function matchParisHTML(m, me, x, now){
-  const ferme = now >= m.t, p = monPari(m.id, me), ch = PCHOIX[m.id], sel = ch ? ch.choix : p && p.choix;
+  const ferme = now >= m.t, p = monPari(m.id, me), ch = COMBI.on ? null : PCHOIX[m.id], sel = COMBI.on ? COMBI.sel[m.id] : ch ? ch.choix : p && p.choix;
   const bt = (k, i, lib) => `<button type="button" class="pa-b${sel === k ? ' on' : ''}" data-ch="${k}" aria-pressed="${sel === k}"${ferme ? ' disabled' : ''}><span>${esc(lib)}</span><b>${cote(m.c[i])}</b></button>`;
   const qui = ((PARIS.qui || {})[m.id] || []).filter(n => n !== me.pseudo);
   const autres = (PARIS.paris || []).filter(y => y.match === m.id && y.p !== me.pseudo);
@@ -1342,14 +1510,15 @@ const rembourse = y => y.gain !== null && y.gain === y.mise && y.gain !== Math.r
 function statsParis(n, garde){
   const now = Date.now(), tous = (PARIS.paris || []).filter(y => y.p === n && garde(y) && y.t <= now), l = tous.filter(y => !rembourse(y)), finis = l.filter(y => y.gain !== null);
   const moy = (a, f) => a.length ? a.reduce((s, y) => s + f(y), 0) / a.length : null;
-  return {nb:tous.length, mise:moy(l, y => y.mise), cote:moy(l, y => y.cote), net:moy(finis, y => y.gain - y.mise)};
+  const cotes = l.flatMap(y => y.sel ? y.sel.filter(s => s.o) .map(s => ({cote:s.o})) : [y]), combis = tous.filter(y => y.sel);       // v77 : combiné = un pari ; chacun de ses matchs compte dans la cote moyenne
+  return {nb:tous.length, mise:moy(l, y => y.mise), cote:moy(cotes, y => y.cote), net:moy(finis, y => y.gain - y.mise), cj:combis.length, cg:combis.filter(y => y.gain > 0 && !rembourse(y)).length};
 }
-const NOMS_PARIS_T = [['Paris', 'Nombre de paris'], ['Mise moy.', 'Mise moyenne par pari'], ['Cote moy.', 'Cote moyenne pariée'], ['Net moy.', 'Gain ou perte net moyen par pari terminé'], ['Crédits', 'Crédits']];
+const NOMS_PARIS_T = [['Paris', 'Nombre de paris'], ['Comb.', 'Combinés gagnés / joués'], ['Mise moy.', 'Mise moyenne par pari'], ['Cote moy.', 'Cote moyenne pariée'], ['Net moy.', 'Gain ou perte net moyen par pari terminé'], ['Crédits', 'Crédits']];
 function casesParis(nb, s){
   const dec = v => v == null ? '–' : v.toFixed(1).replace('.', ','), net = s.net == null ? null : Math.round(s.net * 10) / 10;
-  return [nb || '–', dec(s.mise), s.cote == null ? '–' : cote(s.cote), net == null ? '–' : net > 0 ? `<span class="net-p">+${dec(net)}</span>` : net < 0 ? `<span class="net-m">−${dec(-net)}</span>` : '0,0'];
+  return [nb || '–', s.cj ? `${s.cg}/${s.cj}` : '–', dec(s.mise), s.cote == null ? '–' : cote(s.cote), net == null ? '–' : net > 0 ? `<span class="net-p">+${dec(net)}</span>` : net < 0 ? `<span class="net-m">−${dec(-net)}</span>` : '0,0'];
 }
-const LEGENDE_PARIS = 'Mise et cote : moyennes des paris commencés. Net : gain ou perte moyen par pari terminé (gain moins mise), remboursements exclus.';
+const LEGENDE_PARIS = 'Mise et cote : moyennes des paris commencés. Net : gain ou perte moyen par pari terminé (gain moins mise), remboursements exclus. Un combiné compte pour un pari ; chacun de ses matchs compte dans la cote moyenne.';
 function statut(y){
   if (y.gain === null) return '<span class="p-bd p0">⏳ en cours</span>';
   if (rembourse(y)) return `<span class="p-bd p0">↩ remboursé</span>`;
@@ -1359,7 +1528,7 @@ function mesParisHTML(me){
   const l = (PARIS.paris || []).filter(y => y.p === me.pseudo).sort((a, b) => b.t - a.t);
   if (!l.length) return '<p class="vide">Pas encore de pari. Choisis 1, N ou 2 sur un match du jour.</p>';
   const parMois = {}; l.forEach(y => { (parMois[y.mois] || (parMois[y.mois] = [])).push(y); });
-  return Object.entries(parMois).map(([M, ys]) => `<p class="jour">${esc(nomMois(M))}</p><div class="p-liste glass">${ys.map(y => `<div class="pa-r">
+  return Object.entries(parMois).map(([M, ys]) => `<p class="jour">${esc(nomMois(M))}</p><div class="p-liste glass">${ys.map(y => y.sel ? combiHTML(y, me) : `<div class="pa-r">
       <span class="pa-r-m"><b>${esc(y.dom)} – ${esc(y.ext)}</b><small>${esc(new Date(y.t).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}))} · ${esc(NOMS_PARIS[y.lg] || y.lg)} · ${y.mise} sur ${esc(y.choix === 'h' ? y.dom : y.choix === 'a' ? y.ext : 'nul')} à ${cote(y.cote)}</small></span>${statut(y)}</div>`).join('')}</div>`).join('');
 }
 function parisClHTML(me){
@@ -1369,7 +1538,7 @@ function parisClHTML(me){
     const g = Object.entries(PARIS.general || {}).map(([n, x]) => ({n, ...x})).sort((a, b) => b.total - a.total || a.n.localeCompare(b.n));
     const pal = Object.entries(PARIS.podiums || {}).sort(([a], [b]) => b.localeCompare(a));
     const stG = x => statsParis(x.n, y => y.mois < PARIS.mois);                              // v76 : le général s'arrête au dernier mois fini
-    return per + (g.length ? tableHTML(NOMS_PARIS_T, g.map((x, i) => { const s = stG(x); return {n:x.n, rang:i + 1, sous:`${x.mois} mois joué${x.mois > 1 ? 's' : ''}`, zone:zoneDe(g, x), cases:casesParis(s.nb, s), key:x.total}; }), me)
+    return per + (g.length ? tableHTML(NOMS_PARIS_T, g.map((x, i) => { const s = stG(x); return {n:x.n, rang:i + 1, sous:`${x.mois} mois joué${x.mois > 1 ? 's' : ''}`, zone:zoneDe(g, x), cases:casesParis(s.nb, s), key:x.total}; }), me) + meilleurCombi(y => y.mois < PARIS.mois)
         : `<div class="carte glass"><h2>🏁 Le général démarre à la fin du premier mois</h2><p>Il additionne les crédits de chaque joueur à la fin de chaque mois joué.</p></div>`)
       + (pal.length ? `<p class="jour">Palmarès</p><div class="p-liste glass">${pal.map(([M, p]) => `<div class="pa-r"><span class="pa-r-m"><b>${esc(nomMois(M))}</b><small>${p.map((n, i) => `${['🥇', '🥈', '🥉'][i]} ${esc(n)}`).join(' · ')}</small></span></div>`).join('')}</div>` : '')
       + `<p class="note">Général : cumul des crédits de fin de mois (mois où le joueur a parié au moins une fois). ${LEGENDE_PARIS}</p>`;
@@ -1379,7 +1548,7 @@ function parisClHTML(me){
       <span class="nom">${esc(x.n)}</span><small>+${BONUS_P[x.pos - 1]} au ${esc(moisSuivant(PARIS.mois))}</small><div class="p-marche"><b>${x.solde}</b><span>${unite(x.solde)}</span></div></div>`
     : '<div class="p-pod p-vide"><div class="p-marche" style="height:40px"></div></div>';
   return per + (joue.length ? `<section class="p-podium glass">${pod(joue[1])}${pod(joue[0])}${pod(joue[2])}</section>` : '<div class="carte glass"><h2>🎟️ Personne n\'a encore parié ce mois-ci</h2><p>Le podium du mois gagne +20, +10 et +5 crédits pour le mois suivant.</p></div>')
-    + (l.length ? tableHTML(NOMS_PARIS_T, l.map(x => { const s = statsParis(x.n, y => y.mois === PARIS.mois); return {n:x.n, rang:x.nb ? x.pos : '–', sous:x.enJeu ? `${x.enJeu} en jeu` : '', zone:zoneDe(joue, x), cases:casesParis(x.nb, s), key:x.solde}; }), me) : '')
+    + (l.length ? tableHTML(NOMS_PARIS_T, l.map(x => { const s = statsParis(x.n, y => y.mois === PARIS.mois); return {n:x.n, rang:x.nb ? x.pos : '–', sous:x.enJeu ? `${x.enJeu} en jeu` : '', zone:zoneDe(joue, x), cases:casesParis(x.nb, s), key:x.solde}; }), me) + meilleurCombi(y => y.mois === PARIS.mois) : '')
     + `<p class="note">Classement par crédits (en jeu compris comme dépensés). Au ${esc(moisSuivant(PARIS.mois))} : tout le monde repart à 100, +20 / +10 / +5 pour le podium (joueurs ayant parié). À égalité : ordre alphabétique. ${LEGENDE_PARIS}</p>`;
 }
 const BONUS_P = [20, 10, 5];
@@ -1478,40 +1647,45 @@ document.addEventListener('submit', async e => {                          // v63
     if (!BASE.moi()){ SYNC = 'vide'; rendre(); } }
   finally{ b.disabled = false; }
 });
+/* v77 : en mode compact, un message long ne tient pas dans la ligne : signe ⚠ et message en bandeau */
+function toast(texte){ const t = document.createElement('div'); t.className = 'p-toast'; t.setAttribute('role', 'status'); t.textContent = texte; document.body.appendChild(t); setTimeout(() => t.remove(), 4000); }
+function dire(el, texte){ if (el.closest('.pl')){ el.textContent = '⚠'; toast(texte); } else el.textContent = texte; }
 async function choisirVainqueur(box, k){        // v68 : NBA, NFL
-  const id = box.dataset.m, m = tous().find(x => x.id === id), me = BASE.moi(), et = box.querySelector('[data-etat]');
+  const id = box.dataset.m, m = tous().find(x => x.id === id), me = BASE.moi(), court = box.classList.contains('pl'), vue = () => court ? ligneJouer(m, me) : matchVainqueur(m, me);
   if (!m || Date.now() >= m.t) return;
   const avant = (ETAT.pronos[id] || {})[me.pseudo], h = k === 'h' ? 1 : 0, a = k === 'a' ? 1 : 0;
   (ETAT.pronos[id] || (ETAT.pronos[id] = {}))[me.pseudo] = [h, a];
-  box.outerHTML = matchVainqueur(m, me); const b2 = document.querySelector(`[data-m="${CSS.escape(id)}"]`), e2 = b2 && b2.querySelector('[data-etat]');
-  if (e2) e2.textContent = 'Enregistrement…';
+  box.outerHTML = vue(); const b2 = document.querySelector(`[data-m="${CSS.escape(id)}"]`), e2 = b2 && b2.querySelector('[data-etat]');
+  if (e2) e2.textContent = court ? '…' : 'Enregistrement…';
   try{ const r = await BASE.parier(m, h, a);
     if (r.ok){ try{ sessionStorage.removeItem('pronos:pastille'); }catch{}
       if (ETAT.qui){ const l = ETAT.qui[id] || (ETAT.qui[id] = []); if (!l.includes(me.pseudo)) l.push(me.pseudo); }
-      if (e2) e2.innerHTML = '<span class="ok pop">✓ enregistré</span>'; const hero = $('#hero'); if (hero) hero.outerHTML = heroHTML(me); return; }
+      if (e2) e2.innerHTML = court ? '<span class="ok pop">✓</span>' : '<span class="ok pop">✓ enregistré</span>'; const hero = $('#hero'); if (hero) hero.outerHTML = heroHTML(me); return; }
     if (avant) ETAT.pronos[id][me.pseudo] = avant; else delete ETAT.pronos[id][me.pseudo];
-    const b3 = document.querySelector(`[data-m="${CSS.escape(id)}"]`); if (b3){ b3.outerHTML = matchVainqueur(m, me); const e3 = document.querySelector(`[data-m="${CSS.escape(id)}"] [data-etat]`);
-      if (e3) e3.textContent = {ferme:'Trop tard : le match a commencé.', code:'Pseudo ou code non reconnu : actualise la page.', match:'Match pas encore connu du serveur : réessaie dans 10 min.'}[r.err] || 'Refusé par le serveur.'; } }
-  catch{ if (e2) e2.textContent = 'Pas enregistré (réseau) : réessaie.'; }
+    const b3 = document.querySelector(`[data-m="${CSS.escape(id)}"]`); if (b3){ b3.outerHTML = vue(); const e3 = document.querySelector(`[data-m="${CSS.escape(id)}"] [data-etat]`);
+      if (e3) dire(e3, {ferme:'Trop tard : le match a commencé.', code:'Pseudo ou code non reconnu : actualise la page.', match:'Match pas encore connu du serveur : réessaie dans 10 min.'}[r.err] || 'Refusé par le serveur.'); } }
+  catch{ if (e2) dire(e2, 'Pas enregistré (réseau) : réessaie.'); }
 }
 const enAttente = {};
 function programmer(box){
-  const id = box.dataset.m, m = tous().find(x => x.id === id), [a, b] = box.querySelectorAll('.p-st input'), et = box.querySelector('[data-etat]');
+  const id = box.dataset.m, m = tous().find(x => x.id === id), [a, b] = box.querySelectorAll('.p-st input'), et = box.querySelector('[data-etat]'), court = box.classList.contains('pl');
   clearTimeout(enAttente[id]);
-  if (a.value === '' || b.value === ''){ et.textContent = 'Complète les deux scores'; return; }
-  et.textContent = 'Enregistrement…';
+  if (a.value === '' || b.value === ''){ et.textContent = court ? '…' : 'Complète les deux scores'; return; }
+  et.textContent = court ? '…' : 'Enregistrement…';
   enAttente[id] = setTimeout(async () => {
     try{ const h = +a.value, v = +b.value, r = await BASE.parier(m, h, v);
       if (r.ok){ const me = BASE.moi(); (ETAT.pronos[id] || (ETAT.pronos[id] = {}))[me.pseudo] = [h, v]; try{ sessionStorage.removeItem('pronos:pastille'); }catch{}   // v66 : pastille de l'accueil à recompter
         if (ETAT.qui){ const l = ETAT.qui[id] || (ETAT.qui[id] = []); if (!l.includes(me.pseudo)) l.push(me.pseudo); }
-        et.innerHTML = '<span class="ok pop">✓ enregistré</span>';
+        et.innerHTML = court ? '<span class="ok pop">✓</span>' : '<span class="ok pop">✓ enregistré</span>';
         const hero = $('#hero'); if (hero) hero.outerHTML = heroHTML(me); }
-      else et.textContent = {ferme:'Trop tard : le match a commencé.', code:'Pseudo ou code non reconnu : actualise la page.', match:'Match pas encore connu du serveur : réessaie dans 10 min.'}[r.err] || 'Refusé par le serveur.'; }
-    catch{ et.textContent = 'Pas enregistré (réseau) : réessaie.'; }
+      else dire(et, {ferme:'Trop tard : le match a commencé.', code:'Pseudo ou code non reconnu : actualise la page.', match:'Match pas encore connu du serveur : réessaie dans 10 min.'}[r.err] || 'Refusé par le serveur.'); }
+    catch{ dire(et, 'Pas enregistré (réseau) : réessaie.'); }
     finally{ delete enAttente[id]; }
   }, 600);
 }
 document.addEventListener('input', e => {
+  const si = e.target.closest('.pa-slip input');                                   // v77
+  if (si){ si.value = si.value.replace(/\D/g, '').slice(0, 4); COMBI.mise = +si.value || 0; const n = idsCombi(Date.now()).length, g = document.querySelector('[data-cgain]'); if (g) g.textContent = n >= 2 ? Math.round(COMBI.mise * +si.dataset.cc) : '–'; return; }
   const pi = e.target.closest('.pa-mise input');
   if (pi){ pi.value = pi.value.replace(/\D/g, '').slice(0, 4); const box = pi.closest('[data-pm]'), id = box.dataset.pm; if (PCHOIX[id]) PCHOIX[id].mise = +pi.value || 0;
     box.querySelector('[data-gain]').textContent = Math.round((+pi.value || 0) * +pi.dataset.c); return; }
@@ -1552,10 +1726,27 @@ document.addEventListener('click', async e => {
   const v = e.target.closest('[data-vue]'); if (v){ VUE = v.dataset.vue; LS.set('pronos:vue', VUE); rendre(); return; }
   const pv = e.target.closest('[data-pvue]'); if (pv){ PVUE = pv.dataset.pvue; LS.set('pronos:pvue', PVUE); rendre(); return; }
   const pc = e.target.closest('[data-pcl]'); if (pc){ PCL = pc.dataset.pcl; rendre(); return; }
+  const cpt = e.target.closest('[data-compact]');                                  // v77 : Compact / Détaillé
+  if (cpt){ COMPACT = cpt.dataset.compact === '1'; LS.set('pronos:compact', COMPACT); OUVERTS.clear(); rendre(); return; }
+  const plr = e.target.closest('[data-plier]');
+  if (plr){ const w = plr.closest('[data-lig]'), id = w.dataset.lig; OUVERTS.delete(id); delete PCHOIX[id]; w.innerHTML = LIGNES[id](); return; }
+  const lig = e.target.closest('.pl');
+  if (lig && (e.target.closest('[data-deplier]') || !e.target.closest('input,button,a,label'))){ const w = lig.closest('[data-lig]'); if (w){ OUVERTS.add(w.dataset.lig); w.innerHTML = LIGNES[w.dataset.lig](); } return; }
+  const cm = e.target.closest('[data-cmode]');                                     // v77 : combinés
+  if (cm){ COMBI.on = cm.dataset.cmode === '1'; if (!COMBI.on){ COMBI.sel = {}; COMBI.edit = null; } else PCHOIX = {}; rendre(); return; }
+  const cs = e.target.closest('[data-cs]'); if (cs){ delete COMBI.sel[cs.dataset.cs]; rendre(); return; }
+  const cmi = e.target.closest('[data-cmise]'); if (cmi){ const i = document.querySelector('.pa-slip input'); i.value = cmi.dataset.cmise; i.dispatchEvent(new Event('input', {bubbles:true})); return; }
+  if (e.target.closest('[data-cvalider]')){ validerCombi(); return; }
+  const ced = e.target.closest('[data-cedit]');
+  if (ced){ const y = PARIS.paris.find(z => z.match === ced.dataset.cedit); COMBI = {on:true, sel:Object.fromEntries(y.sel.map(s => [s.m, s.c])), mise:y.mise, edit:y.match}; PVUE = 'jour'; LS.set('pronos:pvue', PVUE); rendre(); window.scrollTo(0, 0); return; }
+  const can = e.target.closest('[data-cannuler]'); if (can){ annulerCombi(can.dataset.cannuler, can); return; }
   const pm = e.target.closest('[data-pm]');
   if (pm && PARIS){                                                                 // v60 : paris
     const id = pm.dataset.pm, me = BASE.moi(), p = monPari(id, me), x = soldeDe(me), dispo = x.solde + (p ? p.mise : 0);
     const ch = e.target.closest('[data-ch]');
+    if (ch && COMBI.on){ const k = ch.dataset.ch;                                  // v77 : le match entre dans le combiné (un second appui sur le même choix l'en retire)
+      if (COMBI.sel[id] === k) delete COMBI.sel[id]; else if (COMBI.sel[id] || Object.keys(COMBI.sel).length < COMBI_MAX) COMBI.sel[id] = k; else { toast(`Au plus ${COMBI_MAX} matchs dans un combiné.`); return; }
+      rendre(); return; }
     if (ch){ const k = ch.dataset.ch, a = PCHOIX[id]; if (a && a.choix === k && !p){ delete PCHOIX[id]; } else PCHOIX[id] = {choix:k, mise:Math.min(a ? a.mise : p ? p.mise : 10, Math.max(dispo, 0))}; rendre(); return; }
     const mi = e.target.closest('[data-mise]');
     if (mi){ const i = pm.querySelector('.pa-mise input'); i.value = mi.dataset.mise; i.dispatchEvent(new Event('input', {bubbles:true})); return; }
@@ -1615,7 +1806,7 @@ setInterval(() => {                         // comptes à rebours ; fermeture au
   const now = Date.now(); let passe = false;
   document.querySelectorAll('[data-cd]').forEach(x => { const t = +x.dataset.cd; if (t <= now) passe = true; x.textContent = (x.dataset.pre || '') + compte(t); x.classList.toggle('urgent', x.classList.contains('p-cd') && t - now < 3600e3); });
   if (passe && SECTION === 'pronos' && VUE === 'jouer' && !(document.activeElement && document.activeElement.closest('.p-st')) && !Object.keys(enAttente).length) rendre();
-  if (passe && SECTION === 'paris' && !Object.keys(PCHOIX).length) rendre();
+  if (passe && SECTION === 'paris' && !Object.keys(PCHOIX).length && !(document.activeElement && document.activeElement.closest('.pa-slip'))) rendre();
   if (passe && SECTION === 'accueil') rendre();               // v60 : paris fermés au coup d'envoi
 }, 30e3);
 actualiser();

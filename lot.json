@@ -1,6 +1,6 @@
 {
- "lot": "v76",
- "date": "2026-11-09T06:48:01+00:00",
+ "lot": "v77",
+ "date": "2026-11-09T07:10:33+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/appli-ios.yml": "71fe94d4",
@@ -54,7 +54,7 @@
   "outils/tv-tri.mjs": "5f175f99",
   "outils/videos-data.mjs": "81465ebe",
   "outils/yahoo.py": "103be76d",
-  "pronos.html": "4ba1fde0",
+  "pronos.html": "be90e222",
   "reglages.html": "8a0e6298",
   "sport.html": "c38e6a90",
   "sw.js": "e9d8df28",

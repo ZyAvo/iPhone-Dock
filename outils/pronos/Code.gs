@@ -1,4 +1,4 @@
-/* KiosK — serveur des pronos entre amis (Google Apps Script, v72).
+/* KiosK — serveur des pronos entre amis (Google Apps Script, v77).
    Garde les joueurs et les pronos dans le Google Sheets auquel ce script est attaché (onglets « Joueurs » et « Pronos », créés tout seuls).
    Refuse un prono après le coup d'envoi (horaires lus sur le site publié, pas envoyés par le téléphone) et ne montre
    les pronos des autres qu'une fois le match commencé. Les points et le classement sont calculés par la page.
@@ -17,6 +17,9 @@
    v72 : rappels sur le téléphone (notifications). Onglet « Abonnements » (un appareil par ligne : adresse d'envoi et clés fournies
    par le navigateur, compétitions suivies). La tâche GitHub « Rappels des pronos » lit les abonnements et qui a déjà pronostiqué
    (action « rappels », protégée par la propriété du script CLE_TACHE = secret GitHub PRONOS_CLE), puis envoie les rappels elle-même.
+   v77 : paris combinés (action « combiner ») : de 2 à 8 matchs, un seul pari, une ligne de l'onglet Paris (match « C-… », colonne N : les sélections en JSON).
+   Cotes figées et multipliées, fermé au premier coup d'envoi. Un match faux : perdu. Tout juste : mise × cote totale. Match reporté ou annulé : retiré du calcul.
+   Les crédits et le classement n'ont rien de spécial à faire : la ligne compte comme un pari. Sélections des autres visibles match par match, au coup d'envoi.
    Mise en place : voir outils/dev/PRONOS.md. */
 const SITE = 'https://zyavo.github.io/iPhone-Dock/';            // adresse du dock publié
 const LIGUES = {'fra.1':'fra-1', 'eng.1':'eng-1', '270559':'270559', 'uefa.champions':'uefa-champions'};   // id ESPN → fichier donnees/sport/<fichier>.json
@@ -40,7 +43,7 @@ const JOUEURS = () => feuille('Joueurs', ['groupe', 'pseudo', 'code (empreinte)'
 const PRONOS = () => feuille('Pronos', ['groupe', 'pseudo', 'match', 'ligue', 'dom', 'ext', 'le'], 'A:D');
 const ABONNEMENTS = () => feuille('Abonnements', ['groupe', 'pseudo', 'adresse', 'p256dh', 'auth', 'ligues', 'appareil', 'le'], 'A:G');   // v72
 const tache = q => { const c = PropertiesService.getScriptProperties().getProperty('CLE_TACHE'); return !!c && c.length >= 16 && String(q.cle || '') === c; };
-const PARIS = () => feuille('Paris', ['groupe', 'pseudo', 'match', 'ligue', 'choix', 'mise', 'cote', 'le', 'mois', 'dom', 'ext', 'coup d\'envoi', 'gain'], ['A:E', 'I:K']);
+const PARIS = () => feuille('Paris', ['groupe', 'pseudo', 'match', 'ligue', 'choix', 'mise', 'cote', 'le', 'mois', 'dom', 'ext', 'coup d\'envoi', 'gain', 'selections'], ['A:E', 'I:K', 'N:N']);   // v77 : colonne N (combinés)
 const T = v => String(v);                                          // valeur de cellule en texte
 const ajouter = (f, ligne) => f.getRange(f.getLastRow() + 1, 1, 1, ligne.length).setValues([ligne]);   // v61 : pas d'appendRow (conversions)
 const moisL = r => +r[11] ? moisDe(+r[11]) : (r[8] instanceof Date ? moisDe(r[8]) : T(r[8]));         // v61 : mois d'une ligne de Paris
@@ -78,7 +81,7 @@ function horaires(){
 }
 
 /* ---------- Paris (v60) ---------- */
-const DEPART = 100, BONUS = [20, 10, 5];
+const DEPART = 100, BONUS = [20, 10, 5], COMBI_MAX = 8;
 const moisDe = t => Utilities.formatDate(new Date(t), 'Europe/Paris', 'yyyy-MM');
 const suivant = M => { const [a, m] = M.split('-').map(Number); return m === 12 ? `${a + 1}-01` : `${a}-${String(m + 1).padStart(2, '0')}`; };
 function lire(chemin){ return JSON.parse(UrlFetchApp.fetch(SITE + chemin, {muteHttpExceptions:true}).getContentText()); }
@@ -114,6 +117,7 @@ function regler(g){
   try{
     l.forEach((r, k) => {
       if (!k || T(r[0]) !== g || r[12] !== '' || now < +r[11]) return;
+      if (estCombi(r)){ const z = reglerCombi(r, R, now, anciens); if (z){ if (z.sel) f.getRange(k + 1, 14).setValue(z.sel); if (z.gain !== null) f.getRange(k + 1, 13).setValue(z.gain); } return; }   // v77
       const id = T(r[2]); let x = R[id];
       if (!x && now - +r[11] > 10 * 864e5) x = anciens[id] || (anciens[id] = resultatAncien(r[3], id));
       if (!x) return;
@@ -123,6 +127,24 @@ function regler(g){
       if (gain !== null) f.getRange(k + 1, 13).setValue(gain);
     });
   }finally{ verrou.releaseLock(); }
+}
+/* v77 : combiné : résultat de chaque match (r : ok, ko, nul) ; renvoie {sel : JSON à réécrire ou null, gain : null si pas encore décidé} */
+const estCombi = r => T(r[2]).slice(0, 2) === 'C-';
+function reglerCombi(r, R, now, anciens){
+  let s; try{ s = JSON.parse(T(r[13])); }catch(x){ return null; }
+  let change = false;
+  s.forEach(x => {
+    if (x.r || now < +x.t) return;
+    let y = R[x.m];
+    if (!y && now - +x.t > 10 * 864e5) y = anciens[x.m] || (anciens[x.m] = resultatAncien(x.lg, x.m));
+    if (!y) return;
+    if (y[0] === 'post' && y[1] !== '' && y[2] !== ''){ const h = +y[1], a = +y[2]; x.r = x.c === (h > a ? 'h' : h < a ? 'a' : 'd') ? 'ok' : 'ko'; change = true; }
+    else if (/POSTPONED|CANCEL|ABANDON/.test(y[3]) && now - +x.t > 864e5){ x.r = 'nul'; change = true; }
+  });
+  let gain = null;
+  if (s.some(x => x.r === 'ko')) gain = 0;                                       // un match faux suffit
+  else if (s.every(x => x.r)){ const ok = s.filter(x => x.r === 'ok'); gain = ok.length ? Math.round(+r[5] * Math.round(100 * ok.reduce((p, x) => p * x.o, 1)) / 100) : +r[5]; }   // tous annulés : remboursé
+  return change || gain !== null ? {sel:change ? JSON.stringify(s) : null, gain} : null;
 }
 /* soldes mois par mois (mois du coup d'envoi, heure de Paris) ; podium des mois finis (joueurs ayant parié) → bonus du mois suivant ; général = cumul des soldes de fin de mois */
 function bilan(g){
@@ -249,13 +271,46 @@ const ACTIONS = {
       return {ok:true, cote};
     }finally{ verrou.releaseLock(); }
   },
+  combiner(q){                                                     // v77 : créer, modifier (q.id) ou annuler (q.id + q.annuler) un combiné
+    const j = joueur(q); if (!j) return {err:'code'};
+    regler(j.g);
+    const verrou = LockService.getScriptLock(); verrou.waitLock(10000);
+    try{
+      const f = PARIS(), l = f.getDataRange().getValues(), now = Date.now(), id0 = String(q.id || '');
+      const i = id0 ? l.findIndex((r, k) => k > 0 && T(r[0]) === j.g && T(r[1]) === j.p && T(r[2]) === id0 && estCombi(r)) : -1;
+      if (id0 && i < 1) return {err:'combi'};
+      if (i > 0 && now >= +l[i][11]) return {err:'ferme'};
+      if (q.annuler){ if (i > 0) f.deleteRow(i + 1); return {ok:true}; }
+      const S = Array.isArray(q.selections) ? q.selections : [], C = cotesMatin(), sel = [], vus = {};
+      if (S.length < 2 || S.length > COMBI_MAX) return {err:'nombre'};
+      for (const s of S){
+        const id = String(s.match), c = String(s.choix || ''), cc = C[id];
+        if (vus[id]) return {err:'double'}; vus[id] = 1;
+        if (!/^[hda]$/.test(c)) return {err:'choix'};
+        if (!cc) return {err:'cote'};
+        if (now >= cc.t) return {err:'ferme'};
+        sel.push({m:id, c, o:cc.c['hda'.indexOf(c)], lg:cc.lg, d:cc.eq[0] || '', e:cc.eq[1] || '', t:cc.t});
+      }
+      const mise = Math.floor(Number(q.mise)); if (!(mise >= 1)) return {err:'mise'};
+      sel.sort((a, b) => a.t - b.t);
+      const cote = Math.round(100 * sel.reduce((p, x) => p * x.o, 1)) / 100, t0 = sel[0].t, M = moisDe(t0);
+      const x = (bilan(j.g).parMois[M] || {})[j.p] || {solde:DEPART}, dispo = x.solde + (i > 0 ? +l[i][5] : 0);
+      if (mise > dispo) return {err:'solde', dispo};
+      const id = i > 0 ? id0 : 'C-' + Utilities.getUuid().slice(0, 8);
+      const ligne = [j.g, j.p, id, 'combi', 'c', mise, cote, new Date(), M, 'Combiné', sel.length + ' matchs', t0, '', JSON.stringify(sel)];
+      if (i > 0) f.getRange(i + 1, 1, 1, ligne.length).setValues([ligne]); else ajouter(f, ligne);
+      return {ok:true, id, cote};
+    }finally{ verrou.releaseLock(); }
+  },
   paris(q){
     const j = joueur(q); if (!j) return {err:'code'};
     regler(j.g);
     const B = bilan(j.g), now = Date.now(), C = cotesMatin(), cotes = {};
     Object.entries(C).forEach(([id, c]) => { if (c.t > now - 6 * 3600e3) cotes[id] = c; });
     const paris = PARIS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === j.g && (T(r[1]) === j.p || now >= +r[11]))   // paris des autres : au coup d'envoi
-      .map(r => ({p:T(r[1]), match:T(r[2]), lg:T(r[3]), choix:T(r[4]), mise:+r[5], cote:+r[6], mois:moisL(r), dom:T(r[9]), ext:T(r[10]), t:+r[11], gain:r[12] === '' ? null : +r[12]}));
+      .map(r => { const o = {p:T(r[1]), match:T(r[2]), lg:T(r[3]), choix:T(r[4]), mise:+r[5], cote:+r[6], mois:moisL(r), dom:T(r[9]), ext:T(r[10]), t:+r[11], gain:r[12] === '' ? null : +r[12]};
+        if (estCombi(r)) try{ const s = JSON.parse(T(r[13])); o.sel = T(r[1]) === j.p ? s : s.map(x => now >= +x.t ? x : {cache:1, t:x.t}); }catch(x){}   // v77 : les matchs pas commencés d'un autre restent cachés
+        return o; });
     const qui = {};
     PARIS().getDataRange().getValues().slice(1).forEach(r => { if (T(r[0]) === j.g && now < +r[11]) (qui[T(r[2])] || (qui[T(r[2])] = [])).push(T(r[1])); });
     return {mois:B.mois, soldes:B.parMois[B.mois], podiums:B.podiums, general:B.general, cotes, paris, qui};
