@@ -13,12 +13,6 @@
    "target": "travail"
   },
   {
-   "id": "ap:accueil:medias",
-   "label": "Médias",
-   "type": "folder",
-   "target": "medias"
-  },
-  {
    "id": "ap:accueil:videos",
    "label": "Vidéos",
    "type": "page",
@@ -381,6 +375,14 @@
   }
  ],
  "reserve": {
+  "ap:accueil:medias": {
+   "id": "ap:accueil:medias",
+   "label": "Médias",
+   "type": "folder",
+   "target": "medias",
+   "ou": "accueil",
+   "apres": "ap:accueil:travail"
+  },
   "ap:accueil:jeux": {
    "id": "ap:accueil:jeux",
    "label": "Jeux",

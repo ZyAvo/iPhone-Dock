@@ -1,5 +1,5 @@
 {
- "date": "2026-11-09T09:48:32+00:00",
+ "date": "2026-11-09T11:10:11+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -49,7 +49,7 @@
   },
   "applis": {
    "onglet": "Applis",
-   "coches": 40,
+   "coches": 39,
    "ajouts": 0
   },
   "apparence": {
@@ -137,8 +137,17 @@
  ],
  "erreurs": [],
  "modifs": {
-  "recues": 2,
-  "nouvelles": []
+  "recues": 1,
+  "nouvelles": [
+   {
+    "uid": "mw95sy1l-0u27551f5s",
+    "statut": "ok",
+    "message": "reporté dans l'onglet Applis, ligne 9 : Oui = Non",
+    "id": "ap:accueil:medias",
+    "le": "2026-11-09T11:10:11+00:00",
+    "par": "iPhone"
+   }
+  ]
  },
  "resume": {
   "ok": 7,
