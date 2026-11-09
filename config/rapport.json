@@ -1,5 +1,5 @@
 {
- "date": "2026-11-09T09:48:10+00:00",
+ "date": "2026-11-09T09:48:32+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -138,24 +138,7 @@
  "erreurs": [],
  "modifs": {
   "recues": 2,
-  "nouvelles": [
-   {
-    "uid": "mw92ubcd-4n372c2o20",
-    "statut": "ok",
-    "message": "reporté dans l'onglet Marchés, ligne 49 : Widget accueil = vide",
-    "id": "mk:eurusd",
-    "le": "2026-11-09T09:48:10+00:00",
-    "par": "iPhone"
-   },
-   {
-    "uid": "mw92uico-1c4d5m0j1f",
-    "statut": "ok",
-    "message": "reporté dans l'onglet Marchés, ligne 27 : Widget accueil = Oui",
-    "id": "mk:emergents",
-    "le": "2026-11-09T09:48:10+00:00",
-    "par": "iPhone"
-   }
-  ]
+  "nouvelles": []
  },
  "resume": {
   "ok": 7,
