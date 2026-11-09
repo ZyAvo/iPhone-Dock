@@ -33,7 +33,8 @@
    "id": "emergents",
    "code": "IS3N.DE",
    "nom": "Émergents",
-   "note": "via un ETF en euros"
+   "note": "via un ETF en euros",
+   "accueil": true
   },
   {
    "id": "or",
@@ -51,8 +52,7 @@
    "id": "eurusd",
    "code": "EURUSD=X",
    "nom": "EUR / USD",
-   "change": true,
-   "accueil": true
+   "change": true
   },
   {
    "id": "btc",
