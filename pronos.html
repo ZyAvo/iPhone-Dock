@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="a71c8ffc">
+<meta name="mon-ecran-version" content="4ba1fde0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -392,7 +392,7 @@ html.desk .f-sheet{border-radius:26px}
 .p-tb{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums;font-size:.8rem}
 .p-tb th,.p-tb td{padding:9px 3px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
 .p-tb tbody tr:last-child th,.p-tb tbody tr:last-child td{border-bottom:0}
-.p-tb thead th{font-size:.62rem;font-weight:600;letter-spacing:0;color:var(--ink-soft);padding-block:10px 8px}
+.p-tb thead th{white-space:normal;vertical-align:bottom;line-height:1.15;font-size:.62rem;font-weight:600;letter-spacing:0;color:var(--ink-soft);padding-block:10px 8px}
 .p-tb th:not(.pj),.p-tb td{min-width:33px}
 html.desk .p-tb th:not(.pj),html.desk .p-tb td{min-width:58px}
 .p-tb tr > :last-child{padding-right:10px}
@@ -402,7 +402,9 @@ html.desk .p-tb th:not(.pj),html.desk .p-tb td{min-width:58px}
 .p-tb .rk{flex:none;width:1.5em;display:grid;justify-items:center;font-weight:700;color:var(--ink-soft);line-height:1.05}
 .p-tb .rk .p-fl{font-size:.56rem;margin-top:1px}
 .p-tb .pn{font-weight:600;font-size:.84rem;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis}
+.p-tb .pn small{display:block;font-size:.62rem;font-weight:400;letter-spacing:0;color:var(--ink-soft);margin-top:1px}
 .p-tb .moi .pn{color:var(--accent)}
+.p-tb .net-p{color:color-mix(in oklab, #1f9d57 78%, var(--ink));font-weight:600}.p-tb .net-m{color:color-mix(in oklab, #e0393e 78%, var(--ink));font-weight:600}
 .p-tb .key{font-weight:800;font-size:.92rem;color:var(--ink)}
 .p-tb tbody td{color:color-mix(in oklab, var(--ink) 82%, var(--ink-soft))}
 .p-tb tr.z-1{--nc:#0b7a3e}.p-tb tr.z-2{--nc:#35b564}.p-tb tr.z-a{--nc:#f08c1e}.p-tb tr.z-d{--nc:#e0393e}
@@ -1206,14 +1208,19 @@ function podiumHTML(l, avant, me){
 }
 /* v75 : classement complet sous le podium, du premier au dernier. Couleurs comme en Sport : 1er vert foncé, 2e vert, avant-dernier orange, dernier rouge
    (comptés parmi ceux qui ont au moins un prono noté, comme la Lanterne rouge : un absent ne prend pas le rouge à la place du dernier). */
+const zoneDe = (joues, x) => { const N = joues.length, i = joues.indexOf(x) + 1; return !i ? '' : N >= 2 && i === N ? 'z-d' : i === 1 ? 'z-1' : i === 2 ? 'z-2' : i === N - 1 ? 'z-a' : ''; };
+/* v76 : tableau commun aux Pronos et aux Paris. noms = [[titre, explication]] des colonnes ; lignes = {n, rang, fl, sous, zone, cases:[…], key} */
+function tableHTML(noms, lignes, me){
+  const ligne = x => { const cls = [x.zone, x.n === me.pseudo ? 'moi' : ''].filter(Boolean).join(' ');
+    return `<tr${cls ? ` class="${cls}"` : ''}><th class="pj" scope="row"><span class="pc"><span class="rk"><span>${x.rang}</span>${x.fl || ''}</span>${avHTML(x.n)}<span class="pn">${esc(x.n)}${x.sous ? `<small>${x.sous}</small>` : ''}</span></span></th>
+      ${x.cases.map(c => `<td>${c}</td>`).join('')}<td class="key">${x.key}</td></tr>`; };
+  return `<div class="p-tab glass"><div class="p-tab-d"><table class="p-tb"><thead><tr><th class="pj" scope="col">Joueur</th>${noms.map(([c, t]) => `<th scope="col" title="${esc(t)}">${c}</th>`).join('')}</tr></thead><tbody>${lignes.map(ligne).join('')}</tbody></table></div></div>`;
+}
 function tableauHTML(l, avant, me){
-  const joues = l.filter(x => x.nb), N = joues.length;
-  const zone = x => { const i = joues.indexOf(x) + 1; return !i ? '' : N >= 2 && i === N ? 'z-d' : i === 1 ? 'z-1' : i === 2 ? 'z-2' : i === N - 1 ? 'z-a' : ''; };
+  const joues = l.filter(x => x.nb);
   const noms = [['Pronos', 'Pronos notés'], ['Justes', 'Pronos justes : bon résultat ou score exact'], ['%', 'Pourcentage de pronos justes'], ['Exacts', 'Scores exacts : pronos à 3 points'], ['Série', 'Série en cours : bons pronos d\'affilée'], ['Pts', 'Points']];
-  const ligne = x => { const f = v => x.nb ? v : '–', fl = fleche(x, avant), z = zone(x), cls = [z, x.n === me.pseudo ? 'moi' : ''].filter(Boolean).join(' ');
-    return `<tr${cls ? ` class="${cls}"` : ''}><th class="pj" scope="row"><span class="pc"><span class="rk"><span>${x.pos}</span>${fl}</span>${avHTML(x.n)}<span class="pn">${esc(x.n)}</span></span></th>
-      <td>${f(x.nb)}</td><td>${f(x.bons)}</td><td>${f(Math.round(100 * x.bons / x.nb))}</td><td>${f(x.ex)}</td><td>${f(x.serie)}</td><td class="key">${x.pts}</td></tr>`; };
-  return `<div class="p-tab glass"><div class="p-tab-d"><table class="p-tb"><thead><tr><th class="pj" scope="col">Joueur</th>${noms.map(([c, t]) => `<th scope="col" title="${esc(t)}">${c}</th>`).join('')}</tr></thead><tbody>${l.map(ligne).join('')}</tbody></table></div></div>`;
+  return tableHTML(noms, l.map(x => { const f = v => x.nb ? v : '–';
+    return {n:x.n, rang:x.pos, fl:fleche(x, avant), zone:zoneDe(joues, x), cases:[f(x.nb), f(x.bons), f(Math.round(100 * x.bons / x.nb)), f(x.ex), f(x.serie)], key:x.pts}; }), me);
 }
 function tropheesHTML(l){
   if (!l.some(x => x.nb)) return '';
@@ -1329,9 +1336,23 @@ function matchParisHTML(m, me, x, now){
     <div class="p-pied">${gauche}${!ferme && qui.length ? `<span class="p-qui"><span class="p-pile">${qui.slice(0, 5).map(n => avHTML(n)).join('')}</span> ${qui.length} ${qui.length > 1 ? 'ont parié' : 'a parié'}</span>` : ''}</div>
     ${ferme && autres.length ? `<div class="p-chips">${autres.map(y => `<span class="p-chip">${avHTML(y.p)}${esc(y.p)} <b>${y.mise}</b> sur ${esc(y.choix === 'd' ? 'N' : y.choix === 'h' ? '1' : '2')}</span>`).join('')}</div>` : ''}</div>`;
 }
+/* v76 : statistiques du classement des Paris. Paris commencés seulement : ceux des autres ne sont connus qu'au coup d'envoi, tout le monde est compté pareil.
+   Un pari remboursé (match annulé) ne compte pas dans les moyennes. Net moyen = (gain − mise) moyen des paris terminés. */
+const rembourse = y => y.gain !== null && y.gain === y.mise && y.gain !== Math.round(y.mise * y.cote);
+function statsParis(n, garde){
+  const now = Date.now(), tous = (PARIS.paris || []).filter(y => y.p === n && garde(y) && y.t <= now), l = tous.filter(y => !rembourse(y)), finis = l.filter(y => y.gain !== null);
+  const moy = (a, f) => a.length ? a.reduce((s, y) => s + f(y), 0) / a.length : null;
+  return {nb:tous.length, mise:moy(l, y => y.mise), cote:moy(l, y => y.cote), net:moy(finis, y => y.gain - y.mise)};
+}
+const NOMS_PARIS_T = [['Paris', 'Nombre de paris'], ['Mise moy.', 'Mise moyenne par pari'], ['Cote moy.', 'Cote moyenne pariée'], ['Net moy.', 'Gain ou perte net moyen par pari terminé'], ['Crédits', 'Crédits']];
+function casesParis(nb, s){
+  const dec = v => v == null ? '–' : v.toFixed(1).replace('.', ','), net = s.net == null ? null : Math.round(s.net * 10) / 10;
+  return [nb || '–', dec(s.mise), s.cote == null ? '–' : cote(s.cote), net == null ? '–' : net > 0 ? `<span class="net-p">+${dec(net)}</span>` : net < 0 ? `<span class="net-m">−${dec(-net)}</span>` : '0,0'];
+}
+const LEGENDE_PARIS = 'Mise et cote : moyennes des paris commencés. Net : gain ou perte moyen par pari terminé (gain moins mise), remboursements exclus.';
 function statut(y){
   if (y.gain === null) return '<span class="p-bd p0">⏳ en cours</span>';
-  if (y.gain === y.mise && y.gain !== Math.round(y.mise * y.cote)) return `<span class="p-bd p0">↩ remboursé</span>`;
+  if (rembourse(y)) return `<span class="p-bd p0">↩ remboursé</span>`;
   return y.gain > 0 ? `<span class="p-bd p3">+${y.gain - y.mise}</span>` : `<span class="p-bd p0">−${y.mise}</span>`;
 }
 function mesParisHTML(me){
@@ -1347,18 +1368,19 @@ function parisClHTML(me){
   if (PCL === 'gen'){
     const g = Object.entries(PARIS.general || {}).map(([n, x]) => ({n, ...x})).sort((a, b) => b.total - a.total || a.n.localeCompare(b.n));
     const pal = Object.entries(PARIS.podiums || {}).sort(([a], [b]) => b.localeCompare(a));
-    return per + (g.length ? `<div class="p-liste glass">${g.map((x, i) => `<div class="p-r${x.n === me.pseudo ? ' moi' : ''}"><b>${i + 1}</b>${avHTML(x.n)}<span class="p-r-n">${esc(x.n)}<small>${x.mois} mois joué${x.mois > 1 ? 's' : ''}</small></span><span></span><span class="p-r-pts">${x.total}</span></div>`).join('')}</div>`
+    const stG = x => statsParis(x.n, y => y.mois < PARIS.mois);                              // v76 : le général s'arrête au dernier mois fini
+    return per + (g.length ? tableHTML(NOMS_PARIS_T, g.map((x, i) => { const s = stG(x); return {n:x.n, rang:i + 1, sous:`${x.mois} mois joué${x.mois > 1 ? 's' : ''}`, zone:zoneDe(g, x), cases:casesParis(s.nb, s), key:x.total}; }), me)
         : `<div class="carte glass"><h2>🏁 Le général démarre à la fin du premier mois</h2><p>Il additionne les crédits de chaque joueur à la fin de chaque mois joué.</p></div>`)
       + (pal.length ? `<p class="jour">Palmarès</p><div class="p-liste glass">${pal.map(([M, p]) => `<div class="pa-r"><span class="pa-r-m"><b>${esc(nomMois(M))}</b><small>${p.map((n, i) => `${['🥇', '🥈', '🥉'][i]} ${esc(n)}`).join(' · ')}</small></span></div>`).join('')}</div>` : '')
-      + '<p class="note">Général : cumul des crédits de fin de mois (mois où le joueur a parié au moins une fois).</p>';
+      + `<p class="note">Général : cumul des crédits de fin de mois (mois où le joueur a parié au moins une fois). ${LEGENDE_PARIS}</p>`;
   }
   const l = clMois(), joue = l.filter(x => x.nb);
   const pod = x => x ? `<div class="p-pod r${x.pos}${x.n === me.pseudo ? ' moi' : ''}"><span class="med">${['🥇', '🥈', '🥉'][x.pos - 1]}</span>${avHTML(x.n, x.pos === 1 ? 'xl' : 'lg')}
       <span class="nom">${esc(x.n)}</span><small>+${BONUS_P[x.pos - 1]} au ${esc(moisSuivant(PARIS.mois))}</small><div class="p-marche"><b>${x.solde}</b><span>${unite(x.solde)}</span></div></div>`
     : '<div class="p-pod p-vide"><div class="p-marche" style="height:40px"></div></div>';
   return per + (joue.length ? `<section class="p-podium glass">${pod(joue[1])}${pod(joue[0])}${pod(joue[2])}</section>` : '<div class="carte glass"><h2>🎟️ Personne n\'a encore parié ce mois-ci</h2><p>Le podium du mois gagne +20, +10 et +5 crédits pour le mois suivant.</p></div>')
-    + (l.length > Math.min(3, joue.length) ? `<div class="p-liste glass">${l.slice(Math.min(3, joue.length)).map(x => `<div class="p-r${x.n === me.pseudo ? ' moi' : ''}"><b>${x.nb ? x.pos : '–'}</b>${avHTML(x.n)}<span class="p-r-n">${esc(x.n)}<small>${x.nb ? `${x.nb} pari${x.nb > 1 ? 's' : ''} · ${x.enJeu} en jeu` : 'Pas encore parié ce mois-ci'}</small></span><span></span><span class="p-r-pts">${x.solde}</span></div>`).join('')}</div>` : '')
-    + `<p class="note">Classement par crédits (en jeu compris comme dépensés). Au ${esc(moisSuivant(PARIS.mois))} : tout le monde repart à 100, +20 / +10 / +5 pour le podium (joueurs ayant parié). À égalité : ordre alphabétique.</p>`;
+    + (l.length ? tableHTML(NOMS_PARIS_T, l.map(x => { const s = statsParis(x.n, y => y.mois === PARIS.mois); return {n:x.n, rang:x.nb ? x.pos : '–', sous:x.enJeu ? `${x.enJeu} en jeu` : '', zone:zoneDe(joue, x), cases:casesParis(x.nb, s), key:x.solde}; }), me) : '')
+    + `<p class="note">Classement par crédits (en jeu compris comme dépensés). Au ${esc(moisSuivant(PARIS.mois))} : tout le monde repart à 100, +20 / +10 / +5 pour le podium (joueurs ayant parié). À égalité : ordre alphabétique. ${LEGENDE_PARIS}</p>`;
 }
 const BONUS_P = [20, 10, 5];
 async function validerPari(box, annuler){

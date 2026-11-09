@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="65c70c90">
+<meta name="mon-ecran-version" content="bcd5555c">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1744,11 +1744,11 @@ async function loadLive(){
       live = live.filter(e => !(e.id in states) || states[e.id] === 'in');
     }
     const fav = live.filter(e => isFavEv(e, F));
-    renderDeskSport(j.events || [], live, F);
     window.liveCls = 'live-dot' + (!auto ? ' paused' : fav.length ? ' fav' : live.length ? ' on' : '');
     const lab = `Sports — ${live.length ? `${live.length} en direct${fav.length ? `, dont ${fav.length} de tes favoris` : ''}` : 'aucun direct'}${auto ? '' : ' (mise à jour auto coupée)'}`;
     dots.forEach(dot => { dot.className = window.liveCls; const btn = dot.closest('.app-btn, .w-sport'); if (btn) btn.setAttribute('aria-label', lab); });
     LIVE_NOW = {ids:new Set(live.map(e => e.id)), n:live.length, nFav:fav.length, scores, minutes, logos:logosL, auto}; renderBand();
+    renderDeskSport(j.events || [], live, F);          // v76 : après LIVE_NOW (ligneMatch y lit scores et minutes), sinon les scores n'apparaissaient qu'au passage suivant
   }catch{}
 }
 /* Bandeau Sports (iPhone) : témoin de direct + tes favoris en cours puis à venir (8 jours) */
@@ -1802,9 +1802,9 @@ function bvHTML(){
   if (W('meteo')) L.push(['ville', '📍', 'Ta ville météo', bvFait('lieu:actuel') ? placeLabel(place) : 'Paris pour l\'instant : touche pour choisir la tienne', bvFait('lieu:actuel')]);
   if (Noyau.accueil.page('sport')) L.push(['sport', '⚽', 'Tes équipes favorites', bvFait('sport:favoris') ? 'Choisies' : 'Leurs matchs et leurs scores en premier', bvFait('sport:favoris')]);
   if (Noyau.accueil.page('videos')) L.push(['videos', '🎬', 'Tes plateformes vidéo', bvFait('videos:abos') ? 'Choisies' : 'Pour ne voir que ce qui est dans tes abonnements', bvFait('videos:abos')]);
-  return `<h3 id="bvTitle">Bienvenue sur ton dock 👋</h3><p class="bv-t">Quelques réglages pour qu'il soit à toi. Tout se change ensuite quand tu veux.</p>
+  return `<h3 id="bvTitle">Bienvenue sur KiosK 👋</h3><p class="bv-t">Quelques réglages pour qu'il soit à toi. Tout se change ensuite quand tu veux.</p>
     <ul class="pl-list">${L.map(([k, e, t, d, ok]) => `<li class="pl-row"><button type="button" class="pl-pick bv-r" data-bv="${k}"><span class="bv-e" aria-hidden="true">${ok ? '✅' : e}</span><span class="bv-x"><b>${t}</b><small>${esc(d)}</small></span></button></li>`).join('')}</ul>
-    <p class="bv-t">Déjà un dock sur un autre appareil ? <a href="etat.html">Active la synchronisation</a> (page État) : tes choix reviennent tout seuls.</p>
+    <p class="bv-t">Déjà KiosK sur un autre appareil ? <a href="etat.html">Active la synchronisation</a> (page État) : tes choix reviennent tout seuls.</p>
     <div class="bv-b"><button type="button" data-bv="plus-tard">Plus tard</button><button type="button" class="ok" data-bv="fini">C'est fait</button></div>`;
 }
 function bvOuvrir(){ $('#bvPanel').innerHTML = bvHTML(); $('#bvScrim').hidden = false; }

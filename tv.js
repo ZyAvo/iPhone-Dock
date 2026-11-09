@@ -1,4 +1,4 @@
-// mon-ecran-version: be9c4472
+// mon-ecran-version: 0b99e5b5
 /* Mon Écran — TV (v44, films et séries v45) : abonnement Xtream.
    - Accès (serveur, identifiant, mot de passe) : fiche « Accès TV » du Coffre, chiffrée avec ton code et partagée chiffrée par la
      synchronisation ; jamais dans le dépôt, le classeur ou la configuration (publics). Lus une fois par session (code demandé si le
@@ -422,7 +422,7 @@ function monter(Z){
     else if (k === 'ok' && S.err){ S.err = ''; rendreLecteur(it, S.info); }
   };
   const pip = () => document.pictureInPictureEnabled ? '<button type="button" class="tv-btn" data-tv="pip" title="Garder la vidéo visible par-dessus les autres fenêtres">Image dans l\'image</button>' : '';
-  const relaisAide = () => `<p class="tv-msg"><b>Lecture dans le dock : lance le relais sur ton PC.</b> Les flux de ton abonnement sont en http : une page sécurisée ne peut pas les lire seule.</p>
+  const relaisAide = () => `<p class="tv-msg"><b>Lecture dans KiosK : lance le relais sur ton PC.</b> Les flux de ton abonnement sont en http : une page sécurisée ne peut pas les lire seule.</p>
     <ol class="tv-ol"><li>Installe <b>Node.js</b> (version LTS, nodejs.org), une seule fois.</li>
       <li>Télécharge <a class="tv-a" href="outils/tv-relais.mjs" download>tv-relais.mjs</a> et <a class="tv-a" href="outils/tv-relais.cmd" download>tv-relais.cmd</a> dans un même dossier.</li>
       <li>Double-clique <code>tv-relais.cmd</code> (laisse la fenêtre ouverte). Pour qu'il démarre avec Windows : place un raccourci de ce fichier dans <code>shell:startup</code> (Win + R).</li>
@@ -546,7 +546,7 @@ function monter(Z){
     if (it.k === 'd') epg(S.a, it.id).then(info => { if (S.cur === it){ S.info = info; rendreLecteur(it, info); } });
     else { const v = LE.querySelector('video');                 // son AC3 / DTS : Chrome lit l'image sans le son (Edge, lui, lit souvent l'AC3)
       setTimeout(() => { if (S.cur === it && v && !v.paused && v.currentTime > 2 && 'webkitAudioDecodedByteCount' in v && v.webkitAudioDecodedByteCount === 0){
-        S.err = 'Pas de son ici (format AC3/DTS) : ouvre le dock dans Microsoft Edge, ou utilise VLC.'; rendreLecteur(it, []); } }, 6000); }
+        S.err = 'Pas de son ici (format AC3/DTS) : ouvre KiosK dans Microsoft Edge, ou utilise VLC.'; rendreLecteur(it, []); } }, 6000); }
   };
   const ouvrir = (k, id) => {
     if (k === 'd'){ const c = trouver('d', id) || favoris().map(f => ({...f, k:'d'})).find(x => String(x.id) === String(id)); if (c) jouer(c); return; }
