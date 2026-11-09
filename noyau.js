@@ -1,4 +1,4 @@
-// mon-ecran-version: a1adba65
+// mon-ecran-version: a15693da
 /* Mon Écran — noyau commun à toutes les pages, et base des futures applis dédiées (iPhone, Android, PC).
    Rien ici ne dépend d'une astuce de Safari : ce qui est propre à « l'iPhone en mode web » est rangé dans Noyau.iphoneWeb,
    et une appli dédiée pourra fournir window.MonEcranNatif (ouvrir un lien, garder la clé…) que le noyau utilisera en priorité.
@@ -570,7 +570,7 @@ const depart = (cle, neuf) => DEPARTS === 'ancien' && ANCIENS[cle] ? ANCIENS[cle
 const PRONOS_SECOURS = {compte:'zyavo', api:'https://script.google.com/macros/s/AKfycby6vzzsVzPJ8DuTBqexvEqGBnqMGZy2Os5RU5DDvTxEAvUwFlbH9S9StR2nVjpLuGCLug/exec'};
 const pronos = {
   // compétitions des Pronos : même liste dans la page, l'accueil (pastille) et Code.gs (LIGUES)
-  ligues:() => config('pronos.ligues', [{id:'fra.1', f:'fra-1', nom:'Ligue 1'}, {id:'eng.1', f:'eng-1', nom:'Premier League'}, {id:'270559', f:'270559', nom:'Top 14'}, {id:'uefa.champions', f:'uefa-champions', nom:'Ligue des champions'}]),
+  ligues:() => config('pronos.ligues', [{id:'fra.1', f:'fra-1', nom:'Ligue 1'}, {id:'eng.1', f:'eng-1', nom:'Premier League'}, {id:'270559', f:'270559', nom:'Top 14'}, {id:'uefa.champions', f:'uefa-champions', nom:'Ligue des champions'}, {id:'uefa.nations', f:'uefa-nations', nom:'Ligue des nations'}, {id:'17567', f:'17567', nom:'Championnat des nations'}]),
   // v68 : « Pronos en plus » (au choix de chaque joueur, classement à part) : même liste que EXTRAS dans Code.gs
   extras:() => config('pronos.extras', [{id:'esp.1', f:'esp-1', nom:'Liga'}, {id:'ita.1', f:'ita-1', nom:'Serie A'}, {id:'ger.1', f:'ger-1', nom:'Bundesliga'},
     {id:'uefa.europa', f:'uefa-europa', nom:'Ligue Europa'}, {id:'uefa.europa.conf', f:'uefa-europa-conf', nom:'Ligue Conférence'}, {id:'nba', f:'nba', nom:'NBA'}, {id:'nfl', f:'nfl', nom:'NFL'}]),

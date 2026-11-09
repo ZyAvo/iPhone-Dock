@@ -62,7 +62,7 @@ Jeu entre amis **sans argent** : les crédits ne s'achètent pas, ne s'échangen
 - **Crédits** : 100 au début de chaque mois (mois du coup d'envoi, heure de Paris) ; podium du mois fini (joueurs ayant parié au moins une fois ; égalité : ordre alphabétique) :
   +20 / +10 / +5 au départ du mois suivant. À 0 (et rien en jeu) : plus de pari jusqu'au 1ᵉʳ. **Général** : cumul des soldes de fin de mois (mois joués).
 - **Pari** : simple 1 / N / 2, un par match, mise entière de 1 au solde disponible, modifiable ou annulable jusqu'au coup d'envoi. Ouvert dès qu'il y a la cote du matin (le jour du match,
-  vers 8 h ; compétitions de la tâche Cotes : 5 grands championnats et 3 coupes d'Europe ; pas de rugby). Cote figée = moyenne des sites du relevé « matin » (`donnees/cotes/cotes.json`).
+  vers 8 h ; compétitions de la tâche Cotes : 5 grands championnats, 3 coupes d'Europe et, depuis la v78, Ligue des nations ; pas de rugby). Cote figée = moyenne des sites du relevé « matin » (`donnees/cotes/cotes.json`).
 - **Règlement** (serveur, à chaque appel `paris` ou `miser`) : score final de `jours.json` / `passe.json` (sinon fichier de la compétition) ; gain = arrondi(mise × cote), 0 si perdu ;
   match reporté ou annulé depuis plus d'un jour : remboursé. Paris des autres visibles au coup d'envoi (avant : seulement qui a parié).
 - **Onglet Paris** du tableur : groupe, pseudo, match, ligue, choix (h/d/a), mise, cote, le, mois, dom, ext, coup d'envoi, gain (vide = en cours).
@@ -93,7 +93,7 @@ Page : bandeau si le serveur ne répond pas ; « code non reconnu » → retour 
 ## Règles
 Score exact 3 points, bon résultat (vainqueur ou nul) 1 point. Prono modifiable jusqu'au coup d'envoi (vérifié par le script avec les horaires
 publiés par la tâche Sport) ; pronos des autres visibles une fois le match commencé. Classement du mois et de la saison, calculé par la page.
-Compétitions (v68 : Ligue 1, Premier League, Top 14, Ligue des champions ; « Pronos en plus » au choix de chaque joueur, classement à part : Liga, Serie A, Bundesliga, Ligue Europa, Ligue Conférence, NBA, NFL — `Noyau.pronos.extras()` et `EXTRAS` dans Code.gs) : `Noyau.pronos.ligues()` (`noyau.js`, page et pastille de l'accueil) et `LIGUES` dans Code.gs (à garder identiques : un match d'une compétition absente de Code.gs est refusé, `err:'match'`).
+Compétitions (v68 : Ligue 1, Premier League, Top 14, Ligue des champions ; v79 : Ligue des nations, Championnat des nations de rugby ; « Pronos en plus » au choix de chaque joueur, classement à part : Liga, Serie A, Bundesliga, Ligue Europa, Ligue Conférence, NBA, NFL — `Noyau.pronos.extras()` et `EXTRAS` dans Code.gs) : `Noyau.pronos.ligues()` (`noyau.js`, page et pastille de l'accueil) et `LIGUES` dans Code.gs (à garder identiques : un match d'une compétition absente de Code.gs est refusé, `err:'match'`).
 Gratuit, entre amis, sans mise ni gain : rester hors des jeux d'argent (pas de droit d'entrée, pas de lot).
 
 ## Renommage du dépôt (iPhone-Dock → kiosk)

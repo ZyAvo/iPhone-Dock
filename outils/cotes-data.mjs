@@ -1,4 +1,4 @@
-// mon-ecran-version: 609e518a
+// mon-ecran-version: cd448170
 // Cotes des matchs (lancé toutes les 10 min par la tâche GitHub « Cotes », avec le secret ODDS_API_KEY de The Odds API).
 // Plan (option 1) pour les 5 grands championnats et les 3 coupes d'Europe, cote 1 / N / 2 des sites français :
 //   - un relevé le matin (à partir de 8 h) pour chaque compétition qui joue ce jour-là ;
@@ -28,6 +28,8 @@ const COMPS = CFG('cotes.comps', null) || {
   'uefa.europa':{cle:'soccer_uefa_europa_league', re:/europa league/i},
   'uefa.europa.conf':{cle:'soccer_uefa_europa_conference_league', re:/conference league/i}
 };
+// v78 : Ligue des nations : seulement le relevé du matin (celui des paris), pour économiser les crédits
+COMPS['uefa.nations'] = {cle:'soccer_uefa_nations_league', re:/nations league/i, matinSeul:true};
 const read = f => { try{ return JSON.parse(fs.readFileSync(f, 'utf8')); }catch{ return null; } };
 fs.mkdirSync(OUT, {recursive:true});
 const FILE = `${OUT}/cotes.json`;
@@ -72,6 +74,7 @@ for (const [lg, ms] of Object.entries(parComp)){
   const kMatin = `${lg}|${jourDe(NOW)}|matin`;
   // relevé du matin : seulement les matchs pas encore commencés (une tâche partie en retard ne doit pas noter des cotes en direct comme « du matin »)
   if (auj.length && heureParis >= 8 && !st.fait[kMatin] && auj.some(m => m.t > NOW + 20 * MIN)) dus.push({lg, phase:'matin', k:kMatin, ids:auj.filter(m => m.t > NOW).map(m => m.id)});
+  if (COMPS[lg].matinSeul) continue;                                 // v78
   for (const t of [...new Set(ms.map(m => m.t))]){
     const ids = ms.filter(m => m.t === t).map(m => m.id);
     const kAv = `${lg}|${t}|avant`, kMt = `${lg}|${t}|mi-temps`;
@@ -91,7 +94,7 @@ if (!Object.keys(demandes).length){
 }
 
 /* noms d'équipes comparables (ESPN / The Odds API) */
-const ALIAS = {psg:'paris', utd:'united', man:'manchester', spurs:'tottenham', wolves:'wolverhampton', nottm:'nottingham', inter:'internazionale', gladbach:'monchengladbach', leverkusen:'leverkusen', atleti:'atletico', bilbao:'athletic', betis:'betis', om:'marseille', ol:'lyon', rennais:'rennes', toulousain:'toulouse', rochelais:'rochelle', nantais:'nantes', brestois:'brest', lorientais:'lorient', havrais:'havre', auxerrois:'auxerre', messin:'metz', st:'saint'};
+const ALIAS = {turkiye:'turkey', psg:'paris', utd:'united', man:'manchester', spurs:'tottenham', wolves:'wolverhampton', nottm:'nottingham', inter:'internazionale', gladbach:'monchengladbach', leverkusen:'leverkusen', atleti:'atletico', bilbao:'athletic', betis:'betis', om:'marseille', ol:'lyon', rennais:'rennes', toulousain:'toulouse', rochelais:'rochelle', nantais:'nantes', brestois:'brest', lorientais:'lorient', havrais:'havre', auxerrois:'auxerre', messin:'metz', st:'saint'};
 const mots = s => String(s || '').toLowerCase().replace(/[ßæœø]/g, c => ({ß:'ss', æ:'ae', œ:'oe', ø:'o'})[c]).normalize('NFD').replace(/[̀-ͯ]/g, '')
   .replace(/[^a-z0-9]+/g, ' ').trim().split(' ').map(w => ALIAS[w] || w)
   .filter(w => w.length >= 3 && !['fc', 'cf', 'afc', 'club', 'calcio', 'football', 'sporting', 'olympique', 'stade', 'real', 'and', 'the', 'ssc', 'acf'].includes(w));

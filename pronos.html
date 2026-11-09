@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="be90e222">
+<meta name="mon-ecran-version" content="23abd817">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -938,9 +938,10 @@ async function chargerFichiers(){
       comps:Object.fromEntries(l.filter(f => f.startsWith('logos/competitions/')).map(f => [base(f).toLowerCase(), encodeURI(f)]))};
   }catch{ FICHIERS = {clubs:[], comps:{}}; }
 }
+const NATIONS = ['uefa.nations', '17567'];                       // v79 : équipes nationales : le drapeau d'ESPN est le bon logo, pas de logo de club
 const PAYS_L = {'eng.1':'angleterre', 'esp.1':'espagne', 'ita.1':'italie', 'ger.1':'allemagne', nba:'usa', nfl:'usa'};
 function logoManuel(m, t){                                       // même mot (ou 6 premières lettres) entre le nom du club et le nom du fichier ; ex æquo : aucun
-  if (!FICHIERS || !FICHIERS.clubs.length) return '';
+  if (!FICHIERS || !FICHIERS.clubs.length || NATIONS.includes(m.league)) return '';
   const a = mots(`${t.name || ''} ${t.full || ''}`), pays = ['fra.1', '270559'].includes(m.league) ? 'france' : PAYS_L[m.league] || '';   // v68 : pas de logo de club français sur un club étranger
   const sc = FICHIERS.clubs.filter(x => !pays || x.pays === pays).map(x => ({u:x.u, s:a.filter(w => x.k.some(v => v === w || (w.length >= 6 && v.length >= 6 && v.slice(0, 6) === w.slice(0, 6)))).length}))
     .filter(x => x.s).sort((p, q) => q.s - p.s);
@@ -976,7 +977,7 @@ const petit = (u, px = 96) => { const m = String(u || '').match(/^(?:https?:)?\/
   return m ? `https://a.espncdn.com/combiner/i?img=${m[1]}&w=${px}&h=${px}&transparent=true` : String(u || '').replace(/^http:\/\//i, 'https://'); };
 const remplace = (cls, txt, coul) => `this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} ph',textContent:'${txt}'${coul ? `,style:'--eq:${coul}'` : ''}}))`;
 function logoEq(m, t){
-  const pays = /\/teamlogos\/countries\//i.test(t.logo || '');                                   // v57 : ESPN met parfois un drapeau sur un club (Perpignan → USA)
+  const pays = !NATIONS.includes(m.league) && /\/teamlogos\/countries\//i.test(t.logo || '');                                   // v57 : ESPN met parfois un drapeau sur un club (Perpignan → USA)
   const u = logoManuel(m, t) || (pays ? '' : t.logo) || (/\./.test(m.league) && t.id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${t.id}.png` : '');   // foot : logo ESPN d'après l'identifiant (comme la page Sport)
   const ab = String((pays ? t.name : t.abbr) || t.name || '?').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 3).toUpperCase();
   const coul = COULEURS[hash(t.name || ab) % COULEURS.length];                                    // pastille si le logo manque : couleur stable par équipe
@@ -1107,7 +1108,7 @@ function reglesHTML(){
   return `<div class="carte glass regles"><h2>🤝 Le principe</h2><p>Un groupe d'amis, un code de groupe, deux jeux : les <b>Pronos</b> (des points) et les <b>Paris</b> (des crédits).
       Gratuit et <b>sans argent</b> : les crédits ne s'achètent pas, ne s'échangent pas et ne valent rien. Aucun lot, juste le classement.</p></div>
     <div class="carte glass regles"><h2>🎯 Les pronos</h2><ul>
-      <li>Pronostique le score des matchs de Ligue 1, de Premier League, du Top 14 et de la Ligue des champions, au clavier ou avec − / +. Modifiable jusqu'au coup d'envoi.</li>
+      <li>Pronostique le score des matchs de Ligue 1, de Premier League, du Top 14, de la Ligue des champions, de la Ligue des nations et du Championnat des nations de rugby, au clavier ou avec − / +. Modifiable jusqu'au coup d'envoi.</li>
       <li>Les pronos des autres s'affichent au coup d'envoi ; avant, tu vois seulement qui a déjà joué.</li>
       <li><b>Foot</b> : score exact <b>3 points</b>, bon résultat (vainqueur ou nul) <b>1 point</b>.</li>
       <li><b>Rugby</b> : bon résultat <b>1 point</b> ; parmi ceux qui ont le bon résultat, le plus proche du score prend <b>3 points</b> (plus petite somme des écarts de points ; ex æquo : 3 chacun).
@@ -1121,7 +1122,7 @@ function reglesHTML(){
       <li><b>100 crédits</b> au début de chaque mois pour tout le monde (aussi pour un joueur qui arrive en cours de mois).</li>
       <li>Le podium du mois reçoit un bonus au départ du mois suivant : <b>+20</b>, <b>+10</b>, <b>+5</b> (joueurs ayant parié au moins une fois).</li>
       <li>Un pari <b>1 / N / 2</b> par match, le jour du match, dès que la cote du matin est là (vers 8 h) : moyenne de 5 sites français, figée au moment du pari.
-        Foot uniquement : Ligue 1, Premier League, Liga, Serie A, Bundesliga et les coupes d'Europe.</li>
+        Foot uniquement : Ligue 1, Premier League, Liga, Serie A, Bundesliga, les coupes d'Europe et la Ligue des nations.</li>
       <li>La mise est retirée de ton solde tout de suite. Gagné : tu reçois <b>mise × cote</b> (arrondi) ; perdu : rien ; match reporté ou annulé : remboursé.
         Modifiable ou annulable jusqu'au coup d'envoi.</li>
       <li><b>Combiné</b> : de 2 à 8 matchs du jour dans un seul pari, les cotes se multiplient. Il faut <b>tout juste</b> pour gagner mise × cote totale ; un seul match faux et la mise est perdue.
@@ -1378,7 +1379,7 @@ function appareilHTML(me){
 /* ---------- Paris entre amis (v60) : crédits fictifs, jeu sans argent ----------
    100 crédits chaque mois (+20 / +10 / +5 pour le podium du mois précédent), pari simple 1 / N / 2 le jour du match à la cote moyenne
    du relevé du matin (tâche Cotes). Tout est vérifié et compté par le serveur (actions paris et miser) ; la page affiche. */
-const NOMS_PARIS = {'fra.1':'Ligue 1', 'eng.1':'Premier League', 'esp.1':'Liga', 'ita.1':'Serie A', 'ger.1':'Bundesliga', 'uefa.champions':'Ligue des champions', 'uefa.europa':'Ligue Europa', 'uefa.europa.conf':'Ligue Europa Conférence'};
+const NOMS_PARIS = {'fra.1':'Ligue 1', 'eng.1':'Premier League', 'esp.1':'Liga', 'ita.1':'Serie A', 'ger.1':'Bundesliga', 'uefa.champions':'Ligue des champions', 'uefa.europa':'Ligue Europa', 'uefa.europa.conf':'Ligue Europa Conférence', 'uefa.nations':'Ligue des nations'};
 let PARIS = null, PVUE = LS.get('pronos:pvue', 'jour'), PCL = 'mois', PCHOIX = {}, JOURS = {};
 const cote = c => Number(c).toFixed(2).replace('.', ',');
 const nomMois = M => { const [a, m] = M.split('-').map(Number); return new Date(a, m - 1, 1).toLocaleDateString('fr-FR', {month:'long', year:'numeric'}); };
@@ -1425,7 +1426,7 @@ function parisJourHTML(me, x){
     Résultat : score final (prolongation comprise). Combiné : 2 à 8 matchs, cotes multipliées, tout juste pour gagner. 100 crédits au début de chaque mois, +20 / +10 / +5 pour le podium du mois précédent.
     <b>Jeu entre amis, sans argent</b> : les crédits ne s'achètent pas, ne s'échangent pas et ne valent rien.</p>`;
   const modes = `<div class="ong glass" role="tablist" aria-label="Type de pari">${[[false, 'Pari simple'], [true, '🧩 Combiné']].map(([v, t]) => `<button type="button" role="tab" data-cmode="${v ? 1 : 0}" aria-selected="${COMBI.on === v}">${t}</button>`).join('')}</div>`;
-  if (!l.length) return combisHTML(me) + `<div class="carte glass"><h2>⏳ Pas encore de cote aujourd'hui</h2><p>Les cotes arrivent vers 8 h le jour du match, pour la Ligue 1, la Premier League, la Liga, la Serie A, la Bundesliga et les coupes d'Europe.</p></div>` + regles;
+  if (!l.length) return combisHTML(me) + `<div class="carte glass"><h2>⏳ Pas encore de cote aujourd'hui</h2><p>Les cotes arrivent vers 8 h le jour du match, pour la Ligue 1, la Premier League, la Liga, la Serie A, la Bundesliga, les coupes d'Europe et la Ligue des nations.</p></div>` + regles;
   if (INFOS) chargerTables(l.map(m => m.league)).then(n => { if (n && SECTION === 'paris') rendre(); });   // v69
   return modes + combisHTML(me) + affHTML() + (COMPACT ? '' : interInfos()) + blocs(l, m => ligne(m, () => ligneParis(m, me, Date.now()), () => matchParisHTML(m, me, x, Date.now()), () => !COMBI.on && PCHOIX[m.id])) + regles + slipHTML(x, now);
 }
@@ -1809,7 +1810,10 @@ setInterval(() => {                         // comptes à rebours ; fermeture au
   if (passe && SECTION === 'paris' && !Object.keys(PCHOIX).length && !(document.activeElement && document.activeElement.closest('.pa-slip'))) rendre();
   if (passe && SECTION === 'accueil') rendre();               // v60 : paris fermés au coup d'envoi
 }, 30e3);
-actualiser();
+actualiser().then(() => {                                                    // v79 : nouvelles compétitions : abonnements aux rappels mis à jour une fois
+  const s = LIGUES.map(L => L.id).join(); if (LS.get('pronos:notif-ligues', '') === s) return;
+  LS.set('pronos:notif-ligues', s); notifResync();
+});
 </script>
 
 <!-- ==TIRER== Tirer vers le bas pour recharger (comme Safari) -->

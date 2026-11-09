@@ -1,4 +1,4 @@
-# mon-ecran-version: d6457128
+# mon-ecran-version: 04cc935a
 # Modèle du classeur : réglages actuels (reference.json, cochés « Oui ») + catalogue (non cochés).
 # Chaque module = un onglet ; chaque ligne a un identifiant fixe (colonne cachée) et sa définition technique (JSON caché).
 import json, re, unicodedata
@@ -6,7 +6,7 @@ from cat_sport import REGIONS_NOUVELLES, LIGUES_NOUVELLES, EQUIPES_PROPOSEES
 from cat_actus import SECTIONS_FR, FEEDS_FR, SECTIONS_EN, FEEDS_EN, G, PAYANTS
 from cat_autres import *
 
-VERSION_CLASSEUR = 6
+VERSION_CLASSEUR = 7
 
 def slug(s):
     s = unicodedata.normalize('NFD', str(s).lower()).encode('ascii', 'ignore').decode()

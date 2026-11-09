@@ -1,4 +1,4 @@
-# mon-ecran-version: b87b3ff3
+# mon-ecran-version: 62da4948
 # Textes des onglets « Lisez-moi » et « Tuto ».
 LISEZMOI = [
     ('h', 'À quoi sert ce classeur'),
@@ -77,4 +77,5 @@ JOURNAL = [
                       "Tuto : export Excel depuis Numbers, Spotify en mode développement, mise en place des Pronos ; premier lancement de l'appli."),
     (5, '07/11/2026', "Pronos devient une page à part entière : ligne « Pronos entre amis » dans Accueil (pages de l'appli) et tuile Pronos dans Applis (écran d'accueil)."),
     (6, '08/11/2026', "Onglets Actus : colonne « Payant » (Oui = surtout réservé aux abonnés, Partiel = en partie, vide = gratuit) : badge € (médias français) ou $ (médias en anglais) sur les articles."),
+    (7, '09/11/2026', "Onglet Sport : Championnat des nations de rugby (nouvelle compétition mondiale, clé ESPN 17567), cochée."),
 ]

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="85079838">
+<meta name="mon-ecran-version" content="9b6276b2">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Écarts de cotes</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -256,7 +256,7 @@ const SEUIL = +R.seuil || 0.05, REF = R.reference === 'mediane' ? 'mediane' : 'm
 const SITES_NOMS = {winamax_fr:'Winamax', betclic_fr:'Betclic', unibet_fr:'Unibet', pmu_fr:'PMU', netbet_fr:'NetBet', parionssport_fr:'Parions Sport'};
 const PHASES = {matin:'le matin', avant:'avant le match', 'mi-temps':'à la mi-temps', manuel:'à la main'};
 const LIGUES = Object.fromEntries(CFG('sport.leagues', []).map(L => [L.id, L.name]));
-const NOMS_LG = {'fra.1':'Ligue 1', 'eng.1':'Premier League', 'esp.1':'Liga', 'ita.1':'Serie A', 'ger.1':'Bundesliga', 'uefa.champions':'Ligue des champions', 'uefa.europa':'Ligue Europa', 'uefa.europa.conf':'Ligue Conférence'};
+const NOMS_LG = {'fra.1':'Ligue 1', 'eng.1':'Premier League', 'esp.1':'Liga', 'ita.1':'Serie A', 'ger.1':'Bundesliga', 'uefa.champions':'Ligue des champions', 'uefa.europa':'Ligue Europa', 'uefa.europa.conf':'Ligue Conférence', 'uefa.nations':'Ligue des nations'};
 const nomLg = id => LIGUES[id] || NOMS_LG[id] || id;
 const cote = v => Number(v).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2});
 const pct = v => (v > 0 ? '+' : '') + (v * 100).toLocaleString('fr-FR', {maximumFractionDigits:1}) + ' %';

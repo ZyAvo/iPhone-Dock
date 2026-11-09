@@ -1,4 +1,4 @@
-// mon-ecran-version: f1ecc810
+// mon-ecran-version: a4531b68
 // Rapport des cotes du matin par mail (v48) — lancé par la tâche GitHub « Cotes (mail) », chaque matin après le relevé de 8 h.
 // Tableau : en lignes les matchs du jour (1 / N / 2), en colonnes les sites de paris, la meilleure cote en gras,
 // les cotes qui s'écartent des autres d'au moins le seuil du classeur (onglet Cotes, « rapport ») surlignées avec l'écart.
@@ -19,7 +19,7 @@ const {Match} = globalThis;
 const FICHIER = process.env.COTES_FICHIER || 'donnees/cotes/cotes.json';
 const APERCU = process.env.COTES_MAIL_APERCU || '';
 const NOMS = {winamax_fr:'Winamax', betclic_fr:'Betclic', unibet_fr:'Unibet', pmu_fr:'PMU', netbet_fr:'NetBet', parionssport_fr:'Parions Sport'};
-const LIGUES = {'fra.1':'Ligue 1', 'eng.1':'Premier League', 'esp.1':'Liga', 'ita.1':'Serie A', 'ger.1':'Bundesliga', 'uefa.champions':'Ligue des champions', 'uefa.europa':'Ligue Europa', 'uefa.europa.conf':'Ligue Conférence'};
+const LIGUES = {'fra.1':'Ligue 1', 'eng.1':'Premier League', 'esp.1':'Liga', 'ita.1':'Serie A', 'ger.1':'Bundesliga', 'uefa.champions':'Ligue des champions', 'uefa.europa':'Ligue Europa', 'uefa.europa.conf':'Ligue Conférence', 'uefa.nations':'Ligue des nations'};
 const PHASES = {matin:'matin', avant:'avant match', 'mi-temps':'mi-temps', manuel:'à la main'};
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c]));
 const fr = (n, d = 2) => Number(n).toLocaleString('fr-FR', {minimumFractionDigits:d, maximumFractionDigits:d});

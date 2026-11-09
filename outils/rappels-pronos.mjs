@@ -1,4 +1,4 @@
-// mon-ecran-version: 93e3f105
+// mon-ecran-version: ed5508de
 // Rappels des Pronos (v72) : notifications sur les téléphones abonnés (page Pronos › Mon profil › Rappels).
 // - le matin (premier passage après 9 h, heure de Paris) : les pronos pas encore faits jusqu'au lendemain 8 h ;
 // - avant un match : environ une heure avant le coup d'envoi, si le joueur n'a pas encore pronostiqué.
@@ -15,7 +15,7 @@ const [compte, depot] = String(process.env.GITHUB_REPOSITORY || 'ZyAvo/iPhone-Do
 const SITE = process.env.SITE || `https://${compte.toLowerCase()}.github.io/${depot}/`;
 const API = CFG('pronos.api', '') || process.env.PRONOS_API || '';
 const OUT = 'donnees/pronos', NOW = Date.now(), H = 3600e3;
-const BASE_L = CFG('pronos.ligues', [{id:'fra.1'}, {id:'eng.1'}, {id:'270559'}, {id:'uefa.champions'}]).map(x => String(x.id));
+const BASE_L = CFG('pronos.ligues', [{id:'fra.1'}, {id:'eng.1'}, {id:'270559'}, {id:'uefa.champions'}, {id:'uefa.nations'}, {id:'17567'}]).map(x => String(x.id));
 
 if (!PUB || !PRIV || !CLE){ console.log('Rappels pas encore en place : secrets PUSH_PUBLIC, PUSH_PRIVE et PRONOS_CLE à créer (voir outils/dev/PRONOS.md).'); process.exit(0); }
 if (!API){ console.log('Adresse du serveur des pronos absente du classeur (onglet Pronos) : rien à faire.'); process.exit(0); }

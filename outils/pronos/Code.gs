@@ -1,4 +1,4 @@
-/* KiosK — serveur des pronos entre amis (Google Apps Script, v77).
+/* KiosK — serveur des pronos entre amis (Google Apps Script, v79).
    Garde les joueurs et les pronos dans le Google Sheets auquel ce script est attaché (onglets « Joueurs » et « Pronos », créés tout seuls).
    Refuse un prono après le coup d'envoi (horaires lus sur le site publié, pas envoyés par le téléphone) et ne montre
    les pronos des autres qu'une fois le match commencé. Les points et le classement sont calculés par la page.
@@ -20,9 +20,10 @@
    v77 : paris combinés (action « combiner ») : de 2 à 8 matchs, un seul pari, une ligne de l'onglet Paris (match « C-… », colonne N : les sélections en JSON).
    Cotes figées et multipliées, fermé au premier coup d'envoi. Un match faux : perdu. Tout juste : mise × cote totale. Match reporté ou annulé : retiré du calcul.
    Les crédits et le classement n'ont rien de spécial à faire : la ligne compte comme un pari. Sélections des autres visibles match par match, au coup d'envoi.
+   v79 : Ligue des nations (uefa.nations) et Championnat des nations de rugby (17567) dans LIGUES (horaires des pronos).
    Mise en place : voir outils/dev/PRONOS.md. */
 const SITE = 'https://zyavo.github.io/iPhone-Dock/';            // adresse du dock publié
-const LIGUES = {'fra.1':'fra-1', 'eng.1':'eng-1', '270559':'270559', 'uefa.champions':'uefa-champions'};   // id ESPN → fichier donnees/sport/<fichier>.json
+const LIGUES = {'fra.1':'fra-1', 'eng.1':'eng-1', '270559':'270559', 'uefa.champions':'uefa-champions', 'uefa.nations':'uefa-nations', '17567':'17567'};   // id ESPN → fichier donnees/sport/<fichier>.json
 const EXTRAS = {'esp.1':'esp-1', 'ita.1':'ita-1', 'ger.1':'ger-1', 'uefa.europa':'uefa-europa', 'uefa.europa.conf':'uefa-europa-conf', 'nba':'nba', 'nfl':'nfl'};   // v68 : pronos en plus
 
 function doPost(e){

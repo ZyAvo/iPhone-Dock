@@ -1,4 +1,4 @@
-// mon-ecran-version: 719ca7ca
+// mon-ecran-version: 157cc6af
 // Prépare les données de la page Sport (lancé par la tâche GitHub « Sport », v51 ; avant : « Programme TV sport »).
 // Lit la liste des compétitions et les fonctions de lecture dans sport.html et match.js,
 // interroge ESPN côté serveur, numérote les journées et écrit :
@@ -123,7 +123,13 @@ async function eventsFor(L, S, prev){
   // Tournoi ponctuel sans match proche : on le met en pause
   if (L.seasonal){
     const near = (cal || []).some(d => d >= ymd(NOW - 7 * DAY) && d <= ymd(NOW + 45 * DAY)) || ((today || {}).events || []).length;
-    if (!near) return {idle:true, info};
+    let vu = near, sondeLe = prev && prev.sondeLe;
+    // v78-v79 : ESPN n'annonce pas toujours ses dates dans le calendrier : on regarde les 21 prochains jours (une fois par jour tant que le tournoi est en pause)
+    if (!vu && sondeLe !== ymd(NOW)){
+      const jours = await pool(days(NOW + DAY, NOW + 21 * DAY).map(d => () => get(`${base}?dates=${d}&limit=300`).catch(() => null)), 8);
+      vu = jours.some(j => ((j || {}).events || []).length); sondeLe = ymd(NOW);
+    }
+    if (!vu) return {idle:true, info, sondeLe};
   }
 
   // 1) (jusqu'à la v50 : demande de toute la période d'un coup ; ESPN ne la remplissait jamais — « range: 0 » partout — v51 : retirée)
@@ -404,7 +410,7 @@ for (const L of LEAGUES){
     const r = await eventsFor(L, S, prev);
     try{ await logoCompetition(L, r.info); }catch{}                          // v59
     if (r.idle){
-      write(file, {v:1, id:L.id, ...r.info, updated:index.updated, idle:true, season:S.label});
+      write(file, {v:1, id:L.id, ...r.info, updated:index.updated, idle:true, season:S.label, ...(r.sondeLe ? {sondeLe:r.sondeLe} : {})});
       index.leagues[L.id] = {idle:true, file:`${slug(L.id)}.json`};
       console.log(`${L.name} : en pause`);
       continue;
@@ -441,7 +447,7 @@ write(`${OUT}/prochains.json`, {v:1, updated:index.updated, events:upcoming.filt
 // v70 : fichier allégé pour la page Pronos et ses paris : compétitions des Pronos (et « en plus »), matchs de J-46 à J+8 sans le déroulé,
 // logos et classement résumé (rang, points, bilan, place en conférence). Avant : les fichiers de saison complets, environ 4 fois plus lourds.
 {
-  const DEF_L = [{id:'fra.1'}, {id:'eng.1'}, {id:'270559'}, {id:'uefa.champions'}], DEF_X = ['esp.1', 'ita.1', 'ger.1', 'uefa.europa', 'uefa.europa.conf', 'nba', 'nfl'].map(id => ({id}));
+  const DEF_L = [{id:'fra.1'}, {id:'eng.1'}, {id:'270559'}, {id:'uefa.champions'}, {id:'uefa.nations'}, {id:'17567'}], DEF_X = ['esp.1', 'ita.1', 'ger.1', 'uefa.europa', 'uefa.europa.conf', 'nba', 'nfl'].map(id => ({id}));
   const ids = [...new Set([...CFG('pronos.ligues', DEF_L), ...CFG('pronos.extras', DEF_X)].map(x => String(x && x.id || '')).filter(Boolean))];
   const GARDE = ['rank', 'points', 'overall', 'playoffSeed'], pr = {v:1, updated:index.updated, leagues:{}};
   for (const id of ids){
