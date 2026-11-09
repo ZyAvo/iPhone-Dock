@@ -1,4 +1,4 @@
-// mon-ecran-version: a15693da
+// mon-ecran-version: 11af4fa7
 /* Mon Écran — noyau commun à toutes les pages, et base des futures applis dédiées (iPhone, Android, PC).
    Rien ici ne dépend d'une astuce de Safari : ce qui est propre à « l'iPhone en mode web » est rangé dans Noyau.iphoneWeb,
    et une appli dédiée pourra fournir window.MonEcranNatif (ouvrir un lien, garder la clé…) que le noyau utilisera en priorité.
@@ -297,6 +297,7 @@ const icones = {
   gear:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/><path d="M4 12h5M13 12h7"/><circle cx="11" cy="12" r="2"/>',
   media:'<rect x="2.5" y="4.5" width="19" height="13" rx="2.5"/><path d="m10 8.2 4.8 2.8-4.8 2.8z"/><path d="M8 20.5h8"/>',
   news:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 8.5h6M7 12h10M7 15.5h10"/>',
+  ambreval:'<path d="M4 21V9l2.5-2L9 9v3h6V9l2.5-2L20 9v12zM12 3v5M12 3l3.5 1.2L12 5.4M10.2 21v-4a1.8 1.8 0 0 1 3.6 0v4"/>',
   pronos:'<path d="M7.5 4h9v4.5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6H4.8a2.6 2.6 0 0 0 2.9 4.2M16.5 6h2.7a2.6 2.6 0 0 1-2.9 4.2"/><path d="M12 13v3.5M8.5 20.5h7M9.8 16.5h4.4l.8 4h-6z"/>',
   invest:'<path d="M4 19.5h16"/><path d="m5 15.5 4.5-4.5 3.5 3.5 6.5-7.5"/><path d="M15 7h4.5v4.5"/>',
   meteo:'<circle cx="8.5" cy="8.5" r="3.2"/><path d="M8.5 2.5v1.3M2.5 8.5h1.3M4.3 4.3l.9.9M12.7 4.3l-.9.9"/><path d="M8 20h9.5a3.8 3.8 0 0 0 0-7.6 5 5 0 0 0-9.4 1.6A3 3 0 0 0 8 20z"/>',
@@ -459,10 +460,10 @@ const applis = {
 /* ---------- Accueil : pages et widgets activés ----------
    config/accueil.json (classeur, onglet Accueil) + les choix faits sur cet appareil pas encore reportés (pg:…, wg:…, un:…),
    pour que le changement se voie tout de suite ici ; les autres appareils le voient après le report. Sans le catalogue (léger). */
-const PAGES = ['actus', 'sport', 'videos', 'invest', 'cachee', 'pronos'], TOUJOURS = ['etat', 'reglages'];
-const SUIT = {pronos:'sport'};   // v66 : page inconnue d'un classeur plus ancien (pas dans accueil.pages_connues) : suit Sport, comme avant
+const PAGES = ['actus', 'sport', 'videos', 'invest', 'cachee', 'pronos', 'ambreval'], TOUJOURS = ['etat', 'reglages'];
+const SUIT = {pronos:'sport', ambreval:'etat'};   // v66 : page inconnue d'un classeur plus ancien (pas dans accueil.pages_connues) : suit Sport, comme avant
 const WIDGETS = ['meteo', 'une', 'invest', 'spotify', 'sport', 'live'];
-const NOMS_PAGES = {actus:'Actus', sport:'Sport', videos:'Vidéos', invest:'Investissements', cachee:'Coffre', pronos:'Pronos', etat:'État des données', reglages:'Réglages'};
+const NOMS_PAGES = {actus:'Actus', sport:'Sport', videos:'Vidéos', invest:'Investissements', cachee:'Coffre', pronos:'Pronos', ambreval:'Ambreval', etat:'État des données', reglages:'Réglages'};
 const UNE_CHOIX = 'accueil:une-choix', DISPOSITION = 'accueil:disposition', MUSIQUE = 'musique:source';
 /* source du widget musique (v42), propre à l'appareil. Spotify : lecture en cours et commandes (API Spotify) ; les autres n'offrent
    pas d'équivalent simple depuis une page web : widget raccourci qui ouvre l'appli (iPhone : app, Android : android, PC : web) */

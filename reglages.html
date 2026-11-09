@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="8a0e6298">
+<meta name="mon-ecran-version" content="93ac0563">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Réglages</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -775,7 +775,7 @@ const AP = Noyau.applis, IC = Noyau.icones;
 const ICS = S.lire('icons:v1', {}) || {};                                  // vraies icônes App Store gardées par l'accueil
 const cleIcone = d => d.icon && !d.store && !d.storeId ? '' : d.storeId ? 'id:' + d.storeId : d.store ? 's:' + d.store : '';
 const imgDe = d => { const k = cleIcone(d); return k && ICS[k] || ''; };
-const pageDe = url => { const m = String(url || '').match(/^(?:\.\/)?(actus|sport|ecarts|videos|invest|cachee|etat|reglages|pronos)\.html(?:[?#]|$)/); return m ? (m[1] === 'ecarts' ? 'sport' : m[1]) : null; };
+const pageDe = url => { const m = String(url || '').match(/^(?:\.\/)?(actus|sport|ecarts|videos|invest|cachee|etat|reglages|pronos|ambreval)\.html(?:[?#]|$)/); return m ? (m[1] === 'ecarts' ? 'sport' : m[1]) : null; };
 const AUTO_INFO = {actus:{icon:'news', w:'À la une', page:'actus'}, invest:{icon:'invest', w:'Investissements', page:'invest'}, sport:{icon:'sport', w:'Bandeau Sports', page:'sport'}};
 let ED = null, FICHE = null, apresGlisse = 0, glisseId = '';
 const modApplis = () => moduleDe('applis');

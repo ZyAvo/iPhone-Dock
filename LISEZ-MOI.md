@@ -2,7 +2,7 @@
 
 Un écran d'accueil façon iPhone, dans le navigateur : applis et dossiers, horloge et météo, « À la une », investissements, musique,
 et des pages **Actus**, **Sport** (matchs, classements, programme TV, écarts de cotes), **Vidéos** (films, séries, YouTube),
-**Investissements**, un **coffre** chiffré une page **TV** (chaînes de ton abonnement, avec un petit relais sur le PC pour la lecture) et une page **État** (santé des données, thème, synchronisation).
+**Investissements**, **Ambreval** (un petit jeu de vallée médiévale-fantastique), un **coffre** chiffré une page **TV** (chaînes de ton abonnement, avec un petit relais sur le PC pour la lecture) et une page **État** (santé des données, thème, synchronisation).
 Tout tourne sur GitHub : des tâches automatiques récupèrent les données, GitHub Pages publie le site. Rien à installer, rien de payant.
 
 - **iPhone** : ouvrir l'adresse du dock dans Safari → Partager → « Sur l'écran d'accueil ».
