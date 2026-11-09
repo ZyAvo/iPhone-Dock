@@ -430,6 +430,19 @@
    "seasonal": true
   },
   {
+   "id": "17567",
+   "region": "rintl",
+   "flag": "🌍",
+   "sport": "rugby",
+   "group": "rugby",
+   "name": "Championnat des nations",
+   "tv": [
+    "TF1"
+   ],
+   "tvTeam": "France",
+   "seasonal": true
+  },
+  {
    "id": "289234",
    "region": "rintl",
    "flag": "🌍",

@@ -6,7 +6,11 @@
   "minuit",
   "encre",
   "petrole",
-  "azur"
+  "azur",
+  "corail",
+  "menthe",
+  "aurore",
+  "framboise"
  ],
  "palettes_connues": [
   "bleu",
@@ -15,7 +19,11 @@
   "minuit",
   "encre",
   "petrole",
-  "azur"
+  "azur",
+  "corail",
+  "menthe",
+  "aurore",
+  "framboise"
  ],
  "palette": "bleu",
  "mode": "auto"

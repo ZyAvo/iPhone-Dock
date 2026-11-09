@@ -1,10 +1,10 @@
 {
- "date": "2026-11-08T10:14:40+00:00",
+ "date": "2026-11-09T08:30:58+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
    "onglet": "Sport",
-   "coches": 41,
+   "coches": 42,
    "ajouts": 0
   },
   "actus": {
@@ -54,7 +54,7 @@
   },
   "apparence": {
    "onglet": "Apparence",
-   "coches": 8,
+   "coches": 12,
    "ajouts": 0
   },
   "pronos": {
@@ -94,7 +94,7 @@
   },
   {
    "onglet": "Sport",
-   "ligne": 91,
+   "ligne": 92,
    "nom": "Écosse · Premiership",
    "statut": "ok",
    "message": "ESPN répond (soccer) Scottish Premiership"
