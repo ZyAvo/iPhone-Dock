@@ -1,4 +1,4 @@
-// mon-ecran-version: 5e1443e2
+// mon-ecran-version: a1adba65
 /* Mon Écran — noyau commun à toutes les pages, et base des futures applis dédiées (iPhone, Android, PC).
    Rien ici ne dépend d'une astuce de Safari : ce qui est propre à « l'iPhone en mode web » est rangé dans Noyau.iphoneWeb,
    et une appli dédiée pourra fournir window.MonEcranNatif (ouvrir un lien, garder la clé…) que le noyau utilisera en priorité.
@@ -525,7 +525,7 @@ background:radial-gradient(60% 45% at 10% 8%,color-mix(in oklab,var(--pd-acc) 30
 .pd .main{background:var(--pd-acc);color:var(--pd-on)}.pd .sec{color:var(--pd-acc);border:1px solid var(--pd-line)}`;
     const corps = `<main class="pd"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8.5 12h7"/></svg>
       <h1>Page désactivée</h1><p>La page <b>${nom}</b> est retirée de ton écran d'accueil${attente ? ' (choix fait sur cet appareil, en attente de report dans le classeur)' : ''}.</p>
-      <a class="main" href="reglages.html?retour=${retour}#accueil">Réactiver dans Réglages</a><a class="sec" href="index.html">Dock</a></main>`;
+      <a class="main" href="reglages.html?retour=${retour}#accueil">Réactiver dans Réglages</a><a class="sec" href="index.html">KiosK</a></main>`;
     if (d.readyState === 'loading') d.write(`<style>${css}</style></head><body>${corps}<plaintext hidden style="display:none">`);
     else { const st = d.createElement('style'); st.textContent = css; d.head.appendChild(st); d.body.innerHTML = corps; }
     d.title = `${nom} · page désactivée`;

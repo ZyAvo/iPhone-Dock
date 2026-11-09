@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="02a4797a">
+<meta name="mon-ecran-version" content="8a0e6298">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Réglages</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -363,7 +363,7 @@ html.desk .sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(440px, calc(1
 <header>
   <div class="wrap">
     <div class="top">
-      <a class="back" id="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span id="backT">Dock</span></a>
+      <a class="back" id="back" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span id="backT"><span class="k-marque"><svg class="k-logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9.2" height="9.2" rx="2.6"/><rect x="12.8" y="2" width="9.2" height="9.2" rx="2.6" opacity=".6"/><rect x="2" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".78"/><rect x="12.8" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".4"/></svg><span class="k-nom">KiosK</span></span></span></a>
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
     </div>
     <div class="title-row"><h1><span class="app-logo" data-logo-app aria-hidden="true"></span><span id="titre">Réglages</span></h1><span class="stamp" id="stamp"></span></div>
@@ -442,7 +442,8 @@ const PERSO = [
   {ico:'porte', t:'Réglages du portefeuille', d:'Page Investissements : cible, fiscalité, code', url:'invest.html?ouvrir=reglages', page:'invest'},
   {ico:'theme', t:'Thème, sauvegarde et synchronisation', d:'Page État', url:'etat.html'},
 ];
-const RETOURS = {index:['index.html', 'Dock'], actus:['actus.html', 'Actus'], sport:['sport.html', 'Sport'], videos:['videos.html', 'Vidéos'],
+const MARQUE_KIOSK = '<span class="k-marque"><svg class="k-logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9.2" height="9.2" rx="2.6"/><rect x="12.8" y="2" width="9.2" height="9.2" rx="2.6" opacity=".6"/><rect x="2" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".78"/><rect x="12.8" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".4"/></svg><span class="k-nom">KiosK</span></span>';   // v75
+const RETOURS = {index:['index.html', 'KiosK'], actus:['actus.html', 'Actus'], sport:['sport.html', 'Sport'], videos:['videos.html', 'Vidéos'],
                  invest:['invest.html', 'Investissements'], etat:['etat.html', 'État']};
 const params = new URLSearchParams(location.search), RETOUR = RETOURS[params.get('retour')] || null;
 
@@ -1195,8 +1196,8 @@ function rendre(){
   if (desk() && !E){ route = 'accueil'; return rendre(); }
   $('#titre').textContent = E && !desk() ? E.titre : 'Réglages';
   document.title = E ? `${E.titre} · Réglages` : 'Réglages';
-  const [bh, bt] = E && !desk() && !RETOUR ? ['#', 'Réglages'] : RETOUR || ['index.html', 'Dock'];   // v70 : « Dock » partout
-  $('#back').setAttribute('href', bh); $('#backT').textContent = bt;
+  const [bh, bt] = E && !desk() && !RETOUR ? ['#', 'Réglages'] : RETOUR || ['index.html', 'KiosK'];   // v75 : logo KiosK au lieu de « Dock »
+  $('#back').setAttribute('href', bh); $('#backT').innerHTML = bh === 'index.html' ? MARQUE_KIOSK : esc(bt);
   $('#outils').hidden = !E || !!E.special;
   document.querySelector('header').classList.toggle('sur-ecran', !!E && !desk());
   const seg = $('#seg');

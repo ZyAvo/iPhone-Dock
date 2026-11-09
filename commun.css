@@ -38,3 +38,6 @@
 .back,.acc-retour,.tab:not(.glass),.chip:not(.glass),.also a,.ong button,.seg button,.pa-chips button{position:relative}
 .back::after,.acc-retour::after,.tab:not(.glass)::after,.chip:not(.glass)::after,.also a::after,.ong button::after,.seg button::after,.pa-chips button::after{
   content:"";position:absolute;left:50%;top:50%;width:max(44px,100%);height:max(44px,100%);transform:translate(-50%,-50%);border-radius:inherit}
+/* v75 : marque KiosK dans le bouton de retour : l'icône de l'appli (4 tuiles) en petit, à la couleur du thème */
+.k-marque{display:inline-flex;align-items:center;gap:6px;font-weight:700;letter-spacing:-.015em}
+.back svg.k-logo{width:17px;height:17px;flex:none;fill:currentColor;stroke:none}

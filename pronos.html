@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="4f4ff9f1">
+<meta name="mon-ecran-version" content="a71c8ffc">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -275,6 +275,9 @@ html.desk .f-sheet{border-radius:26px}
 .p-hero-t{display:flex;align-items:center;gap:12px}
 .p-hero-t b{display:block;font-size:1.15rem;letter-spacing:-.01em}
 .p-hero-t div > span{display:block;font-size:.8rem;color:var(--ink-soft);margin-top:2px}
+.p-roue{margin-left:auto;flex:none;width:44px;height:44px;margin-right:-6px;display:grid;place-items:center;border-radius:50%;color:var(--ink-soft)}   /* v75 : accès à Mon profil */
+.p-roue svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.p-roue:active{transform:scale(.92)}
 .p-hero-n{border-radius:16px;padding:10px 12px;background:color-mix(in oklab, var(--accent) 12%, transparent);display:grid;gap:1px}
 .p-hero-n span{font-size:.66rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft)}
 .p-hero-n b{font-size:1.45rem;letter-spacing:-.02em;color:var(--accent);font-variant-numeric:tabular-nums}
@@ -383,6 +386,30 @@ html.desk .f-sheet{border-radius:26px}
 .p-tro .w span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .p-tro .w .p-av{width:20px;height:20px;font-size:11px}
 .p-tro .v{font-size:.72rem;color:var(--ink-soft)}
+/* v75 : classement détaillé, mêmes codes que les classements de la page Sport (filet à gauche, rang coloré, ligne teintée) */
+.p-tab{border-radius:22px;overflow:hidden}
+.p-tab-d{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:inherit}
+.p-tb{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums;font-size:.8rem}
+.p-tb th,.p-tb td{padding:9px 3px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+.p-tb tbody tr:last-child th,.p-tb tbody tr:last-child td{border-bottom:0}
+.p-tb thead th{font-size:.62rem;font-weight:600;letter-spacing:0;color:var(--ink-soft);padding-block:10px 8px}
+.p-tb th:not(.pj),.p-tb td{min-width:33px}
+html.desk .p-tb th:not(.pj),html.desk .p-tb td{min-width:58px}
+.p-tb tr > :last-child{padding-right:10px}
+.p-tb .pj{text-align:left;font-weight:400;width:100%;max-width:0;min-width:104px;border-left:4px solid transparent;padding-left:6px}
+.p-tb thead .pj{font-weight:600}
+.p-tb .pc{display:flex;align-items:center;gap:5px;min-width:0}
+.p-tb .rk{flex:none;width:1.5em;display:grid;justify-items:center;font-weight:700;color:var(--ink-soft);line-height:1.05}
+.p-tb .rk .p-fl{font-size:.56rem;margin-top:1px}
+.p-tb .pn{font-weight:600;font-size:.84rem;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis}
+.p-tb .moi .pn{color:var(--accent)}
+.p-tb .key{font-weight:800;font-size:.92rem;color:var(--ink)}
+.p-tb tbody td{color:color-mix(in oklab, var(--ink) 82%, var(--ink-soft))}
+.p-tb tr.z-1{--nc:#0b7a3e}.p-tb tr.z-2{--nc:#35b564}.p-tb tr.z-a{--nc:#f08c1e}.p-tb tr.z-d{--nc:#e0393e}
+.p-tb tr[class*="z-"] .pj{border-left-color:var(--nc)}
+.p-tb tr[class*="z-"] > *{background:color-mix(in oklab, var(--nc) 15%, transparent)}
+.p-tb tr.z-1 > *{background:color-mix(in oklab, var(--nc) 26%, transparent)}
+.p-tb tr[class*="z-"] .rk > span:first-child{color:color-mix(in oklab, var(--nc) 72%, var(--ink))}
 .p-liste{border-radius:22px;padding:2px 14px}
 .p-r{display:grid;grid-template-columns:22px auto minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
 .p-r:first-child{border-top:0}
@@ -468,7 +495,9 @@ html.desk .acc-grille{grid-template-columns:repeat(3,minmax(0,1fr))}
 .acc-t small{font-size:.76rem;color:var(--ink-soft);line-height:1.4}
 .acc-cr{font-size:1.15rem;color:var(--accent);font-variant-numeric:tabular-nums}
 .acc-f{font-size:1.6rem;color:var(--ink-soft);flex:none}
-.acc-retour{align-self:flex-start;display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:99px;font-size:.86rem;font-weight:600;color:var(--accent);
+.top-g{display:flex;align-items:center;gap:12px;min-width:0}   /* v75 : KiosK et Accueil côte à côte, toujours visibles (en-tête collant) */
+.acc-retour[hidden]{display:none}
+.acc-retour{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;white-space:nowrap;border-radius:99px;font-size:.86rem;font-weight:600;color:var(--accent);
   background:var(--card);border:1px solid var(--line)}
 .regles ul{margin:0;padding-left:18px;display:grid;gap:7px;font-size:.84rem;color:var(--ink-soft);line-height:1.45}
 .regles li b,.regles p b{color:var(--ink)}
@@ -490,7 +519,7 @@ html.desk .p-grille .jour{grid-column:1 / -1}
 <header>
   <div class="wrap">
     <div class="top">
-      <a class="back" href="index.html" aria-label="Retour au dock"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Dock</a>
+      <span class="top-g"><a class="back" href="index.html" aria-label="Retour à KiosK"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span class="k-marque"><svg class="k-logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9.2" height="9.2" rx="2.6"/><rect x="12.8" y="2" width="9.2" height="9.2" rx="2.6" opacity=".6"/><rect x="2" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".78"/><rect x="12.8" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".4"/></svg><span class="k-nom">KiosK</span></span></a><button type="button" class="acc-retour" id="accBtn" data-section="accueil" hidden>‹ Accueil</button></span>
       <span class="top-actions"><button class="icon-btn glass" id="invBtn" type="button" aria-label="Inviter des amis" hidden><svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
       <button class="icon-btn glass" id="refreshBtn" type="button" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></span>
     </div>
@@ -916,7 +945,6 @@ function classement(per, sansDernierJour){
     .sort((a, b) => b.pts - a.pts || b.ex - a.ex || a.nb - b.nb || a.n.localeCompare(b.n)).map((x, i) => ({...x, pos:i + 1}));
 }
 const rangTxt = p => p === 1 ? '1ᵉʳ' : `${p}ᵉ`;
-const stats = x => x.nb ? [x.ex ? `🎯 ${x.ex}` : '', `✓ ${Math.round(100 * x.bons / x.nb)} %`, x.serie >= 2 ? `🔥 ${x.serie}` : ''].filter(Boolean).join(' · ') : 'Pas encore de prono noté';
 function fleche(x, avant){
   if (!avant) return '';
   const y = avant.find(z => z.n === x.n); if (!y) return '';
@@ -930,6 +958,7 @@ function rendreTout(){
   const me = BASE.moi(), out = $('#out');
   $('#stamp').textContent = SIM ? 'Simulation' : me ? me.groupe : '';
   $('#invBtn').hidden = !me;
+  $('#accBtn').hidden = !(SECTION === 'regles' || (me && SECTION !== 'accueil'));   // v75 : « ‹ Accueil » dans l'en-tête : reste visible au défilement
   const bandeau = (SIM ? `<div class="bandeau glass"><span>🧪</span><span><b>Mode simulation</b> : tes pronos restent sur cet appareil, face à 3 amis fictifs. Les matchs et les résultats sont les vrais.</span></div>` : '')
     + (PANNE ? `<div class="bandeau glass"><span>⚠️</span><span>${esc(PANNE)}</span></div>` : '')
     + (me && !SIM && LIEN.p && (LIEN.p.toLowerCase() !== me.pseudo.toLowerCase() || (LIEN.g && LIEN.g !== me.groupe))
@@ -937,18 +966,17 @@ function rendreTout(){
         <span class="btns"><button type="button" class="btn" data-autre>Me connecter en ${esc(LIEN.p)}</button><button type="button" class="btn" data-garder>Rester ${esc(me.pseudo)}</button></span></span></div>` : '');
   JEU = SECTION === 'plus' ? 'plus' : 'base';
   const pose = (!me || SECTION === 'accueil') ? installHTML(me) : '';                // v72 : comment installer les Pronos sur le téléphone
-  if (SECTION === 'regles'){ out.innerHTML = retourHTML() + reglesHTML(); return; }
+  if (SECTION === 'regles'){ out.innerHTML = reglesHTML(); return; }
   if (!me){ out.innerHTML = bandeau + pose + inscriptionHTML(); return; }
   if (SECTION === 'accueil'){ out.innerHTML = bandeau + pose + accueilHTML(me); return; }
-  if (SECTION === 'paris'){ out.innerHTML = bandeau + retourHTML() + parisHTML(me); return; }
-  if (SECTION === 'extras'){ out.innerHTML = bandeau + retourHTML() + extrasHTML(); return; }
+  if (SECTION === 'paris'){ out.innerHTML = bandeau + parisHTML(me); return; }
+  if (SECTION === 'extras'){ out.innerHTML = bandeau + extrasHTML(); return; }
   if (SECTION === 'plus' && !actifs().length){ SECTION = 'extras'; return rendre(); }
   const ong = `<div class="ong glass" role="tablist">${[['jouer', 'À pronostiquer'], ['res', 'Résultats'], ['cl', 'Classement']].map(([k, t]) => `<button type="button" role="tab" data-vue="${k}" aria-selected="${VUE === k}">${t}</button>`).join('')}</div>`;
   const tete = JEU === 'plus' ? `<div class="x-tete glass"><span><b>➕ Pronos en plus</b><small>${esc(Noyau.pronos.extrasActifs().map(L => L.nom).join(' · '))}</small></span><button type="button" class="btn" data-section="extras">⚙︎ Choisir</button></div>` : '';
-  out.innerHTML = bandeau + retourHTML() + tete + ong + (VUE === 'jouer' ? jouerHTML(me) : VUE === 'res' ? resHTML(me) : clHTML(me));
+  out.innerHTML = bandeau + tete + ong + (VUE === 'jouer' ? jouerHTML(me) : VUE === 'res' ? resHTML(me) : clHTML(me));
 }
 /* ---------- accueil et règles (v62) : à chaque ouverture, l'accueil mène aux Règles, aux Pronos et aux Paris ---------- */
-const retourHTML = () => '<button type="button" class="acc-retour" data-section="accueil">‹ Accueil</button>';
 function carteAcc(sec, emo, titre, l1, l2){
   return `<button type="button" class="acc-c glass" data-section="${sec}"><span class="acc-e" aria-hidden="true">${emo}</span>
     <span class="acc-t"><b>${titre}</b><span>${l1}</span>${l2 ? `<small>${l2}</small>` : ''}</span><span class="acc-f" aria-hidden="true">›</span></button>`;
@@ -964,7 +992,7 @@ function accueilHTML(me){
   else if (PARIS){ const s = soldeDe(me), n = Object.values(PARIS.cotes || {}).filter(c => c.t > now).length;
     la1 = `<b class="acc-cr">${s.solde}</b> crédits${s.enJeu ? ` · ${s.enJeu} en jeu` : ''}`;
     la2 = n ? `${pl(n, 'match')} avec cote aujourd'hui` : "Cotes vers 8 h le jour du match"; }
-  return `<section class="p-hero glass"><div class="p-hero-t">${avMoi(me)}<div><b>Salut ${esc(me.pseudo)} !</b><span>Groupe ${esc(me.groupe)} · ${pl(ETAT.joueurs.length, 'joueur')}</span></div></div></section>
+  return `<section class="p-hero glass"><div class="p-hero-t">${avMoi(me)}<div><b>Salut ${esc(me.pseudo)} !</b><span>Groupe ${esc(me.groupe)} · ${pl(ETAT.joueurs.length, 'joueur')}</span></div><button type="button" class="p-roue" data-profil aria-label="Paramètres de mon profil" title="Mon profil"><svg viewBox="0 0 24 24" aria-hidden="true">${Noyau.icones.cog}</svg></button></div></section>
     <div class="acc-grille">${carteAcc('pronos', '🎯', 'Pronos', lp1, lp2)}${carteAcc('paris', '🎟️', 'Paris', la1, la2)}${carteExtras(me)}${carteAcc('regles', '📖', 'Règles', 'Points, crédits et comment jouer', '')}</div>
     <p class="note">Jeu entre amis, gratuit et sans argent.</p>`;
 }
@@ -1176,6 +1204,17 @@ function podiumHTML(l, avant, me){
     : '<div class="p-pod p-vide"><div class="p-marche" style="height:40px"></div></div>';
   return `<section class="p-podium glass">${pod(l[1])}${pod(l[0])}${pod(l[2])}</section>`;
 }
+/* v75 : classement complet sous le podium, du premier au dernier. Couleurs comme en Sport : 1er vert foncé, 2e vert, avant-dernier orange, dernier rouge
+   (comptés parmi ceux qui ont au moins un prono noté, comme la Lanterne rouge : un absent ne prend pas le rouge à la place du dernier). */
+function tableauHTML(l, avant, me){
+  const joues = l.filter(x => x.nb), N = joues.length;
+  const zone = x => { const i = joues.indexOf(x) + 1; return !i ? '' : N >= 2 && i === N ? 'z-d' : i === 1 ? 'z-1' : i === 2 ? 'z-2' : i === N - 1 ? 'z-a' : ''; };
+  const noms = [['Pronos', 'Pronos notés'], ['Justes', 'Pronos justes : bon résultat ou score exact'], ['%', 'Pourcentage de pronos justes'], ['Exacts', 'Scores exacts : pronos à 3 points'], ['Série', 'Série en cours : bons pronos d\'affilée'], ['Pts', 'Points']];
+  const ligne = x => { const f = v => x.nb ? v : '–', fl = fleche(x, avant), z = zone(x), cls = [z, x.n === me.pseudo ? 'moi' : ''].filter(Boolean).join(' ');
+    return `<tr${cls ? ` class="${cls}"` : ''}><th class="pj" scope="row"><span class="pc"><span class="rk"><span>${x.pos}</span>${fl}</span>${avHTML(x.n)}<span class="pn">${esc(x.n)}</span></span></th>
+      <td>${f(x.nb)}</td><td>${f(x.bons)}</td><td>${f(Math.round(100 * x.bons / x.nb))}</td><td>${f(x.ex)}</td><td>${f(x.serie)}</td><td class="key">${x.pts}</td></tr>`; };
+  return `<div class="p-tab glass"><div class="p-tab-d"><table class="p-tb"><thead><tr><th class="pj" scope="col">Joueur</th>${noms.map(([c, t]) => `<th scope="col" title="${esc(t)}">${c}</th>`).join('')}</tr></thead><tbody>${l.map(ligne).join('')}</tbody></table></div></div>`;
+}
 function tropheesHTML(l){
   if (!l.some(x => x.nb)) return '';
   const max = (k, min = 1) => { const x = [...l].sort((a, b) => b[k] - a[k] || a.pos - b.pos)[0]; return x && x[k] >= min ? x : null; };
@@ -1192,9 +1231,9 @@ function clHTML(me){
   const l = classement(PERIODE), avant = classement(PERIODE, true), joue = l.some(x => x.nb);
   const per = `<div class="ong glass" role="tablist">${[['mois', 'Ce mois-ci'], ['saison', 'Saison']].map(([k, t]) => `<button type="button" role="tab" data-per="${k}" aria-selected="${PERIODE === k}">${t}</button>`).join('')}</div>`;
   const corps = joue
-    ? podiumHTML(l, avant, me) + tropheesHTML(l) + (l.length > 3 ? `<div class="p-liste glass">${l.slice(3).map(x => `<div class="p-r${x.n === me.pseudo ? ' moi' : ''}"><b>${x.pos}</b>${avHTML(x.n)}<span class="p-r-n">${esc(x.n)}<small>${stats(x)}</small></span>${fleche(x, avant)}<span class="p-r-pts">${x.pts}</span></div>`).join('')}</div>` : '')
+    ? podiumHTML(l, avant, me) + tableauHTML(l, avant, me) + tropheesHTML(l)
     : `<div class="carte glass"><h2>🏁 Le classement démarre au premier match terminé</h2><p>Dans le groupe : ${l.map(x => `${avHTML(x.n)} ${esc(x.n)}`).join(' &nbsp; ')}</p></div>`;
-  return per + corps + (JEU === 'plus' ? `<p class="note">Pronos en plus : classement entre ceux qui y jouent. Foot : score exact 3 points, bon résultat 1 point. NBA et NFL : bon vainqueur 1 point. À égalité : le plus de pronos à 3 points, puis le moins de pronos.</p>` + (SIM ? simOutils() : '') : '') + (JEU === 'plus' ? '' : `<p class="note">Foot : score exact 3 points, bon résultat (vainqueur ou nul) 1 point. Rugby : bon résultat 1 point, et 3 points pour le plus proche du score parmi ceux qui ont le bon résultat (plus petite somme des écarts de points). À égalité : le plus de pronos à 3 points, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison = les ${JOURS_APRES} derniers jours dans cet essai.` : ''} ▲▼ : places gagnées ou perdues depuis la dernière journée.</p>`
+  return per + corps + (JEU === 'plus' ? `<p class="note">Pronos en plus : classement entre ceux qui y jouent. Foot : score exact 3 points, bon résultat 1 point. NBA et NFL : bon vainqueur 1 point. À égalité : le plus de pronos à 3 points, puis le moins de pronos. Justes : bon résultat ou score exact. Exacts : pronos à 3 points. Série : bons pronos d'affilée en cours.</p>` + (SIM ? simOutils() : '') : '') + (JEU === 'plus' ? '' : `<p class="note">Foot : score exact 3 points, bon résultat (vainqueur ou nul) 1 point. Rugby : bon résultat 1 point, et 3 points pour le plus proche du score parmi ceux qui ont le bon résultat (plus petite somme des écarts de points). À égalité : le plus de pronos à 3 points, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison = les ${JOURS_APRES} derniers jours dans cet essai.` : ''} ▲▼ : places gagnées ou perdues depuis la dernière journée. Justes : bon résultat ou score exact. Exacts : pronos à 3 points. Série : bons pronos d'affilée en cours.</p>`
     + (SIM ? simOutils() : '')) + appareilHTML(me);
 }
 const simOutils = () => `<div class="carte glass"><h2>Outils de simulation</h2><p>Pour voir le classement vivre tout de suite : des pronos tirés au hasard pour toi sur les matchs déjà joués.</p>
