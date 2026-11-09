@@ -1,116 +1,16 @@
 {
  "v": 1,
  "info": "Choix faits dans l'appli Mon Écran ; la tâche « Configuration » les reporte dans configuration.xlsx. Ne pas modifier à la main.",
- "maj": "2026-11-08T09:18:12.993Z",
+ "maj": "2026-11-09T09:46:59.640Z",
  "par": "iPhone",
  "modifs": [
   {
-   "uid": "mw6ij6fp-6q3r064u25",
-   "at": "2026-11-07T14:42:49.814Z",
+   "uid": "mw92ubcd-4n372c2o20",
+   "at": "2026-11-09T09:46:54.061Z",
    "par": "iPhone",
-   "id": "ap:accueil:jeux",
+   "id": "mk:eurusd",
    "champs": {
-    "Oui": "Non"
-   }
-  },
-  {
-   "uid": "mw6ija6u-4n4z110329",
-   "at": "2026-11-07T14:42:54.679Z",
-   "par": "iPhone",
-   "disposition": {
-    "module": "applis",
-    "listes": [
-     {
-      "cle": "accueil",
-      "ids": [
-       "ap:accueil:finance",
-       "ap:accueil:travail",
-       "ap:accueil:medias",
-       "ap:accueil:jeux",
-       "ap:accueil:videos",
-       "ap:accueil:pronos",
-       "ap:accueil:sports"
-      ]
-     },
-     {
-      "cle": "finance",
-      "dossier": true,
-      "nom": "Finance",
-      "ids": [
-       "ap:finance:trade-republic",
-       "ap:finance:boursobank",
-       "ap:finance:cyberplus",
-       "ap:finance:swile",
-       "ap:finance:esalia"
-      ]
-     },
-     {
-      "cle": "travail",
-      "dossier": true,
-      "nom": "Travail",
-      "ids": [
-       "ap:travail:outlook",
-       "ap:travail:teams",
-       "ap:travail:word",
-       "ap:travail:powerpoint",
-       "ap:travail:onenote",
-       "ap:travail:power-bi",
-       "ap:travail:sap-concur",
-       "ap:travail:fichiers",
-       "ap:travail:proton-drive",
-       "ap:travail:portail-entreprise",
-       "ap:travail:authenticator",
-       "ap:travail:linkedin"
-      ]
-     },
-     {
-      "cle": "medias",
-      "dossier": true,
-      "nom": "Médias",
-      "ids": [
-       "ap:medias:videolite",
-       "ap:medias:canal",
-       "ap:medias:prime-video",
-       "ap:medias:smartersplayerlite"
-      ]
-     },
-     {
-      "cle": "jeux",
-      "dossier": true,
-      "nom": "Jeux",
-      "ids": [
-       "ap:jeux:chess",
-       "ap:jeux:brawl-stars",
-       "ap:jeux:songs-of-conquest"
-      ]
-     },
-     {
-      "cle": "bas_gauche",
-      "ids": [
-       "ap:bas_gauche:claude",
-       "ap:bas_gauche:whatsapp",
-       "ap:bas_gauche:messenger",
-       "ap:bas_gauche:x"
-      ]
-     },
-     {
-      "cle": "bas_droite",
-      "ids": [
-       "ap:bas_droite:proton-vpn",
-       "ap:bas_droite:bitwarden",
-       "ap:bas_droite:cartes",
-       "ap:bas_droite:navigation"
-      ]
-     },
-     {
-      "cle": "navigation",
-      "ids": [
-       "ap:navigation:waze",
-       "ap:navigation:plans",
-       "ap:navigation:google-maps"
-      ]
-     }
-    ]
+    "Widget accueil": ""
    }
   }
  ]
