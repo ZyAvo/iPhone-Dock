@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 651febe1
+# mon-ecran-version: a0c576d0
 # Lit le classeur de configuration (configuration.xlsx) et écrit les réglages du dock dans config/ :
 #   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json, applis.json
 #   config/config.js                     → les mêmes réglages en un seul fichier, chargé par les pages (window.MON_ECRAN_CONFIG)
@@ -517,6 +517,65 @@ def decaler_plages(texte, fin, nfin):
         out.append(rg.coord)
     return ' '.join(out)
 
+# v81 : pages apparues après la création du classeur → leur ligne dans l'onglet Accueil (id, élément, détail, placée après, Oui)
+PAGES_AJOUTEES = [('ambreval', 'Ambreval (jeu)', 'le jeu de la vallée', 'pronos', 'Oui')]
+
+def inserer_ligne(wb, ws, r, modele):
+    """Insère une ligne vide en r (copie la mise en forme de la ligne « modele ») ; fusions, listes Oui/Non, mises en forme,
+    filtre, hauteurs et formules de synthèse qui visent cet onglet suivent."""
+    from openpyxl.formatting.formatting import ConditionalFormattingList
+    from openpyxl.worksheet.cell_range import MultiCellRange
+    fin, last, bas = r - 1, ws.max_column, ws.max_row
+    fus = [m.coord for m in list(ws.merged_cells.ranges) if m.max_row >= r]
+    for c in fus: ws.unmerge_cells(c)
+    hauteurs = {k: ws.row_dimensions[k].height for k in range(r, bas + 1)}
+    ws.insert_rows(r)
+    for k in range(bas + 1, r, -1): ws.row_dimensions[k].height = hauteurs.get(k - 1)
+    ws.row_dimensions[r].height = ws.row_dimensions[modele].height
+    for c in range(1, last + 1):
+        x = ws.cell(modele, c)
+        if x.has_style: ws.cell(r, c)._style = copy.copy(x._style)
+    for c in fus: ws.merge_cells(decaler_plages(c, fin, r))
+    for dv in ws.data_validations.dataValidation: dv.sqref = MultiCellRange(decaler_plages(dv.sqref, fin, r))
+    cf = ConditionalFormattingList()
+    for f in ws.conditional_formatting:
+        for rule in f.rules: cf.add(decaler_plages(f.sqref, fin, r), rule)
+    ws.conditional_formatting = cf
+    if ws.auto_filter.ref: ws.auto_filter.ref = decaler_plages(ws.auto_filter.ref, fin, r)
+    q = "'?" + re.escape(ws.title) + "'?!"
+    plage = re.compile(q + r'(\$?[A-Z]+\$?)(\d+)(:\$?[A-Z]+\$?)(\d+)')
+    dec = lambda n: str(int(n) + 1) if int(n) >= r else n
+    for w in wb.worksheets:
+        for row in w.iter_rows():
+            for x in row:
+                if isinstance(x.value, str) and x.value.startswith('=') and ws.title in x.value:
+                    x.value = plage.sub(lambda mm: mm.group(0)[:mm.start(1) - mm.start(0)] + mm.group(1) + dec(mm.group(2)) + mm.group(3) + dec(mm.group(4)), x.value)
+
+def completer_pages(wb):
+    """Ajoute dans l'onglet Accueil les lignes des pages créées après le classeur (PAGES_AJOUTEES), pour qu'elles se règlent
+    comme les autres (classeur et Réglages › Pages et widgets). Renvoie la liste des pages ajoutées."""
+    ws = feuilles(wb).get('accueil')
+    if ws is None: return []
+    H = entetes(ws)
+    if not all(h in H for h in ('Oui', 'Technique')): return []
+    faits = []
+    for pid, nom, detail, apres, oui_ in PAGES_AJOUTEES:
+        ids = {txt(ws.cell(k, 1).value): k for k in range(6, ws.max_row + 1)}
+        if f'pg:{pid}' in ids: continue
+        pg = [k for i, k in ids.items() if i.startswith('pg:')]
+        if not pg: continue
+        ref = ids.get(f'pg:{apres}', max(pg)); r = ref + 1
+        inserer_ligne(wb, ws, r, ref)
+        for c in range(1, ws.max_column + 1): ws.cell(r, c).value = None
+        ws.cell(r, 1).value = f'pg:{pid}'
+        if 'Section' in H: ws.cell(r, H['Section']).value = ws.cell(ref, H['Section']).value
+        ws.cell(r, 3).value = nom
+        if 'Détail' in H: ws.cell(r, H['Détail']).value = detail or None
+        ws.cell(r, H['Oui']).value = oui_ or None
+        ws.cell(r, H['Technique']).value = json.dumps({'support': 'ok', 'def': pid}, ensure_ascii=False)
+        faits.append(nom)
+    return faits
+
 def ranger_applis(wb, ws, listes, REF):
     """Range les lignes de l'onglet Applis comme l'écran de l'appli (disposition complète envoyée par Réglages) :
     ordre des sections et des lignes, appli déplacée d'un dossier à l'autre (même identifiant), dossier renommé ou créé,
@@ -830,8 +889,10 @@ def catalogue(M, modifs):
 # ---------- Programme principal ----------
 def main():
     wb = load_workbook(SRC)
+    nouvelles_pages = completer_pages(wb)                                      # v81 : avant les choix de l'appli (ils peuvent viser ces lignes)
+    if nouvelles_pages: print(f"Onglet Accueil : ligne ajoutée pour {', '.join(nouvelles_pages)}")
     modifs = appliquer_modifs(wb, MODIFS)
-    if modifs['change']:
+    if modifs['change'] or nouvelles_pages:
         wb.save(SRC)                                                           # le classeur du dépôt garde les choix faits dans l'appli
     RAPPORT['modifs'] = {k: modifs.get(k) for k in ('recues', 'nouvelles', 'erreur') if modifs.get(k) is not None}
     if modifs['recues'] or modifs.get('erreur'):

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="93ac0563">
+<meta name="mon-ecran-version" content="f1404d99">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Réglages</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -723,6 +723,7 @@ function noteAccueil(it){
     if (w && wg(w[0])) n.push(`le widget ${w[1]} reste, sans lien vers la page`);
     if (it.def === 'cachee') n.push('plus d\'appui long pour l\'ouvrir');
     if (it.def === 'pronos') n.push('la page se ferme aussi pour tes amis (leur lien ne s\'ouvre plus)');   // v66
+    if (it.def === 'ambreval') n.push('ta partie reste enregistrée : elle reprend si tu le réactives');   // v81
   }
   return n.length ? `<span class="etq">${n.map(t => `<span class="bd gr">${esc(t)}</span>`).join('')}</span>` : '';
 }
