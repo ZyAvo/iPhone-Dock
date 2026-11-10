@@ -1,5 +1,5 @@
-// mon-ecran-version: 5e2396fd
-/* QM27 (v84, lot 2) — gestion du club, sans affichage : window.QMC.
+// mon-ecran-version: ddc95db8
+/* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
    Appelé par le moteur (qm27.js) : initMonde, semaine, avantSaison, apresSaison, nouveauJoueur, dureeBlessure, migrer. */
@@ -13,7 +13,8 @@ const n20 = j => Q().note20(j, j.poste);
 const nomJ = j => j ? `${j.p} ${j.n}` : '?';
 const euros = x => { const a = Math.abs(x), s = x < 0 ? '−' : ''; return a >= 1e6 ? `${s}${(a / 1e6).toFixed(a >= 1e7 ? 1 : 2).replace('.', ',')} M€` : a >= 1e3 ? `${s}${Math.round(a / 1e3)} k€` : `${s}${Math.round(a)} €`; };
 const club = (M, id) => M.clubs[id];
-const estJoueur = (M, id) => M.manager && M.manager.club === id;
+const estJoueur = (M, id) => !!id && !!M.manager && M.manager.club === id;
+const aClub = M => !!(M.manager && M.manager.club);
 
 /* ---------- Argent ---------- */
 const salaireBase = n => ECO.salaireBase * Math.pow(ECO.salaireFacteur, n - ECO.salairePivot);
@@ -28,16 +29,20 @@ function valeur(M, j){
   const ctr = !j.club ? 0 : reste <= 0 ? 0.6 : reste === 1 ? 0.85 : 1;
   return arrondi(salaireBase(n) * ECO.semaines * ECO.valeurAns * age * (1 + Math.max(0, j.cache.pot - n) * 0.08) * ctr, 5000);
 }
+/* v85 : installations (niveau 2 = référence) */
+const niv = (c, k) => (c.inst || {})[k] || 2;
+const multInst = (c, k) => 0.7 + 0.15 * niv(c, k);
+const entretienInst = c => Object.entries(EQ.inst).reduce((s, [k, v]) => s + v.entretien * niv(c, k), 0);
 const masse = (M, c) => c.effectif.reduce((s, id) => s + ((M.joueurs[id] || {}).contrat || {sal:0}).sal, 0) + Object.values(c.staff || {}).reduce((s, x) => s + x.sal, 0);
 function revenusSaison(c){
-  const prixRef = 6 + c.rep / 10, aff = c.stade * borne(0.35 + c.rep / 170, 0.15, 1);
-  return 15 * aff * (prixRef + ECO.repasBase + c.rep / 60) + ECO.tv + c.rep * ECO.tvRep + ECO.sponsors + Math.pow(c.rep / 85, 2) * ECO.sponsorsRep + Math.pow(c.rep / 85, 2.5) * ECO.merch;
+  const prixRef = 6 + c.rep / 10, aff = c.stade * borne(0.35 + c.rep / 170 + 0.02 * (niv(c, 'tribunes') - 2), 0.15, 1);
+  return 15 * aff * (prixRef + (ECO.repasBase + c.rep / 60) * multInst(c, 'buvettes')) + ECO.tv + c.rep * ECO.tvRep + ECO.sponsors + Math.pow(c.rep / 85, 2) * ECO.sponsorsRep + Math.pow(c.rep / 85, 2.5) * ECO.merch * multInst(c, 'boutique');
 }
 const masseMax = c => arrondi(revenusSaison(c) * ECO.masse / ECO.semaines, 500);
 const prixRef = c => Math.round(6 + c.rep / 10);
-const finVide = () => ({rec:{billetterie:0, restauration:0, tv:0, sponsors:0, merch:0, primes:0, ventes:0}, dep:{salaires:0, staff:0, stade:0, deplacements:0, balais:0, achats:0, indemnites:0}});
+const finVide = () => ({rec:{billetterie:0, restauration:0, tv:0, sponsors:0, merch:0, primes:0, ventes:0}, dep:{salaires:0, staff:0, stade:0, deplacements:0, balais:0, achats:0, indemnites:0, travaux:0}});
 const NOMS_REC = {billetterie:'Billetterie', restauration:'Restauration', tv:'Droits TV', sponsors:'Sponsors', merch:'Boutique', primes:'Primes de classement', ventes:'Ventes de joueurs'};
-const NOMS_DEP = {salaires:'Salaires des joueurs', staff:'Salaires du staff', stade:'Entretien du stade', deplacements:'Déplacements', balais:'Balais', achats:'Achats de joueurs', indemnites:'Indemnités'};
+const NOMS_DEP = {salaires:'Salaires des joueurs', staff:'Salaires du staff', stade:'Entretien du stade', deplacements:'Déplacements', balais:'Balais', achats:'Achats de joueurs', indemnites:'Indemnités', travaux:'Travaux'};
 function compter(c, sens, poste, x){ c.fin.saison[sens][poste] = (c.fin.saison[sens][poste] || 0) + x; c.budget += sens === 'rec' ? x : -x; }
 
 /* ---------- Création ---------- */
@@ -67,6 +72,9 @@ function creerLibre(M, r){
 const ENT_DEFAUT = () => ({P:{f:'technique', i:2}, B:{f:'technique', i:2}, A:{f:'technique', i:2}, G:{f:'technique', i:2}});
 function completerClub(M, r, c){
   if (!c.staff) c.staff = staffClub(M, r, c);
+  for (const [role] of D.STAFF) if (!c.staff[role]) c.staff[role] = creerStaff(M, r, role, 5 + c.rep / 9 + r.gauss() * 2, r.pondere(D.ORIGINES[c.nat]));   // v85 : nouveau poste
+  if (!c.inst){ const n = borne(1 + Math.floor((c.rep - 40) / 15), 1, 4); c.inst = {boutique:n, buvettes:n, tribunes:n, formation:n}; }
+  if (!c.travaux) c.travaux = [];
   if (!c.fin) c.fin = {saison:finVide(), derniere:null, hist:[]};
   if (!c.entrainement) c.entrainement = ENT_DEFAUT();
   if (c.prix == null) c.prix = prixRef(c);
@@ -144,7 +152,7 @@ function entrainement(M, S, r){
       if (g.i > 1 && r() < ENT.blessure * g.i * g.i * j.cache.frag / 10){
         const b = D.BLESSURES[r.ent(0, 3)], jours = dureeBlessure(M, c.id, r.ent(b[1], Math.min(b[2], 12)));
         j.bless = {nom:b[0] + ' (à l\'entraînement)', jours};
-        if (moi) Q().message(M, `Blessure à l'entraînement : ${nomJ(j)}`, `${b[0]}. Indisponible environ ${jours} jours.`, 'bless');
+        if (moi) Q().message(M, `Blessure à l'entraînement : ${nomJ(j)}`, `${b[0]}. Indisponible environ ${jours} jour${jours > 1 ? 's' : ''}.`, 'bless');
       }
     }
     if (moi) for (const p of ['P', 'B', 'A', 'G']) if (E[p].f === 'tactique') tactique++;
@@ -164,7 +172,7 @@ function rapportEntrainement(M){
 /* ---------- Finances de la semaine ---------- */
 function formeRecente(M, c){ const t = M.tables[c.ligue] && M.tables[c.ligue][c.id]; return t ? (t.forme || []).reduce((s, f) => s + (f === 'V' ? 1 : f === 'D' ? -1 : 0), 0) : 0; }
 function remplissage(M, c, adv){
-  return borne(0.35 + c.rep / 170 + 0.03 * formeRecente(M, c) + ((adv ? adv.rep : 60) - 60) / 400 - 0.9 * (c.prix / prixRef(c) - 1), 0.15, 1);
+  return borne(0.35 + c.rep / 170 + 0.03 * formeRecente(M, c) + ((adv ? adv.rep : 60) - 60) / 400 - 0.9 * (c.prix / prixRef(c) - 1) + 0.02 * (niv(c, 'tribunes') - 2), 0.15, 1);
 }
 function finances(M, S){
   const n = ECO.semaines;
@@ -174,16 +182,16 @@ function finances(M, S){
     if (m && m.ligue !== 'sixn'){
       if (m.dom === c.id){
         const aff = Math.round(c.stade * remplissage(M, c, club(M, m.ext)));
-        compter(c, 'rec', 'billetterie', aff * c.prix); compter(c, 'rec', 'restauration', aff * (ECO.repasBase + c.rep / 60));
+        compter(c, 'rec', 'billetterie', aff * c.prix); compter(c, 'rec', 'restauration', aff * (ECO.repasBase + c.rep / 60) * multInst(c, 'buvettes'));
         if (m.res && estJoueur(M, c.id)) m.res.affluence = aff;
       } else compter(c, 'dep', 'deplacements', ECO.deplacement);
     }
     compter(c, 'rec', 'tv', (ECO.tv + c.rep * ECO.tvRep) / n);
     compter(c, 'rec', 'sponsors', (ECO.sponsors + Math.pow(c.rep / 85, 2) * ECO.sponsorsRep) / n);
-    compter(c, 'rec', 'merch', Math.pow(c.rep / 85, 2.5) * ECO.merch / n);
+    compter(c, 'rec', 'merch', Math.pow(c.rep / 85, 2.5) * ECO.merch / n * multInst(c, 'boutique'));
     compter(c, 'dep', 'salaires', c.effectif.reduce((s, id) => s + ((M.joueurs[id] || {}).contrat || {sal:0}).sal, 0));
     compter(c, 'dep', 'staff', Object.values(c.staff).reduce((s, x) => s + x.sal, 0));
-    compter(c, 'dep', 'stade', c.stade * ECO.entretien);
+    compter(c, 'dep', 'stade', c.stade * ECO.entretien + entretienInst(c));
     c.fin.hist.push({d:S.date, net:Math.round(c.budget - avant)}); if (c.fin.hist.length > 16) c.fin.hist.shift();
     if (estJoueur(M, c.id) && c.budget < 0){
       M.manager.confiance = Math.max(0, M.manager.confiance - 2);
@@ -396,9 +404,9 @@ function semaine(M, S){
   entrainement(M, S, r);
   finances(M, S);
   balaisIA(M);
-  if (mercatoOuvert(S)){ mercatoIA(M, S, r); if (M.manager) offresIA(M, S, r); }
+  if (mercatoOuvert(S)){ mercatoIA(M, S, r); if (aClub(M)) offresIA(M, S, r); }
   M.offres = M.offres.filter(o => o.expire > M.semaine);
-  if (M.manager){
+  if (aClub(M)){
     const U = club(M, M.manager.club);
     const mois = new Date(S.date).getUTCMonth(), prev = M.calendrier[M.semaine - 1];
     if ((mois === 0 || mois === 3) && (!prev || new Date(prev.date).getUTCMonth() !== mois)){
@@ -445,7 +453,7 @@ function apresSaison(M, r){
     if (!estJoueur(M, c.id)) completerEffectif(M, c, r);
     c.masseMax = masseMax(c); c.cohesion = Math.max(50, c.cohesion - 10);
   }
-  if (M.manager){ const U = club(M, M.manager.club), jeunes = [];
+  if (aClub(M)){ const U = club(M, M.manager.club), jeunes = [];
     while (U.effectif.length < 12){   // effectif trop court : le centre de formation dépanne
       const b = besoin(M, U), lvl = EQ.niveauMin + (U.rep - 40) / 45 * (EQ.niveauMax - EQ.niveauMin) - 2 + r.gauss() * 0.7;
       const j = Q().creerJoueur(r, r.pondere(D.ORIGINES[U.nat]), b.poste, lvl, r.ent(17, 18), 'j' + (M.prochainId++));
@@ -457,19 +465,19 @@ function apresSaison(M, r){
   while (M.libres.length < 30) creerLibre(M, r);
   if (M.libres.length > ECO.libresMax){ M.libres.sort((a, b) => n20(M.joueurs[b]) - n20(M.joueurs[a])); for (const id of M.libres.splice(ECO.libresMax)) delete M.joueurs[id]; }
   M.staffLibres = marcheStaff(M, r);
-  if (M.manager){ const U = club(M, M.manager.club);
+  if (aClub(M)){ const U = club(M, M.manager.club);
     Q().message(M, 'Mercato d\'été ouvert', `Préparation en août : transferts ouverts jusqu'à la première journée. Solde : ${euros(U.budget)}, masse salariale ${euros(masse(M, U))} / ${euros(U.masseMax)} par semaine.`, 'mercato'); }
 }
 
 /* potentiel estimé par le recruteur (1 à 5 étoiles) : moins précis avec un recruteur faible */
 function potentielEstime(M, j){
-  const U = M.manager ? club(M, M.manager.club) : null, rec = U && U.staff ? U.staff.recruteur.note : 10;
+  const U = aClub(M) ? club(M, M.manager.club) : null, rec = U && U.staff ? U.staff.recruteur.note : 10;
   const vrai = (j.cache.pot * 5 - 40) / 12, h = Q().melange(j.id, 'pot') % 3 - 1;
   const bruit = j.club === (U && U.id) ? h * 0.3 : h * (rec >= 15 ? 0.3 : rec >= 10 ? 0.8 : 1.4);
   return Math.round(borne(vrai + bruit, 1, 5));
 }
 
-root.QMC = {initMonde, migrer, semaine, avantSaison, apresSaison, nouveauJoueur, dureeBlessure, salaireDemande, valeur, masse, masseMax, prixRef, remplissage, euros,
+root.QMC = {niv, multInst, entretienInst, compter, finVide, creerStaff, numLibre, transfert, libererJoueur, reparerCompo, progression, completerClub, besoin, initMonde, migrer, semaine, avantSaison, apresSaison, nouveauJoueur, dureeBlessure, salaireDemande, valeur, masse, masseMax, prixRef, remplissage, euros,
             mercatoOuvert, prochaineFenetre, proposerTransfert, accepterOffre, refuserOffre, mettreEnVente, suivre, liberer, coutLiberation, prolonger, embaucher,
             acheterBalais, reglerPrix, potentielEstime, prixClub, exigenceJoueur, NOMS_REC, NOMS_DEP, ENT_DEFAUT, revenusSaison};
 })(typeof window !== 'undefined' ? window : globalThis);

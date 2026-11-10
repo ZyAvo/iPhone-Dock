@@ -1,5 +1,5 @@
-// mon-ecran-version: e15c30af
-/* QM27 (v83, lot 2 : v84) — moteur du jeu, sans affichage : window.QM.
+// mon-ecran-version: 542adbc0
+/* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
    Hasard à graine : un match = une graine + deux compositions + deux tactiques ; mêmes entrées, même match. */
@@ -7,7 +7,7 @@
 'use strict';
 const D = root.QMD;
 const EQ = D.EQ;
-const VERSION = 2;   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; une sauvegarde v1 est complétée au chargement
+const VERSION = 3;   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
 const C = () => root.QMC;   // gestion du club (qm27-club.js), facultative pour le moteur
 
 /* ---------- Hasard à graine (mulberry32) ---------- */
@@ -221,7 +221,7 @@ function equipeClub(M, clubId){
           cohesion:club.cohesion ?? 70, usure:club.usure ?? 100};
 }
 function selection(M, nat){
-  const L = Object.values(M.joueurs).filter(j => j.nat === nat && !j.bless), pris = new Set();
+  const L = Object.values(M.joueurs).filter(j => j.nat === nat && !j.bless && j.club && !j.acad), pris = new Set();   // v85 : ni agents libres ni jeunes du centre
   const pick = (poste, n) => { const s = L.filter(j => !pris.has(j.id)).sort((a, b) => note20(b, poste) - note20(a, poste)).slice(0, n).map(j => j.id); s.forEach(x => pris.add(x)); return s; };
   const e = {id:nat, nom:D.NATIONS[nat].nom, sigle:D.NATIONS[nat].court, couleurs:['#33415c', '#e0e1dd'], tactique:TACTIQUE_DEFAUT(), balai:D.BALAIS[4],
              A:pick('A', 1), G:pick('G', 1), B:pick('B', 2), P:pick('P', 3), rep:70};
@@ -439,19 +439,30 @@ function resume(X){ return {score:X.score.slice(), vif:X.vif, duree:Math.round(X
 
 /* ---------- Semaine ---------- */
 const semaine = M => M.calendrier[M.semaine] || null;
+/* v85 : le club du joueur (null s'il est sans club) et son camp de la semaine (club, ou sa sélection pendant le Six Nations) */
+const clubJoueur = M => (M.manager && M.manager.club) || null;
+const campJoueur = (M, S) => S && S.type === 'sixn' ? (M.manager && M.manager.selection ? M.manager.selection.nat : null) : clubJoueur(M);
 function matchDuJoueur(M){
-  const S = semaine(M); if (!S || !M.manager) return null;
-  return S.matchs.find(m => m.dom === M.manager.club || m.ext === M.manager.club) || null;
+  const S = semaine(M), camp = campJoueur(M, S); if (!S || !camp) return null;
+  return S.matchs.find(m => m.dom === camp || m.ext === camp) || null;
 }
 function grainePour(M, m){ return melange(M.graine, m.id); }
 function equipesPour(M, m){ return m.ligue === 'sixn' ? [selection(M, m.dom), selection(M, m.ext)] : [equipeClub(M, m.dom), equipeClub(M, m.ext)]; }
 /* le match du joueur, prêt à être joué en direct */
 function preparerMatch(M, m){
-  if (m.ligue !== 'sixn') for (const id of [m.dom, m.ext]) if (id !== M.manager.club){ M.clubs[id].compo = compoAuto(M, id); }
-  const faits = verifierCompo(M, M.manager.club);
-  const [e0, e1] = equipesPour(M, m);
+  const camp = campJoueur(M, semaine(M));
+  let faits = [], e0, e1;
+  if (m.ligue !== 'sixn'){
+    for (const id of [m.dom, m.ext]) if (id !== camp){ M.clubs[id].compo = compoAuto(M, id); }
+    faits = verifierCompo(M, camp);
+    [e0, e1] = equipesPour(M, m);
+  } else {   // v85 : le joueur est sélectionneur
+    const moi = C().equipeSelection(M), autre = selection(M, m.dom === camp ? m.ext : m.dom);
+    faits = moi.changements || [];
+    [e0, e1] = m.dom === camp ? [moi, autre] : [autre, moi];
+  }
   const X = creerMatch(M, e0, e1, grainePour(M, m), {date:semaine(M).date});
-  X.idMatch = m.id; X.joueur = m.dom === M.manager.club ? 0 : 1; X.changements = faits;
+  X.idMatch = m.id; X.joueur = m.dom === camp ? 0 : 1; X.changements = faits; X.sixn = m.ligue === 'sixn';
   return X;
 }
 function simulerMatch(M, m){
@@ -462,7 +473,7 @@ function simulerMatch(M, m){
 /* applique un match terminé : résultat, classement, stats, fatigue, blessures, forme */
 function appliquerMatch(M, m, X){
   const r = resume(X);
-  const duJoueur = M.manager && (m.dom === M.manager.club || m.ext === M.manager.club);
+  const camp = campJoueur(M, semaine(M)), duJoueur = !!camp && (m.dom === camp || m.ext === camp);
   m.res = duJoueur ? r : {score:r.score, vif:r.vif, duree:r.duree};   // autres matchs : le score suffit (sauvegarde plus légère)
   compter(M, m);
   const notes = r.notes;
@@ -488,7 +499,7 @@ function recuperer(M, jours){
     j.fat = Math.max(0, Math.round(j.fat - jours * (5 + at(j, 'end') * 0.35)));
     if (j.bless){ j.bless.jours -= jours;
       if (j.bless.jours <= 0){ j.bless = null; j.forme = Math.max(3, Math.round((j.forme - 2) * 10) / 10);   // v84 : retour progressif
-        if (M.manager && j.club === M.manager.club) message(M, `${nomJ(j)} est rétabli`, 'Il revient à l\'entraînement, encore un peu juste : sa forme remontera avec les matchs.', 'bless'); } }
+        if (clubJoueur(M) && j.club === clubJoueur(M)) message(M, `${nomJ(j)} est rétabli`, 'Il revient à l\'entraînement, encore un peu juste : sa forme remontera avec les matchs.', 'bless'); } }
     j.moral = Math.round(j.moral + (60 - j.moral) * 0.15);
   }
 }
@@ -499,17 +510,18 @@ function terminerSemaine(M, X){
   const S = semaine(M); if (!S) return null;
   const mj = matchDuJoueur(M);
   const avant = {};
-  if (M.manager) for (const id of M.clubs[M.manager.club].effectif) avant[id] = !!M.joueurs[id].bless;
+  if (clubJoueur(M)) for (const id of M.clubs[clubJoueur(M)].effectif) avant[id] = !!M.joueurs[id].bless;
+  M.tic = (M.tic || 0) + 1;                             // v85 : compteur de semaines sur toute la carrière
   for (const m of S.matchs){
     if (m.res) continue;
     if (mj && m.id === mj.id && X) appliquerMatch(M, m, X);
     else appliquerMatch(M, m, simulerMatch(M, m));
   }
-  if (M.manager && mj && mj.res) apresMatchManager(M, mj);
+  if (mj && mj.res){ if (mj.ligue === 'sixn'){ if (C()) C().apresMatchSelection(M, mj); } else apresMatchManager(M, mj); }
   /* messages : blessures de l'équipe, résumé */
   if (M.manager){
-    const club = M.clubs[M.manager.club];
-    for (const id of club.effectif){ const j = M.joueurs[id]; if (j.bless && !avant[id]) message(M, `Blessure : ${nomJ(j)}`, `${j.bless.nom}. Indisponible environ ${j.bless.jours} jours.`, 'bless'); }
+    const club = clubJoueur(M) ? M.clubs[clubJoueur(M)] : {effectif:[]};
+    for (const id of club.effectif){ const j = M.joueurs[id]; if (j.bless && !avant[id]) message(M, `Blessure : ${nomJ(j)}`, `${j.bless.nom}. Indisponible environ ${j.bless.jours} jour${j.bless.jours > 1 ? 's' : ''}.`, 'bless'); }
     if (S.type === 'sixn'){
       const L = S.matchs.map(m => `${D.NATIONS[m.dom].nom} ${m.res.score[0]}–${m.res.score[1]} ${D.NATIONS[m.ext].nom}`).join(' · ');
       message(M, `Six Nations, tour ${S.tour}`, L, 'sixn');
@@ -532,6 +544,7 @@ function apresMatchManager(M, m){
   mg.confiance = Math.round(borne(mg.confiance + (res - att) * 10, 0, 100));
   mg.rep = Math.round(borne(mg.rep + (res - att) * 1.6, 1, 100) * 10) / 10;
   mg.bilan = mg.bilan || {g:0, n:0, p:0}; mg.bilan[res === 1 ? 'g' : res === 0 ? 'p' : 'n']++;
+  if (C() && C().verifierLicenciement) C().verifierLicenciement(M);   // v85
 }
 
 /* ---------- Objectifs du président ---------- */
@@ -548,6 +561,8 @@ function choisirClub(M, clubId, nom){
   const club = M.clubs[clubId];
   M.manager = {nom:(nom || 'Manager').slice(0, 30), club:clubId, rep:Math.round(18 + club.rep / 5), confiance:60, objectif:objectif(M, clubId), saisons:[], bilan:{g:0, n:0, p:0}};
   club.tactique = TACTIQUE_DEFAUT(); club.compo = compoAuto(M, clubId);
+  M.manager.postes = [{club:clubId, debut:M.saison}];
+  if (C() && C().apresChoixClub) C().apresChoixClub(M, clubId);   // v85 : centre de formation
   const o = M.manager.objectif;
   message(M, `Bienvenue à ${club.nom}`, `Le président vous confie l'équipe pour la saison ${M.saison}-${String(M.saison + 1).slice(2)}. Objectif : ${o.txt.toLowerCase()}. Il juge les résultats chaque semaine.`, 'pres');
   message(M, 'Le mot du staff', 'La composition proposée est la meilleure selon les notes au poste. Réglez les consignes dans Tactique avant le premier match ; l\'attrapeur est réglé pour ne prendre le vif d\'or que si ça fait gagner.', 'staff');
@@ -560,7 +575,7 @@ function finDeSaison(M){
   const champs = {}; for (const L of Object.values(M.ligues)) champs[L.id] = classement(M, L.id)[0].id;
   const sixn = classement(M, 'sixn')[0].id;
   const h = {saison:lab, champions:champs, sixn};
-  if (M.manager){
+  if (clubJoueur(M)){
     const C = classement(M, M.clubs[M.manager.club].ligue), pos = C.findIndex(x => x.id === M.manager.club) + 1, o = M.manager.objectif;
     h.manager = {club:M.manager.club, pos, objectif:o.vise};
     const ecart = o.vise - pos;
@@ -587,18 +602,18 @@ function saisonSuivante(M){
         const lvl = EQ.niveauMin + (club.rep - 40) / 45 * (EQ.niveauMax - EQ.niveauMin) + r.gauss() * 0.9;
         const n = creerJoueur(r, r.pondere(D.ORIGINES[club.nat]), j.poste, lvl - 1.5, r.ent(17, 19), 'j' + (M.prochainId++));
         n.club = club.id; n.num = j.num; M.joueurs[n.id] = n; club.effectif.push(n.id); if (C()) C().nouveauJoueur(M, n, club);
-        if (M.manager && club.id === M.manager.club) message(M, `${nomJ(j)} prend sa retraite`, `${j.age} ans. Le centre de formation fait monter ${nomJ(n)} (${n.age} ans, ${D.POSTES[n.poste].nom.toLowerCase()}).`, 'staff');
+        if (clubJoueur(M) === club.id) message(M, `${nomJ(j)} prend sa retraite`, `${j.age} ans. Le centre de formation fait monter ${nomJ(n)} (${n.age} ans, ${D.POSTES[n.poste].nom.toLowerCase()}).`, 'staff');
       }
     }
     for (const id of club.effectif){ const j = M.joueurs[id]; j.saison = {m:0, b:0, v:0, cog:0, arr:0, notes:0}; j.fat = 0; j.forme = 6; j.moral = 60; if (j.bless) j.bless.jours = Math.max(0, j.bless.jours - 60) || null; if (j.bless && !j.bless.jours) j.bless = null; }
-    if (!M.manager || club.id !== M.manager.club){ club.compo = compoAuto(M, club.id); club.tactique = tactiqueIA(r); }
+    if (clubJoueur(M) !== club.id){ club.compo = compoAuto(M, club.id); club.tactique = tactiqueIA(r); }
     else verifierCompo(M, club.id);
   }
   M.saison++; M.semaine = 0;
   M.calendrier = calendrierSaison(M, r);
   remettreClassements(M);
   if (C()) C().apresSaison(M, r);
-  if (M.manager){ M.manager.objectif = objectif(M, M.manager.club); M.manager.bilan = {g:0, n:0, p:0};
+  if (clubJoueur(M)){ M.manager.objectif = objectif(M, M.manager.club); M.manager.bilan = {g:0, n:0, p:0};
     message(M, `Saison ${M.saison}-${String(M.saison + 1).slice(2)}`, `Nouvel objectif du président : ${M.manager.objectif.txt.toLowerCase()}.`, 'pres'); }
 }
 function progresser(j, r){
@@ -632,7 +647,7 @@ function charger(txt){
   return M;
 }
 
-root.QM = {VERSION, hasard, melange, note, note20, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
+root.QM = {VERSION, clubJoueur, campJoueur, tactiqueIA, apresMatchManager, finDeSaison, hasard, melange, note, note20, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
            semaine, matchDuJoueur, preparerMatch, simulerMatch, creerMatch, equipeClub, selection, pas, jusquAuBout, tempsMort, remplacer, resume, notesMatch,
            terminerSemaine, saisonSuivante, classement, objectif, serialiser, charger, nomJ, message, attente};
 })(typeof window !== 'undefined' ? window : globalThis);

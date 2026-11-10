@@ -1,4 +1,4 @@
-// mon-ecran-version: 75b5b5f6
+// mon-ecran-version: 0ce8808a
 /* Mon Écran — synchronisation chiffrée entre tes appareils (iPhone, PC…).
    - Un fichier chiffré (synchro/mon-ecran.json, branche « synchro » de ton dépôt GitHub) contient tes placements,
      versements, réglages d'investissement et le Coffre. Sans la phrase secrète, c'est un bloc illisible.
@@ -48,32 +48,39 @@ async function gh(jeton, chemin, opt = {}){
   if (r.status === 403) throw new Error(r.headers.get('x-ratelimit-remaining') === '0' ? 'limite' : 'droits');
   return r;
 }
-async function lireDistant(jeton){
-  const r = await gh(jeton, `/contents/${CHEMIN}?ref=${BRANCHE}`);
+async function lireDistant(jeton, chemin = CHEMIN){
+  const r = await gh(jeton, `/contents/${chemin}?ref=${BRANCHE}`);
   if (r.status === 404) return null;
   if (!r.ok) throw new Error('reseau');
   const j = await r.json(); return {fichier:JSON.parse(b64utf8(j.content)), sha:j.sha};
 }
-async function ecrireDistant(jeton, fichier, sha){
+async function ecrireDistant(jeton, fichier, sha, chemin = CHEMIN){
   const body = {message:`Synchro (${appareil()})`, content:utf8b64(JSON.stringify(fichier)), branch:BRANCHE, ...(sha ? {sha} : {})};
-  let r = await gh(jeton, `/contents/${CHEMIN}`, {method:'PUT', body:JSON.stringify(body)});
+  let r = await gh(jeton, `/contents/${chemin}`, {method:'PUT', body:JSON.stringify(body)});
   if (r.status === 404 || r.status === 422){                         // branche « synchro » pas encore créée
     const ex = await gh(jeton, `/git/ref/heads/${BRANCHE}`);
     if (ex.status === 404){
       // v52 : branche créée « orpheline », avec ce seul fichier (avant : copie de main, avec toutes les pages et les tâches)
       const post = async (chemin, corps) => { const x = await gh(jeton, chemin, {method:'POST', body:JSON.stringify(corps)}); if (!x.ok) throw new Error(x.status === 403 || x.status === 404 ? 'droits' : 'reseau'); return x.json(); };
       const blob = await post('/git/blobs', {content:body.content, encoding:'base64'});
-      const arbre = await post('/git/trees', {tree:[{path:CHEMIN, mode:'100644', type:'blob', sha:blob.sha}]});
+      const arbre = await post('/git/trees', {tree:[{path:chemin, mode:'100644', type:'blob', sha:blob.sha}]});
       const commit = await post('/git/commits', {message:body.message, tree:arbre.sha, parents:[]});
       await post('/git/refs', {ref:'refs/heads/' + BRANCHE, sha:commit.sha});
       return blob.sha;
     }
-    r = await gh(jeton, `/contents/${CHEMIN}`, {method:'PUT', body:JSON.stringify(body)});
+    r = await gh(jeton, `/contents/${chemin}`, {method:'PUT', body:JSON.stringify(body)});
   }
   if (r.status === 409) throw new Error('conflit');
   if (!r.ok) throw new Error(r.status === 403 ? 'droits' : 'reseau');
   return (await r.json()).content.sha;
 }
+
+/* ---------- v85 : fichiers à part sur la même branche (sauvegardes de QM27), compressés puis chiffrés avec la même clé ---------- */
+const gz = async t => new Uint8Array(await new Response(new Blob([t]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+const ungz = async u => new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+async function chiffrerTexte(cle, txt){ const iv = crypto.getRandomValues(new Uint8Array(12)); return {iv:b64(iv), ct:b64(await crypto.subtle.encrypt({name:'AES-GCM', iv}, cle, await gz(txt))), gz:1}; }
+async function dechiffrerTexte(cle, box){ const u = new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(box.iv)}, cle, unb64(box.ct))); return box.gz ? ungz(u) : new TextDecoder().decode(u); }
+const cheminFichier = nom => { if (!/^[\w-]{1,40}$/.test(nom)) throw new Error('nom'); return `synchro/${nom}.json`; };
 
 /* ---------- Session : clé du fichier en mémoire (sessionStorage) après ton code ---------- */
 const S_KEY = 'synchro:session';
@@ -227,6 +234,28 @@ window.Synchro = {
     noter({base:{invest:await empreinte(ici.invest), coffre:await empreinte(ici.coffre), prefs:await empreinte(ici.prefs)}, at:Date.now(), err:''});
     return {ok:true, cree:true};
   },
-  desactiver(){ LSs('synchro:cfg', null); LSs(ETAT, null); SSs(S_KEY, null); }
+  desactiver(){ LSs('synchro:cfg', null); LSs(ETAT, null); SSs(S_KEY, null); },
+  /* v85 : fichier à part (synchro/<nom>.json) : info en clair (petit résumé), contenu compressé et chiffré */
+  async fichierInfo(nom){
+    const s = await sessionCle(); if (!s) throw new Error('verrou');
+    const d = await lireDistant(s.jeton, cheminFichier(nom)); return d ? {info:d.fichier.info || {}, maj:d.fichier.maj, par:d.fichier.par} : null;
+  },
+  async fichierLire(nom){
+    const s = await sessionCle(); if (!s) throw new Error('verrou');
+    const d = await lireDistant(s.jeton, cheminFichier(nom)); if (!d) return null;
+    let texte; try{ texte = await dechiffrerTexte(s.cle, d.fichier); }catch{ throw new Error('phrase'); }
+    return {texte, info:d.fichier.info || {}, maj:d.fichier.maj, par:d.fichier.par};
+  },
+  async fichierEcrire(nom, texte, info){
+    const s = await sessionCle(); if (!s) throw new Error('verrou');
+    const chemin = cheminFichier(nom);
+    for (let essai = 0; essai < 3; essai++){
+      const d = await lireDistant(s.jeton, chemin);
+      const f = {v:1, ...(await chiffrerTexte(s.cle, texte)), info:info || {}, maj:new Date().toISOString(), par:appareil()};
+      try{ await ecrireDistant(s.jeton, f, d ? d.sha : null, chemin); return {ok:true, maj:f.maj, par:f.par}; }
+      catch(e){ if (e.message === 'conflit') continue; throw e; }
+    }
+    throw new Error('conflit');
+  }
 };
 })();

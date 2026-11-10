@@ -1,5 +1,5 @@
-// mon-ecran-version: 5c71783c
-/* QM27 (v83, lot 2 : v84) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
+// mon-ecran-version: 172c4f9a
+/* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
 (() => {
@@ -77,14 +77,63 @@ const teteF = (titre, sous, avant) => `<div class="tete">${avant || ''}<div clas
 
 /* ---------- Sauvegarde ---------- */
 const emplacements = () => LS.lire(K_EMP, {});
-let enCours = null;
+let enCours = null, tNuage = null;
+/* ---------- v85 : synchronisation entre appareils (synchro.js de KiosK : fichier chiffré par emplacement, branche « synchro ») ---------- */
+const NUAGE = {infos:null, charge:false, err:'', conflit:null};
+const msgSync = e => (window.Synchro && Synchro.MSG && Synchro.MSG[e && e.message]) || (e && e.message === 'verrou' ? 'synchronisation verrouillée : entre ton code' : 'erreur (' + ((e && e.message) || '?') + ')');
+async function infosNuage(){
+  const L = {};
+  for (let n = 1; n <= NB_EMP; n++) L[n] = await Synchro.fichierInfo('qm27-p' + n);
+  NUAGE.infos = L; NUAGE.err = ''; return L;
+}
+async function envoyerNuage(n, auto){
+  const txt = (M && n === EMP) ? QM.serialiser(M) : await Base.lire('p' + n);
+  if (!txt) throw new Error('vide');
+  const L = emplacements(), e = L[n] || {}, dist = await Synchro.fichierInfo('qm27-p' + n);
+  if (dist && dist.par !== Synchro.appareil() && (!e.sync || dist.maj > e.sync.maj)){
+    if (auto){ NUAGE.conflit = n; toast('Une version plus récente de la partie est en ligne : voir Sauvegardes'); return {ok:false}; }
+    if (!confirm(`La partie en ligne (${dist.info.club || '?'}, ${new Date(dist.maj).toLocaleString('fr-FR')}, ${dist.par}) est plus récente. L'écraser avec celle-ci ?`)) return {ok:false};
+  }
+  const r = await Synchro.fichierEcrire('qm27-p' + n, txt, {club:e.nomClub || '', manager:e.manager || '', saison:e.saison || '', date:e.date || null});
+  const L2 = emplacements(); if (L2[n]){ L2[n].sync = {maj:r.maj}; LS.ecrire(K_EMP, L2); }
+  if (NUAGE.conflit === n) NUAGE.conflit = null;
+  if (!auto) toast('Partie envoyée'); return {ok:true};
+}
+async function recupererNuage(n){
+  const d = await Synchro.fichierLire('qm27-p' + n); if (!d) throw new Error('vide');
+  const W = QM.charger(d.texte);
+  await Base.ecrire('p' + n, d.texte);
+  const L = emplacements(), c = W.manager && W.manager.club ? W.clubs[W.manager.club] : null, S = W.calendrier[W.semaine];
+  L[n] = {club:c ? c.id : null, nomClub:c ? c.nom : 'Sans club', manager:W.manager ? W.manager.nom : '', saison:`${W.saison}-${String(W.saison + 1).slice(2)}`, date:S ? S.date : null, maj:Date.now(), sync:{maj:d.maj}};
+  LS.ecrire(K_EMP, L);
+  M = W; EMP = n; X = null; LS.ecrire(K_DERNIER, n); NUAGE.conflit = null;
+  toast(`Partie récupérée dans l'emplacement ${n}`);
+}
+async function rendreNuage(){
+  const z = document.getElementById('nuage'); if (!z) return;
+  if (!window.Synchro || !Synchro.actif()){
+    z.innerHTML = `<p class="mut" style="margin:0 0 8px">Pour retrouver ta partie sur un autre appareil, active d'abord la synchronisation chiffrée de KiosK (une fois par appareil) dans la page État.</p><a class="btn sec plein" href="etat.html">Ouvrir la page État</a>`; return;
+  }
+  if (!(await Synchro.pret())){
+    z.innerHTML = `<p class="mut" style="margin:0 0 8px">Entre ton code KiosK pour déverrouiller la synchronisation.</p><div class="ligne"><input class="champ" id="codeSync" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Code" style="flex:1"><button class="btn" data-act="ouvrirSync">OK</button></div>`; return;
+  }
+  const L = emplacements(), I = NUAGE.infos;
+  z.innerHTML = `${NUAGE.conflit ? '<p style="margin:0 0 8px;font-weight:600;color:var(--moyen)">Une version plus récente est en ligne pour l\'emplacement ' + NUAGE.conflit + ' : récupère-la ou écrase-la.</p>' : ''}
+    <div class="liste">${Array.from({length:NB_EMP}, (_, k) => k + 1).map(n => { const e = L[n], d = I && I[n];
+      return `<div class="el"><div class="t"><b>Emplacement ${n}${n === EMP ? ' (en cours)' : ''}</b><span>Ici : ${e ? esc(e.nomClub) + ' · ' + esc(e.saison) : 'vide'} · en ligne : ${I ? (d ? esc(d.info.club || '?') + ' · ' + esc(d.info.saison || '') + ' · ' + new Date(d.maj).toLocaleString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) + ' (' + esc(d.par || '?') + ')' : 'rien') : '…'}</span></div></div>
+        <div class="btns" style="margin-bottom:8px">${e ? `<button class="btn sec" data-act="envoyerNuage" data-n="${n}">Envoyer</button>` : ''}${d ? `<button class="btn sec" data-act="recupererNuage" data-n="${n}">Récupérer</button>` : ''}</div>`; }).join('')}</div>
+    ${NUAGE.err ? `<p class="petit" style="color:var(--mauvais)">${esc(NUAGE.err)}</p>` : ''}
+    <label class="el"><div class="t"><b>Envoyer automatiquement</b><span>Après chaque semaine jouée, si personne n'a joué plus récemment ailleurs</span></div><input type="checkbox" data-chg="autoSync" ${REG.autoSync ? 'checked' : ''} style="width:22px;height:22px"></label>`;
+  if (!I && !NUAGE.charge){ NUAGE.charge = true; infosNuage().then(() => rendreNuage()).catch(e => { NUAGE.err = msgSync(e); NUAGE.infos = {}; rendreNuage(); }).finally(() => { NUAGE.charge = false; }); }
+}
 function sauver(){
   if (!M || !EMP) return Promise.resolve();
   const L = emplacements(), c = M.manager ? club(M.manager.club) : null, S = QM.semaine(M);
-  L[EMP] = {club:c ? c.id : null, nomClub:c ? c.nom : '', manager:M.manager ? M.manager.nom : '', saison:lab(M.saison), date:S ? S.date : null, maj:Date.now()};
+  L[EMP] = {...(L[EMP] && L[EMP].sync ? {sync:L[EMP].sync} : {}), club:c ? c.id : null, nomClub:c ? c.nom : 'Sans club', manager:M.manager ? M.manager.nom : '', saison:lab(M.saison), date:S ? S.date : null, maj:Date.now()};
   LS.ecrire(K_EMP, L); LS.ecrire(K_DERNIER, EMP);
   const txt = QM.serialiser(M);
   enCours = Base.ecrire('p' + EMP, txt).catch(() => toast('Sauvegarde impossible : mémoire pleine ?'));
+  if (REG.autoSync && window.Synchro && Synchro.actif()){ clearTimeout(tNuage); const n = EMP; tNuage = setTimeout(() => envoyerNuage(n, true).catch(() => {}), 4000); }
   return enCours;
 }
 async function chargerEmp(n){
@@ -99,7 +148,9 @@ addEventListener('pagehide', () => { if (M && !U.live) sauver(); });
 function entete(){
   const t = $('#titre'), dr = $('#hdDr');
   if (!M || !M.manager){ t.innerHTML = '<b><span class="marque-qm">QM27</span></b><span>Quidditch Manager 27</span>'; dr.innerHTML = ''; return; }
-  const c = club(M.manager.club), S = QM.semaine(M);
+  const S = QM.semaine(M);
+  if (!M.manager.club){ t.innerHTML = `<b>${esc(M.manager.nom)} · sans club</b><span><span class="marque-qm">QM27</span> · ${lab(M.saison)}${S ? ' · ' + fmtDate(S.date) : ''}</span>`; dr.innerHTML = ''; return; }
+  const c = club(M.manager.club);
   t.innerHTML = `<b>${esc(c.nom)}</b><span><span class="marque-qm">QM27</span> · ${lab(M.saison)}${S ? ' · ' + fmtDate(S.date) : ''}</span>`;
   dr.innerHTML = blason(c.id, 'p');
 }
@@ -107,14 +158,18 @@ function barre(){
   const on = M && M.manager && U.vue !== 'match' && !U.live;
   NAV.hidden = !on; document.body.classList.toggle('sans-nav', !on);
   if (!on) return;
-  const T = [['accueil', 'Accueil'], ['effectif', 'Effectif'], ['tactique', 'Tactique'], ['club', 'Club'], ['plus', 'Plus']];
-  const actif = ['classements', 'sauvegardes', 'aide', 'calendrier'].includes(U.vue) ? 'plus' : ['entrainement', 'mercato', 'finances', 'staff'].includes(U.vue) ? 'club' : U.vue;
+  const T = M.manager.club ? [['accueil', 'Accueil'], ['effectif', 'Effectif'], ['tactique', 'Tactique'], ['club', 'Club'], ['plus', 'Plus']] : [['accueil', 'Accueil'], ['plus', 'Plus']];
+  const actif = ['classements', 'sauvegardes', 'aide', 'calendrier', 'carriere'].includes(U.vue) ? 'plus' : ['entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'selection'].includes(U.vue) ? 'club' : U.vue;
   NAV.querySelector('.in').innerHTML = T.map(([k, n]) => `<button data-act="vue" data-v="${k}" class="${actif === k ? 'on' : ''}" ${actif === k ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24">${ICO[k]}</svg>${n}</button>`).join('');
 }
 function rendre(){
   entete(); barre();
   if (!M || !M.manager) return vueDemarrage();
-  ({accueil:vueAccueil, effectif:vueEffectif, tactique:vueTactique, calendrier:vueCalendrier, plus:vuePlus, classements:vueClassements, sauvegardes:vueSauvegardes, aide:vueAide, match:vueMatch,
+  const besoinClub = ['effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier'];
+  if (!M.manager.club && besoinClub.includes(U.vue)) U.vue = 'accueil';
+  if (!M.manager.club && U.vue === 'accueil') return vueChomage();
+  if (U.vue === 'selection' && !M.manager.selection) U.vue = 'accueil';
+  ({carriere:vueCarriere, stade:vueStade, formation:vueFormation, selection:vueSelection, accueil:vueAccueil, effectif:vueEffectif, tactique:vueTactique, calendrier:vueCalendrier, plus:vuePlus, classements:vueClassements, sauvegardes:vueSauvegardes, aide:vueAide, match:vueMatch,
     club:vueClub, entrainement:vueEntrainement, mercato:vueMercato, finances:vueFinances, staff:vueStaff}[U.vue] || vueAccueil)();
 }
 const aller = v => { U.vue = v; rendre(); scrollTo(0, 0); };
@@ -135,8 +190,10 @@ function vueDemarrage(){
     return `<div class="el emp">${e.club && D.CLUBS.some(c => c[0] === e.club) ? blasonCode(e.club) : ''}<div class="t"><b>${esc(e.nomClub)}</b><span>${esc(e.manager)} · ${esc(e.saison)}${e.date ? ' · ' + fmtDate(e.date) : ''}</span></div>
       <button class="btn" data-act="charger" data-n="${n}">Reprendre</button><button class="fermer" data-act="menuEmp" data-n="${n}" aria-label="Plus d'actions">⋯</button></div>`; }).join('')}
   </div></div>
+  <div class="carte"><h2>Entre appareils <span class="mut petit">chiffré</span></h2><div id="nuage"><p class="mut" style="margin:0">…</p></div></div>
   <button class="btn sec plein" data-act="importer">Importer une partie (fichier .json)</button>
-  <p class="petit mut">Les parties sont gardées sur cet appareil. Pour passer d'un appareil à l'autre, exporte la partie puis importe le fichier.</p>`;
+  <p class="petit mut">Les parties sont gardées sur cet appareil. Pour les retrouver ailleurs : « Entre appareils » ci-dessus (synchronisation de KiosK), ou exporte la partie puis importe le fichier.</p>`;
+  rendreNuage();
 }
 function blasonCode(id){ const c = D.CLUBS.find(x => x[0] === id); return `<span class="blason" style="--c1:${c[6]};--c2:${c[7]}" aria-hidden="true">${esc(c[2].normalize('NFD').replace(/[^\w]/g, '').toUpperCase().slice(0, 3))}</span>`; }
 let MONDE_NEUF = null;
@@ -187,18 +244,19 @@ function vueAccueil(){
   } else {
     const m = QM.matchDuJoueur(M);
     if (m){
-      const comp = `${M.ligues[m.ligue].court} · Journée ${S.journee}`;
-      const adv = m.dom === mg.club ? m.ext : m.dom, T = M.tables[m.ligue], CL = QM.classement(M, m.ligue);
+      const sx = m.ligue === 'sixn', moiId = sx ? mg.selection.nat : mg.club;
+      const comp = sx ? `Six Nations · tour ${S.tour} · avec ${nat(moiId).nom}` : `${M.ligues[m.ligue].court} · Journée ${S.journee}`;
+      const adv = m.dom === moiId ? m.ext : m.dom, T = M.tables[m.ligue], CL = QM.classement(M, m.ligue);
       const rang = id => CL.findIndex(r => r.id === id) + 1, forme = id => (T[id].forme || []).map(f => `<span class="vnd ${f}">${f}</span>`).join('');
       prochain = `<div class="carte"><h2>Prochain match <span class="mut">${fmtDate(S.date)}</span></h2>
         <div class="petit mut" style="text-align:center">${esc(comp)}</div>
         <div class="affiche">
-          <div class="eq">${blason(m.dom, 'g')}<b>${esc(club(m.dom).nom)}</b><span>${T[m.dom].j ? rang(m.dom) + 'e · ' : ''}${forme(m.dom) || 'à domicile'}</span></div>
+          <div class="eq">${blason(m.dom, 'g', sx)}<b>${esc(nomEq(m.dom, sx))}</b><span>${T[m.dom].j ? rang(m.dom) + 'e · ' : ''}${forme(m.dom) || 'à domicile'}</span></div>
           <div class="vs">VS</div>
-          <div class="eq">${blason(m.ext, 'g')}<b>${esc(club(m.ext).nom)}</b><span>${T[m.ext].j ? rang(m.ext) + 'e · ' : ''}${forme(m.ext) || 'à l\'extérieur'}</span></div>
+          <div class="eq">${blason(m.ext, 'g', sx)}<b>${esc(nomEq(m.ext, sx))}</b><span>${T[m.ext].j ? rang(m.ext) + 'e · ' : ''}${forme(m.ext) || 'à l\'extérieur'}</span></div>
         </div>
-        <div class="btns"><button class="btn" data-act="preparer">Préparer le match</button></div>
-        <p class="petit mut" style="margin:8px 0 0;text-align:center">Adversaire : ${etoiles(club(adv).rep)}</p></div>`;
+        <div class="btns">${sx ? '<button class="btn sec" data-act="vue" data-v="selection">Convocations</button>' : ''}<button class="btn" data-act="preparer">Préparer le match</button></div>
+        ${sx ? '' : `<p class="petit mut" style="margin:8px 0 0;text-align:center">Adversaire : ${etoiles(club(adv).rep)}</p>`}</div>`;
     } else {
       const titre = S.type === 'sixn' ? `Six Nations · tour ${S.tour}` : S.type === 'prepa' ? `Préparation · semaine ${S.semaine}` : 'Semaine sans match';
       prochain = `<div class="carte"><h2>${titre} <span class="mut">${fmtDate(S.date)}</span></h2>
@@ -207,6 +265,8 @@ function vueAccueil(){
         <div class="btns" style="margin-top:10px">${C.mercatoOuvert(S) ? '<button class="btn sec" data-act="vue" data-v="mercato">Mercato</button>' : ''}<button class="btn" data-act="continuer">Continuer</button></div></div>`;
     }
   }
+  const oc = (mg.offres || []).filter(o => o.expire > (M.tic || 0));
+  if (oc.length || mg.offreSel) prochain += `<div class="carte" style="border-color:var(--or)"><h2>Carrière <button data-act="vue" data-v="carriere">Répondre</button></h2>${oc.map(o => `<div class="el">${blason(o.club, 'p')}<div class="t"><b>${esc(club(o.club).nom)} vous veut</b><span>Réputation ${club(o.club).rep}</span></div></div>`).join('')}${mg.offreSel ? `<div class="el">${blason(mg.offreSel.nat, 'p', 1)}<div class="t"><b>Sélectionneur : ${esc(nat(mg.offreSel.nat).nom)}</b><span>Double poste pendant le Six Nations</span></div></div>` : ''}</div>`;
   if (M.offres && M.offres.length) prochain += `<div class="carte" style="border-color:var(--or)"><h2>Offres reçues <button data-act="vue" data-v="mercato">Répondre</button></h2>${M.offres.map(o => `<div class="el">${blason(o.club, 'p')}<div class="t"><b>${esc(nomJ(M.joueurs[o.j]))}</b><span>${esc(club(o.club).nom)} · ${eur(o.montant)}</span></div></div>`).join('')}</div>`;
   const o = mg.objectif, conf = mg.confiance;
   const CL = QM.classement(M, c.ligue), i = CL.findIndex(r => r.id === c.id);
@@ -291,7 +351,7 @@ function ficheJoueur(id){
         <span style="text-align:left;font-weight:400">Matchs · buts · vifs</span><b>${s.m} · ${s.b} · ${s.v}</b>
         <span style="text-align:left;font-weight:400">Note moyenne</span><b>${s.m ? (s.notes / s.m).toFixed(1) : '—'}</b>
       </div></div>
-    ${blocContrat(j, mon)}
+    ${j.acad ? blocJeune(j) : blocContrat(j, mon)}
     ${mon ? `<p class="petit mut" style="margin-top:10px">${r.tit ? `Titulaire (${D.POSTES[r.p].nom.toLowerCase()}).` : r.banc ? 'Remplaçant.' : 'Hors du groupe de 14.'} Les changements se font dans Tactique.</p>` : ''}`);
 }
 
@@ -391,7 +451,8 @@ function ficheSemaine(k){
 function vuePlus(){
   VUE.innerHTML = `<div><h1 class="grand">Plus</h1></div>
   <div class="carte"><div class="liste">
-    <button class="el" data-act="vue" data-v="calendrier"><span class="blason nat p">📅</span><div class="t"><b>Calendrier</b><span>Matchs de la saison, semaines de préparation</span></div></button>
+    <button class="el" data-act="vue" data-v="carriere"><span class="blason nat p">🧭</span><div class="t"><b>Carrière</b><span>Réputation ${Math.round(M.manager.rep)} · offres, sélection, démission</span></div></button>
+    ${M.manager.club ? '' : '<!--'}<button class="el" data-act="vue" data-v="calendrier"><span class="blason nat p">📅</span><div class="t"><b>Calendrier</b><span>Matchs de la saison, semaines de préparation</span></div></button>${M.manager.club ? '' : '-->'}
     <button class="el" data-act="vue" data-v="classements"><span class="blason nat p">🏆</span><div class="t"><b>Classements</b><span>Les 3 ligues et le Six Nations</span></div></button>
     <button class="el" data-act="boite"><span class="blason nat p">✉️</span><div class="t"><b>Boîte de réception</b><span>${M.boite.length} messages</span></div></button>
     <button class="el" data-act="vue" data-v="sauvegardes"><span class="blason nat p">💾</span><div class="t"><b>Sauvegardes</b><span>Emplacement ${EMP} · exporter, importer</span></div></button>
@@ -404,7 +465,9 @@ function vueSauvegardes(){
   VUE.innerHTML = `<div><h1 class="grand">Sauvegardes</h1><p class="sous">La partie s'enregistre toute seule après chaque semaine.</p></div>
   <div class="carte"><h2>Partie en cours</h2><p style="margin:0">Emplacement ${EMP} · ${esc(e.nomClub || '')} · ${esc(e.saison || '')}</p><p class="petit mut" style="margin:4px 0 12px">Dernier enregistrement : ${e.maj ? new Date(e.maj).toLocaleString('fr-FR') : '—'}</p>
     <div class="btns"><button class="btn" data-act="sauverMain">Enregistrer</button><button class="btn sec" data-act="exporter" data-n="${EMP}">Exporter</button></div></div>
+  <div class="carte"><h2>Entre appareils <span class="mut petit">chiffré</span></h2><div id="nuage"><p class="mut" style="margin:0">…</p></div></div>
   <div class="carte"><h2>Autres parties</h2><button class="btn sec plein" data-act="quitter">Changer de partie</button><div style="height:8px"></div><button class="btn sec plein" data-act="importer">Importer un fichier</button></div>`;
+  rendreNuage();
 }
 function vueAide(){
   const P = REG.pauses;
@@ -421,7 +484,10 @@ function vueAide(){
     <p><b>Entraînement.</b> Chaque semaine, les joueurs progressent vers un potentiel caché : focus (technique, physique, tactique, repos) et intensité par poste, qualité des entraîneurs, temps de jeu. Après le pic d'âge, le physique décline.</p>
     <p><b>Mercato.</b> Ouvert pendant la préparation d'août et en janvier. Les agents libres signent à tout moment. Un club demande au moins la valeur du joueur (plus s'il est titulaire), le joueur un salaire selon son niveau, son ambition et la réputation de ton club. Mets des joueurs en vente pour recevoir des offres.</p>
     <p><b>Finances.</b> Billetterie et restauration à domicile, droits TV, sponsors et boutique chaque semaine ; salaires, entretien du stade et déplacements en face ; primes de classement en fin de saison. Les contrats qui arrivent à terme partent libres si tu ne les prolonges pas.</p>
-    <p class="petit mut">Clubs, joueurs, balais et euros sont inventés. Prochains lots : stade, boutique, centre de formation, offres d'autres clubs, sélectionneur, ligue entre amis.</p>
+    <p><b>Stade et formation.</b> Agrandis le stade et améliore boutique, buvettes, tribunes et centre de formation (Club › Stade). Chaque été, des jeunes de 15-16 ans arrivent au centre ; promus, ils jouent en équipe première.</p>
+    <p><b>Carrière.</b> D'autres clubs peuvent te proposer leur banc. Si la confiance du président tombe à zéro, tu es licencié : avance le temps en attendant une offre. Avec une réputation de ${E.carriere.repSelection}, une fédération peut te confier sa sélection pour le Six Nations, en plus de ton club.</p>
+    <p><b>Entre appareils.</b> Avec la synchronisation de KiosK activée (page État), Plus › Sauvegardes envoie et récupère la partie, chiffrée.</p>
+    <p class="petit mut">Clubs, joueurs, balais et euros sont inventés. Prochain lot : ligue entre amis.</p>
   </div>`;
 }
 function ficheBoite(){ feuille(`${teteF('Boîte de réception', `${M.boite.length} messages`)}${M.boite.map(msgHTML).join('')}`); }
@@ -466,6 +532,9 @@ function vueClub(){
     <button class="carte tuile" data-act="vue" data-v="mercato"><h2>Mercato</h2><b>${ouvert ? 'Ouvert' : 'Fermé'}</b><span>${M.offres.length ? M.offres.length + ' offre' + (M.offres.length > 1 ? 's' : '') + ' reçue' + (M.offres.length > 1 ? 's' : '') : ouvert ? 'Transferts et agents libres' : fen ? 'Réouverture le ' + fmtDate(fen.date) : 'Agents libres disponibles'}</span></button>
     <button class="carte tuile" data-act="vue" data-v="finances"><h2>Finances</h2><b style="color:${c.budget < 0 ? 'var(--mauvais)' : 'inherit'}">${eur(c.budget)}</b><span>Masse ${eur(C.masse(M, c))} / ${eur(c.masseMax)} par sem.</span></button>
     <button class="carte tuile" data-act="vue" data-v="staff"><h2>Staff</h2><b>${moyStaff} / 20</b><span>${st.length} membres</span></button>
+    <button class="carte tuile" data-act="vue" data-v="stade"><h2>Stade</h2><b>${c.stade.toLocaleString('fr-FR')} places</b><span>${c.travaux.length ? c.travaux.length + ' chantier' + (c.travaux.length > 1 ? 's' : '') + ' en cours' : 'Boutique, buvettes, tribunes'}</span></button>
+    <button class="carte tuile" data-act="vue" data-v="formation"><h2>Centre de formation</h2><b>Niveau ${C.niv(c, 'formation')}</b><span>${(c.academie || []).length} jeune${(c.academie || []).length > 1 ? 's' : ''}</span></button>
+    ${M.manager.selection ? `<button class="carte tuile" data-act="vue" data-v="selection"><h2>Sélection</h2><b>${flag(M.manager.selection.nat)} ${esc(nat(M.manager.selection.nat).nom)}</b><span>Objectif : top ${M.manager.selection.objectif} du Six Nations</span></button>` : ''}
   </div>`;
 }
 function vueEntrainement(){
@@ -585,6 +654,86 @@ function ficheStaff(role){
     <div class="carte" style="margin-top:10px"><h2>Candidats libres</h2><div class="liste">${L.map(s => `<div class="el"><span class="note ${s.note >= 15 ? 'n4' : s.note >= 10 ? 'n3' : 'n2'}">${s.note}</span><div class="t"><b>${flag(s.nat)} ${esc(s.p + ' ' + s.n)}</b><span>${eur(s.sal)} / semaine</span></div><button class="btn sec" data-act="embaucher" data-s="${s.id}">Embaucher</button></div>`).join('') || '<p class="mut">Personne de libre pour ce poste.</p>'}</div></div>`);
 }
 
+/* ---------- v85 : centre de formation, stade, carrière, sélection ---------- */
+function blocJeune(j){
+  return `<div class="carte" style="margin-top:10px"><h2>Centre de formation</h2>
+    <p class="petit mut" style="margin:0 0 10px">${j.age} ans. À 19 ans, il passe pro s'il a le niveau, sinon il quitte le centre. Promu, il signe 3 saisons pour un petit salaire.</p>
+    <div class="btns"><button class="btn sec" data-act="libererJeune" data-j="${j.id}" style="color:var(--mauvais)">Libérer</button><button class="btn" data-act="promouvoir" data-j="${j.id}">Promouvoir en équipe première</button></div></div>`;
+}
+function vueFormation(){
+  const c = club(M.manager.club), L = (c.academie || []).map(id => M.joueurs[id]).filter(Boolean).sort((a, b) => C.potentielEstime(M, b) - C.potentielEstime(M, a) || QM.note(b) - QM.note(a));
+  const resp = c.staff.formation;
+  VUE.innerHTML = `<div><h1 class="grand">Centre de formation</h1><p class="sous">Niveau ${C.niv(c, 'formation')} · responsable : ${esc(resp.p + ' ' + resp.n)} (${resp.note}/20) · ${L.length}/${E.carriere.academieMax} jeunes</p></div>
+  <div class="carte"><div class="liste">${L.map(j => `<button class="el" data-act="joueur" data-j="${j.id}">${posteB(j.poste)}<div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>${j.age} ans · ${D.POSTES[j.poste].nom.toLowerCase()}</span></div><span class="etoiles" aria-label="potentiel">${'★'.repeat(C.potentielEstime(M, j))}${'☆'.repeat(5 - C.potentielEstime(M, j))}</span><span class="note ${classeNote(QM.note(j))}">${QM.note(j)}</span></button>`).join('') || '<p class="mut">Le centre est vide : la prochaine promotion arrive l\'été.</p>'}</div></div>
+  <div class="carte aide"><h2>Comment ça marche</h2><p>Chaque été, ${1 + C.niv(c, 'formation')} jeunes de 15-16 ans arrivent. Leur potentiel dépend du niveau du centre (Club › Stade) et du responsable de la formation (Club › Staff). Ils s'entraînent chaque semaine ; promus, ils jouent et progressent plus vite.</p></div>`;
+}
+function vueStade(){
+  const c = club(M.manager.club), enCours = t => c.travaux.find(x => x.type === t), fin = t => { const x = enCours(t); return x ? `fin dans ${x.fin - (M.tic || 0)} sem.` : ''; };
+  const ext = enCours('stade');
+  VUE.innerHTML = `<div><h1 class="grand">Stade</h1><p class="sous">${esc(c.nom)} · entretien ${eur(c.stade * E.eco.entretien + C.entretienInst(c))} par semaine</p></div>
+  <div class="carte"><h2>Capacité</h2><div style="font-size:1.7rem;font-weight:800;letter-spacing:-.03em">${c.stade.toLocaleString('fr-FR')} places</div>
+    <p class="petit mut" style="margin:6px 0 10px">Agrandir de ${E.stade.tranche.toLocaleString('fr-FR')} places : ${E.stade.semaines} semaines de travaux. Utile si le stade se remplit (Finances › Billetterie).</p>
+    <button class="btn plein" data-act="travaux" data-t="stade" ${ext ? 'disabled' : ''}>${ext ? 'Travaux en cours · ' + fin('stade') : 'Agrandir · ' + eur(C.coutTravaux(c, 'stade'))}</button></div>
+  <div class="carte"><h2>Installations</h2><div class="liste">${D.INSTALLATIONS.map(([k, nom, effet]) => { const n = C.niv(c, k), x = enCours(k);
+    return `<div class="el"><div class="t"><b>${nom} · niveau ${n}</b><span>${esc(effet)} : ×${C.multInst(c, k).toFixed(2).replace('.', ',')}${k === 'tribunes' ? ' (bonus de remplissage)' : ''}${k === 'formation' ? ` (${1 + n} jeunes par été)` : ''}</span></div>
+      ${n >= 5 ? '<span class="badge tit">max</span>' : x ? `<span class="badge">${fin(k)}</span>` : `<button class="btn sec" data-act="travaux" data-t="${k}">${eur(C.coutTravaux(c, k))}</button>`}</div>`; }).join('')}</div>
+    <p class="petit mut" style="margin:8px 0 0">Chaque niveau augmente aussi l'entretien hebdomadaire.</p></div>`;
+}
+function vueChomage(){
+  const mg = M.manager, S = QM.semaine(M), oc = C.offresCarriere(M);
+  VUE.innerHTML = `<div><h1 class="grand">Sans club</h1><p class="sous">${esc(mg.nom)} · réputation ${Math.round(mg.rep)} / 100</p></div>
+  <div class="carte"><h2>Offres</h2>${oc.length ? oc.map(o => { const c = club(o.club), o2 = QM.objectif(M, o.club);
+    return `<div class="el">${blason(c.id)}<div class="t"><b>${esc(c.nom)}</b><span>${esc(M.ligues[c.ligue].court)} · réputation ${c.rep} · ${esc(o2.txt.toLowerCase())}</span></div></div>
+      <div class="btns" style="margin:4px 0 10px"><button class="btn sec" data-act="refuserPoste" data-c="${c.id}">Refuser</button><button class="btn" data-act="accepterPoste" data-c="${c.id}">Accepter</button></div>`; }).join('') : '<p class="mut" style="margin:0">Pas encore d\'offre. Avance le temps : les clubs à la recherche d\'un entraîneur se manifestent.</p>'}</div>
+  ${mg.selection && S && S.type === 'sixn' && QM.matchDuJoueur(M) ? '<div class="carte"><h2>Six Nations</h2><p class="sous" style="margin:0 0 8px">Tu restes sélectionneur.</p><button class="btn plein" data-act="preparer">Préparer le match de la sélection</button></div>' : ''}
+  ${S && S.type === 'bilan' ? '<button class="btn or plein" data-act="saisonSuivante">Passer à la saison suivante</button>' : `<button class="btn plein" data-act="continuer">Avancer d'une semaine${S ? ' (' + fmtDate(S.date) + ')' : ''}</button>`}
+  <div class="carte"><h2>Boîte de réception</h2>${M.boite.slice(0, 5).map(msgHTML).join('')}</div>`;
+}
+function vueCarriere(){
+  const mg = M.manager, oc = C.offresCarriere(M), U = mg.club ? club(mg.club) : null;
+  VUE.innerHTML = `<div><h1 class="grand">Carrière</h1><p class="sous">${esc(mg.nom)}${U ? ' · ' + esc(U.nom) : ' · sans club'}</p></div>
+  <div class="carte"><h2>Réputation</h2><div class="jauge"><i style="width:${mg.rep}%"></i></div><p class="petit mut" style="margin:8px 0 0">${Math.round(mg.rep)} / 100 · elle monte avec les résultats au-dessus des attentes, les objectifs atteints et les titres. À partir de ${E.carriere.repSelection}, les fédérations peuvent proposer le poste de sélectionneur.</p></div>
+  ${oc.length ? `<div class="carte" style="border-color:var(--or)"><h2>Offres de clubs</h2>${oc.map(o => { const c = club(o.club);
+    return `<div class="el">${blason(c.id)}<div class="t"><b>${esc(c.nom)}</b><span>${esc(M.ligues[c.ligue].court)} · réputation ${c.rep} · ${esc(QM.objectif(M, c.id).txt.toLowerCase())}</span></div></div>
+    <p class="petit mut" style="margin:0 0 6px">${esc(o.pourquoi || '')}</p>
+    <div class="btns" style="margin-bottom:10px"><button class="btn sec" data-act="refuserPoste" data-c="${c.id}">Refuser</button><button class="btn" data-act="accepterPoste" data-c="${c.id}">Accepter</button></div>`; }).join('')}
+    ${U ? '<p class="petit mut" style="margin:0">Accepter fait quitter ton club tout de suite : la partie continue avec le nouveau.</p>' : ''}</div>` : ''}
+  ${mg.offreSel ? `<div class="carte" style="border-color:var(--or)"><h2>Fédération</h2><div class="el">${blason(mg.offreSel.nat, '', 1)}<div class="t"><b>Sélectionneur : ${esc(nat(mg.offreSel.nat).nom)}</b><span>En plus de ton club, pendant le Six Nations</span></div></div>
+    <div class="btns"><button class="btn sec" data-act="refuserSel">Refuser</button><button class="btn" data-act="accepterSel">Accepter</button></div></div>` : ''}
+  ${mg.selection ? `<div class="carte"><h2>Sélection</h2><div class="el">${blason(mg.selection.nat, '', 1)}<div class="t"><b>${esc(nat(mg.selection.nat).nom)}</b><span>Depuis ${lab(mg.selection.depuis)} · objectif : top ${mg.selection.objectif}</span></div></div>
+    <div class="btns"><button class="btn sec" data-act="quitterSel">Quitter la sélection</button><button class="btn" data-act="vue" data-v="selection">Convocations</button></div></div>` : ''}
+  <div class="carte"><h2>Parcours</h2><div class="liste">${(mg.postes || []).slice().reverse().map(p => `<div class="el">${blason(p.club, 'p')}<div class="t"><b>${esc(club(p.club).nom)}</b><span>${lab(p.debut)}${p.fin != null ? ' → ' + lab(p.fin) : ' → aujourd\'hui'}</span></div></div>`).join('')}</div>
+    ${mg.saisons.length ? `<div class="sep"></div><div class="liste">${mg.saisons.slice().reverse().map(x => `<div class="el"><div class="t"><b>${esc(x.saison)}</b><span>${esc(club(x.club).nom)} · ${x.pos}${x.pos === 1 ? 'er' : 'e'}</span></div></div>`).join('')}</div>` : ''}</div>
+  ${U ? `<button class="btn sec plein" style="color:var(--mauvais)" data-act="demission">Démissionner de ${esc(U.nom)}</button>` : ''}`;
+}
+function vueSelection(){
+  const sel = M.manager.selection, n = sel.nat, conv = C.convocation(M).compo, T = M.sel.tactique;
+  const slot = (p, i, id, banc) => { const j = M.joueurs[id]; if (!j) return '';
+    return `<button class="slot" data-act="slotSel" data-p="${p}" data-i="${i}" data-b="${banc ? 1 : 0}">${posteB(banc ? j.poste : p)}<div class="t"><b>${esc(nomJ(j))}</b><span>${esc(club(j.club).nom)} · forme ${j.forme}</span></div><span class="note ${classeNote(QM.note(j, banc ? j.poste : p))}">${QM.note(j, banc ? j.poste : p)}</span></button>`; };
+  VUE.innerHTML = `<div><h1 class="grand">${flag(n)} ${esc(nat(n).nom)}</h1><p class="sous">Sélection · objectif : top ${sel.objectif} du Six Nations${M.sel.perso ? '' : ' · convocation automatique'}</p></div>
+  <div class="cols"><div><div class="carte"><h2>Convocations <button data-act="selAuto">Automatique</button></h2><div class="terrain">
+    <div class="grp">Poursuiveurs</div>${conv.P.map((id, i) => slot('P', i, id)).join('')}
+    <div class="grp">Batteurs</div>${conv.B.map((id, i) => slot('B', i, id)).join('')}
+    <div class="grp">Attrapeur</div>${slot('A', 0, conv.A[0])}<div class="grp">Gardien</div>${slot('G', 0, conv.G[0])}
+    <div class="grp">Remplaçants</div>${conv.banc.map((id, i) => slot('P', i, id, true)).join('')}</div></div></div>
+  <div><div class="carte"><h2>Consignes</h2>${consignesHTML(T, 'consigneSel')}</div></div></div>`;
+}
+function choisirSel(p, i, banc){
+  const n = M.manager.selection.nat, conv = C.convocation(M).compo;
+  const L = Object.values(M.joueurs).filter(j => j.nat === n && j.club && !j.acad).sort((a, b) => QM.note(b, banc ? b.poste : p) - QM.note(a, banc ? a.poste : p)).slice(0, 40);
+  feuille(`${teteF(banc ? 'Remplaçant' : D.POSTES[p].nom, `Joueurs ${esc(nat(n).nom === 'Angleterre' ? 'anglais' : 'de ' + nat(n).nom)} · note au poste`)}
+    <div class="liste">${L.map(j => `<button class="el" data-act="mettreSel" data-j="${j.id}" data-p="${p}" data-i="${i}" data-b="${banc ? 1 : 0}" ${j.bless ? 'disabled style="opacity:.5"' : ''}>${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}${QM.titulaires(conv).includes(j.id) ? ' <span class="badge tit">titulaire</span>' : conv.banc.includes(j.id) ? ' <span class="badge">remplaçant</span>' : ''}</b><span>${esc(club(j.club).nom)}${j.bless ? ' · ✚ blessé' : ''}</span></div><span class="note ${classeNote(QM.note(j, banc ? j.poste : p))}">${QM.note(j, banc ? j.poste : p)}</span></button>`).join('')}</div>`);
+}
+function mettreSel(jid, p, i, banc){
+  const conv = JSON.parse(JSON.stringify(C.convocation(M).compo));
+  const ou = id => { for (const q of ['P', 'B', 'A', 'G']){ const k = conv[q].indexOf(id); if (k >= 0) return [q, k]; } const k = conv.banc.indexOf(id); return k >= 0 ? ['banc', k] : null; };
+  const actuel = banc ? conv.banc[i] : conv[p][i], from = ou(jid);
+  if (banc) conv.banc[i] = jid; else conv[p][i] = jid;
+  if (from){ const [q, k] = from; if (q === 'banc') conv.banc[k] = actuel; else conv[q][k] = actuel; }
+  QM.rolesAuto(M, conv, true);
+  M.sel.compo = conv; M.sel.perso = true; retirerFeuille(); sauver(); rendre();
+}
+
 /* ---------- Match ---------- */
 function vueMatch(){
   if (!X) return aller('accueil');
@@ -623,7 +772,7 @@ function evHTML(ev){
 function avantMatchHTML(){
   const moi = X.joueur, e = X.e[moi], T = e.tactique;
   const ch = (X.changements || []).map(([a, b]) => `${court(M.joueurs[a])} → ${court(M.joueurs[b])}`).join(', ');
-  return `<div class="carte"><h2>Ta composition <button data-act="vue" data-v="tactique">Modifier</button></h2>
+  return `<div class="carte"><h2>Ta composition <button data-act="vue" data-v="${X.sixn ? 'selection' : 'tactique'}">Modifier</button></h2>
     ${ch ? `<p class="petit" style="margin:0 0 8px;color:var(--moyen)">Changé pour blessure : ${esc(ch)}</p>` : ''}
     <div class="liste">${['P', 'B', 'A', 'G'].flatMap(p => e[p].map(id => { const j = M.joueurs[id]; return `<div class="el">${posteB(p)}<div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>Forme ${j.forme} · fatigue ${j.fat} %</span></div><span class="note ${classeNote(QM.note(j, p))}">${QM.note(j, p)}</span></div>`; })).join('')}</div>
     <p class="petit mut" style="margin:8px 0 0">Attrapeur : ${esc((CONSIGNES[6][3].find(o => o[0] === T.attrapeur) || [])[1] || '')} · rythme ${esc((CONSIGNES[0][3].find(o => o[0] === T.rythme) || [])[1] || '')} · cognards sur ${esc((CONSIGNES[5][3].find(o => o[0] === T.cible) || [])[1] || '').toLowerCase()}</p></div>
@@ -704,7 +853,7 @@ function finDuMatch(){
   clearInterval(U.live && U.live.timer);
   QM.terminerSemaine(M, X);
   const moi = X.joueur, r = X.score[moi] - X.score[1 - moi];
-  M.dernierMatch = {dom:m.dom, ext:m.ext, score:m.res.score, sixn:false, resume:`${r > 0 ? 'Victoire' : r < 0 ? 'Défaite' : 'Nul'} · ${m.res.duree} min · vif d'or ${esc(X.e[X.vif].sigle)}`, id:m.id};
+  M.dernierMatch = {dom:m.dom, ext:m.ext, score:m.res.score, sixn:m.ligue === 'sixn', resume:`${r > 0 ? 'Victoire' : r < 0 ? 'Défaite' : 'Nul'} · ${m.res.duree} min · vif d'or ${esc(X.e[X.vif].sigle)}`, id:m.id};
   X = null; U.live = null; U.vue = 'accueil';
   sauver(); rendre(); scrollTo(0, 0);
   toast('Journée terminée · résultats dans le calendrier');
@@ -786,6 +935,22 @@ const ACT = {
   balais:d => { const b = D.BALAIS.find(x => x.id === d.b); if (!confirm(`Acheter un jeu de ${b.nom} pour ${eur(b.prix * 1000)} ?`)) return; const r = C.acheterBalais(M, d.b); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
   ficheStaff:d => ficheStaff(d.r),
   embaucher:d => { const r = C.embaucher(M, d.s); toast(r.msg); if (r.ok){ retirerFeuille(); sauver(); rendre(); } },
+  travaux:d => { const c = club(M.manager.club), cout = C.coutTravaux(c, d.t); if (!confirm(`Lancer les travaux pour ${eur(cout)} ?`)) return; const r = C.lancerTravaux(M, d.t); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
+  promouvoir:d => { const r = C.promouvoir(M, d.j); toast(r.msg); if (r.ok){ retirerFeuille(); sauver(); rendre(); } },
+  libererJeune:d => { if (!confirm('Libérer ce jeune ? Il quitte le club.')) return; const r = C.libererJeune(M, d.j); toast(r.msg); if (r.ok){ retirerFeuille(); sauver(); rendre(); } },
+  accepterPoste:d => { const c = club(d.c); if (M.manager.club && !confirm(`Quitter ${club(M.manager.club).nom} pour ${c.nom} ?`)) return; const r = C.accepterPoste(M, d.c); toast(r.msg); if (r.ok){ U.vue = 'accueil'; sauver(); rendre(); scrollTo(0, 0); } },
+  refuserPoste:d => { C.refuserPoste(M, d.c); sauver(); rendre(); },
+  demission:() => { if (!confirm('Démissionner ? Tu perds un peu de réputation et tu restes sans club en attendant une offre.')) return; const r = C.demissionner(M); toast(r.msg); U.vue = 'accueil'; sauver(); rendre(); },
+  accepterSel:() => { const r = C.accepterSelection(M); toast(r.msg); sauver(); rendre(); },
+  refuserSel:() => { C.refuserSelection(M); sauver(); rendre(); },
+  quitterSel:() => { if (!confirm('Quitter le poste de sélectionneur ?')) return; const r = C.quitterSelection(M); toast(r.msg || 'Fait'); sauver(); rendre(); },
+  selAuto:() => { M.sel.perso = false; M.sel.compo = null; sauver(); rendre(); toast('Convocation automatique'); },
+  slotSel:d => choisirSel(d.p, +d.i, d.b === '1'),
+  mettreSel:d => mettreSel(d.j, d.p, +d.i, d.b === '1'),
+  consigneSel:d => { M.sel.tactique[d.k] = /^\d$/.test(d.v) ? +d.v : d.v; sauver(); rendre(); },
+  ouvrirSync:async () => { const v = ($('#codeSync') || {}).value || ''; try{ const r = await Synchro.ouvrirAvecCode(v); if (!r) toast(r === false ? 'Code incorrect' : 'Synchronisation introuvable'); }catch(e){ toast(msgSync(e)); } NUAGE.infos = null; rendreNuage(); },
+  envoyerNuage:async d => { try{ await sauver(); await envoyerNuage(+d.n, false); NUAGE.infos = null; }catch(e){ toast(msgSync(e)); } rendreNuage(); },
+  recupererNuage:async d => { if (!confirm(`Remplacer l'emplacement ${d.n} de cet appareil par la partie en ligne ?`)) return; try{ await recupererNuage(+d.n); U.vue = 'accueil'; rendre(); scrollTo(0, 0); }catch(e){ toast(msgSync(e)); } },
   continuer:() => { const S = QM.semaine(M); QM.terminerSemaine(M, null); sauver(); rendre(); scrollTo(0, 0); toast(S.type === 'sixn' ? `Six Nations · tour ${S.tour} joué` : S.type === 'prepa' ? `Préparation · semaine ${S.semaine} terminée` : 'Semaine passée'); },
   saisonSuivante:() => { QM.saisonSuivante(M); M.dernierMatch = null; sauver(); rendre(); scrollTo(0, 0); toast(`Saison ${lab(M.saison)} lancée`); },
 };
@@ -797,6 +962,7 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if (t.dataset.chg === 'pause'){ REG.pauses[t.dataset.k] = t.checked; regler(); }
+  if (t.dataset.chg === 'autoSync'){ REG.autoSync = t.checked; regler(); if (t.checked) toast('Envoi automatique activé'); }
 });
 $('#fichier').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
@@ -814,4 +980,6 @@ $('#fichier').addEventListener('change', async e => {
   if (n && emplacements()[n]){ try{ await chargerEmp(n); }catch{ M = null; } }
   rendre();
 })();
+/* pour les essais (outils/dev) et la console : la partie ouverte */
+window.QM27 = {partie:() => M, sauver, rendre};
 })();

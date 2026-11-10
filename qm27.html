@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="48eee065">
+<meta name="mon-ecran-version" content="50795093">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -22,7 +22,7 @@ body{margin:0;font-size:14px}
 <link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="commun.css">
 <style>
-/* QM27 (v83, lot 2 : v84) : jeu de gestion de club de Quidditch. Couleurs du thème de KiosK (themes.js), or pour le vif d'or. */
+/* QM27 (v83, lot 2 : v84, lot 3 : v85) : jeu de gestion de club de Quidditch. Couleurs du thème de KiosK (themes.js), or pour le vif d'or. */
 :root{
   --base:#e7ecef; --ink:#10233a; --ink-soft:#56636f; --ink-faint:#8b98a5;
   --card:rgba(255,255,255,.66); --card-2:rgba(255,255,255,.4); --line:rgba(39,76,119,.13); --head:rgba(231,236,239,.78);
@@ -284,9 +284,11 @@ html.desk .grille{grid-template-columns:repeat(4, 1fr)}
 <main><div class="wrap" id="vue" aria-live="polite"></div></main>
 <nav class="qm-nav" id="nav" hidden aria-label="Menus du jeu"><div class="in"></div></nav>
 <input type="file" id="fichier" accept=".json,application/json" hidden>
+<script src="synchro.js"></script>
 <script src="qm27-donnees.js"></script>
 <script src="qm27.js"></script>
 <script src="qm27-club.js"></script>
+<script src="qm27-carriere.js"></script>
 <script src="qm27-ui.js"></script>
 <script src="commun.js"></script>
 </body>

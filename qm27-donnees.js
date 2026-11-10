@@ -1,5 +1,5 @@
-// mon-ecran-version: 6c34eb34
-/* QM27 (v83, lot 2 : v84) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
+// mon-ecran-version: eb7b2d9c
+/* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
 (function(root){
@@ -185,13 +185,21 @@ const EQ = {
   /* v84 : entraînement (progression par semaine) et cohésion */
   ent:{semaines:40, focus:1.7, horsFocus:0.55, cible:1.3, autre:0.6, joue:0.3, intensite:[0.7, 1, 1.3], fatigue:[0, 4, 9], blessure:0.001, cohesion:70},
   usure:1.2,                    // usure des balais par match (sur 100)
+  /* v85 : stade et installations (niveaux 1 à 5 ; coût du niveau suivant = base × niveau actuel ; entretien par niveau et par semaine) */
+  stade:{tranche:2000, coutPlace:600, semaines:8, max:60000},
+  inst:{boutique:{base:400e3, entretien:500, semaines:4}, buvettes:{base:300e3, entretien:400, semaines:3}, tribunes:{base:800e3, entretien:800, semaines:8}, formation:{base:600e3, entretien:1200, semaines:6}},
+  /* v85 : carrière */
+  carriere:{repSelection:70, licenciement:5, offreSemaine:0.05, chomageOffre:0.6, academieMax:12},
 };
 
 /* v84 : staff du club : [clé, nom, groupe entraîné] */
 const STAFF = [['entP', 'Entraîneur des poursuiveurs', 'P'], ['entB', 'Entraîneur des batteurs', 'B'], ['entA', 'Entraîneur des attrapeurs', 'A'], ['entG', 'Entraîneur des gardiens', 'G'],
-  ['prepa', 'Préparateur physique', ''], ['medecin', 'Médecin', ''], ['recruteur', 'Recruteur', '']];
+  ['prepa', 'Préparateur physique', ''], ['medecin', 'Médecin', ''], ['recruteur', 'Recruteur', ''], ['formation', 'Responsable de la formation', '']];   // v85 : formation
 const EFFETS_STAFF = {entP:'progression des poursuiveurs', entB:'progression des batteurs', entA:'progression des attrapeurs', entG:'progression des gardiens',
-  prepa:'physique, récupération, déclin plus lent', medecin:'durée des blessures', recruteur:'estimation du potentiel et des notes au mercato'};
+  prepa:'physique, récupération, déclin plus lent', medecin:'durée des blessures', recruteur:'estimation du potentiel et des notes au mercato', formation:'potentiel et progrès des jeunes du centre'};
+/* v85 : installations du stade */
+const INSTALLATIONS = [['boutique', 'Boutique', 'Recettes de la boutique'], ['buvettes', 'Buvettes', 'Recettes de restauration par spectateur'],
+  ['tribunes', 'Tribunes couvertes', 'Remplissage du stade'], ['formation', 'Centre de formation', 'Nombre et qualité des jeunes chaque été']];
 /* v84 : rôles individuels par poste : [clé, nom, effet] */
 const ROLES = {
   P:[['polyvalent', 'Polyvalent', 'Équilibré entre attaque et défense.'], ['meneur', 'Meneur', 'Fait jouer les autres : l\'attaque de l\'équipe compte plus sur lui.'],
@@ -204,5 +212,5 @@ const ROLES = {
 const FOCUS = [['technique', 'Technique', ['Vol', 'Balle', 'Gardien']], ['physique', 'Physique', ['Physique']], ['tactique', 'Tactique', ['Mental']], ['repos', 'Repos', []]];
 const INTENSITES = [[1, 'Légère'], [2, 'Normale'], [3, 'Intense']];
 
-root.QMD = {STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
+root.QMD = {INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
 })(typeof window !== 'undefined' ? window : globalThis);
