@@ -1,5 +1,5 @@
 {
- "date": "2026-11-09T11:10:11+00:00",
+ "date": "2026-11-10T07:53:38+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -44,7 +44,7 @@
   },
   "accueil": {
    "onglet": "Accueil",
-   "coches": 13,
+   "coches": 14,
    "ajouts": 0
   },
   "applis": {
@@ -103,55 +103,46 @@
    "onglet": "YouTube",
    "ligne": 25,
    "nom": "NASA",
-   "statut": "ok",
-   "message": "chaîne UC9SM7V7J1pAhPabOUST01fw · 15 vidéos récentes"
+   "statut": "warn",
+   "message": "non testé : site injoignable pour l'instant (HTTPError) — gardé, nouvel essai au prochain dépôt"
   },
   {
    "onglet": "YouTube",
    "ligne": 27,
    "nom": "ESA",
-   "statut": "ok",
-   "message": "chaîne UCjajQVmLr2s8TX9OvirZn9A · 15 vidéos récentes"
+   "statut": "warn",
+   "message": "non testé : site injoignable pour l'instant (HTTPError) — gardé, nouvel essai au prochain dépôt"
   },
   {
    "onglet": "YouTube",
    "ligne": 31,
    "nom": "Nota Bene",
-   "statut": "ok",
-   "message": "chaîne UCrbbgYjbrXVYRM_iRGEDqFw · 15 vidéos récentes"
+   "statut": "warn",
+   "message": "non testé : site injoignable pour l'instant (HTTPError) — gardé, nouvel essai au prochain dépôt"
   },
   {
    "onglet": "YouTube",
    "ligne": 32,
    "nom": "Le Dessous des cartes",
    "statut": "warn",
-   "message": "chaîne UC62Sw2sSA6W0_LMM3l0vDkQ trouvée, aucune vidéo récente"
+   "message": "non testé : site injoignable pour l'instant (HTTPError) — gardé, nouvel essai au prochain dépôt"
   },
   {
    "onglet": "YouTube",
    "ligne": 43,
    "nom": "Joueur du Grenier",
-   "statut": "ok",
-   "message": "chaîne UCKNJiTmKrur10zxStf5Gztw · 15 vidéos récentes"
+   "statut": "warn",
+   "message": "non testé : site injoignable pour l'instant (HTTPError) — gardé, nouvel essai au prochain dépôt"
   }
  ],
  "erreurs": [],
  "modifs": {
   "recues": 1,
-  "nouvelles": [
-   {
-    "uid": "mw95sy1l-0u27551f5s",
-    "statut": "ok",
-    "message": "reporté dans l'onglet Applis, ligne 9 : Oui = Non",
-    "id": "ap:accueil:medias",
-    "le": "2026-11-09T11:10:11+00:00",
-    "par": "iPhone"
-   }
-  ]
+  "nouvelles": []
  },
  "resume": {
-  "ok": 7,
-  "warn": 3,
+  "ok": 3,
+  "warn": 7,
   "ko": 0,
   "info": 0
  },
