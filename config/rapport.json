@@ -1,5 +1,5 @@
 {
- "date": "2026-11-10T07:53:58+00:00",
+ "date": "2026-11-10T07:57:04+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -44,7 +44,7 @@
   },
   "accueil": {
    "onglet": "Accueil",
-   "coches": 14,
+   "coches": 13,
    "ajouts": 0
   },
   "applis": {
@@ -137,8 +137,17 @@
  ],
  "erreurs": [],
  "modifs": {
-  "recues": 0,
-  "nouvelles": []
+  "recues": 1,
+  "nouvelles": [
+   {
+    "uid": "mwaeclmt-6s175t2i10",
+    "statut": "ok",
+    "message": "reporté dans l'onglet Accueil, ligne 13 : Oui = vide",
+    "id": "pg:ambreval",
+    "le": "2026-11-10T07:57:04+00:00",
+    "par": "iPhone"
+   }
+  ]
  },
  "resume": {
   "ok": 3,
