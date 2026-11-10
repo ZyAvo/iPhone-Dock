@@ -1,4 +1,4 @@
-// mon-ecran-version: 157cc6af
+// mon-ecran-version: 6e515cdc
 // Prépare les données de la page Sport (lancé par la tâche GitHub « Sport », v51 ; avant : « Programme TV sport »).
 // Lit la liste des compétitions et les fonctions de lecture dans sport.html et match.js,
 // interroge ESPN côté serveur, numérote les journées et écrit :
@@ -72,6 +72,9 @@ function slim(m){
 /* ---------- Outils ---------- */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const ymd = t => new Date(t).toISOString().slice(0, 10).replace(/-/g, '');
+// v82 : ESPN range un match au jour de New York (paramètre dates=) : jeudi 20 h 15 à New York = vendredi en heure universelle.
+// Les jours à relire et à garder se comptent donc au jour de New York, sinon le match du jeudi soir NFL disparaissait aux passages suivants.
+const jourEspn = t => new Date(t).toLocaleDateString('en-CA', {timeZone:'America/New_York'}).replace(/-/g, '');
 const days = (a, b) => { const out = []; for (let t = a; t <= b; t += DAY) out.push(ymd(t)); return out; };
 const read = f => { try{ return JSON.parse(fs.readFileSync(f, 'utf8')); }catch{ return null; } };
 const write = (f, v) => fs.writeFileSync(f, JSON.stringify(v));
@@ -144,18 +147,21 @@ async function eventsFor(L, S, prev){
   let cand = [...new Set([...(calOk ? calIn : days(S.start, S.end)), ...near])].sort();
   // v51 : en journée, de J-3 à J+14, on ne relit que les jours utiles (jours de match du calendrier ESPN ou déjà connus, hier, aujourd'hui) ;
   // le premier passage de chaque jour (UTC) relit tout, pour attraper les matchs ajoutés ou déplacés (SPORT_COMPLET=1 : tout, tout de suite)
-  const COMPLET = process.env.SPORT_COMPLET === '1' || !(prev && prev.events && prev.events.length) || prev.completLe !== ymd(NOW);
+  const relire = ['basketball', 'football', 'hockey'].includes(L.sport) && !!(prev && prev.events && prev.events.length) && !prev.jourEspn;   // v82 : une seule fois
+  const COMPLET = process.env.SPORT_COMPLET === '1' || relire || !(prev && prev.events && prev.events.length) || prev.completLe !== ymd(NOW);
   if (!COMPLET){
-    const utiles = new Set([...calIn, ...prev.events.map(m => ymd(m.t)), todayK, ymd(NOW - DAY)]), bas = ymd(NOW - 3 * DAY), haut = ymd(NOW + 14 * DAY);
+    const utiles = new Set([...calIn, ...prev.events.flatMap(m => [ymd(m.t), jourEspn(m.t)]), todayK, ymd(NOW - DAY)]), bas = ymd(NOW - 3 * DAY), haut = ymd(NOW + 14 * DAY);
     cand = cand.filter(d => d < bas || d > haut || utiles.has(d));
   }
   const covered = new Set(ranged.map(m => ymd(m.t)));
   const lastCovered = [...covered].sort().pop(); covered.delete(lastCovered);        // le dernier jour peut être incomplet
   const cutoff = ymd(NOW - 3 * DAY);
-  const checked = new Set(((prev && prev.checked) || []).filter(d => d < cutoff));   // jours passés déjà lus aux passages précédents
+  // v82 : reprise unique (sports US) : les jours passés restés sans match sont relus, pour récupérer les matchs du jeudi perdus avant la correction
+  const pleins = new Set(((prev && prev.events) || []).map(m => jourEspn(m.t)));
+  const checked = new Set(((prev && prev.checked) || []).filter(d => d < cutoff && (!relire || pleins.has(d))));   // jours passés déjà lus aux passages précédents
   const far = ymd(NOW + 14 * DAY), future = {...((prev && prev.future) || {})};    // jours lointains : relus une fois par jour seulement
   const keepDay = d => (d < cutoff && checked.has(d)) || (d > far && future[d] && NOW - future[d] < DAY);
-  const keep = ((prev && prev.events) || []).filter(m => keepDay(ymd(m.t)));
+  const keep = ((prev && prev.events) || []).filter(m => keepDay(jourEspn(m.t)));
   const todo = cand.filter(d => !covered.has(d) && !keepDay(d));
   let ok = 0;
   const res = await pool(todo.map(d => async () => { const j = await get(`${base}?dates=${d}&limit=300`); ok++; if (d < cutoff) checked.add(d); else if (d > far) future[d] = NOW; return j; }), 8);
@@ -167,7 +173,7 @@ async function eventsFor(L, S, prev){
   const diag = {range:ranged.length, complet:COMPLET, days:todo.length, ok, failed:todo.length - ok, calendar:calOk ? 'espn' : 'tous les jours', ghosts:all.length - events.length};
   console.log(`  ${L.name} : ${JSON.stringify(diag)}`);
   Object.keys(future).forEach(d => { if (d <= far) delete future[d]; });
-  return {events, info, calendar:cal, checked:[...checked].sort(), future, diag, completLe:COMPLET ? ymd(NOW) : prev.completLe};
+  return {events, info, calendar:cal, checked:[...checked].sort(), future, diag, completLe:COMPLET ? ymd(NOW) : prev.completLe, jourEspn:1};
 }
 
 /* ---------- Journées ---------- */
@@ -419,7 +425,7 @@ for (const L of LEAGUES){
     await rugbyDetails(L, r.events, prev);
     const table = await standings(L, S, r.events, prev);
     try{ r.diag.logos = await logosClubs(L, r.events, table); }catch(e){ console.log(`  ${L.name} : logos TheSportsDB en échec (${e.message || e})`); }   // v58
-    write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, diag:r.diag, calendar:r.calendar, checked:r.checked, future:r.future, completLe:r.completLe, rounds, table, events:r.events.map(slim)});
+    write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, diag:r.diag, calendar:r.calendar, checked:r.checked, future:r.future, completLe:r.completLe, jourEspn:r.jourEspn, rounds, table, events:r.events.map(slim)});
     index.leagues[L.id] = {count:r.events.length, rounds, table:table ? table.src || 'espn' : false, diag:r.diag, file:`${slug(L.id)}.json`};
     r.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => (m.t < NOW - 4 * DAY ? passe : upcoming).push(m));
     console.log(`${L.name} : ${r.events.length} matchs, ${Math.round((Date.now() - t0) / 1000)} s`, JSON.stringify(rounds));
