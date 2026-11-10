@@ -1,5 +1,5 @@
 {
- "date": "2026-11-10T10:09:03+00:00",
+ "date": "2026-11-10T10:09:26+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -138,16 +138,7 @@
  "erreurs": [],
  "modifs": {
   "recues": 1,
-  "nouvelles": [
-   {
-    "uid": "mwaj2f26-616l3y5v6v",
-    "statut": "ok",
-    "message": "reporté dans l'onglet Accueil, ligne 13 : Oui = Oui",
-    "id": "pg:ambreval",
-    "le": "2026-11-10T10:09:03+00:00",
-    "par": "iPhone"
-   }
-  ]
+  "nouvelles": []
  },
  "resume": {
   "ok": 7,
