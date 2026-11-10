@@ -1,4 +1,4 @@
-// mon-ecran-version: 542adbc0
+// mon-ecran-version: e4e61db5
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -98,6 +98,7 @@ const TACTIQUE_DEFAUT = () => ({rythme:2, risque:2, agressivite:2, passes:'court
 
 /* ---------- Compositions ---------- */
 const dispo = (M, id) => { const j = M.joueurs[id]; return j && !j.bless; };
+const NB_BANC = () => D.EQ.banc || 5;   // v86 : 5 remplaçants
 function compoAuto(M, clubId){
   const club = M.clubs[clubId], pris = new Set();
   const ids = club.effectif.filter(id => dispo(M, id));
@@ -108,7 +109,7 @@ function compoAuto(M, clubId){
   };
   const c = {A:pick('A', 1), G:pick('G', 1), B:pick('B', 2), P:pick('P', 3)};
   const banc = [...pick('P', 2), ...pick('B', 1), ...pick('A', 1), ...pick('G', 1), ...pick('P', 2)];
-  c.banc = banc.slice(0, 7);
+  c.banc = banc.slice(0, NB_BANC());
   rolesAuto(M, c);
   return c;
 }
@@ -147,9 +148,9 @@ function verifierCompo(M, clubId){
     });
   }
   const tit = new Set(titulaires(c));
-  const banc = c.banc.filter(id => dans(id) && !tit.has(id) && dispo(M, id));
-  for (const id of club.effectif) if (banc.length < 7 && !tit.has(id) && !banc.includes(id) && dispo(M, id)) banc.push(id);
-  c.banc = banc.slice(0, 7);
+  const banc = c.banc.filter(id => id && dans(id) && !tit.has(id) && dispo(M, id));
+  for (const id of club.effectif) if (banc.length < NB_BANC() && !tit.has(id) && !banc.includes(id) && dispo(M, id)) banc.push(id);
+  c.banc = banc.slice(0, NB_BANC());
   rolesAuto(M, c, true);
   return faits;
 }
@@ -225,7 +226,7 @@ function selection(M, nat){
   const pick = (poste, n) => { const s = L.filter(j => !pris.has(j.id)).sort((a, b) => note20(b, poste) - note20(a, poste)).slice(0, n).map(j => j.id); s.forEach(x => pris.add(x)); return s; };
   const e = {id:nat, nom:D.NATIONS[nat].nom, sigle:D.NATIONS[nat].court, couleurs:['#33415c', '#e0e1dd'], tactique:TACTIQUE_DEFAUT(), balai:D.BALAIS[4],
              A:pick('A', 1), G:pick('G', 1), B:pick('B', 2), P:pick('P', 3), rep:70};
-  e.banc = [...pick('P', 2), ...pick('B', 1), ...pick('A', 1), ...pick('G', 1), ...pick('P', 2)];
+  e.banc = [...pick('P', 2), ...pick('B', 1), ...pick('A', 1), ...pick('G', 1), ...pick('P', 2)].slice(0, NB_BANC());
   rolesAuto(M, e); e.cohesion = 60; e.usure = 100;
   return e;
 }

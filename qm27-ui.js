@@ -1,4 +1,4 @@
-// mon-ecran-version: 172c4f9a
+// mon-ecran-version: 73703a40
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -352,7 +352,7 @@ function ficheJoueur(id){
         <span style="text-align:left;font-weight:400">Note moyenne</span><b>${s.m ? (s.notes / s.m).toFixed(1) : '—'}</b>
       </div></div>
     ${j.acad ? blocJeune(j) : blocContrat(j, mon)}
-    ${mon ? `<p class="petit mut" style="margin-top:10px">${r.tit ? `Titulaire (${D.POSTES[r.p].nom.toLowerCase()}).` : r.banc ? 'Remplaçant.' : 'Hors du groupe de 14.'} Les changements se font dans Tactique.</p>` : ''}`);
+    ${mon ? `<p class="petit mut" style="margin-top:10px">${r.tit ? `Titulaire (${D.POSTES[r.p].nom.toLowerCase()}).` : r.banc ? 'Remplaçant.' : 'Hors du groupe de 12.'} Les changements se font dans Tactique.</p>` : ''}`);
 }
 
 /* ---------- Tactique ---------- */
@@ -369,15 +369,6 @@ const CONSIGNES = [
 function consignesHTML(T, act, liste){
   return CONSIGNES.filter(c => !liste || liste.includes(c[0])).map(([k, n, d, opts]) => `<div class="cons"><b>${n}</b><div class="seg">${opts.map(([v, l]) => `<button data-act="${act}" data-k="${k}" data-v="${v}" class="${String(T[k]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div><span>${d}</span></div>`).join('');
 }
-function slotHTML(p, i, id, act){
-  const j = M.joueurs[id];
-  if (!j) return `<button class="slot vide" data-act="${act}" data-p="${p}" data-i="${i}">${posteB(p)}<div class="t"><b>Choisir</b></div></button>`;
-  const n = QM.note(j, p);
-  const b = `<button class="slot" data-act="${act}" data-p="${p}" data-i="${i}">${posteB(p)}<div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>${j.bless ? '<span class="badge bless">✚ blessé</span> ' : ''}Forme ${j.forme} · fatigue ${j.fat} %${j.poste !== p ? ' · ' + D.POSTES[j.poste].nom.toLowerCase() + ' de formation' : ''}</span></div><span class="note ${classeNote(n)}">${n}</span></button>`;
-  if (act !== 'slot') return b;
-  const k = club(M.manager.club).compo, r = (k.roles || {})[id], R = (D.ROLES[p] || []).find(x => x[0] === r);
-  return `<div class="slotw">${b}<button class="rolechip" data-act="role" data-j="${id}" data-p="${p}">${R ? esc(R[1]) : 'Rôle'}${k.cap === id ? ' · <b>Capitaine</b>' : ''} ›</button></div>`;
-}
 function ficheRole(id, p){
   const k = club(M.manager.club).compo, j = M.joueurs[id], r = (k.roles || {})[id];
   feuille(`${teteF('Rôle de ' + esc(nomJ(j)), D.POSTES[p].nom)}
@@ -386,35 +377,166 @@ function ficheRole(id, p){
     <button class="btn ${k.cap === id ? 'sec' : ''} plein" data-act="capitaine" data-j="${id}">${k.cap === id ? 'Déjà capitaine' : 'Nommer capitaine'}</button>
     <p class="petit mut" style="margin:8px 0 0">Le capitaine donne un peu de moral au départ et limite la baisse quand l'équipe encaisse.</p>`);
 }
-function vueTactique(){
-  const c = club(M.manager.club), CK = c.compo, T = c.tactique;
-  const moy = Math.round(['P', 'B', 'A', 'G'].reduce((s, p) => s + CK[p].reduce((t, id) => t + QM.note(M.joueurs[id], p), 0), 0) / 7);
-  VUE.innerHTML = `<div><h1 class="grand">Tactique</h1><p class="sous">Note moyenne des titulaires : <b>${moy}</b></p></div>
-  <div class="cols"><div>
-  <div class="carte"><h2>Composition <button data-act="compoAuto">Composition auto</button></h2><div class="terrain">
-    <div class="grp">Poursuiveurs</div>${CK.P.map((id, i) => slotHTML('P', i, id, 'slot')).join('')}
-    <div class="grp">Batteurs</div>${CK.B.map((id, i) => slotHTML('B', i, id, 'slot')).join('')}
-    <div class="grp">Attrapeur</div>${slotHTML('A', 0, CK.A[0], 'slot')}
-    <div class="grp">Gardien</div>${slotHTML('G', 0, CK.G[0], 'slot')}
-    <div class="grp">Remplaçants (7)</div>${CK.banc.map((id, i) => slotHTML(M.joueurs[id] ? M.joueurs[id].poste : 'P', i, id, 'slotBanc')).join('')}
-  </div></div></div><div>
-  <div class="carte"><h2>Consignes</h2>${consignesHTML(T, 'consigne')}</div></div></div>`;
+/* ---------- v86 : composition sur le terrain (tactique du club et convocations de la sélection) ----------
+   Places : P0-P2, B0-B1, A0, G0 (titulaires) et R0-R4 (banc). Une place peut rester vide : le moteur la complète avant le match. */
+const NB_BANC = () => E.banc || 5;
+const SLOTS_T = ['P0', 'P1', 'P2', 'B0', 'B1', 'A0', 'G0'];
+const SLOTS_B = () => Array.from({length:NB_BANC()}, (_, i) => 'R' + i);
+const nomSlot = s => s[0] === 'R' ? 'R' + (+s.slice(1) + 1) : s[0] === 'A' || s[0] === 'G' ? s[0] : s[0] + (+s.slice(1) + 1);
+const lireSlot = (K, s) => ((s[0] === 'R' ? K.banc : K[s[0]]) || [])[+s.slice(1)] || null;
+const ecrireSlot = (K, s, id) => { (s[0] === 'R' ? K.banc : K[s[0]])[+s.slice(1)] = id || null; };
+const slotDe = (K, id) => [...SLOTS_T, ...SLOTS_B()].find(s => lireSlot(K, s) === id) || null;
+const POS_T = {P0:[21, 45], P1:[50, 37], P2:[79, 45], B0:[27, 65], B1:[73, 65], A0:[50, 18], G0:[50, 82]};   // % du terrain, nos anneaux en bas
+function normaliserK(K){
+  for (const [p, n] of [['P', 3], ['B', 2], ['A', 1], ['G', 1]]) K[p] = Array.from({length:n}, (_, i) => (K[p] || [])[i] || null);
+  K.banc = Array.from({length:NB_BANC()}, (_, i) => (K.banc || [])[i] || null);
+  return K;
 }
+function ctxCompo(){
+  if (U.vue === 'selection' && M.manager.selection){
+    const n = M.manager.selection.nat, K = normaliserK(JSON.parse(JSON.stringify(C.convocation(M).compo)));
+    return {sel:true, K, pool:Object.values(M.joueurs).filter(j => j.nat === n && j.club && !j.acad), valider(){ M.sel.compo = K; M.sel.perso = true; }};
+  }
+  const c = club(M.manager.club);
+  return {sel:false, K:normaliserK(c.compo), pool:c.effectif.map(id => M.joueurs[id]).filter(Boolean), valider(){}};
+}
+/* met le joueur à une place (null : réserve) ; l'occupant prend l'ancienne place du joueur, ou part en réserve */
+function placerSlot(ctx, id, cible){
+  const K = ctx.K, de = slotDe(K, id);
+  if (de === (cible || null)) return false;
+  const occ = cible ? lireSlot(K, cible) : null;
+  if (cible) ecrireSlot(K, cible, id);
+  if (de) ecrireSlot(K, de, occ);
+  QM.rolesAuto(M, K, true); ctx.valider(); U.flash = id;
+  sauver(); rendre();
+  const j = M.joueurs[id];
+  toast(cible ? `${court(j)} : ${cible[0] === 'R' ? 'remplaçant ' + nomSlot(cible) : D.POSTES[cible[0]].nom.toLowerCase()}${occ && de ? ' · ' + court(M.joueurs[occ]) + ' prend sa place' : occ ? ' · ' + court(M.joueurs[occ]) + ' en réserve' : ''}` : `${court(j)} en réserve`);
+  return true;
+}
+const TERRAIN_SVG = `<svg viewBox="0 0 100 140" aria-hidden="true"><defs><pattern id="qm-raies" width="100" height="14" patternUnits="userSpaceOnUse"><rect width="100" height="7" class="gz1"/><rect y="7" width="100" height="7" class="gz2"/></pattern></defs>
+  <ellipse cx="50" cy="70" rx="48.5" ry="68.5" class="bord"/><ellipse cx="50" cy="70" rx="47" ry="67" fill="url(#qm-raies)"/>
+  <g class="lignes"><line x1="3" y1="70" x2="97" y2="70"/><circle cx="50" cy="70" r="9"/><line x1="12.8" y1="27" x2="87.2" y2="27"/><line x1="12.8" y1="113" x2="87.2" y2="113"/>
+    <path d="M37 27 A13 9 0 0 1 63 27"/><path d="M37 113 A13 9 0 0 0 63 113"/></g>
+  <g class="anneaux"><circle cx="40" cy="10" r="2.3"/><circle cx="50" cy="8.6" r="3"/><circle cx="60" cy="10" r="2.3"/><circle cx="40" cy="130" r="2.3"/><circle cx="50" cy="131.4" r="3"/><circle cx="60" cy="130" r="2.3"/></g>
+  <circle cx="50" cy="70" r="1.2" class="vif"/></svg>`;
+function jetonHTML(K, s, sel){
+  const id = lireSlot(K, s), j = M.joueurs[id], banc = s[0] === 'R';
+  const pos = banc ? '' : ` style="left:${POS_T[s][0]}%;top:${POS_T[s][1]}%"`, eti = banc ? `<em>${nomSlot(s)}</em>` : '';
+  if (!j) return `<button class="jeton vide${banc ? ' b' : ''}" data-act="jeton" data-slot="${s}"${pos} aria-label="${nomSlot(s)} : place libre">${eti}<span class="rond">+</span><b>${banc ? 'Libre' : D.POSTES[s[0]].nom}</b></button>`;
+  const p = banc ? j.poste : s[0], n = QM.note(j, p), hors = !banc && j.poste !== p;
+  return `<button class="jeton ${p}${hors ? ' hors' : ''}${banc ? ' b' : ''}${U.flash === id ? ' flash' : ''}" data-act="jeton" data-slot="${s}" data-j="${id}"${pos} aria-label="${esc(nomJ(j))}, ${nomSlot(s)}, note ${n}">${eti}
+    <span class="rond">${sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? ''}${K.cap === id && !banc ? '<i class="cap">C</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : ''}</span><b>${esc(j.n)}</b><span class="nt ${classeNote(n)}">${n}${hors ? ' · ' + j.poste : ''}</span></button>`;
+}
+function ligneEff(ctx, j){
+  const K = ctx.K, s = slotDe(K, j.id), p = s && s[0] !== 'R' ? s[0] : j.poste, n = QM.note(j, p);
+  const occ = x => { const o = M.joueurs[lireSlot(K, x)]; return o && o.id !== j.id ? ' · ' + o.n : ''; };
+  const G = [['Poursuiveurs', ['P0', 'P1', 'P2']], ['Batteurs', ['B0', 'B1']], ['Attrapeur', ['A0']], ['Gardien', ['G0']], ['Remplaçants', SLOTS_B()]];
+  const sel = `<select data-chg="poste" data-j="${j.id}" aria-label="Place de ${esc(nomJ(j))}">${G.map(([g, L]) => `<optgroup label="${g}">${L.map(x => `<option value="${x}"${x === s ? ' selected' : ''}>${nomSlot(x)}${occ(x)}</option>`).join('')}</optgroup>`).join('')}<optgroup label="Hors du groupe"><option value=""${s ? '' : ' selected'}>— Réserve</option></optgroup></select>`;
+  return `<div class="er${U.flash === j.id ? ' flash' : ''}" data-drag="${j.id}"><label class="pick${s ? (s[0] === 'R' ? ' r' : ' ti ' + s[0]) : ''}"><span>${s ? nomSlot(s) : '—'}</span>${sel}</label>
+    <button class="t" data-act="joueur" data-j="${j.id}"><b>${ctx.sel ? '' : flag(j.nat) + ' '}${esc(nomJ(j))}${j.bless ? ' <span class="badge bless">✚</span>' : ''}</b><span>${D.POSTES[j.poste].nom}${ctx.sel ? ' · ' + esc(club(j.club).nom) : ' · ' + j.age + ' ans'}</span></button>
+    <span class="note ${classeNote(n)}">${n}</span><span class="fo ${j.forme >= 7 ? 'bon' : j.forme < 5 ? 'mauvais' : ''}" title="Forme">${j.forme}</span></div>`;
+}
+function panneauHTML(ctx){
+  const K = ctx.K, dans = new Set([...SLOTS_T, ...SLOTS_B()].map(x => lireSlot(K, x)).filter(Boolean));
+  const vide = x => `<div class="er vide"><span class="pick ${x[0] === 'R' ? 'r' : 'ti ' + x[0]}"><span>${nomSlot(x)}</span></span><div class="t"><b>Place libre</b><span>Choisis un joueur avec son menu</span></div></div>`;
+  const ligne = x => { const j = M.joueurs[lireSlot(K, x)]; return j ? ligneEff(ctx, j) : vide(x); };
+  let R = ctx.pool.filter(j => !dans.has(j.id)).sort((a, b) => ORDRE_P[a.poste] - ORDRE_P[b.poste] || QM.note(b) - QM.note(a));
+  if (ctx.sel){ const n = {}; R = R.filter(j => (n[j.poste] = (n[j.poste] || 0) + 1) <= 6); }
+  return `<div class="tpan-tete"><div><b>${ctx.sel ? 'Joueurs sélectionnables' : 'Effectif'}</b><span>Menu à gauche : place du joueur</span></div><button class="fermer" data-act="panneau" aria-label="Fermer le panneau">✕</button></div>
+  <div class="tpan-liste"><div class="ent"><span>Place</span><span>Joueur</span><span>Note</span><span>Forme</span></div>
+    <div class="grp">Titulaires</div>${SLOTS_T.map(ligne).join('')}
+    <div class="grp">Banc (${NB_BANC()})</div>${SLOTS_B().map(ligne).join('')}
+    <div class="grp">Réserve (${R.length}${ctx.sel ? ', les 6 meilleurs par poste' : ''})</div>${R.map(j => ligneEff(ctx, j)).join('') || '<p class="petit mut">Personne.</p>'}</div>`;
+}
+function compoHTML(ctx){
+  const K = ctx.K, ouvert = U.panneau ?? document.documentElement.classList.contains('desk');
+  return `<div class="tac${ouvert ? ' ouvert' : ''}">
+    <div class="tpan-fond" data-act="panneau"></div><aside class="tpan" aria-label="Effectif">${panneauHTML(ctx)}</aside>
+    <div class="tcentre"><div class="tbarre"><button class="btn sec" data-act="panneau" aria-expanded="${ouvert}">☰ ${ctx.sel ? 'Joueurs' : 'Effectif'}</button><button class="btn sec" data-act="${ctx.sel ? 'selAuto' : 'compoAuto'}">Auto</button></div>
+      <div class="tterrain">${TERRAIN_SVG}${SLOTS_T.map(x => jetonHTML(K, x, ctx.sel)).join('')}</div></div>
+    <div class="tbanc"><h3>Banc</h3>${SLOTS_B().map(x => jetonHTML(K, x, ctx.sel)).join('')}</div>
+  </div>
+  <p class="petit mut aide-tac">Glisse un remplaçant sur un titulaire pour les échanger (ou deux titulaires entre eux). Touche un joueur pour son rôle et sa fiche.</p>`;
+}
+/* garde la position de la liste du panneau quand l'écran se redessine */
+function avecPanneau(f){ const l = document.querySelector('.tpan-liste'), y = l ? l.scrollTop : 0; f(); const n = document.querySelector('.tpan-liste'); if (n) n.scrollTop = y; U.flash = null; }
+function vueTactique(){
+  const ctx = ctxCompo(), K = ctx.K, T = club(M.manager.club).tactique;
+  const notes = SLOTS_T.map(x => M.joueurs[lireSlot(K, x)] ? QM.note(M.joueurs[lireSlot(K, x)], x[0]) : null).filter(x => x !== null);
+  const moy = notes.length ? Math.round(notes.reduce((a, b) => a + b, 0) / notes.length) : 0;
+  avecPanneau(() => { VUE.innerHTML = `<div><h1 class="grand">Tactique</h1><p class="sous">Note moyenne des titulaires : <b>${moy}</b>${notes.length < 7 ? ` · <span style="color:var(--moyen)">${7 - notes.length} place${7 - notes.length > 1 ? 's' : ''} libre${7 - notes.length > 1 ? 's' : ''}, complétée${7 - notes.length > 1 ? 's' : ''} au coup d'envoi</span>` : ''}</p></div>
+  ${compoHTML(ctx)}
+  <div class="cols"><div><div class="carte"><h2>Rôles et capitaine</h2><div class="liste">${SLOTS_T.map(x => { const id = lireSlot(K, x), j = M.joueurs[id]; if (!j) return '';
+    const R = (D.ROLES[x[0]] || []).find(r => r[0] === (K.roles || {})[id]);
+    return `<button class="el" data-act="role" data-j="${id}" data-p="${x[0]}">${posteB(x[0])}<div class="t"><b>${esc(nomJ(j))}${K.cap === id ? ' <span class="badge tit">Capitaine</span>' : ''}</b><span>${R ? esc(R[1]) : 'Rôle à choisir'}</span></div><span class="d mut">›</span></button>`; }).join('')}</div></div></div>
+  <div><div class="carte"><h2>Consignes</h2>${consignesHTML(T, 'consigne')}</div></div></div>`; });
+}
+/* touche sur un joueur du terrain ou du banc */
+function ficheJeton(s){
+  const ctx = ctxCompo(), K = ctx.K, id = lireSlot(K, s), j = M.joueurs[id], banc = s[0] === 'R', p = banc ? null : s[0], i = +s.slice(1);
+  const changer = `data-act="${ctx.sel ? 'slotSel' : banc ? 'slotBanc' : 'slot'}" data-p="${p || (j ? j.poste : 'P')}" data-i="${i}" data-b="${banc ? 1 : 0}"`;
+  if (!j) return ACT[ctx.sel ? 'slotSel' : banc ? 'slotBanc' : 'slot']({p:p || 'P', i, b:banc ? '1' : '0'});
+  const n = QM.note(j, p || j.poste), r = (K.roles || {})[id];
+  feuille(`${teteF(esc(nomJ(j)), `${banc ? 'Remplaçant ' + nomSlot(s) : D.POSTES[p].nom} · note ${n} · forme ${j.forme} · fatigue ${j.fat} %${ctx.sel ? ' · ' + esc(club(j.club).nom) : ''}`, posteB(p || j.poste))}
+    ${!banc && !ctx.sel ? `<div class="grp">Rôle</div><div class="liste">${D.ROLES[p].map(([v, nm, d]) => `<button class="el" data-act="choisirRole" data-j="${id}" data-r="${v}"><span class="poste ${p}" aria-hidden="true">${v === r ? '✓' : ''}</span><div class="t"><b>${nm}</b><span style="white-space:normal">${esc(d)}</span></div></button>`).join('')}</div>
+    <div class="sep"></div><button class="btn ${K.cap === id ? 'sec' : ''} plein" data-act="capitaine" data-j="${id}">${K.cap === id ? 'Déjà capitaine' : 'Nommer capitaine'}</button><div style="height:8px"></div>` : ''}
+    <div class="btns"><button class="btn sec" ${changer}>Changer de joueur</button><button class="btn sec" data-act="joueur" data-j="${id}">Fiche du joueur</button></div>
+    <div style="height:8px"></div><button class="btn sec plein" data-act="enReserve" data-j="${id}">Sortir du groupe (réserve)</button>`);
+}
+/* glisser-déposer au doigt et à la souris : jetons du terrain et du banc ; lignes du panneau (souris, ou appui long au doigt) */
+let GL = null, clicBloque = 0;
+function finGlisser(){ if (!GL) return; clearTimeout(GL.tempo); const t = document.querySelector('.tac.repli'); if (t) t.classList.remove('repli'); if (GL.fantome) GL.fantome.remove(); if (GL.cible) GL.cible.classList.remove('cible'); GL.src.classList.remove('source'); document.body.classList.remove('glisse'); GL = null; }
+function debutGlisser(){
+  GL.actif = true; const r = GL.src.getBoundingClientRect(), f = (GL.src.classList.contains('er') ? GL.src.querySelector('.t b') : GL.src.querySelector('.rond')).cloneNode(true);
+  const d = document.createElement('div'); d.className = 'fantome ' + (M.joueurs[GL.id] ? M.joueurs[GL.id].poste : ''); d.appendChild(f);
+  d.style.left = GL.x + 'px'; d.style.top = GL.y + 'px'; document.body.appendChild(d); GL.fantome = d;
+  GL.src.classList.add('source'); document.body.classList.add('glisse');
+  GL.repli = GL.ligne && !document.documentElement.classList.contains('desk');   // au téléphone, le tiroir s'efface pour laisser voir le terrain
+  if (GL.repli){ const t = document.querySelector('.tac'); if (t) t.classList.add('repli'); }
+  if (navigator.vibrate) try{ navigator.vibrate(8); }catch{}
+}
+document.addEventListener('pointerdown', e => {
+  if (e.button > 0 || e.target.closest('select, .pick')) return;
+  const src = e.target.closest('.jeton[data-j], .er[data-drag]'); if (!src) return;
+  finGlisser();
+  GL = {src, id:src.dataset.j || src.dataset.drag, x:e.clientX, y:e.clientY, x0:e.clientX, y0:e.clientY, actif:false, ligne:src.classList.contains('er'), souris:e.pointerType === 'mouse'};
+  if (GL.ligne && !GL.souris) GL.tempo = setTimeout(() => { if (GL && !GL.actif) debutGlisser(); }, 380);
+});
+document.addEventListener('pointermove', e => {
+  if (!GL) return;
+  GL.x = e.clientX; GL.y = e.clientY;
+  const d = Math.hypot(GL.x - GL.x0, GL.y - GL.y0);
+  if (!GL.actif){ if (GL.ligne && !GL.souris){ if (d > 8) finGlisser(); return; } if (d < 6) return; debutGlisser(); }
+  e.preventDefault();
+  GL.fantome.style.left = GL.x + 'px'; GL.fantome.style.top = GL.y + 'px';
+  const el = document.elementFromPoint(GL.x, GL.y), c = el && el.closest('.jeton');
+  const cible = c && c !== GL.src ? c : null;
+  if (cible !== GL.cible){ if (GL.cible) GL.cible.classList.remove('cible'); if (cible) cible.classList.add('cible'); GL.cible = cible; }
+  GL.surPanneau = !cible && !!(el && el.closest('.tpan'));
+});
+document.addEventListener('pointerup', () => {
+  if (!GL) return;
+  if (!GL.actif){ finGlisser(); return; }
+  clicBloque = Date.now();
+  const id = GL.id, cible = GL.cible ? GL.cible.dataset.slot : null, reserve = GL.surPanneau && !GL.ligne;
+  if (GL.repli && cible) U.panneau = false;
+  finGlisser();
+  if (cible || reserve) placerSlot(ctxCompo(), id, cible);
+});
+document.addEventListener('pointercancel', finGlisser);
+document.addEventListener('touchmove', e => { if (GL && GL.actif) e.preventDefault(); }, {passive:false});
+document.addEventListener('click', e => { if (Date.now() - clicBloque < 400){ e.preventDefault(); e.stopPropagation(); } }, true);
+document.addEventListener('contextmenu', e => { if (e.target.closest('.er, .jeton')) e.preventDefault(); });
 function choisirPour(p, i, banc){
   const c = club(M.manager.club), CK = c.compo, actuel = banc ? CK.banc[i] : CK[p][i];
-  const L = c.effectif.map(id => M.joueurs[id]).filter(j => j.id !== actuel).sort((a, b) => QM.note(b, banc ? b.poste : p) - QM.note(a, banc ? a.poste : p));
+  const rang = j => { const r = roleDe(j.id); return !banc ? 0 : r.tit ? 2 : r.banc ? 1 : 0; };   // v86 : pour le banc, la réserve d'abord
+  const L = c.effectif.map(id => M.joueurs[id]).filter(j => j.id !== actuel).sort((a, b) => rang(a) - rang(b) || QM.note(b, banc ? b.poste : p) - QM.note(a, banc ? a.poste : p));
   feuille(`${teteF(banc ? 'Remplaçant' : D.POSTES[p].nom, banc ? 'Choisis le joueur à mettre sur le banc' : 'Note au poste · le joueur choisi échange sa place')}
   <div class="liste">${L.map(j => { const r = roleDe(j.id), n = QM.note(j, banc ? j.poste : p);
     return `<button class="el" data-act="mettre" data-j="${j.id}" data-p="${p}" data-i="${i}" data-b="${banc ? 1 : 0}">${posteB(j.poste)}<div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>${r.tit ? 'Titulaire (' + D.POSTES[r.p].nom.toLowerCase() + ')' : r.banc ? 'Remplaçant' : 'Réserve'} · forme ${j.forme} · fatigue ${j.fat} %${j.bless ? ' · ✚ blessé' : ''}</span></div><span class="note ${classeNote(n)}">${n}</span></button>`; }).join('')}</div>`);
 }
 function mettre(jid, p, i, banc){
-  const CK = club(M.manager.club).compo;
-  const ou = id => { for (const q of ['P', 'B', 'A', 'G']){ const k = CK[q].indexOf(id); if (k >= 0) return [q, k]; } const k = CK.banc.indexOf(id); return k >= 0 ? ['banc', k] : null; };
-  const actuel = banc ? CK.banc[i] : CK[p][i], from = ou(jid);
-  if (banc) CK.banc[i] = jid; else CK[p][i] = jid;
-  if (from){ const [q, k] = from; if (q === 'banc') CK.banc[k] = actuel; else CK[q][k] = actuel; CK.banc = CK.banc.filter(Boolean); }
-  QM.rolesAuto(M, CK, true);
-  fermerFeuille(); sauver(); rendre();
+  fermerFeuille(); placerSlot(ctxCompo(), jid, banc ? 'R' + i : p + i);
 }
 
 /* ---------- Calendrier ---------- */
@@ -480,6 +602,7 @@ function vueAide(){
     <p><b>Le vif d'or.</b> Il apparaît entre la ${E.vifApparitionMin}e et la ${E.vifApparitionMax}e minute, peut se cacher puis revenir. Plus le temps passe, plus il est facile à attraper. Attention : le prendre quand on est mené de plus de 150 points fait perdre le match. La consigne « Si ça fait gagner » demande à l'attrapeur de le laisser filer dans ce cas.</p>
     <p><b>Le match.</b> Une minute de jeu défile en une seconde à vitesse ×1. Deux temps morts par équipe pour changer les consignes et faire entrer des remplaçants : 3 changements libres, plus ceux qui suivent une blessure.</p>
     <p><b>Les joueurs.</b> 31 attributs de 1 à 20, plus 5 pour les gardiens. La note sur 100 dépend du poste : les attributs cibles (●) comptent triple. La forme, la fatigue et le moral changent chaque semaine.</p>
+    <p><b>La composition.</b> 7 titulaires sur le terrain et ${NB_BANC()} remplaçants sur le banc (Tactique). Glisse un joueur du banc sur un titulaire pour les échanger, ou choisis la place de chacun avec le menu du panneau Effectif (titulaire, remplaçant ou réserve). Une place laissée libre est complétée au coup d'envoi.</p>
     <p><b>Le président.</b> Il fixe un objectif de classement, juge chaque résultat selon la force de l'adversaire et fixe la limite de la masse salariale.</p>
     <p><b>Entraînement.</b> Chaque semaine, les joueurs progressent vers un potentiel caché : focus (technique, physique, tactique, repos) et intensité par poste, qualité des entraîneurs, temps de jeu. Après le pic d'âge, le physique décline.</p>
     <p><b>Mercato.</b> Ouvert pendant la préparation d'août et en janvier. Les agents libres signent à tout moment. Un club demande au moins la valeur du joueur (plus s'il est titulaire), le joueur un salaire selon son niveau, son ambition et la réputation de ton club. Mets des joueurs en vente pour recevoir des offres.</p>
@@ -707,16 +830,10 @@ function vueCarriere(){
   ${U ? `<button class="btn sec plein" style="color:var(--mauvais)" data-act="demission">Démissionner de ${esc(U.nom)}</button>` : ''}`;
 }
 function vueSelection(){
-  const sel = M.manager.selection, n = sel.nat, conv = C.convocation(M).compo, T = M.sel.tactique;
-  const slot = (p, i, id, banc) => { const j = M.joueurs[id]; if (!j) return '';
-    return `<button class="slot" data-act="slotSel" data-p="${p}" data-i="${i}" data-b="${banc ? 1 : 0}">${posteB(banc ? j.poste : p)}<div class="t"><b>${esc(nomJ(j))}</b><span>${esc(club(j.club).nom)} · forme ${j.forme}</span></div><span class="note ${classeNote(QM.note(j, banc ? j.poste : p))}">${QM.note(j, banc ? j.poste : p)}</span></button>`; };
-  VUE.innerHTML = `<div><h1 class="grand">${flag(n)} ${esc(nat(n).nom)}</h1><p class="sous">Sélection · objectif : top ${sel.objectif} du Six Nations${M.sel.perso ? '' : ' · convocation automatique'}</p></div>
-  <div class="cols"><div><div class="carte"><h2>Convocations <button data-act="selAuto">Automatique</button></h2><div class="terrain">
-    <div class="grp">Poursuiveurs</div>${conv.P.map((id, i) => slot('P', i, id)).join('')}
-    <div class="grp">Batteurs</div>${conv.B.map((id, i) => slot('B', i, id)).join('')}
-    <div class="grp">Attrapeur</div>${slot('A', 0, conv.A[0])}<div class="grp">Gardien</div>${slot('G', 0, conv.G[0])}
-    <div class="grp">Remplaçants</div>${conv.banc.map((id, i) => slot('P', i, id, true)).join('')}</div></div></div>
-  <div><div class="carte"><h2>Consignes</h2>${consignesHTML(T, 'consigneSel')}</div></div></div>`;
+  const sel = M.manager.selection, n = sel.nat, T = M.sel.tactique, ctx = ctxCompo();
+  avecPanneau(() => { VUE.innerHTML = `<div><h1 class="grand">${flag(n)} ${esc(nat(n).nom)}</h1><p class="sous">Sélection · objectif : top ${sel.objectif} du Six Nations${M.sel.perso ? '' : ' · convocation automatique'}</p></div>
+  ${compoHTML(ctx)}
+  <div class="carte"><h2>Consignes</h2>${consignesHTML(T, 'consigneSel')}</div>`; });
 }
 function choisirSel(p, i, banc){
   const n = M.manager.selection.nat, conv = C.convocation(M).compo;
@@ -725,13 +842,7 @@ function choisirSel(p, i, banc){
     <div class="liste">${L.map(j => `<button class="el" data-act="mettreSel" data-j="${j.id}" data-p="${p}" data-i="${i}" data-b="${banc ? 1 : 0}" ${j.bless ? 'disabled style="opacity:.5"' : ''}>${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}${QM.titulaires(conv).includes(j.id) ? ' <span class="badge tit">titulaire</span>' : conv.banc.includes(j.id) ? ' <span class="badge">remplaçant</span>' : ''}</b><span>${esc(club(j.club).nom)}${j.bless ? ' · ✚ blessé' : ''}</span></div><span class="note ${classeNote(QM.note(j, banc ? j.poste : p))}">${QM.note(j, banc ? j.poste : p)}</span></button>`).join('')}</div>`);
 }
 function mettreSel(jid, p, i, banc){
-  const conv = JSON.parse(JSON.stringify(C.convocation(M).compo));
-  const ou = id => { for (const q of ['P', 'B', 'A', 'G']){ const k = conv[q].indexOf(id); if (k >= 0) return [q, k]; } const k = conv.banc.indexOf(id); return k >= 0 ? ['banc', k] : null; };
-  const actuel = banc ? conv.banc[i] : conv[p][i], from = ou(jid);
-  if (banc) conv.banc[i] = jid; else conv[p][i] = jid;
-  if (from){ const [q, k] = from; if (q === 'banc') conv.banc[k] = actuel; else conv[q][k] = actuel; }
-  QM.rolesAuto(M, conv, true);
-  M.sel.compo = conv; M.sel.perso = true; retirerFeuille(); sauver(); rendre();
+  fermerFeuille(); placerSlot(ctxCompo(), jid, banc ? 'R' + i : p + i);
 }
 
 /* ---------- Match ---------- */
@@ -771,7 +882,7 @@ function evHTML(ev){
 }
 function avantMatchHTML(){
   const moi = X.joueur, e = X.e[moi], T = e.tactique;
-  const ch = (X.changements || []).map(([a, b]) => `${court(M.joueurs[a])} → ${court(M.joueurs[b])}`).join(', ');
+  const ch = (X.changements || []).filter(([a, b]) => M.joueurs[b]).map(([a, b]) => M.joueurs[a] ? `${court(M.joueurs[a])} → ${court(M.joueurs[b])}` : `${court(M.joueurs[b])} (poste vide)`).join(', ');
   return `<div class="carte"><h2>Ta composition <button data-act="vue" data-v="${X.sixn ? 'selection' : 'tactique'}">Modifier</button></h2>
     ${ch ? `<p class="petit" style="margin:0 0 8px;color:var(--moyen)">Changé pour blessure : ${esc(ch)}</p>` : ''}
     <div class="liste">${['P', 'B', 'A', 'G'].flatMap(p => e[p].map(id => { const j = M.joueurs[id]; return `<div class="el">${posteB(p)}<div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>Forme ${j.forme} · fatigue ${j.fat} %</span></div><span class="note ${classeNote(QM.note(j, p))}">${QM.note(j, p)}</span></div>`; })).join('')}</div>
@@ -890,6 +1001,9 @@ const ACT = {
   semaine:d => ficheSemaine(+d.s),
   boite:ficheBoite,
   palmares:fichePalmares,
+  jeton:d => ficheJeton(d.slot),
+  panneau:() => { const desk = document.documentElement.classList.contains('desk'); U.panneau = !(U.panneau ?? desk); rendre(); },
+  enReserve:d => { fermerFeuille(); placerSlot(ctxCompo(), d.j, null); },
   slot:d => choisirPour(d.p, +d.i, false),
   slotBanc:d => choisirPour(d.p, +d.i, true),
   mettre:d => mettre(d.j, d.p, +d.i, d.b === '1'),
@@ -962,6 +1076,7 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if (t.dataset.chg === 'pause'){ REG.pauses[t.dataset.k] = t.checked; regler(); }
+  if (t.dataset.chg === 'poste'){ placerSlot(ctxCompo(), t.dataset.j, t.value || null); return; }
   if (t.dataset.chg === 'autoSync'){ REG.autoSync = t.checked; regler(); if (t.checked) toast('Envoi automatique activé'); }
 });
 $('#fichier').addEventListener('change', async e => {

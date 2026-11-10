@@ -1,4 +1,4 @@
-// mon-ecran-version: eb7b2d9c
+// mon-ecran-version: 42f3957e
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -167,6 +167,7 @@ const TEXTES = {
 
 /* Équilibrage : tous les chiffres du moteur, à régler sans toucher au code (outils/dev/qm27-essai.mjs vérifie les moyennes) */
 const EQ = {
+  banc:5,                         // v86 : 7 titulaires + 5 remplaçants (3 changements par match)
   niveauMin:10, niveauMax:12.6,   // niveau moyen des titulaires (sur 20) du club le moins réputé (40) au plus réputé (85)
   points:{but:10, vif:150, victoire:3, nul:1},
   pas:15,                       // secondes de jeu par pas

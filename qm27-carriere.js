@@ -1,4 +1,4 @@
-// mon-ecran-version: 33b1a1b0
+// mon-ecran-version: 038772b6
 /* QM27 (v85, lot 3) — stade et installations, centre de formation, réputation des clubs, carrière du manager
    (offres d'autres clubs, démission, licenciement, sans club) et double poste de sélectionneur pour le Six Nations.
    Sans affichage : complète window.QMC (qm27-club.js) et s'insère dans ses rendez-vous de la semaine et de la saison. */
@@ -224,8 +224,8 @@ function convocation(M){
   for (const p of ['A', 'G', 'B', 'P']) c[p] = c[p].map(id => { if (ok(id) && !pris.has(id)){ pris.add(id); return id; }
     const n = [...auto[p], ...auto.banc, ...Object.values(M.joueurs).filter(j => ok(j.id)).sort((a, b) => Q().note20(b, p) - Q().note20(a, p)).map(j => j.id)].find(x => ok(x) && !pris.has(x));
     if (n){ pris.add(n); chg.push([id, n]); } return n; }).filter(Boolean);
-  c.banc = c.banc.filter(id => ok(id) && !pris.has(id));
-  for (const id of [...auto.banc, ...Q().titulaires(auto)]) if (c.banc.length < 7 && ok(id) && !pris.has(id) && !c.banc.includes(id)) c.banc.push(id);
+  c.banc = (c.banc || []).filter(id => ok(id) && !pris.has(id)).slice(0, EQ.banc || 5);
+  for (const id of [...auto.banc, ...Q().titulaires(auto)]) if (c.banc.length < (EQ.banc || 5) && ok(id) && !pris.has(id) && !c.banc.includes(id)) c.banc.push(id);
   Q().rolesAuto(M, c, true);
   return {compo:c, changements:chg};
 }
