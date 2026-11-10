@@ -1,5 +1,5 @@
 {
- "date": "2026-11-10T07:53:38+00:00",
+ "date": "2026-11-10T07:53:58+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -137,7 +137,7 @@
  ],
  "erreurs": [],
  "modifs": {
-  "recues": 1,
+  "recues": 0,
   "nouvelles": []
  },
  "resume": {
