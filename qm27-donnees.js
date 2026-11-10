@@ -1,5 +1,5 @@
-// mon-ecran-version: 97a2fac3
-/* QM27 (v83) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
+// mon-ecran-version: 6c34eb34
+/* QM27 (v83, lot 2 : v84) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
 (function(root){
@@ -178,7 +178,31 @@ const EQ = {
   vifApparitionMin:20, vifApparitionMax:50, p0:0.00245, vifRef:13, vifCache:0.008, vifMaxMin:240,
   fatigue:0.09, domicile:1.05, jour:0.05,   // jour : forme du jour d'une équipe (écart type)
   refus:0.8,                    // attrapeur « seulement si ça fait gagner » : refuse la prise perdante (+ décisions)
+  /* v84 : économie (euros fictifs). Salaire hebdomadaire = base × facteur^(note sur 20 − pivot) × (0,85 + réputation du club / 250) */
+  eco:{semaines:44, salaireBase:2500, salaireFacteur:1.6, salairePivot:9, valeurAns:2.4,
+       tv:1.3e6, tvRep:15e3, sponsors:0.2e6, sponsorsRep:3.0e6, merch:1.8e6, repasBase:3, entretien:1.2, deplacement:12e3, prime:25e3,
+       masse:0.9, staffBase:600, staffFacteur:1.25, effectifMax:22, effectifMin:14, libresMax:60},
+  /* v84 : entraînement (progression par semaine) et cohésion */
+  ent:{semaines:40, focus:1.7, horsFocus:0.55, cible:1.3, autre:0.6, joue:0.3, intensite:[0.7, 1, 1.3], fatigue:[0, 4, 9], blessure:0.001, cohesion:70},
+  usure:1.2,                    // usure des balais par match (sur 100)
 };
 
-root.QMD = {NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
+/* v84 : staff du club : [clé, nom, groupe entraîné] */
+const STAFF = [['entP', 'Entraîneur des poursuiveurs', 'P'], ['entB', 'Entraîneur des batteurs', 'B'], ['entA', 'Entraîneur des attrapeurs', 'A'], ['entG', 'Entraîneur des gardiens', 'G'],
+  ['prepa', 'Préparateur physique', ''], ['medecin', 'Médecin', ''], ['recruteur', 'Recruteur', '']];
+const EFFETS_STAFF = {entP:'progression des poursuiveurs', entB:'progression des batteurs', entA:'progression des attrapeurs', entG:'progression des gardiens',
+  prepa:'physique, récupération, déclin plus lent', medecin:'durée des blessures', recruteur:'estimation du potentiel et des notes au mercato'};
+/* v84 : rôles individuels par poste : [clé, nom, effet] */
+const ROLES = {
+  P:[['polyvalent', 'Polyvalent', 'Équilibré entre attaque et défense.'], ['meneur', 'Meneur', 'Fait jouer les autres : l\'attaque de l\'équipe compte plus sur lui.'],
+     ['finisseur', 'Finisseur', 'Tire beaucoup plus souvent.'], ['harceleur', 'Harceleur', 'Presse le porteur : plus de ballons récupérés.']],
+  B:[['equilibre', 'Équilibré', 'Protège et attaque.'], ['protecteur', 'Protecteur', 'Moins de cognards réussis contre son équipe.'], ['chasseur', 'Chasseur', 'Plus de cognards réussis, plus de blessures adverses.']],
+  A:[['equilibre', 'Équilibré', 'Ni fougueux ni prudent.'], ['chasseur', 'Chasseur', 'Plus rapide sur le vif d\'or.'], ['tacticien', 'Tacticien', 'Meilleures décisions, marquage plus efficace.']],
+  G:[['equilibre', 'Équilibré', 'Classique.'], ['ligne', 'Gardien de ligne', 'Meilleur sur sa ligne.'], ['libero', 'Libéro', 'Sort au-devant : moins de tirs, mais plus faciles.']],
+};
+/* v84 : entraînement : focus et familles d'attributs travaillées */
+const FOCUS = [['technique', 'Technique', ['Vol', 'Balle', 'Gardien']], ['physique', 'Physique', ['Physique']], ['tactique', 'Tactique', ['Mental']], ['repos', 'Repos', []]];
+const INTENSITES = [[1, 'Légère'], [2, 'Normale'], [3, 'Intense']];
+
+root.QMD = {STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
 })(typeof window !== 'undefined' ? window : globalThis);

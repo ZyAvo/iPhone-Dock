@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="b329114b">
+<meta name="mon-ecran-version" content="48eee065">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -22,7 +22,7 @@ body{margin:0;font-size:14px}
 <link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="commun.css">
 <style>
-/* QM27 (v83) : jeu de gestion de club de Quidditch. Couleurs du thème de KiosK (themes.js), or pour le vif d'or. */
+/* QM27 (v83, lot 2 : v84) : jeu de gestion de club de Quidditch. Couleurs du thème de KiosK (themes.js), or pour le vif d'or. */
 :root{
   --base:#e7ecef; --ink:#10233a; --ink-soft:#56636f; --ink-faint:#8b98a5;
   --card:rgba(255,255,255,.66); --card-2:rgba(255,255,255,.4); --line:rgba(39,76,119,.13); --head:rgba(231,236,239,.78);
@@ -256,6 +256,20 @@ nav.qm-nav button.on{color:var(--accent)}
   padding:9px 16px;border-radius:999px;font-weight:650;font-size:.85rem;box-shadow:0 10px 26px -10px rgba(0,0,0,.5);animation:fondu .2s;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
 .aide p{margin:0 0 8px}
 .aide h3{margin:12px 0 4px;font-size:.95rem}
+/* v84 : onglet Club, rôles, finances */
+.grille{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+html.desk .grille{grid-template-columns:repeat(4, 1fr)}
+.tuile{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;min-height:118px}
+.tuile h2{margin:0 0 4px}
+.tuile b{font-size:1.05rem;line-height:1.25}
+.tuile span{font-size:.78rem;color:var(--ink-soft)}
+.slotw{display:flex;flex-direction:column;gap:0}
+.slotw .slot{border-bottom-left-radius:0;border-bottom-right-radius:0}
+.rolechip{align-self:stretch;text-align:left;padding:6px 12px 7px 44px;font-size:.78rem;color:var(--accent);font-weight:600;background:var(--card-2);border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px;min-height:34px}
+.histo{display:flex;align-items:flex-end;gap:4px;height:90px}
+.histo div{flex:1;height:100%;display:flex;align-items:flex-end}
+.histo i{display:block;width:100%;border-radius:4px 4px 0 0;min-height:3px}
+.cons .ligne .btn{flex:none;width:48px;padding:0}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -272,6 +286,7 @@ nav.qm-nav button.on{color:var(--accent)}
 <input type="file" id="fichier" accept=".json,application/json" hidden>
 <script src="qm27-donnees.js"></script>
 <script src="qm27.js"></script>
+<script src="qm27-club.js"></script>
 <script src="qm27-ui.js"></script>
 <script src="commun.js"></script>
 </body>

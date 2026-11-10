@@ -1,5 +1,5 @@
-// mon-ecran-version: 03f08d71
-/* QM27 (v83) — moteur du jeu, sans affichage : window.QM.
+// mon-ecran-version: e15c30af
+/* QM27 (v83, lot 2 : v84) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
    Hasard à graine : un match = une graine + deux compositions + deux tactiques ; mêmes entrées, même match. */
@@ -7,7 +7,8 @@
 'use strict';
 const D = root.QMD;
 const EQ = D.EQ;
-const VERSION = 1;
+const VERSION = 2;   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; une sauvegarde v1 est complétée au chargement
+const C = () => root.QMC;   // gestion du club (qm27-club.js), facultative pour le moteur
 
 /* ---------- Hasard à graine (mulberry32) ---------- */
 function hasard(graine){
@@ -84,6 +85,7 @@ function nouveauMonde(graine){
   }
   M.calendrier = calendrierSaison(M, r);
   remettreClassements(M);
+  if (C()) C().initMonde(M, r);
   return M;
 }
 function sigle(nom, ville){ const v = ville.normalize('NFD').replace(/[^\w]/g, '').toUpperCase(); return v.slice(0, 3); }
@@ -107,6 +109,25 @@ function compoAuto(M, clubId){
   const c = {A:pick('A', 1), G:pick('G', 1), B:pick('B', 2), P:pick('P', 3)};
   const banc = [...pick('P', 2), ...pick('B', 1), ...pick('A', 1), ...pick('G', 1), ...pick('P', 2)];
   c.banc = banc.slice(0, 7);
+  rolesAuto(M, c);
+  return c;
+}
+/* v84 : rôles individuels (gardés par joueur) et capitaine, choisis d'après les attributs quand ils manquent */
+const ROLE_DEF = {P:'polyvalent', B:'equilibre', A:'equilibre', G:'equilibre'};
+const roleValide = (poste, r) => (D.ROLES[poste] || []).some(x => x[0] === r);
+function roleAuto(j, poste){
+  if (poste === 'P'){ const m = at(j, 'pas') + at(j, 'vis'), f = at(j, 'tir') + at(j, 'pre'), h = at(j, 'int') + at(j, 'bou');
+    const top = Math.max(m, f, h); return top - Math.min(m, f, h) < 3 ? 'polyvalent' : top === f ? 'finisseur' : top === m ? 'meneur' : 'harceleur'; }
+  if (poste === 'B'){ const d = at(j, 'ant') + at(j, 'pla'), o = at(j, 'fra') + at(j, 'agr'); return Math.abs(d - o) < 3 ? 'equilibre' : d > o ? 'protecteur' : 'chasseur'; }
+  if (poste === 'A'){ const v = at(j, 'vit') + at(j, 'piq'), t = at(j, 'dec') + at(j, 'san'); return Math.abs(v - t) < 3 ? 'equilibre' : v > t ? 'chasseur' : 'tacticien'; }
+  return j.g && ga(j, 'sor') >= ga(j, 'arr') ? 'libero' : j.g && ga(j, 'arr') - ga(j, 'sor') >= 3 ? 'ligne' : 'equilibre';
+}
+function rolesAuto(M, c, garder){
+  const ancien = garder ? (c.roles || {}) : {};
+  c.roles = {};
+  for (const p of ['P', 'B', 'A', 'G']) for (const id of c[p]){ const j = M.joueurs[id]; if (!j) continue; c.roles[id] = roleValide(p, ancien[id]) ? ancien[id] : roleAuto(j, p); }
+  const tit = titulaires(c).filter(id => M.joueurs[id]);
+  if (!garder || !tit.includes(c.cap)) c.cap = tit.slice().sort((a, b) => { const x = M.joueurs[a], y = M.joueurs[b]; return (at(y, 'det') + at(y, 'con') + y.age / 4) - (at(x, 'det') + at(x, 'con') + x.age / 4); })[0] || null;
   return c;
 }
 const titulaires = c => [...c.P, ...c.B, ...c.A, ...c.G];
@@ -129,6 +150,7 @@ function verifierCompo(M, clubId){
   const banc = c.banc.filter(id => dans(id) && !tit.has(id) && dispo(M, id));
   for (const id of club.effectif) if (banc.length < 7 && !tit.has(id) && !banc.includes(id) && dispo(M, id)) banc.push(id);
   c.banc = banc.slice(0, 7);
+  rolesAuto(M, c, true);
   return faits;
 }
 
@@ -148,7 +170,11 @@ function calendrierSaison(M, r){
   const an = M.saison, S = [];
   const tours = {}; for (const L of Object.values(M.ligues)) tours[L.id] = roundRobin(L.clubs, r);
   /* samedis : journées 1-15 de septembre à décembre, trêve, 16-20 en janvier, Six Nations (février-mars), 21-30 jusqu'à fin mai */
-  let d = new Date(jour(an, 8, 1)); while (d.getUTCDay() !== 6) d = new Date(d.getTime() + 864e5);
+  const samedi = (mois) => { let x = new Date(jour(an, mois, 1)); while (x.getUTCDay() !== 6) x = new Date(x.getTime() + 864e5); return x; };
+  let d = samedi(7);                                   // v84 : préparation en août (mercato d'été ouvert)
+  const sept = samedi(8);
+  for (let k = 1; d < sept; k++){ S.push({date:d.getTime(), type:'prepa', semaine:k, matchs:[]}); d = new Date(d.getTime() + 7 * 864e5); }
+  d = sept;
   const plus = n => { d = new Date(d.getTime() + n * 7 * 864e5); };
   let jl = 0;
   const ligue = () => { const m = []; for (const L of Object.values(M.ligues)) for (const [a, b] of tours[L.id][jl]) m.push({id:`${an}-${L.id}-${jl + 1}-${a}`, ligue:L.id, dom:a, ext:b, res:null});
@@ -189,9 +215,10 @@ function classement(M, ligue){
 /* ---------- Équipes pour un match ---------- */
 function equipeClub(M, clubId){
   const club = M.clubs[clubId]; if (!club.compo) club.compo = compoAuto(M, clubId);
-  const c = club.compo;
+  const c = club.compo; if (!c.roles) rolesAuto(M, c, true);
   return {id:clubId, nom:club.nom, sigle:club.sigle, couleurs:club.couleurs, tactique:{...club.tactique}, balai:D.BALAIS.find(b => b.id === club.balai) || D.BALAIS[0],
-          P:c.P.slice(), B:c.B.slice(), A:c.A.slice(), G:c.G.slice(), banc:c.banc.slice(), rep:club.rep};
+          P:c.P.slice(), B:c.B.slice(), A:c.A.slice(), G:c.G.slice(), banc:c.banc.slice(), rep:club.rep, roles:{...c.roles}, cap:c.cap,
+          cohesion:club.cohesion ?? 70, usure:club.usure ?? 100};
 }
 function selection(M, nat){
   const L = Object.values(M.joueurs).filter(j => j.nat === nat && !j.bless), pris = new Set();
@@ -199,6 +226,7 @@ function selection(M, nat){
   const e = {id:nat, nom:D.NATIONS[nat].nom, sigle:D.NATIONS[nat].court, couleurs:['#33415c', '#e0e1dd'], tactique:TACTIQUE_DEFAUT(), balai:D.BALAIS[4],
              A:pick('A', 1), G:pick('G', 1), B:pick('B', 2), P:pick('P', 3), rep:70};
   e.banc = [...pick('P', 2), ...pick('B', 1), ...pick('A', 1), ...pick('G', 1), ...pick('P', 2)];
+  rolesAuto(M, e); e.cohesion = 60; e.usure = 100;
   return e;
 }
 
@@ -217,6 +245,7 @@ function creerMatch(M, e0, e1, graine, opts = {}){
              vifApp:(EQ.vifApparitionMin + r() * (EQ.vifApparitionMax - EQ.vifApparitionMin) + (meteo === 'brouillard' ? 6 : 0)) * 60,
              vifVu:false, vifCache:0, vifDepuis:0, sonne:[0, 0], gSonne:[0, 0], tm:[2, 2], rempl:[3, 3], moral:[0, 0],
              perf:{}, fat:{}, bless:[], jour:[1 + r.gauss() * EQ.jour, 1 + r.gauss() * EQ.jour], domicile:opts.domicile !== false, avecTexte:opts.texte !== false, r, rt, M};
+  X.e.forEach((e, k) => { if (e.cap) X.moral[k] = 0.5; });
   for (const e of X.e) for (const id of [...titulaires(e), ...(e.banc || [])]){ const j = M.joueurs[id]; X.fat[id] = j ? j.fat : 0; X.perf[id] = {eq:X.e.indexOf(e), b:0, t:0, arr:0, cog:0, enc:0, vif:0, rate:0, m:titulaires(e).includes(id) ? 1 : 0}; }
   dire(X, 'debut', -1, {}, true);
   return X;
@@ -234,20 +263,27 @@ const nomJ = j => j ? `${j.p} ${j.n}` : '?';
 /* facteur de forme d'un joueur sur le terrain : fatigue, forme, moral de l'équipe */
 function f(X, eq, id){ const j = J(X, id); if (!j) return 1; return (1 - X.fat[id] / 300) * (0.96 + j.forme * 0.008) * (1 + X.moral[eq] * 0.01); }
 const moy = L => L.reduce((s, x) => s + x, 0) / (L.length || 1);
+const role = (X, eq, id) => (X.e[eq].roles || {})[id];
+const nbRole = (X, eq, poste, r) => X.e[eq][poste].filter(id => role(X, eq, id) === r).length;
+function moyP(L, w){ let s = 0, n = 0; L.forEach((v, i) => { s += v * w[i]; n += w[i]; }); return n ? s / n : 0; }
 function forces(X, eq){
   const e = X.e[eq], T = e.tactique, b = e.balai;
-  const dom = ((eq === 0 && X.domicile) ? EQ.domicile : 1) * X.jour[eq];
-  const A = moy(e.P.map(id => { const j = J(X, id); return ((at(j, 'pas') * 2 + at(j, 'rec') + at(j, 'ctl') * 2 + at(j, 'vis') * 2 + at(j, 'frm') + at(j, 'acc') + at(j, 'equi') + at(j, 'tir')) / 11) * f(X, eq, id); })) * dom + (b.man - 6) * 0.12;
-  const Df = moy(e.P.map(id => { const j = J(X, id); return ((at(j, 'int') * 2 + at(j, 'bou') + at(j, 'ant') * 2 + at(j, 'pla') + at(j, 'vit') + at(j, 'acc')) / 8) * f(X, eq, id); })) * dom;
+  const us = 0.8 + 0.2 * (e.usure ?? 100) / 100;                                   // v84 : balais usés
+  const coh = 0.97 + (e.cohesion ?? 70) / 100 * 0.06;                              // v84 : cohésion de l'équipe
+  const dom = ((eq === 0 && X.domicile) ? EQ.domicile : 1) * X.jour[eq] * coh;
+  const wA = e.P.map(id => ({meneur:1.6, finisseur:0.8, harceleur:0.8}[role(X, eq, id)] || 1));
+  const wD = e.P.map(id => ({harceleur:1.6, finisseur:0.7}[role(X, eq, id)] || 1));
+  const A = moyP(e.P.map(id => { const j = J(X, id); return ((at(j, 'pas') * 2 + at(j, 'rec') + at(j, 'ctl') * 2 + at(j, 'vis') * 2 + at(j, 'frm') + at(j, 'acc') + at(j, 'equi') + at(j, 'tir')) / 11) * f(X, eq, id); }), wA) * dom + (b.man * us - 6) * 0.12;
+  const Df = moyP(e.P.map(id => { const j = J(X, id); return ((at(j, 'int') * 2 + at(j, 'bou') + at(j, 'ant') * 2 + at(j, 'pla') + at(j, 'vit') + at(j, 'acc')) / 8) * f(X, eq, id); }), wD) * dom;
   const B = moy(e.B.map(id => { const j = J(X, id); return ((at(j, 'fra') * 3 + at(j, 'pre') * 2 + at(j, 'for') + at(j, 'ant') + at(j, 'agr')) / 8) * f(X, eq, id); })) * (dom > 1 ? 1.02 : 1);
   const g = J(X, e.G[0]);
-  const G = g ? ((ga(g, 'arr') * 3 + ga(g, 'cou_a') * 2 + ga(g, 'sor') + at(g, 'ref') * 2 + at(g, 'agi') + at(g, 'pla')) / 10) * f(X, eq, e.G[0]) : 5;
+  const G = g ? ((ga(g, 'arr') * 3 + ga(g, 'cou_a') * 2 + ga(g, 'sor') + at(g, 'ref') * 2 + at(g, 'agi') + at(g, 'pla')) / 10) * f(X, eq, e.G[0]) + (role(X, eq, e.G[0]) === 'ligne' ? 0.6 : 0) : 5;
   const s = J(X, e.A[0]);
-  const S = s ? ((at(s, 'vit') * 2 + at(s, 'acc') * 2 + at(s, 'piq') * 2 + at(s, 'acu') * 2 + at(s, 'san') + at(s, 'con') + at(s, 'vir')) / 11) * f(X, eq, e.A[0]) + (b.vit - 6) * 0.15 : 5;
+  const S = s ? ((at(s, 'vit') * 2 + at(s, 'acc') * 2 + at(s, 'piq') * 2 + at(s, 'acu') * 2 + at(s, 'san') + at(s, 'con') + at(s, 'vir')) / 11) * f(X, eq, e.A[0]) + (b.vit * us - 6) * 0.15 : 5;
   return {A, D:Df, B, G, S, T};
 }
 function tireur(X, eq){
-  const e = X.e[eq]; const p = e.P.map(id => { const j = J(X, id); return [id, Math.pow(at(j, 'tir') + at(j, 'pre') * 0.5, 2)]; });
+  const e = X.e[eq]; const p = e.P.map(id => { const j = J(X, id); return [id, Math.pow(at(j, 'tir') + at(j, 'pre') * 0.5, 2) * ({finisseur:2.2, meneur:0.7}[role(X, eq, id)] || 1)]; });
   return X.r.pondere(p);
 }
 function qualiteTir(X, eq, id){ const j = J(X, id); return ((at(j, 'tir') * 3 + at(j, 'pre') * 2 + at(j, 'san') + at(j, 'ctl')) / 7) * f(X, eq, id); }
@@ -267,7 +303,7 @@ function pas(X){
 
   /* 1. cognards de la défense */
   const ag = 1 + 0.25 * (Td.agressivite - 2);
-  const pCog = EQ.cognard * borne(1 + (Fd.B - Fa.B) / 15, 0.4, 1.8) * ag * (met === 'orage' ? 1.1 : 1);
+  const pCog = EQ.cognard * borne(1 + (Fd.B - Fa.B) / 15, 0.4, 1.8) * ag * (met === 'orage' ? 1.1 : 1) * (1 + 0.15 * nbRole(X, d, 'B', 'chasseur') - 0.15 * nbRole(X, a, 'B', 'protecteur'));
   if (r() < pCog){
     const bat = batteur(X, d); X.stats[d].cog++; X.perf[bat].cog++;
     const cible = Td.cible;
@@ -277,7 +313,7 @@ function pas(X){
     /* blessure possible de la cible */
     const victime = cible === 'attrapeur' ? e[a].A[0] : cible === 'gardien' ? e[a].G[0] : r.choix(e[a].P);
     const vj = J(X, victime);
-    if (vj && r() < EQ.blessure * (vj.cache.frag / 10) * (1 + 0.3 * (Td.agressivite - 2)) * (met === 'orage' ? 1.3 : 1) * (1.4 - at(vj, 'res') / 25)) blesser(X, a, victime);
+    if (vj && r() < EQ.blessure * (vj.cache.frag / 10) * (1 + 0.3 * (Td.agressivite - 2)) * (met === 'orage' ? 1.3 : 1) * (1.4 - at(vj, 'res') / 25) * (1 + 0.2 * nbRole(X, d, 'B', 'chasseur'))) blesser(X, a, victime);
     return finPas(X);
   }
   /* 2. faute */
@@ -293,12 +329,12 @@ function pas(X){
   }
   /* 3. attaque */
   let dTir = 0.05 * (Ta.rythme - 2) + 0.04 * (Ta.risque - 2) + 0.02 * (Td.risque - 2) + (Ta.passes === 'long' ? 0.03 : -0.03) + (Td.pressing === 'haut' ? -0.03 : 0)
-    + (Td.gardien === 'sortie' ? -0.03 : 0) + (met === 'pluie' || met === 'orage' ? -0.03 : 0);
+    + (Td.gardien === 'sortie' ? -0.03 : 0) + (met === 'pluie' || met === 'orage' ? -0.03 : 0) + (role(X, d, e[d].G[0]) === 'libero' ? -0.03 : 0);
   const pTir = borne(1 / (1 + Math.exp(-((Fa.A - Fd.D) / EQ.echelleTir + EQ.baseTir))) + dTir, 0.15, 0.85);
   if (r() < pTir){
     const ti = tireur(X, a), T = qualiteTir(X, a, ti), G = Fd.G * (X.gSonne[d] > 0 ? 0.75 : 1);
     const dBut = (Ta.passes === 'court' ? 0.02 : -0.02) - 0.02 * (Ta.risque - 2) + (Td.pressing === 'haut' ? 0.02 : 0) + (Td.pressing === 'repli' ? -0.02 : 0)
-      + (Td.gardien === 'sortie' ? 0.03 : 0) + (met === 'vent' || met === 'orage' ? -0.04 : 0);
+      + (Td.gardien === 'sortie' ? 0.03 : 0) + (met === 'vent' || met === 'orage' ? -0.04 : 0) + (role(X, d, e[d].G[0]) === 'libero' ? 0.02 : 0);
     X.stats[a].tirs++; X.perf[ti].t++;
     if (r() < borne(EQ.baseBut + EQ.kBut * (T - G) + dBut, EQ.butMin, EQ.butMax)) marquer(X, a, ti, false);
     else {
@@ -308,7 +344,7 @@ function pas(X){
       X.poss = r() < 0.7 ? d : a;
     }
   } else {
-    const tourne = 1 - EQ.garde + 0.04 * (Ta.rythme - 2) + (Td.pressing === 'haut' ? 0.05 : 0) + (met === 'pluie' ? 0.03 : 0);
+    const tourne = 1 - EQ.garde + 0.04 * (Ta.rythme - 2) + (Td.pressing === 'haut' ? 0.05 : 0) + (met === 'pluie' ? 0.03 : 0) + 0.03 * nbRole(X, d, 'P', 'harceleur');
     if (r() < tourne) X.poss = d;
   }
   return finPas(X);
@@ -316,7 +352,7 @@ function pas(X){
 function marquer(X, eq, ti, penalty){
   X.score[eq] += EQ.points.but; X.stats[eq].buts++; X.perf[ti].b++;
   const gk = X.e[1 - eq].G[0]; if (gk) X.perf[gk].enc++;
-  X.moral[eq] = borne(X.moral[eq] + 0.4, -3, 3); X.moral[1 - eq] = borne(X.moral[1 - eq] - 0.4, -3, 3);
+  X.moral[eq] = borne(X.moral[eq] + 0.4, -3, 3); X.moral[1 - eq] = borne(X.moral[1 - eq] - (X.e[1 - eq].cap ? 0.25 : 0.4), -3, 3);
   dire(X, penalty ? 'penalty_but' : 'but', eq, {j:nomJ(J(X, ti)), g:nomJ(J(X, gk))}, false, {but:1});
   X.poss = 1 - eq;
 }
@@ -363,12 +399,14 @@ function vifDor(X){
     const F = forces(X, k), T = X.e[k].tactique, To = X.e[1 - k].tactique;
     let p = EQ.p0 * (F.S / EQ.vifRef) * met * (1 + tmin / 30) * tardif;
     if (X.sonne[k] > 0) p *= 0.5;
+    const rs = role(X, k, X.e[k].A[0]), ro = role(X, 1 - k, X.e[1 - k].A[0]);
+    if (rs === 'chasseur') p *= 1.12;
     if (T.attrapeur === 'marquage') p *= 0.6;
-    if (To.attrapeur === 'marquage') p *= 0.65;
+    if (To.attrapeur === 'marquage') p *= ro === 'tacticien' ? 0.55 : 0.65;
     if (r() < p){
       const sid = X.e[k].A[0], s = J(X, sid);
       const perdant = X.score[k] + EQ.points.vif < X.score[1 - k];
-      if (perdant && T.attrapeur !== 'chasse' && r() < EQ.refus + (s ? at(s, 'dec') : 10) * 0.004){
+      if (perdant && T.attrapeur !== 'chasse' && r() < EQ.refus + (s ? at(s, 'dec') : 10) * 0.004 + (rs === 'tacticien' ? 0.08 : 0)){
         if (!X.refusDit || X.t - X.refusDit > 240){ X.refusDit = X.t; dire(X, 'vif_refus', k, {j:nomJ(s)}, false); }
         continue;
       }
@@ -436,18 +474,21 @@ function appliquerMatch(M, m, X){
       const j = M.joueurs[id]; if (!j || !X.perf[id] || !X.perf[id].m) continue;
       const n = notes[id];
       if (club){ j.saison.m++; j.saison.b += X.perf[id].b; j.saison.v += X.perf[id].vif; j.saison.cog += X.perf[id].cog; j.saison.arr += X.perf[id].arr; if (n) j.saison.notes += n; }
-      j.fat = Math.round(Math.min(100, X.fat[id] ?? j.fat));
+      j.fat = Math.round(Math.min(100, X.fat[id] ?? j.fat)); j.joue = 1;
       if (n) j.forme = Math.round(borne(j.forme * 0.6 + n * 0.4, 1, 10) * 10) / 10;
       const g = Math.sign(X.score[k] - X.score[1 - k]); j.moral = borne(j.moral + g * 6 + (n ? (n - 6) * 3 : 0), 5, 100);
     }
   }
-  for (const b of X.bless){ const j = M.joueurs[b.id]; if (j) j.bless = {nom:b.nom, jours:b.jours}; }
+  for (const b of X.bless){ const j = M.joueurs[b.id]; if (j) j.bless = {nom:b.nom, jours:C() && j.club ? C().dureeBlessure(M, j.club, b.jours) : b.jours}; }
+  if (club) for (const id of [m.dom, m.ext]) if (M.clubs[id]) M.clubs[id].usure = Math.max(0, Math.round(((M.clubs[id].usure ?? 100) - EQ.usure) * 10) / 10);   // v84 : balais
 }
 /* fin de semaine : récupération, guérisons, IA, messages */
 function recuperer(M, jours){
   for (const j of Object.values(M.joueurs)){
     j.fat = Math.max(0, Math.round(j.fat - jours * (5 + at(j, 'end') * 0.35)));
-    if (j.bless){ j.bless.jours -= jours; if (j.bless.jours <= 0) j.bless = null; }
+    if (j.bless){ j.bless.jours -= jours;
+      if (j.bless.jours <= 0){ j.bless = null; j.forme = Math.max(3, Math.round((j.forme - 2) * 10) / 10);   // v84 : retour progressif
+        if (M.manager && j.club === M.manager.club) message(M, `${nomJ(j)} est rétabli`, 'Il revient à l\'entraînement, encore un peu juste : sa forme remontera avec les matchs.', 'bless'); } }
     j.moral = Math.round(j.moral + (60 - j.moral) * 0.15);
   }
 }
@@ -474,6 +515,7 @@ function terminerSemaine(M, X){
       message(M, `Six Nations, tour ${S.tour}`, L, 'sixn');
     }
   }
+  if (C()) C().semaine(M, S);                         // v84 : entraînement, finances, mercato, contrats
   const prochaine = M.calendrier[M.semaine + 1];
   const jours = prochaine ? Math.round((prochaine.date - S.date) / 864e5) : 7;
   recuperer(M, jours);
@@ -532,18 +574,19 @@ function finDeSaison(M){
 /* passage à la saison suivante (appelé par l'écran après le bilan) */
 function saisonSuivante(M){
   const r = hasard(melange(M.graine, 'saison', M.saison));
-  /* progression, vieillissement, retraites et jeunes */
+  if (C()) C().avantSaison(M, r);                     // v84 : primes, contrats qui se terminent, agents libres
+  /* vieillissement, retraites et jeunes (v84 : la progression se fait chaque semaine à l'entraînement) */
   for (const club of Object.values(M.clubs)){
     for (const id of club.effectif.slice()){
       const j = M.joueurs[id];
-      progresser(j, r);
+      if (!C()) progresser(j, r);
       j.age++;
       const part = j.age >= 36 || (j.age >= 34 && r() < 0.35) || (j.age >= 32 && r() < 0.08);
       if (part){
         club.effectif = club.effectif.filter(x => x !== id); delete M.joueurs[id];
         const lvl = EQ.niveauMin + (club.rep - 40) / 45 * (EQ.niveauMax - EQ.niveauMin) + r.gauss() * 0.9;
         const n = creerJoueur(r, r.pondere(D.ORIGINES[club.nat]), j.poste, lvl - 1.5, r.ent(17, 19), 'j' + (M.prochainId++));
-        n.club = club.id; n.num = j.num; M.joueurs[n.id] = n; club.effectif.push(n.id);
+        n.club = club.id; n.num = j.num; M.joueurs[n.id] = n; club.effectif.push(n.id); if (C()) C().nouveauJoueur(M, n, club);
         if (M.manager && club.id === M.manager.club) message(M, `${nomJ(j)} prend sa retraite`, `${j.age} ans. Le centre de formation fait monter ${nomJ(n)} (${n.age} ans, ${D.POSTES[n.poste].nom.toLowerCase()}).`, 'staff');
       }
     }
@@ -554,6 +597,7 @@ function saisonSuivante(M){
   M.saison++; M.semaine = 0;
   M.calendrier = calendrierSaison(M, r);
   remettreClassements(M);
+  if (C()) C().apresSaison(M, r);
   if (M.manager){ M.manager.objectif = objectif(M, M.manager.club); M.manager.bilan = {g:0, n:0, p:0};
     message(M, `Saison ${M.saison}-${String(M.saison + 1).slice(2)}`, `Nouvel objectif du président : ${M.manager.objectif.txt.toLowerCase()}.`, 'pres'); }
 }
@@ -582,12 +626,13 @@ function serialiser(M){
 }
 function charger(txt){
   const M = typeof txt === 'string' ? JSON.parse(txt) : txt;
-  if (!M || M.v !== VERSION || !M.clubs || !M.joueurs || !M.calendrier) throw new Error('Fichier QM27 illisible ou d\'une autre version');
+  if (!M || !M.clubs || !M.joueurs || !M.calendrier || !(M.v >= 1 && M.v <= VERSION)) throw new Error('Fichier QM27 illisible ou d\'une version plus récente');
   for (const j of Object.values(M.joueurs)){ if (typeof j.a === 'string') j.a = deLettres(j.a); if (typeof j.g === 'string') j.g = deLettres(j.g); }
+  if (M.v < VERSION && C()) C().migrer(M);           // v84 : une partie du lot 1 reçoit contrats, staff, finances
   return M;
 }
 
-root.QM = {VERSION, hasard, melange, note, note20, meilleurPoste, at, ga, ATT, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
+root.QM = {VERSION, hasard, melange, note, note20, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
            semaine, matchDuJoueur, preparerMatch, simulerMatch, creerMatch, equipeClub, selection, pas, jusquAuBout, tempsMort, remplacer, resume, notesMatch,
            terminerSemaine, saisonSuivante, classement, objectif, serialiser, charger, nomJ, message, attente};
 })(typeof window !== 'undefined' ? window : globalThis);
