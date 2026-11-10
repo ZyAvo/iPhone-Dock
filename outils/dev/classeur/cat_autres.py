@@ -1,4 +1,4 @@
-# mon-ecran-version: bc4dc5aa
+# mon-ecran-version: aad9dba4
 # Catalogues Marchés, Vidéos, YouTube, Programme TV, Cotes, Accueil.
 
 # ---------- Marchés : (section, id, code Yahoo, nom, note) ----------
@@ -111,7 +111,7 @@ WIDGETS = [  # (id, nom, actif aujourd'hui, note)
 ]
 MODULES_PAGES = [  # pages de l'appli
     ('actus', 'Actus', True), ('sport', 'Sport', True), ('videos', 'Vidéos', True), ('invest', 'Investissements', True),
-    ('cachee', 'Coffre (page cachée)', True), ('pronos', 'Pronos entre amis', True), ('ambreval', 'Ambreval (jeu)', True), ('etat', 'État des données', True),
+    ('cachee', 'Coffre (page cachée)', True), ('pronos', 'Pronos entre amis', True), ('ambreval', 'Ambreval (jeu)', True), ('qm27', 'QM27 (jeu)', True), ('etat', 'État des données', True),
 ]
 VILLES_PLUS = [('Paris', 'Île-de-France', 48.8566, 2.3522), ('Montpellier', 'Hérault', 43.6108, 3.8767), ('Carcassonne', 'Aude', 43.2130, 2.3491),
                ('Rodez', 'Aveyron', 44.3506, 2.5750), ('Lavaur', 'Tarn', 43.6990, 1.8190), ('Gaillac', 'Tarn', 43.9016, 1.8970)]

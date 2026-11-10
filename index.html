@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="834ee14f">
+<meta name="mon-ecran-version" content="7a520725">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -690,7 +690,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
    bandeau et liens des widgets. Une page active qui perd son seul accès (son widget coupé) reçoit une tuile. */
 let PRONOS_N = 0;                       // v66 : pastille de la tuile Pronos
 const ACC = Noyau.accueil, W = id => ACC.widget(id), PG = id => ACC.page(id);
-const pageDe = url => { const m = String(url || '').match(/^(?:\.\/)?(actus|sport|ecarts|videos|invest|cachee|etat|reglages|pronos|ambreval)\.html(?:[?#]|$)/); return m ? (m[1] === 'ecarts' ? 'sport' : m[1]) : null; };
+const pageDe = url => { const m = String(url || '').match(/^(?:\.\/)?(actus|sport|ecarts|videos|invest|cachee|etat|reglages|pronos|ambreval|qm27)\.html(?:[?#]|$)/); return m ? (m[1] === 'ecarts' ? 'sport' : m[1]) : null; };
 const pageOk = a => { const p = a && (a.type === 'page' || !a.type) ? pageDe(a.url) : null; return !p || PG(p); };
 const garder = (L, f) => { if (Array.isArray(L)) for (let i = L.length - 1; i >= 0; i--) if (!f(L[i])) L.splice(i, 1); return L; };
 const RETIRES = {meteo:['.w-clock'], une:['#newsWidget', '#deskNews'], invest:['#inv'], spotify:['#spot'], sport:['#sportBand', '#deskSport']};
@@ -712,6 +712,7 @@ garder(QUICK_LEFT, pageOk); garder(QUICK_RIGHT, pageOk);
   }
   if (PG('pronos') && !acces('pronos')) placer('pronos', {label:'Pronos', type:'page', url:'pronos.html', icon:'pronos', color:'--t-brick', auto:true});   // v66 : accès dédié, même sans ligne dans le classeur
   if (PG('ambreval') && !acces('ambreval')) placer('ambreval', {label:'Ambreval', type:'page', url:'ambreval.html', icon:'ambreval', color:'--t-plum', auto:true});   // v80 : le jeu de la vallée, même sans ligne dans le classeur
+  if (PG('qm27') && !acces('qm27')) placer('qm27', {label:'QM27', titre:'Quidditch Manager 27', type:'page', url:'qm27.html', icon:'qm27', color:'--t-teal', auto:true});   // v83 : le jeu de gestion de Quidditch
   garder(HOME, a => a.type !== 'auto');                                          // emplacements pas utilisés : rien à l'écran
   garder(HOME, a => a.type !== 'folder' || (FOLDERS[a.target] && FOLDERS[a.target].items && FOLDERS[a.target].items.length));   // dossier vide : pas de tuile
 }

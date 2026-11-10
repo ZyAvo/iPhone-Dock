@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="f1404d99">
+<meta name="mon-ecran-version" content="7ce973d7">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Réglages</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -724,6 +724,7 @@ function noteAccueil(it){
     if (it.def === 'cachee') n.push('plus d\'appui long pour l\'ouvrir');
     if (it.def === 'pronos') n.push('la page se ferme aussi pour tes amis (leur lien ne s\'ouvre plus)');   // v66
     if (it.def === 'ambreval') n.push('ta partie reste enregistrée : elle reprend si tu le réactives');   // v81
+    if (it.def === 'qm27') n.push('tes carrières restent enregistrées : elles reprennent si tu le réactives');   // v83
   }
   return n.length ? `<span class="etq">${n.map(t => `<span class="bd gr">${esc(t)}</span>`).join('')}</span>` : '';
 }
@@ -776,7 +777,7 @@ const AP = Noyau.applis, IC = Noyau.icones;
 const ICS = S.lire('icons:v1', {}) || {};                                  // vraies icônes App Store gardées par l'accueil
 const cleIcone = d => d.icon && !d.store && !d.storeId ? '' : d.storeId ? 'id:' + d.storeId : d.store ? 's:' + d.store : '';
 const imgDe = d => { const k = cleIcone(d); return k && ICS[k] || ''; };
-const pageDe = url => { const m = String(url || '').match(/^(?:\.\/)?(actus|sport|ecarts|videos|invest|cachee|etat|reglages|pronos|ambreval)\.html(?:[?#]|$)/); return m ? (m[1] === 'ecarts' ? 'sport' : m[1]) : null; };
+const pageDe = url => { const m = String(url || '').match(/^(?:\.\/)?(actus|sport|ecarts|videos|invest|cachee|etat|reglages|pronos|ambreval|qm27)\.html(?:[?#]|$)/); return m ? (m[1] === 'ecarts' ? 'sport' : m[1]) : null; };
 const AUTO_INFO = {actus:{icon:'news', w:'À la une', page:'actus'}, invest:{icon:'invest', w:'Investissements', page:'invest'}, sport:{icon:'sport', w:'Bandeau Sports', page:'sport'}};
 let ED = null, FICHE = null, apresGlisse = 0, glisseId = '';
 const modApplis = () => moduleDe('applis');
