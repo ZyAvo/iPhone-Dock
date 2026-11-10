@@ -1,5 +1,5 @@
 {
- "date": "2026-11-10T07:57:04+00:00",
+ "date": "2026-11-10T10:09:03+00:00",
  "source": "configuration.xlsx",
  "modules": {
   "sport": {
@@ -44,7 +44,7 @@
   },
   "accueil": {
    "onglet": "Accueil",
-   "coches": 13,
+   "coches": 14,
    "ajouts": 0
   },
   "applis": {
@@ -103,36 +103,36 @@
    "onglet": "YouTube",
    "ligne": 25,
    "nom": "NASA",
-   "statut": "warn",
-   "message": "non testé : site injoignable pour l'instant (HTTPError) — gardé, nouvel essai au prochain dépôt"
+   "statut": "ok",
+   "message": "chaîne UC9SM7V7J1pAhPabOUST01fw · 15 vidéos récentes"
   },
   {
    "onglet": "YouTube",
    "ligne": 27,
    "nom": "ESA",
-   "statut": "warn",
-   "message": "non testé : site injoignable pour l'instant (HTTPError) — gardé, nouvel essai au prochain dépôt"
+   "statut": "ok",
+   "message": "chaîne UCjajQVmLr2s8TX9OvirZn9A · 15 vidéos récentes"
   },
   {
    "onglet": "YouTube",
    "ligne": 31,
    "nom": "Nota Bene",
-   "statut": "warn",
-   "message": "non testé : site injoignable pour l'instant (HTTPError) — gardé, nouvel essai au prochain dépôt"
+   "statut": "ok",
+   "message": "chaîne UCrbbgYjbrXVYRM_iRGEDqFw · 15 vidéos récentes"
   },
   {
    "onglet": "YouTube",
    "ligne": 32,
    "nom": "Le Dessous des cartes",
    "statut": "warn",
-   "message": "non testé : site injoignable pour l'instant (HTTPError) — gardé, nouvel essai au prochain dépôt"
+   "message": "chaîne UC62Sw2sSA6W0_LMM3l0vDkQ trouvée, aucune vidéo récente"
   },
   {
    "onglet": "YouTube",
    "ligne": 43,
    "nom": "Joueur du Grenier",
-   "statut": "warn",
-   "message": "non testé : site injoignable pour l'instant (HTTPError) — gardé, nouvel essai au prochain dépôt"
+   "statut": "ok",
+   "message": "chaîne UCKNJiTmKrur10zxStf5Gztw · 15 vidéos récentes"
   }
  ],
  "erreurs": [],
@@ -140,18 +140,18 @@
   "recues": 1,
   "nouvelles": [
    {
-    "uid": "mwaeclmt-6s175t2i10",
+    "uid": "mwaj2f26-616l3y5v6v",
     "statut": "ok",
-    "message": "reporté dans l'onglet Accueil, ligne 13 : Oui = vide",
+    "message": "reporté dans l'onglet Accueil, ligne 13 : Oui = Oui",
     "id": "pg:ambreval",
-    "le": "2026-11-10T07:57:04+00:00",
+    "le": "2026-11-10T10:09:03+00:00",
     "par": "iPhone"
    }
   ]
  },
  "resume": {
-  "ok": 3,
-  "warn": 7,
+  "ok": 7,
+  "warn": 3,
   "ko": 0,
   "info": 0
  },
