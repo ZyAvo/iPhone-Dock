@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="5d5fef6f">
+<meta name="mon-ecran-version" content="663dfc3b">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -500,6 +500,49 @@ img.blz:not(.g):not(.p){width:38px;height:38px}
 .presse .pr-fx{font-size:.72rem;padding:2px 7px;border-radius:999px;background:rgba(127,127,127,.14)}
 .presse .pr-fx.plus{background:color-mix(in srgb, var(--bon) 16%, transparent);color:var(--bon)}
 .presse .pr-fx.moins{background:color-mix(in srgb, var(--mauvais) 16%, transparent);color:var(--mauvais)}
+/* v95 : effectif trié par composition */
+.tj-grp{padding:8px 10px 4px;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);position:sticky;left:0}
+.chips.tri-eff{align-items:center;margin-top:-4px}.chips.tri-eff>span{margin-right:2px}
+/* v96 : tactique compacte, adéquation, adversaire, prévision, analyse */
+.cs-g{margin:0 0 6px}.cs-g h4{margin:10px 0 2px;font-size:.68rem;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+.cs-g:first-child h4{margin-top:2px}
+.cs{display:grid;grid-template-columns:96px 1fr;align-items:center;column-gap:8px;row-gap:3px;padding:5px 0;border-bottom:1px solid var(--line)}
+.cs:last-child{border-bottom:0}
+.cs-l{display:flex;align-items:center;gap:5px;text-align:left;font-size:.8rem;font-weight:600;color:var(--ink);min-height:30px;padding:0}
+.cs-l i{flex:none;display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--line);font-size:.6rem;font-style:normal;font-weight:700;color:var(--ink-soft)}
+.cs.ouvert .cs-l i{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.seg.mini{padding:2px;gap:2px;border-radius:9px}.seg.mini button{min-height:28px;font-size:.74rem;border-radius:7px;padding:0 3px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cs-fx{grid-column:2;display:flex;flex-wrap:wrap;gap:3px}
+.fx{font-size:.66rem;padding:1px 6px;border-radius:999px;background:rgba(127,127,127,.13);color:var(--ink-soft);white-space:nowrap}
+.fx.b{background:color-mix(in srgb, var(--bon) 15%, transparent);color:var(--bon)}.fx.m{background:color-mix(in srgb, var(--mauvais) 14%, transparent);color:var(--mauvais)}
+.cs-det{grid-column:1/-1;background:var(--card-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:3px}
+.cs-det>p{margin:0 0 6px}
+.cs-opt{padding:6px 0;border-top:1px solid var(--line)}.cs-opt.on b{color:var(--accent)}
+.cs-opt .cs-fx{margin-top:3px}
+.btn.mini{min-height:28px;padding:0 10px;font-size:.76rem;flex:none;width:auto}
+.imp{margin:4px 0 0;font-size:.74rem;color:var(--ink-soft)}.imp.b b{color:var(--bon)}.imp.m b{color:var(--mauvais)}
+.fitl{margin:3px 0 0;color:var(--ink-soft)}
+i.fit{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:1px;background:var(--bon);box-shadow:0 0 0 1.5px var(--card, #fff)}
+i.fit.moyen{background:var(--moyen)}i.fit.faible{background:var(--mauvais)}
+.jeton .rond i.fit{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;box-shadow:0 0 0 2px rgba(255,255,255,.9)}
+.fitb{font-size:.66rem;font-weight:600;padding:1px 6px;border-radius:999px;margin-left:4px;vertical-align:1px}
+.fitb.bon{background:color-mix(in srgb, var(--bon) 15%, transparent);color:var(--bon)}.fitb.moyen{background:color-mix(in srgb, var(--moyen) 18%, transparent);color:var(--moyen)}.fitb.faible{background:color-mix(in srgb, var(--mauvais) 14%, transparent);color:var(--mauvais)}
+.liste.compacte .el{min-height:44px;padding-top:5px;padding-bottom:5px}.liste.compacte .el .t span{white-space:normal;font-size:.74rem}
+.adv .rfs{display:flex;flex-direction:column;gap:5px}
+.rf{display:grid;grid-template-columns:minmax(0,1.3fr) 1fr auto;gap:8px;align-items:center;font-size:.74rem}
+.rf>span{color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rf>b{font-size:.72rem;font-variant-numeric:tabular-nums}
+.rf-b{display:flex;flex-direction:column;gap:2px}.rf-b i,.rf-leg i{display:block;height:4px;border-radius:2px}
+.rf-b i.n,.rf-leg i.n{background:var(--accent)}.rf-b i.e,.rf-leg i.e{background:var(--mauvais);opacity:.75}
+.rf-leg{display:flex;gap:12px;font-size:.68rem;color:var(--ink-soft)}.rf-leg span{display:flex;align-items:center;gap:4px}.rf-leg i{width:14px}
+.conseils{display:flex;flex-direction:column;gap:6px}
+.cs-c{display:flex;gap:8px;align-items:center;font-size:.78rem;padding:6px 8px;border-radius:9px;background:var(--card-2)}.cs-c>span{flex:1;min-width:0}
+.prev-g{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px}
+.prev-g>div{background:var(--card-2);border-radius:9px;padding:6px 8px;display:flex;flex-direction:column}
+.prev-g b{font-size:1rem;font-variant-numeric:tabular-nums}.prev-g span{font-size:.68rem;color:var(--ink-soft)}
+.an{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.an li{font-size:.84rem;padding-left:20px;position:relative}
+.an li::before{position:absolute;left:0;top:0;font-weight:700}
+.an li.bon::before{content:'✓';color:var(--bon)}.an li.mauvais::before{content:'✗';color:var(--mauvais)}.an li.info::before{content:'·';color:var(--ink-soft)}
 /* v90 : vestiaire et mercato */
 .at.flou b{font-weight:700;font-size:.72rem}
 .note.flou{font-size:.66rem;min-width:46px}
@@ -743,6 +786,7 @@ html.desk .er{cursor:grab}
 <script src="qm27-domaine.js"></script>
 <script src="qm27-vestiaire.js"></script>
 <script src="qm27-presse.js"></script>
+<script src="qm27-tactique.js"></script>
 <script src="qm27-bureau.js"></script>
 <script src="qm27-visuel.js"></script>
 <script src="qm27-ui.js"></script>

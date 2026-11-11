@@ -1,4 +1,4 @@
-// mon-ecran-version: b809dbd8
+// mon-ecran-version: f34095f4
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -162,6 +162,7 @@ function entrainement(M, S, r){
       progression(M, j, g.f, g.i, c.staff['ent' + j.poste].note, prepa, r, null, (QB() ? QB().multProgression(c, j) : 1) * (P && j.age <= 21 ? P.jeunes : 1), P ? P.boost[j.poste] : null);
       if (moi){ const d = n20(j) - avant; if (d) c.progres[id] = Math.round(((c.progres[id] || 0) + d) * 100) / 100; }
       j.fat = borne(j.fat + (P ? P.fat : ENT.fatigue[g.i - 1] - (g.f === 'repos' ? 10 : 0)), 0, 100);
+      { const ft = P ? P.fat : ENT.fatigue[g.i - 1] - (g.f === 'repos' ? 10 : 0); j.charge = borne((j.charge || 0) + ft * EQ.charge.entrainement, 0, 100); }   // v96 : charge de travail
       if (g.i > 1 && r() < ENT.blessure * g.i * g.i * j.cache.frag / 10 * (P ? P.risque : 1)){
         const b = D.BLESSURES[r.ent(0, 3)], jours = dureeBlessure(M, c.id, r.ent(b[1], Math.min(b[2], 12)));
         j.bless = {nom:b[0] + ' (à l\'entraînement)', jours};
@@ -169,6 +170,11 @@ function entrainement(M, S, r){
       }
     }
     if (moi) for (const p of ['P', 'B', 'A', 'G']) if (E[p].f === 'tactique') tactique++;
+    if (moi && c.compo){   // v96 : le préparateur physique signale les titulaires trop chargés (au plus une fois par mois et par joueur)
+      const L = Q().titulaires(c.compo).map(id => M.joueurs[id]).filter(j => j && (j.charge || 0) >= 62 && (!j.alerteCh || (M.tic || 0) - j.alerteCh >= 4));
+      if (L.length){ L.forEach(j => { j.alerteCh = M.tic || 0; });
+        Q().message(M, `Préparation physique : ${L.length > 1 ? L.length + ' titulaires dans le rouge' : nomJ(L[0]) + ' dans le rouge'}`, `${L.map(j => `${nomJ(j)} (charge ${Math.round(j.charge)})`).join(', ')}. ${L.length > 1 ? 'Ils enchaînent' : 'Ce joueur enchaîne'} trop : la fatigue ne redescend plus et le risque de blessure grimpe. Un match sur le banc ou une semaine légère à l'entraînement ferait du bien.`, 'staff'); }
+    }
     c.cohesion = borne(c.cohesion + 1 + (P ? P.coh : moi ? tactique * 0.5 : 0.5) + (QB() ? QB().bonus(c, 'cohesion') : 0), 30, 100);
   }
   for (const id of M.libres){ const j = M.joueurs[id]; if (j) progression(M, j, FOCUS_IA[M.semaine % 3], 1, 8, 8, r, null); }

@@ -1,4 +1,4 @@
-// mon-ecran-version: 0ec41ee5
+// mon-ecran-version: 9c92542d
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -312,14 +312,14 @@ function vuePlus(){
 /* ============================== Effectif en colonnes ============================== */
 /* v92 : catalogue des colonnes [libellé court, largeur, description] et vues de l'effectif réglables (roue ⚙︎) */
 const COLS = {note:['Note', 44, 'Note au poste'], pot:['Pot.', 40, 'Potentiel estimé (étoiles)'], forme:['Forme', 40, 'Forme sur 10'], moral:['Moral', 42, 'Moral sur 100'],
-  fat:['Fatigue', 50, 'Fatigue'], bless:['Dispo', 44, 'Blessure ou sélection'], m:['MJ', 30, 'Matchs joués cette saison'], stat:['Stat', 50, 'Buts, cognards, vifs d\'or ou arrêts'],
+  fat:['Fatigue', 50, 'Fatigue du moment (au moins 60 % de la charge)'], charge:['Charge', 52, 'Fatigue cumulée : matchs enchaînés, entraînement ; redescend au repos'], bless:['Dispo', 44, 'Blessure ou sélection'], m:['MJ', 30, 'Matchs joués cette saison'], stat:['Stat', 50, 'Buts, cognards, vifs d\'or ou arrêts'],
   moy:['Moy.', 38, 'Note moyenne en match'], sal:['Salaire', 54, 'Salaire par semaine'], fin:['Fin', 46, 'Fin de contrat'], valeur:['Valeur', 58, 'Valeur estimée'],
   clause:['Clause', 58, 'Clause libératoire'], prog:['Prog.', 44, 'Progression de la note cette saison']};
 const VUES_DEF = [{id:'general', nom:'Général', cols:['note', 'forme', 'moral']}, {id:'contrats', nom:'Contrats', cols:['sal', 'fin', 'valeur']},
-  {id:'physique', nom:'Physique', cols:['fat', 'forme', 'bless']}, {id:'saison', nom:'Saison', cols:['m', 'stat', 'moy']}];
+  {id:'physique', nom:'Physique', cols:['fat', 'charge', 'forme', 'bless']}, {id:'saison', nom:'Saison', cols:['m', 'stat', 'moy']}];
 const VUES_EFF = {scout:{nom:'Estimation', cols:['note', 'pot', 'valeur']}};
 for (const v of VUES_DEF) VUES_EFF[v.id] = v;
-const vuesPerso = () => { const L = LS.lire('qm27:vuesEff', null); return Array.isArray(L) && L.length ? L.filter(v => v && v.id && Array.isArray(v.cols)) : VUES_DEF.map(v => ({...v, cols:v.cols.slice()})); };
+const vuesPerso = () => { const L = LS.lire('qm27:vuesEff', null); return Array.isArray(L) && L.length ? L.filter(v => v && v.id && Array.isArray(v.cols)).map(v => v.id === 'physique' && v.cols.join() === 'fat,forme,bless' ? {...v, cols:['fat', 'charge', 'forme', 'bless']} : v) : VUES_DEF.map(v => ({...v, cols:v.cols.slice()})); };
 const vueEff = id => vuesPerso().find(v => v.id === id) || VUES_EFF[id] || VUES_DEF[0];
 const statut = (K, id) => { for (const p of ['P', 'B', 'A', 'G']) if (K[p].includes(id)) return ['T', 'tit', 'Titulaire']; const i = K.banc.indexOf(id); return i >= 0 ? ['R' + (i + 1), 'rem', 'Remplaçant ' + (i + 1)] : ['–', 'res', 'Réserve']; };
 function valeurCol(j, k, ctx){
@@ -328,6 +328,7 @@ function valeurCol(j, k, ctx){
     case 'note': { const v = noteVue(j, j.poste); return [v.mid, `<span class="note ${classeNote(v.mid)}${v.exact ? '' : ' flou'}">${v.txt}</span>`]; }
     case 'forme': return [j.forme, `<span class="${j.forme >= 7 ? 'bon' : j.forme < 5 ? 'mauvais' : ''}">${(Math.round(j.forme * 10) / 10).toLocaleString('fr-FR')}</span>`];
     case 'moral': return [j.moral, `<span class="${j.moral >= 70 ? 'bon' : j.moral < 40 ? 'mauvais' : ''}">${Math.round(j.moral)}</span>`];
+    case 'charge': { const v = Math.round(j.charge || 0); return [v, `<span class="${v >= 60 ? 'mauvais' : v >= 40 ? 'moyen' : ''}">${v}</span>`]; }
     case 'fat': return [j.fat, `<span class="${j.fat >= 60 ? 'mauvais' : j.fat >= 35 ? 'moyen' : ''}">${Math.round(j.fat)} %</span>`];
     case 'sal': return [j.contrat ? j.contrat.sal : 0, j.contrat ? eur(j.contrat.sal) : '—'];
     case 'fin': return [j.contrat ? j.contrat.fin : 0, j.contrat ? `<span class="${j.contrat.fin <= M_.saison ? 'mauvais' : ''}">${lab(j.contrat.fin).slice(2)}</span>` : '—'];
@@ -349,12 +350,16 @@ function tableJoueurs(L, ctx){
   const rows = L.map(j => ({j, v:Object.fromEntries(cles.map(k => [k, valeurCol(j, k, ctx)]))}));
   const large = 40 + 34 + 150 + CC.reduce((t, c) => t + c[2] + 4, 0);
   const ord = {P:0, B:1, A:2, G:3};
-  rows.sort((a, b) => tri === 'poste' ? ord[a.j.poste] - ord[b.j.poste] || (b.v.note ? b.v.note[0] - a.v.note[0] : window.QM.note(b.j) - window.QM.note(a.j))
-    : tri === 'nom' ? sens * a.j.n.localeCompare(b.j.n, 'fr') : tri === 'age' ? sens * (a.j.age - b.j.age) : sens * ((b.v[tri] || [0])[0] - (a.v[tri] || [0])[0]));
+  /* v95 : tri par composition — titulaires (poursuiveurs, batteurs, attrapeur, gardien), remplaçants R1-R5, réserve, absents */
+  const rangSel = j => { const K = ctx.K; if (!K) return 99; let k = 0; for (const p of ['P', 'B', 'A', 'G']){ const i = K[p].indexOf(j.id); if (i >= 0) return k + i; k += K[p].length; }
+    const i = K.banc.indexOf(j.id); return i >= 0 ? 20 + i : j.bless || j.inter ? 60 + ord[j.poste] : 40 + ord[j.poste]; };
+  rows.sort((a, b) => tri === 'sel' ? sens * (rangSel(a.j) - rangSel(b.j)) || (b.v.note ? b.v.note[0] - a.v.note[0] : window.QM.note(b.j) - window.QM.note(a.j)) : tri === 'poste' ? ord[a.j.poste] - ord[b.j.poste] || (b.v.note ? b.v.note[0] - a.v.note[0] : window.QM.note(b.j) - window.QM.note(a.j))
+    : tri === 'nom' ? sens * a.j.n.localeCompare(b.j.n, 'fr') : tri === 'age' ? sens * (a.j.age - b.j.age) : tri === 'note' && !b.v.note ? sens * (window.QM.note(b.j) - window.QM.note(a.j)) : sens * ((b.v[tri] || [0])[0] - (a.v[tri] || [0])[0]));
   const th = (k, n, w, t) => `<button class="th ${tri === k ? 'on' : ''}" style="${w ? 'width:' + w + 'px' : ''}" data-act="${ctx.act || 'effTri'}" data-t="${k}"${t ? ` title="${esc(t)}"` : ''}>${n}${tri === k ? (sens > 0 ? ' ▾' : ' ▴') : ''}</button>`;
   return `<div class="tj" role="table" style="min-width:${large}px"><div class="tj-h" role="row">${th('poste', 'Poste', 40)}${th('nom', 'Joueur')}${th('age', 'Âge', 34)}${CC.map(([k, n, w, t]) => th(k, n, w, t)).join('')}</div>
-    ${rows.map(({j, v}) => { const st = ctx.K ? statut(ctx.K, j.id) : null, U_ = moi();
-      return `<button class="tj-l ${j.bless || j.inter ? 'indispo' : ''}" role="row" data-act="joueur" data-j="${j.id}">
+    ${rows.map(({j, v}, i) => { const st = ctx.K ? statut(ctx.K, j.id) : null, U_ = moi();
+      const grp = tri === 'sel' && ctx.K ? (r => r < 20 ? 'Titulaires' : r < 40 ? 'Remplaçants' : r < 60 ? 'Réserve' : 'Absents')(rangSel(j)) : null, grpAv = grp && i ? (r => r < 20 ? 'Titulaires' : r < 40 ? 'Remplaçants' : r < 60 ? 'Réserve' : 'Absents')(rangSel(rows[i - 1].j)) : null;
+      return `${grp && grp !== grpAv ? `<div class="tj-grp" role="row">${grp}</div>` : ''}<button class="tj-l ${j.bless || j.inter ? 'indispo' : ''}" role="row" data-act="joueur" data-j="${j.id}">
         <span style="width:40px" class="tj-p">${posteB(j.poste)}${st ? `<i class="st ${st[1]}" title="${st[2]}">${st[0]}</i>` : ''}</span>
         <span class="tj-n">${flag(j.nat)}<b>${j.num != null && ctx.K ? `<span class="num">${j.num}</span>` : ''}${esc(j.p[0])}. ${esc(j.n)}</b>${j.pret ? '<i class="tag">prêt</i>' : ''}${U_ && U_.aVendre.includes(j.id) ? '<i class="tag">vente</i>' : ''}${!ctx.K && U_ && U_.suivi.includes(j.id) ? '<i class="tag or">suivi</i>' : ''}${j.inter ? '<i class="tag">✈︎ sél.</i>' : ''}</span>
         <span style="width:34px" class="tj-c">${j.age}</span>
@@ -371,11 +376,12 @@ function vueEffectif(){
   <div class="onglets-l"><div class="onglets" role="tablist">${vuesPerso().map(x => `<button role="tab" class="${EFF.vue === x.id ? 'on' : ''}" aria-selected="${EFF.vue === x.id}" data-act="effVue" data-v="${x.id}">${esc(x.nom)}</button>`).join('')}</div>
     <button class="mini-b roue" data-act="effReglages" aria-label="Régler les vues de l'effectif" title="Régler les vues">⚙︎</button></div>
   <div class="chips petites">${[['tous', 'Tous'], ['P', 'Pours.'], ['B', 'Batteurs'], ['A', 'Attrap.'], ['G', 'Gardiens'], ['bless', 'Absents']].map(([k, n]) => `<button class="chip ${EFF.poste === k ? 'on' : ''}" data-act="effPoste" data-p="${k}">${n}</button>`).join('')}</div>
+  <div class="chips petites tri-eff"><span class="mut petit">Ordre</span>${[['poste', 'Par poste'], ['sel', 'Composition'], ['note', 'Note']].map(([k, n]) => `<button class="chip ${EFF.tri === k ? 'on' : ''}" data-act="effOrdre" data-t="${k}" aria-pressed="${EFF.tri === k}">${n}</button>`).join('')}</div>
   <div class="carte tj-carte">${tableJoueurs(L, {cols:vueEff(EFF.vue).cols, tri:EFF.tri, sens:EFF.sens, K})}</div>
-  <p class="petit mut">T titulaire · R1-R5 remplaçants · – réserve · ✈︎ en sélection. Touche un en-tête pour trier, un joueur pour sa fiche.</p>`;
+  <p class="petit mut">T titulaire · R1-R5 remplaçants · – réserve · ✈︎ en sélection. « Composition » range les titulaires, puis les remplaçants, la réserve et les absents. Touche un en-tête pour trier, un joueur pour sa fiche.</p>`;
 }
 const garderEff = () => LS.ecrire('qm27:effectif', {vue:EFF.vue, tri:EFF.tri, sens:EFF.sens});
-ACT.effVue = d => { EFF.vue = d.v; if (!['poste', 'nom', 'age'].includes(EFF.tri) && !vueEff(d.v).cols.includes(EFF.tri)) EFF.tri = 'poste'; garderEff(); rendre(); };
+ACT.effVue = d => { EFF.vue = d.v; if (!['poste', 'nom', 'age', 'sel', 'note'].includes(EFF.tri) && !vueEff(d.v).cols.includes(EFF.tri)) EFF.tri = 'poste'; garderEff(); rendre(); };
 /* roue ⚙︎ : choisir, créer, modifier, ordonner et supprimer ses vues */
 const ecrireVues = L => LS.ecrire('qm27:vuesEff', L);
 function ficheVues(){
@@ -411,6 +417,7 @@ ACT.vueOk = () => { const L = vuesPerso(), nom = (VE.nom || '').trim() || 'Ma vu
   if (VE.i == null){ const id = 'v' + Date.now().toString(36); L.push({id, nom, cols:VE.cols}); EFF.vue = id; } else { L[VE.i] = {...L[VE.i], nom, cols:VE.cols}; EFF.vue = L[VE.i].id; }
   ecrireVues(L); garderEff(); VE = null; fermerFeuille(); rendre(); toast('Vue enregistrée'); };
 ACT.effPoste = d => { EFF.poste = d.p; rendre(); };
+ACT.effOrdre = d => { EFF.tri = d.t; EFF.sens = 1; garderEff(); rendre(); };
 ACT.effTri = d => { if (EFF.tri === d.t) EFF.sens = -EFF.sens; else { EFF.tri = d.t; EFF.sens = 1; } garderEff(); rendre(); };
 
 /* ============================== Clubs et joueurs ============================== */

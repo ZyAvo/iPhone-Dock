@@ -1,4 +1,4 @@
-// mon-ecran-version: 7724bfb2
+// mon-ecran-version: 2232189f
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -186,6 +186,7 @@ const EQ = {
        masse:0.9, staffBase:600, staffFacteur:1.25, effectifMax:22, effectifMin:14, libresMax:60},
   /* v84 : entraînement (progression par semaine) et cohésion */
   ent:{semaines:35, focus:1.7, horsFocus:0.55, cible:1.3, autre:0.6, joue:0.3, intensite:[0.7, 1, 1.3], fatigue:[0, 4, 9], blessure:0.001, cohesion:70},
+  charge:{match:0.5, plancher:0.6, baisse:0.25, fixe:2.5, repos:9, entrainement:0.4},   // v96 : fatigue cumulée (voir QM.recuperer)
   usure:1.2,                    // usure des balais par match (sur 100)
   /* v85 : stade et installations (niveaux 1 à 5 ; coût du niveau suivant = base × niveau actuel ; entretien par niveau et par semaine) */
   stade:{tranche:2000, coutPlace:600, semaines:8, max:60000},
