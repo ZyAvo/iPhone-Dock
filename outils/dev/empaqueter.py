@@ -1,4 +1,4 @@
-# mon-ecran-version: 73af90d9
+# mon-ecran-version: d9934bc2
 # Prépare un lot : marque chaque page/script avec l'empreinte de son contenu, écrit lot.json, fait le zip.
 # Usage : python3 empaqueter.py <dossier> <nom du lot> <zip de sortie> [--sans-essai]
 # v51 : avant tout, « essai à sec » des scripts des tâches (outils/*.mjs lancés sans réseau, outils/*.py compilés) :
@@ -40,7 +40,7 @@ def stamp(path, text):
     base = STAMP_RE.sub('', text)
     h = hashlib.sha1(base.encode()).hexdigest()[:8]
     if path.endswith('.html'):
-        i = base.index('<meta charset="utf-8">') + len('<meta charset="utf-8">\n')
+        i = base.index('<meta charset="utf-8">') + len('<meta charset="utf-8">'); i += base[i] == '\n'   # la balise peut être suivie d'une autre sur la même ligne
         return base[:i] + '<meta name="mon-ecran-version" ' + f'content="{h}">\n' + base[i:], h      # chaîne coupée : sinon STAMP_RE l'efface quand ce script se marque lui-même
     c = '//' if path.endswith(('.js', '.mjs')) else '#'
     if base.startswith('#!'):

@@ -1,4 +1,4 @@
-// mon-ecran-version: 69fa1e5e
+// mon-ecran-version: 6161ae9f
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -168,11 +168,11 @@ function barre(){
 function rendre(){
   entete(); barre();
   if (!M || !M.manager) return vueDemarrage();
-  const besoinClub = ['effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier', 'domaine', 'boutique', 'partenaires', 'trophees'];
+  const besoinClub = ['vestiaire', 'effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier', 'domaine', 'boutique', 'partenaires', 'trophees'];
   if (!M.manager.club && besoinClub.includes(U.vue)) U.vue = 'accueil';
   if (!M.manager.club && U.vue === 'accueil') return vueChomage();
   if (U.vue === 'selection' && !M.manager.selection) U.vue = 'accueil';
-  ({domaine:vueDomaine, boutique:vueBoutique, partenaires:vuePartenaires, trophees:vueTrophees, carriere:vueCarriere, stade:vueStade, formation:vueFormation, selection:vueSelection, accueil:vueAccueil, effectif:vueEffectif, tactique:vueTactique, calendrier:vueCalendrier, plus:vuePlus, classements:vueClassements, sauvegardes:vueSauvegardes, aide:vueAide, match:vueMatch,
+  ({vestiaire:vueVestiaire, domaine:vueDomaine, boutique:vueBoutique, partenaires:vuePartenaires, trophees:vueTrophees, carriere:vueCarriere, stade:vueStade, formation:vueFormation, selection:vueSelection, accueil:vueAccueil, effectif:vueEffectif, tactique:vueTactique, calendrier:vueCalendrier, plus:vuePlus, classements:vueClassements, sauvegardes:vueSauvegardes, aide:vueAide, match:vueMatch,
     club:vueClub, entrainement:vueEntrainement, mercato:vueMercato, finances:vueFinances, staff:vueStaff}[U.vue] || vueAccueil)();
 }
 const aller = v => { U.vue = v; rendre(); scrollTo(0, 0); };
@@ -327,7 +327,7 @@ function vueEffectif(){
   <div class="seg">${[['poste', 'Poste'], ['note', 'Note'], ['age', 'Âge'], ['forme', 'Forme']].map(([k, n]) => `<button data-act="tri" data-t="${k}" class="${U.tri === k ? 'on' : ''}">${n}</button>`).join('')}</div>
   <div class="carte"><div class="liste">${L.map(j => { const r = roleDe(j.id), n = QM.note(j);
     return `<button class="el" data-act="joueur" data-j="${j.id}"><span class="avp">${avatarDe(j)}<i class="poste ${j.poste}">${j.poste}</i></span>
-      <div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>n° ${j.num} · ${j.age} ans · ${r.tit ? '<span class="badge tit">Titulaire</span>' : r.banc ? 'Remplaçant' : 'Réserve'}${j.bless ? ` · <span class="badge bless">✚ ${j.bless.jours} j</span>` : ''}${j.contrat && j.contrat.fin <= M.saison ? ' · <span class="badge" style="color:var(--moyen)">fin de contrat</span>' : ''}${c.aVendre.includes(j.id) ? ' · <span class="badge">à vendre</span>' : ''}</span></div>
+      <div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}${j.pret ? ' <span class="badge">prêt</span>' : ''}${HH() && HH().mentore(club(M.manager.club), j) ? ' <span class="badge">mentoré</span>' : ''}</b><span>n° ${j.num} · ${j.age} ans · ${r.tit ? '<span class="badge tit">Titulaire</span>' : r.banc ? 'Remplaçant' : 'Réserve'}${j.bless ? ` · <span class="badge bless">✚ ${j.bless.jours} j</span>` : ''}${j.contrat && j.contrat.fin <= M.saison ? ' · <span class="badge" style="color:var(--moyen)">fin de contrat</span>' : ''}${c.aVendre.includes(j.id) ? ' · <span class="badge">à vendre</span>' : ''}</span></div>
       <div class="d"><div class="barre" title="Forme ${j.forme}/10"><i style="width:${j.forme * 10}%"></i></div><div class="barre fat" style="margin-top:4px" title="Fatigue ${j.fat} %"><i style="width:${j.fat}%"></i></div></div>
       <span class="note ${classeNote(n)}">${n}</span></button>`; }).join('') || '<p class="mut">Personne ici.</p>'}</div></div>
   <p class="petit mut">Barres : forme (en haut), fatigue (en bas). Toucher un joueur pour sa fiche.</p>`;
@@ -369,15 +369,20 @@ function rapportRecruteur(j){
   else if (j.age >= 32) L.push('L\'expérience compense les jambes.');
   return L.slice(0, 3).join(' ');
 }
+/* v90 : ce que l'on sait d'un joueur (attributs cachés tant que le recruteur ne l'a pas vu) */
+const HH = () => window.QMH;
+const connu = j => HH() ? HH().connaissance(M, j) : 100;
+function valVue(j, v, cle, echelle){ if (connu(j) >= 100) return {txt:String(v), mid:v, exact:true}; const [a, b] = HH().fourchette(M, j, v, cle, echelle); return a === b ? {txt:String(a), mid:a, exact:false} : {txt:`${a}–${b}`, mid:(a + b) / 2, exact:false}; }
+const noteVue = (j, p) => valVue(j, QM.note(j, p), 'note' + p, 5);
 function ficheJoueur(id){
   const j = M.joueurs[id]; if (!j) return;
   const mon = j.club === M.manager.club, r = mon ? roleDe(id) : {}, cl = j.club ? club(j.club) : null;
   const cible = {}; D.ATTRS.forEach(a => { cible[a[0]] = a[3]['PBAG'.indexOf(j.poste)] === '●'; });
   const s = j.saison, est = C.potentielEstime(M, j), rec = mon ? club(M.manager.club).staff.recruteur : null;
-  const ligne = (k, nom, v, c) => `<div class="at${c ? ' c' : ''}" title="${esc(nom)}"><span>${esc(COURT_ATTR[k] || nom)}</span><b class="${classeAttr(v)}">${v}</b></div>`;
+  const kc = connu(j), ligne = (k, nom, v, c) => { const x = valVue(j, v, k); return `<div class="at${c ? ' c' : ''}${x.exact ? '' : ' flou'}" title="${esc(nom)}"><span>${esc(COURT_ATTR[k] || nom)}</span><b class="${classeAttr(x.mid)}">${x.txt}</b></div>`; };
   const fam = f => `<div class="fa"><h4>${f}</h4>${D.ATTRS.map((a, i) => a[2] !== f ? '' : ligne(a[0], a[1], j.a[i], cible[a[0]])).join('')}</div>`;
   feuille(`${teteF(`${esc(nomJ(j))}`, `${flag(j.nat)} ${esc(nat(j.nat).nom)} · ${j.age} ans · ${D.POSTES[j.poste].nom}${cl ? ' · ' + (mon ? 'n° ' + j.num : esc(cl.nom)) : ' · agent libre'}`, `<span class="avp g">${avatarDe(j, 'g')}${cl ? `<span class="blp">${V.blason(cl, 'p')}</span>` : ''}</span>`)}
-    <div class="fj-haut"><div class="fj-radar">${V.radar(axesRadar(j), COULEUR_POSTE[j.poste])}</div>
+    <div class="fj-haut"><div class="fj-radar">${V.radar(axesRadar(j).map(([l, v]) => [l, kc >= 100 ? v : valVue(j, Math.round(v), 'ax' + l).mid]), COULEUR_POSTE[j.poste])}${kc < 100 ? `<p class="petit mut" style="margin:0;text-align:center">Estimation · connu à ${Math.round(kc)} %</p>` : ''}</div>
       <div class="fj-etat">
         <div><span>Forme</span><b>${j.forme}<small>/10</small></b><div class="barre"><i style="width:${j.forme * 10}%"></i></div></div>
         <div><span>Fatigue</span><b>${j.fat}<small> %</small></b><div class="barre fat"><i style="width:${j.fat}%"></i></div></div>
@@ -387,7 +392,8 @@ function ficheJoueur(id){
       </div></div>
     <blockquote class="rapport">« ${esc(rapportRecruteur(j))} »<span>${rec ? `Rapport de ${esc(rec.p + ' ' + rec.n)}, recruteur` : 'Rapport de ton recruteur'}</span></blockquote>
     ${QM.manies(j).length ? `<div class="manies">${QM.manies(j).map(k => { const m = D.MANIES.find(x => x[0] === k); return m ? `<span class="manie"><b>${esc(m[1])}</b>${esc(m[3])}</span>` : ''; }).join('')}</div>` : ''}
-    <div class="npostes">${['P', 'B', 'A', 'G'].map(p => `<div class="${p === j.poste ? 'on' : ''}"><b class="${classeNote(QM.note(j, p))}" style="color:inherit">${QM.note(j, p)}</b><span>${D.POSTES[p].nom}</span></div>`).join('')}</div>
+    <div class="npostes">${['P', 'B', 'A', 'G'].map(p => { const x = noteVue(j, p); return `<div class="${p === j.poste ? 'on' : ''}"><b class="${classeNote(x.mid)}" style="color:inherit${x.exact ? '' : ';font-size:.92rem'}">${x.txt}</b><span>${D.POSTES[p].nom}</span></div>`; }).join('')}</div>
+    ${kc < 100 ? `<p class="petit mut" style="margin:6px 2px 0">Attributs en fourchette : ${Math.round(kc)} % connu. Suis le joueur (ton recruteur l'observe chaque semaine) ou affronte son équipe pour en savoir plus.</p>` : ''}
     <div class="carte fj-attrs"><h2>Attributs <span class="mut petit">en gras : cibles du poste</span></h2><div class="cols-at">
       ${fam('Physique')}${fam('Vol')}${fam('Balle')}${fam('Mental')}
       ${j.poste === 'G' ? `<div class="fa"><h4>Gardien</h4>${D.GARDIEN.map((g, i) => ligne(g[0], g[1], j.g[i], true)).join('')}</div>` : ''}
@@ -672,6 +678,9 @@ function vueAide(){
   <div class="carte"><h2>Pendant le direct</h2><div class="liste">
     <label class="el"><div class="t"><b>Temps forts selon l'enjeu</b><span>Tout quand le match est serré, l'essentiel quand il est plié</span></div><input type="checkbox" data-chg="resumes" ${REG.resumes !== 'tout' ? 'checked' : ''} style="width:22px;height:22px"></label>
     <label class="el"><div class="t"><b>Ambiance sonore</b><span>Foule, sifflet, carillon du vif d'or</span></div><input type="checkbox" data-chg="son" ${REG.son ? 'checked' : ''} style="width:22px;height:22px"></label>
+    <label class="el"><div class="t"><b>Causeries</b><span>Avant le match et aux temps morts</span></div><input type="checkbox" data-chg="causeries" ${REG.causeries !== false ? 'checked' : ''} style="width:22px;height:22px"></label>
+    <label class="el"><div class="t"><b>Conférence de presse</b><span>Une question après chaque match</span></div><input type="checkbox" data-chg="presse" ${REG.presse !== false ? 'checked' : ''} style="width:22px;height:22px"></label>
+    ${M && HH() ? `<label class="el"><div class="t"><b>Paris et pots-de-vin (cette partie)</b><span>Parier sur ton match, soudoyer le gardien adverse… au risque d'une enquête du ministère, voire d'Azkaban</span></div><input type="checkbox" data-chg="triche" ${HH().etat(M).triche ? 'checked' : ''} style="width:22px;height:22px"></label>` : ''}
   </div></div>
   <div class="carte aide"><h2>Comment ça marche</h2>
     <p><b>Points.</b> Un but de poursuiveur vaut ${E.points.but} points, le vif d'or ${E.points.vif} et termine le match. Victoire ${E.points.victoire} points au classement, nul ${E.points.nul}.</p>
@@ -680,6 +689,8 @@ function vueAide(){
     <p><b>Le match.</b> Une minute de jeu défile en une seconde à vitesse ×1. Deux temps morts par équipe pour changer les consignes et faire entrer des remplaçants : 3 changements libres, plus ceux qui suivent une blessure. Pendant le direct : le match vu du dessus, les autres scores à la radio, les conseils de l'adjoint et, si tu le veux, l'ambiance du stade.</p>
     <p><b>Les joueurs.</b> 31 attributs de 1 à 20, plus 5 pour les gardiens. La note sur 100 dépend du poste : les attributs cibles (●) comptent triple. La forme, la fatigue et le moral changent chaque semaine.</p>
     <p><b>La composition.</b> 7 titulaires sur le terrain et ${NB_BANC()} remplaçants sur le banc (Tactique). Glisse un joueur du banc sur un titulaire pour les échanger, ou choisis la place de chacun avec le menu du panneau Effectif (titulaire, remplaçant ou réserve). Une place laissée libre est complétée au coup d'envoi.</p>
+    <p><b>Vestiaire.</b> Club › Vestiaire : ambiance (le moral, surtout celui des leaders), clans, joueurs qui veulent jouer plus, et jusqu'à trois binômes de mentorat (un joueur de 26 ans ou plus guide un jeune de 22 ans ou moins). Causeries avant le match et aux temps morts, conférence de presse après (La Gazette du sorcier) ; tout se désactive ici.</p>
+    <p><b>Recrutement.</b> Les attributs des joueurs des autres clubs s'affichent en fourchettes tant que ton recruteur ne les connaît pas bien : suis-les, affronte leur équipe. Les offres partent par hibou et la réponse arrive la semaine suivante (contre-offres dans Mercato › Offres ; un autre club peut doubler). Clauses : pourcentage à la revente, clause libératoire, prime au vif d'or. Prêts jusqu'à la fin de la saison, avec ou sans option d'achat.</p>
     <p><b>Le président.</b> Il fixe un objectif de classement, juge chaque résultat selon la force de l'adversaire et fixe la limite de la masse salariale.</p>
     <p><b>Entraînement.</b> Chaque semaine, les joueurs progressent vers un potentiel caché : focus (technique, physique, tactique, repos) et intensité par poste, qualité des entraîneurs, temps de jeu. Après le pic d'âge, le physique décline.</p>
     <p><b>Mercato.</b> Ouvert pendant la préparation d'août et en janvier. Les agents libres signent à tout moment. Un club demande au moins la valeur du joueur (plus s'il est titulaire), le joueur un salaire selon son niveau, son ambition et la réputation de ton club. Mets des joueurs en vente pour recevoir des offres.</p>
@@ -700,18 +711,26 @@ function fichePalmares(){
 /* ---------- v84 : contrat, valeur et actions dans la fiche joueur ---------- */
 function blocContrat(j, mon){
   const mg = M.manager, U = club(mg.club), v = C.valeur(M, j);
+  if (mon && j.pret && j.pret.vers === U.id){
+    const de = club(j.pret.de);
+    return `<div class="carte" style="margin-top:10px"><h2>En prêt</h2><p style="margin:0 0 8px">Prêté par <b>${esc(de.nom)}</b> jusqu'à la fin de la saison. Tu payes ${Math.round(j.pret.part * 100)} % de son salaire (${eur(Math.round(j.pret.sal * j.pret.part))} / semaine).</p>
+      ${j.pret.option ? `<button class="btn plein" data-act="leverOption" data-j="${j.id}">Lever l'option d'achat · ${eur(j.pret.option)}</button>` : '<p class="petit mut" style="margin:0">Pas d\'option d\'achat : il repartira en fin de saison.</p>'}</div>`;
+  }
   if (mon){
-    const vente = U.aVendre.includes(j.id);
-    return `<div class="carte" style="margin-top:10px"><h2>Contrat</h2>
+    const vente = U.aVendre.includes(j.id), cl = j.contrat || {};
+    const infos = [cl.clause ? `Clause libératoire : <b>${eur(cl.clause)}</b>` : '', cl.primeVif ? `Prime par vif d'or : <b>${eur(cl.primeVif)}</b>` : '', j.revente ? `${j.revente.pct} % à la revente pour ${esc(club(j.revente.club).nom)}` : ''].filter(Boolean);
+    return `<div class="carte" style="margin-top:10px"><h2>Contrat</h2>${infos.length ? `<p class="petit" style="margin:0 0 8px">${infos.join(' · ')}</p>` : ''}
       <div class="stat" style="grid-template-columns:1fr auto">
         <span style="text-align:left;font-weight:400">Jusqu'à la fin de la saison</span><b>${lab(j.contrat.fin)}</b>
         <span style="text-align:left;font-weight:400">Salaire</span><b>${eur(j.contrat.sal)} / semaine</b>
         <span style="text-align:left;font-weight:400">Valeur estimée</span><b>${eur(v)}</b>
       </div>
-      <div class="btns" style="margin-top:12px"><button class="btn sec" data-act="prolonger" data-j="${j.id}">Prolonger</button><button class="btn sec" data-act="vendre" data-j="${j.id}">${vente ? 'Retirer de la vente' : 'Mettre en vente'}</button></div>
+      <div class="btns" style="margin-top:12px"><button class="btn sec" data-act="prolonger" data-j="${j.id}">Prolonger</button><button class="btn sec" data-act="vendre" data-j="${j.id}">${vente ? 'Retirer de la vente' : 'Mettre en vente'}</button>${C.mercatoOuvert(QM.semaine(M)) ? `<button class="btn sec" data-act="preter" data-j="${j.id}">Prêter</button>` : ''}</div>
       <button class="btn sec plein" style="margin-top:8px;color:var(--mauvais)" data-act="liberer" data-j="${j.id}">Résilier le contrat (${eur(C.coutLiberation(M, j))})</button></div>`;
   }
   const suivi = U.suivi.includes(j.id), libre = !j.club;
+  if (j.pret && j.pret.de === U.id) return `<div class="carte" style="margin-top:10px"><h2>Prêté par ton club</h2><p style="margin:0">Joue à ${esc(club(j.club).nom)} jusqu'à la fin de la saison, puis revient. ${esc(club(j.club).nom)} paye ${Math.round(j.pret.part * 100)} % de son salaire.</p></div>`;
+  if (j.pret) return `<div class="carte" style="margin-top:10px"><h2>En prêt</h2><p style="margin:0">Prêté à ${esc(club(j.club).nom)} par ${esc(club(j.pret.de).nom)} jusqu'à la fin de la saison : pas de transfert possible d'ici là.</p></div>`;
   return `<div class="carte" style="margin-top:10px"><h2>${libre ? 'Agent libre' : 'Contrat'}</h2>
     <div class="stat" style="grid-template-columns:1fr auto">
       ${libre ? '' : `<span style="text-align:left;font-weight:400">Club</span><b>${esc(club(j.club).nom)}</b><span style="text-align:left;font-weight:400">Jusqu'à la fin de la saison</span><b>${lab(j.contrat.fin)}</b>
@@ -732,6 +751,7 @@ function vueClub(){
     <button class="carte tuile" data-act="vue" data-v="entrainement"><h2>Entraînement</h2><b class="petit" style="font-size:.86rem">${['P', 'B', 'A', 'G'].map(p => `${p} ${foc(p).toLowerCase()}`).join(' · ')}</b><span>Cohésion ${Math.round(c.cohesion)} %</span></button>
     <button class="carte tuile" data-act="vue" data-v="mercato"><h2>Mercato</h2><b>${ouvert ? 'Ouvert' : 'Fermé'}</b><span>${M.offres.length ? M.offres.length + ' offre' + (M.offres.length > 1 ? 's' : '') + ' reçue' + (M.offres.length > 1 ? 's' : '') : ouvert ? 'Transferts et agents libres' : fen ? 'Réouverture le ' + fmtDate(fen.date) : 'Agents libres disponibles'}</span></button>
     <button class="carte tuile" data-act="vue" data-v="finances"><h2>Finances</h2><b style="color:${c.budget < 0 ? 'var(--mauvais)' : 'inherit'}">${eur(c.budget)}</b><span>Masse ${eur(C.masse(M, c))} / ${eur(c.masseMax)} par sem.</span></button>
+    <button class="carte tuile" data-act="vue" data-v="vestiaire"><h2>Vestiaire</h2><b>Ambiance ${HH() ? HH().ambiance(M, c) : 60} / 100</b><span>${HH() ? 'Leaders, clans, mentorat' : ''}</span></button>
     <button class="carte tuile" data-act="vue" data-v="staff"><h2>Staff</h2><b>${moyStaff} / 20</b><span>${st.length} membres</span></button>
     <button class="carte tuile" data-act="vue" data-v="domaine"><h2>Domaine</h2><b>${c.stade.toLocaleString('fr-FR')} places</b><span>${D.BATIMENTS.some(b => B.amelEnAttente(c, b[0])) ? '<b style="color:var(--or)">Amélioration à choisir</b>' : c.travaux.length ? c.travaux.length + ' chantier' + (c.travaux.length > 1 ? 's' : '') + ' en cours' : 'Bâtiments, stade, Bazar'}</span></button>
     <button class="carte tuile" data-act="vue" data-v="partenaires"><h2>Partenaires</h2><b>${c.dom && c.dom.sponsor ? esc(c.dom.sponsor.nom) : '<span style="color:var(--or)">Sponsor à choisir</span>'}</b><span>${c.dom ? c.dom.panneaux.length + ' / ' + B.placesPanneaux(c) + ' panneaux' : ''}</span></button>
@@ -758,10 +778,10 @@ function vueEntrainement(){
 }
 const MERC = {onglet:'recherche', poste:'tous', age:99, moyens:false};
 function ligneMercato(j, d){
-  const p = MERC.poste !== 'tous' && MERC.poste !== 'bless' ? MERC.poste : j.poste, n = QM.note(j, p);
+  const p = MERC.poste !== 'tous' && MERC.poste !== 'bless' ? MERC.poste : j.poste, nv = noteVue(j, p), n = nv.mid;
   return `<button class="el" data-act="joueur" data-j="${j.id}">${j.club ? blason(j.club, 'p') : '<span class="blason nat p" aria-hidden="true" style="font-size:.5rem;font-weight:800;color:var(--ink-soft)">LIBRE</span>'}${posteB(j.poste)}
     <div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>${j.age} ans · ${d || (j.club ? esc(club(j.club).sigle) + ' · ' + eur(C.valeur(M, j)) : 'libre · demande ' + eur(C.salaireDemande(j, club(M.manager.club))) + '/sem.')}</span></div>
-    <span class="etoiles petit" aria-label="potentiel">${'★'.repeat(C.potentielEstime(M, j))}</span><span class="note ${classeNote(n)}">${n}</span></button>`;
+    <span class="etoiles petit" aria-label="potentiel">${'★'.repeat(C.potentielEstime(M, j))}</span><span class="note ${classeNote(n)}${nv.exact ? '' : ' flou'}">${nv.txt}</span></button>`;
 }
 function vueMercato(){
   const U = club(M.manager.club), S = QM.semaine(M), ouvert = C.mercatoOuvert(S), fen = C.prochaineFenetre(M);
@@ -773,14 +793,19 @@ function vueMercato(){
   const filtrer = L => {
     const place = U.masseMax - C.masse(M, U);
     return L.filter(j => j && (MERC.poste === 'tous' || j.poste === MERC.poste) && j.age <= MERC.age && (!MERC.moyens || ((j.club ? C.prixClub(M, j) : 0) <= U.budget && C.salaireDemande(j, U) <= place)))
-      .sort((a, b) => QM.note(b, MERC.poste === 'tous' ? b.poste : MERC.poste) - QM.note(a, MERC.poste === 'tous' ? a.poste : MERC.poste));
+      .sort((a, b) => noteVue(b, MERC.poste === 'tous' ? b.poste : MERC.poste).mid - noteVue(a, MERC.poste === 'tous' ? a.poste : MERC.poste).mid);
   };
   if (MERC.onglet === 'offres'){
-    corps = M.offres.length ? M.offres.map(o => { const j = M.joueurs[o.j], c = club(o.club);
+    const h = HH().etat(M), vols = h.hiboux.map(o => { const j = M.joueurs[o.j]; return j ? `<div class="el">${avatarDe(j, '', j.club || null).replace('class="av ', 'class="av mini ')}<div class="t"><b>🦉 ${esc(nomJ(j))}</b><span>${o.type === 'pret' ? `prêt, ${Math.round(o.part * 100)} % du salaire${o.option ? ', avec option' : ''}` : `${eur(o.montant)} · ${eur(o.sal)} / sem.`} · réponse la semaine prochaine</span></div></div>` : ''; }).join('');
+    const contres = h.contres.map(o => { const j = M.joueurs[o.j]; if (!j) return ''; const de = j.club ? club(j.club) : null;
+      return `<div class="carte" style="border-color:var(--or)"><div class="ligne">${de ? blason(de.id) : ''}<div style="flex:1;min-width:0"><b>Contre-offre pour ${esc(nomJ(j))}</b><div class="petit mut">${o.type === 'pret' ? 'prêt' : `${eur(o.montant)}, ${eur(o.sal)} / sem., ${o.ans} saison${o.ans > 1 ? 's' : ''}`}</div></div></div>
+        <div class="btns" style="margin-top:10px"><button class="btn sec" data-act="refuserContre" data-c="${o.id}">Laisser tomber</button><button class="btn" data-act="accepterContre" data-c="${o.id}">Accepter</button></div></div>`; }).join('');
+    corps = (vols ? `<div class="carte"><h2>Hiboux en vol</h2><div class="liste">${vols}</div></div>` : '') + contres;
+    corps += M.offres.length ? M.offres.map(o => { const j = M.joueurs[o.j], c = club(o.club);
       return `<div class="carte"><div class="ligne">${blason(c.id)}<div style="flex:1;min-width:0"><b>${esc(c.nom)}</b><div class="petit mut">veut ${esc(nomJ(j))} (${QM.note(j)}) · valeur ${eur(C.valeur(M, j))}</div></div><b>${eur(o.montant)}</b></div>
         <p class="petit mut" style="margin:6px 0 10px">Offre valable jusqu'au ${fmtDate((M.calendrier[o.expire] || QM.semaine(M)).date)}.</p>
         <div class="btns"><button class="btn sec" data-act="refuserOffre" data-o="${o.id}">Refuser</button><button class="btn" data-act="accepterOffre" data-o="${o.id}">Accepter</button></div></div>`; }).join('')
-      : '<div class="carte"><p class="mut" style="margin:0">Aucune offre pour l\'instant. Mets des joueurs en vente (fiche du joueur) pour attirer les acheteurs pendant le mercato.</p></div>';
+      : (vols || contres ? '' : '<div class="carte"><p class="mut" style="margin:0">Aucune offre pour l\'instant. Mets des joueurs en vente (fiche du joueur) pour attirer les acheteurs pendant le mercato.</p></div>');
   } else if (MERC.onglet === 'recherche'){
     const L = filtrer(Object.values(M.joueurs).filter(j => j.club && j.club !== U.id)).slice(0, 40);
     corps = `${filtres()}<div class="carte"><div class="liste">${L.map(j => ligneMercato(j)).join('') || '<p class="mut">Personne avec ces critères.</p>'}</div></div><p class="petit mut">Les 40 meilleurs selon la note au poste. ★ : potentiel estimé par ton recruteur.</p>`;
@@ -800,23 +825,33 @@ function vueMercato(){
   <div class="chips" role="tablist">${O.map(([k, n]) => `<button role="tab" class="chip ${MERC.onglet === k ? 'on' : ''}" data-act="merc" data-o="${k}">${n}</button>`).join('')}</div>
   ${corps}`;
 }
-/* offre de transfert, contrat d'agent libre, prolongation */
+/* offre de transfert ou de prêt (par hibou), contrat d'agent libre, prolongation ; v90 : clauses */
 let OFFRE = null;
 function ficheOffre(jid, mode){
   const j = M.joueurs[jid], U = club(M.manager.club);
   if (!OFFRE || OFFRE.j !== jid || OFFRE.mode !== mode){
     const libre = !j.club;
-    OFFRE = {j:jid, mode, montant:mode === 'transfert' && !libre ? C.valeur(M, j) : 0, sal:mode === 'prolonger' ? j.contrat.sal : C.salaireDemande(j, U), ans:j.age >= 32 ? 1 : 3, msg:''};
+    OFFRE = {j:jid, mode, type:'achat', montant:mode === 'transfert' && !libre ? C.valeur(M, j) : 0, sal:mode === 'prolonger' ? j.contrat.sal : C.salaireDemande(j, U), ans:j.age >= 32 ? 1 : 3, pct:0, clause:0, primeVif:false, part:0.75, option:false, msg:''};
   }
-  const o = OFFRE, libre = !j.club, place = U.masseMax - C.masse(M, U) + (mode === 'prolonger' ? j.contrat.sal : 0);
+  const o = OFFRE, libre = !j.club, place = U.masseMax - C.masse(M, U) + (mode === 'prolonger' ? j.contrat.sal : 0), pret = o.type === 'pret';
   const pas = (k, lib) => `<div class="cons"><b>${lib}</b><div class="ligne"><button class="btn sec" data-act="pasOffre" data-k="${k}" data-d="-1" aria-label="Moins">−</button><b style="flex:1;text-align:center;font-size:1.1rem">${eur(o[k])}${k === 'sal' ? ' / sem.' : ''}</b><button class="btn sec" data-act="pasOffre" data-k="${k}" data-d="1" aria-label="Plus">+</button></div></div>`;
-  feuille(`${teteF(mode === 'prolonger' ? 'Prolonger ' + esc(nomJ(j)) : libre ? 'Contrat pour ' + esc(nomJ(j)) : 'Offre pour ' + esc(nomJ(j)), libre ? 'Agent libre' : mode === 'prolonger' ? `Contrat actuel : fin ${lab(j.contrat.fin)}, ${eur(j.contrat.sal)} / sem.` : `${esc(club(j.club).nom)} · valeur estimée ${eur(C.valeur(M, j))}`)}
-    ${mode === 'transfert' && !libre ? pas('montant', 'Indemnité de transfert') : ''}
-    ${pas('sal', 'Salaire proposé')}
-    <div class="cons"><b>Durée</b><div class="seg">${[1, 2, 3, 4].map(n => `<button data-act="ansOffre" data-v="${n}" class="${o.ans === n ? 'on' : ''}">${n} saison${n > 1 ? 's' : ''}</button>`).join('')}</div></div>
-    <p class="petit mut" style="margin:8px 0">Solde ${eur(U.budget)} · place dans la masse salariale : ${eur(place)} / sem.</p>
+  const seg = (lib, act, L, v, aide) => `<div class="cons"><b>${lib}</b><div class="seg">${L.map(([x, n]) => `<button data-act="${act}" data-v="${x}" class="${String(v) === String(x) ? 'on' : ''}">${n}</button>`).join('')}</div>${aide ? `<span>${aide}</span>` : ''}</div>`;
+  const val = C.valeur(M, j), optMontant = Math.round(val * 1.1 / 5000) * 5000;
+  feuille(`${teteF(mode === 'prolonger' ? 'Prolonger ' + esc(nomJ(j)) : libre ? 'Contrat pour ' + esc(nomJ(j)) : (pret ? 'Prêt de ' : 'Offre pour ') + esc(nomJ(j)), libre ? 'Agent libre' : mode === 'prolonger' ? `Contrat actuel : fin ${lab(j.contrat.fin)}, ${eur(j.contrat.sal)} / sem.` : `${esc(club(j.club).nom)} · valeur estimée ${eur(val)}`)}
+    ${mode === 'transfert' && !libre ? seg('Type', 'offreType', [['achat', 'Achat'], ['pret', 'Prêt (jusqu\'à la fin de la saison)']], o.type) : ''}
+    ${pret ? `${seg('Part du salaire que tu payes', 'offrePart', [[0.5, '50 %'], [0.75, '75 %'], [1, '100 %']], o.part, `Soit ${eur(Math.round(j.contrat.sal * o.part))} par semaine. Un club prête rarement un titulaire, et veut au moins 75 % pour un joueur important.`)}
+      ${seg('Option d\'achat', 'offreOption', [['false', 'Sans'], ['true', 'Avec · ' + eur(optMontant)]], o.option, 'Tu pourras l\'acheter à ce prix avant la fin du prêt.')}`
+    : `${mode === 'transfert' && !libre ? pas('montant', 'Indemnité de transfert') : ''}
+      ${pas('sal', 'Salaire proposé')}
+      <div class="cons"><b>Durée</b><div class="seg">${[1, 2, 3, 4].map(n => `<button data-act="ansOffre" data-v="${n}" class="${o.ans === n ? 'on' : ''}">${n} saison${n > 1 ? 's' : ''}</button>`).join('')}</div></div>
+      ${mode !== 'prolonger' ? `<details class="clauses"${o.pct || o.clause || o.primeVif ? ' open' : ''}><summary>Clauses du contrat</summary>
+        ${!libre ? seg('Pourcentage à la revente', 'offrePct', [[0, 'Aucun'], [10, '10 %'], [20, '20 %']], o.pct, 'Le club vendeur touchera ce pourcentage si tu revends le joueur ; en échange, il baisse son prix.') : ''}
+        ${seg('Clause libératoire', 'offreClause', [[0, 'Aucune'], [2, '2 × la valeur'], [3, '3 × la valeur']], o.clause, 'Le joueur demande 5 % de salaire en moins ; un club qui paye la clause l\'emmène sans ton accord.')}
+        ${j.poste === 'A' ? seg('Prime au vif d\'or', 'offrePrime', [['false', 'Non'], ['true', 'Oui']], o.primeVif, `Salaire demandé 8 % plus bas ; prime de deux semaines de salaire à chaque vif d'or attrapé.`) : ''}
+      </details>` : ''}`}
+    <p class="petit mut" style="margin:8px 0">Solde ${eur(U.budget)} · place dans la masse salariale : ${eur(place)} / sem.${mode !== 'prolonger' && !libre ? ' · <b>Réponse par hibou la semaine prochaine.</b>' : ''}</p>
     ${o.msg ? `<p style="margin:0 0 10px;font-weight:600;color:var(--moyen)">${esc(o.msg)}</p>` : ''}
-    <button class="btn plein" data-act="envoyerOffre">${mode === 'prolonger' ? 'Proposer la prolongation' : libre ? 'Proposer le contrat' : 'Envoyer l\'offre'}</button>`);
+    <button class="btn plein" data-act="envoyerOffre">${mode === 'prolonger' ? 'Proposer la prolongation' : libre ? 'Proposer le contrat' : 'Envoyer le hibou'}</button>`);
 }
 function vueFinances(){
   const c = club(M.manager.club), F = c.fin.saison, P = c.fin.derniere, ms = C.masse(M, c);
@@ -1043,6 +1078,50 @@ function divinationHTML(){
   return `<div class="carte div-carte"><h2>Cabinet de divination <span class="mut petit">niveau ${n}</span></h2><p class="petit" style="margin:0;line-height:1.6">${L.join('<br>')}</p></div>`;
 }
 
+/* ---------- v90 : vestiaire, causeries, presse, paris ---------- */
+function vueVestiaire(){
+  const c = club(M.manager.club), Hm = HH(), amb = Hm.ambiance(M, c), L = Hm.leaders(M, c), CL = Hm.clans(M, c), mec = Hm.mecontents(M, c);
+  const ment = (c.mentors || []).filter(p => c.effectif.includes(p.mentor) && c.effectif.includes(p.jeune));
+  const vieux = c.effectif.map(id => M.joueurs[id]).filter(j => j && j.age >= 26 && !ment.some(p => p.mentor === j.id)).sort((a, b) => (QM.at(b, 'det') + b.cache.pro) - (QM.at(a, 'det') + a.cache.pro));
+  const jeunes = c.effectif.map(id => M.joueurs[id]).filter(j => j && j.age <= 22 && !ment.some(p => p.jeune === j.id));
+  const pretes = Object.values(M.joueurs).filter(j => j.pret && j.pret.de === c.id);
+  const ligneJ = (j, d) => `<button class="el" data-act="joueur" data-j="${j.id}"><span class="avp">${avatarDe(j)}<i class="poste ${j.poste}">${j.poste}</i></span><div class="t"><b>${esc(nomJ(j))}</b><span>${d}</span></div><span class="note ${j.moral >= 70 ? 'n4' : j.moral >= 45 ? 'n3' : 'n1'}" title="Moral">${Math.round(j.moral)}</span></button>`;
+  VUE.innerHTML = `<div><h1 class="grand">Vestiaire</h1><p class="sous">${esc(c.nom)} · moral sur 100</p></div>
+  <div class="cols"><div>
+    <div class="carte"><h2>Ambiance</h2><div class="ligne"><span style="flex:1">${amb >= 75 ? 'Excellente' : amb >= 60 ? 'Bonne' : amb >= 45 ? 'Tendue' : 'Mauvaise'}</span><b>${amb} / 100</b></div><div class="jauge" style="margin-top:6px"><i style="width:${amb}%"></i></div>
+      <p class="petit mut" style="margin:8px 0 0">L'ambiance, surtout celle des leaders, donne un petit coup de pouce (ou de frein) à l'équipe en match et fait monter la cohésion.</p></div>
+    <div class="carte"><h2>Leaders</h2><div class="liste">${L.map(j => ligneJ(j, `${j.age} ans · ${c.compo && c.compo.cap === j.id ? 'capitaine · ' : ''}${j.moral < 40 ? '<b style="color:var(--mauvais)">malheureux : il plombe le groupe</b>' : 'écouté par le groupe'}`)).join('')}</div></div>
+    <div class="carte"><h2>Clans</h2>${CL.length ? `<div class="liste">${CL.map(k => `<div class="el"><div class="t"><b>${esc(k.nom)} (${k.joueurs.length})</b><span>${k.joueurs.map(j => esc(k.joueurs.filter(x => x.n === j.n).length > 1 ? j.p[0] + '. ' + j.n : j.n)).join(', ')}</span></div><span class="note ${k.moral >= 70 ? 'n4' : k.moral >= 45 ? 'n3' : 'n1'}">${k.moral}</span></div>`).join('')}</div>` : '<p class="mut" style="margin:0">Pas de clan : un groupe très mélangé.</p>'}</div>
+  </div><div>
+    <div class="carte"><h2>À surveiller</h2>${mec.length ? `<div class="liste">${mec.map(j => ligneJ(j, `Veut plus de temps de jeu (${j.saison.m} match${j.saison.m > 1 ? 's' : ''})`)).join('')}</div>` : '<p class="mut" style="margin:0">Personne ne râle pour l\'instant.</p>'}</div>
+    <div class="carte"><h2>Mentorat <span class="mut petit">${ment.length} / 3</span></h2>
+      ${ment.length ? `<div class="liste">${ment.map(p => { const a = M.joueurs[p.mentor], b = M.joueurs[p.jeune]; return `<div class="el"><span class="avp">${avatarDe(a)}</span><span class="avp">${avatarDe(b)}</span><div class="t"><b>${esc(a.n)} → ${esc(b.n)}</b><span>${b.age} ans · progresse 15 % plus vite, prend l'état d'esprit du mentor</span></div><button class="btn sec" data-act="finMentor" data-j="${b.id}">Arrêter</button></div>`; }).join('')}</div>` : ''}
+      ${ment.length < 3 && vieux.length && jeunes.length ? `<div class="mentor-form"><label>Mentor<select id="mentorA">${vieux.map(j => `<option value="${j.id}">${esc(nomJ(j))} (${j.age} ans)</option>`).join('')}</select></label><label>Jeune<select id="mentorB">${jeunes.map(j => `<option value="${j.id}">${esc(nomJ(j))} (${j.age} ans)</option>`).join('')}</select></label><button class="btn" data-act="mentor">Former le binôme</button></div>` : ment.length < 3 ? '<p class="mut" style="margin:0">Il faut un joueur de 26 ans ou plus et un jeune de 22 ans ou moins.</p>' : ''}</div>
+    ${pretes.length ? `<div class="carte"><h2>Prêtés ailleurs</h2><div class="liste">${pretes.map(j => ligneJ(j, `à ${esc(club(j.club).nom)} jusqu'à la fin de la saison`)).join('')}</div></div>` : ''}
+  </div></div>`;
+}
+function causerieHTML(moment){
+  if (!X || REG.causeries === false || !HH()) return '';
+  const fait = moment === 'avant' ? X.causerieAvant : X.causerieTM === X.tm[X.joueur];
+  if (fait) return `<div class="carte caus"><h2>Causerie</h2><p style="margin:0">${esc(fait.txt || X.causerieTxt || '')}</p></div>`;
+  return `<div class="carte caus"><h2>Causerie ${moment === 'avant' ? 'd\'avant-match' : 'du temps mort'}</h2><p class="petit mut" style="margin:0 0 8px">Quel ton prendre avec les joueurs ? Un favori aime le calme, un outsider a besoin d'être encouragé, un groupe solide supporte l'exigence.</p>
+    <div class="seg">${HH().TONS.map(([k, n]) => `<button data-act="causerie" data-m="${moment}" data-t="${k}">${n}</button>`).join('')}</div></div>`;
+}
+function parisHTML(){
+  if (!X || X.sixn || !HH() || !HH().etat(M).triche) return '';
+  const c = HH().cote(M, X), adv = X.e[1 - X.joueur], prix = Math.round((80000 + (adv.rep || 60) * 3000) / 10000) * 10000;
+  return `<div class="carte triche"><h2>Dans l'ombre <span class="mut petit">option activée</span></h2>
+    ${X.pari ? `<p style="margin:0 0 8px">Pari placé : ${eur(X.pari.mise)} à ${String(X.pari.cote).replace('.', ',')} contre 1.</p>` : `<p class="petit" style="margin:0 0 8px">Cote de ta victoire : <b>${String(c).replace('.', ',')}</b>. Le ministère surveille…</p><div class="btns" style="margin-bottom:8px">${[50000, 100000, 250000].map(m => `<button class="btn sec" data-act="parier" data-m="${m}">Parier ${eur(m)}</button>`).join('')}</div>`}
+    ${X.pot ? '<p style="margin:0">Le gardien adverse a été « convaincu ».</p>' : `<button class="btn sec plein" data-act="soudoyer">Soudoyer le gardien adverse · ${eur(prix)}</button>`}</div>`;
+}
+function presseHTML(){
+  if (!X || !X.fini || !HH() || X.presseFaite === undefined && REG.presse === false) return '';
+  if (X.presseFaite) return `<div class="carte presse"><h2>Conférence de presse</h2><p style="margin:0">${esc(X.presseFaite)}</p><p class="petit mut" style="margin:6px 0 0">La Gazette du sorcier en parle dans ta boîte de réception.</p></div>`;
+  const q = HH().questionPresse(M, X);
+  return `<div class="carte presse"><h2>Conférence de presse</h2><p style="margin:0 0 10px"><b>« ${esc(q.q)} »</b></p><div class="liste">${q.r.map(([k, t]) => `<button class="el" data-act="presse" data-k="${q.k}" data-r="${k}"><div class="t" style="white-space:normal"><b style="white-space:normal;font-weight:500">${esc(t)}</b></div></button>`).join('')}</div>
+    <button class="btn sec plein" style="margin-top:8px" data-act="presse" data-k="${q.k}" data-r="">Pas de commentaire</button></div>`;
+}
+
 function vueChomage(){
   const mg = M.manager, S = QM.semaine(M), oc = C.offresCarriere(M);
   VUE.innerHTML = `<div><h1 class="grand">Sans club</h1><p class="sous">${esc(mg.nom)} · réputation ${Math.round(mg.rep)} / 100</p></div>
@@ -1096,12 +1175,13 @@ function vueMatch(){
   const mm = String(Math.floor(X.t / 60)).padStart(2, '0') + ':' + String(X.t % 60).padStart(2, '0');
   const S = X.stats, moi = X.joueur;
   const avant = !L.parti;
+  const nomScore = e => { const v = (M.clubs[e.id] || {}).ville; return v && v !== e.nom ? `<span class="lg">${esc(e.nom)}</span><span class="ct">${esc(v)}</span>` : esc(e.nom); };
   VUE.innerHTML = `
   <div class="tableau" id="tableau">
     <div class="score">
-      <div class="eq">${blason(e0.id, '')}<b>${esc(e0.nom)}</b></div>
+      <div class="eq">${blason(e0.id, '')}<b>${nomScore(e0)}</b></div>
       <div class="pts"><strong id="sc">${X.score[0]} – ${X.score[1]}</strong><span id="mm">${avant ? fmtDate(QM.semaine(M).date) : fini ? 'Terminé · ' + Math.round(X.t / 60) + ' min' : mm}</span></div>
-      <div class="eq dr">${blason(e1.id, '')}<b>${esc(e1.nom)}</b></div>
+      <div class="eq dr">${blason(e1.id, '')}<b>${nomScore(e1)}</b></div>
     </div>
     <div class="mini"><span class="vifb ${vifEtat}" id="vifb"><i></i>${vifTxt}</span><span>${D.METEOS[X.meteo].ico} ${D.METEOS[X.meteo].nom}</span></div>
     ${!avant && !fini ? `<div class="ctrl">
@@ -1236,7 +1316,7 @@ function evHTML(ev){
 function avantMatchHTML(){
   const moi = X.joueur, e = X.e[moi], T = e.tactique;
   const ch = (X.changements || []).filter(([a, b]) => M.joueurs[b]).map(([a, b]) => M.joueurs[a] ? `${court(M.joueurs[a])} → ${court(M.joueurs[b])}` : `${court(M.joueurs[b])} (poste vide)`).join(', ');
-  return `${divinationHTML()}<div class="carte"><h2>Ta composition <button data-act="vue" data-v="${X.sixn ? 'selection' : 'tactique'}">Modifier</button></h2>
+  return `${divinationHTML()}${causerieHTML('avant')}${parisHTML()}<div class="carte"><h2>Ta composition <button data-act="vue" data-v="${X.sixn ? 'selection' : 'tactique'}">Modifier</button></h2>
     ${ch ? `<p class="petit" style="margin:0 0 8px;color:var(--moyen)">Changé pour blessure : ${esc(ch)}</p>` : ''}
     <div class="liste">${['P', 'B', 'A', 'G'].flatMap(p => e[p].map(id => { const j = M.joueurs[id]; return `<div class="el">${posteB(p)}<div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>Forme ${j.forme} · fatigue ${j.fat} %</span></div><span class="note ${classeNote(QM.note(j, p))}">${QM.note(j, p)}</span></div>`; })).join('')}</div>
     <p class="petit mut" style="margin:8px 0 0">Attrapeur : ${esc(nomOpt('attrapeur', T.attrapeur))} · rythme ${esc(nomOpt('rythme', T.rythme))} · avec le souafle : ${esc(nomOpt('avec', T.avec).toLowerCase())}, par ${esc(nomOpt('zone', T.zone).toLowerCase())} · sans : ${esc(nomOpt('sans', QM.sansDe(T)).toLowerCase())}</p></div>
@@ -1254,6 +1334,7 @@ function apresMatchHTML(){
     ${homme ? `<p class="sous" style="margin:0 0 10px">Homme du match : ${esc(nomJ(M.joueurs[homme[0]]))} (${homme[1]})</p>` : ''}
     <div class="stat">${[['buts', 'Buts'], ['xb', 'Buts attendus'], ['tirs', 'Tirs'], ['arrets', 'Arrêts'], ['cog', 'Cognards réussis'], ['fautes', 'Fautes'], ['pen', 'Penalties obtenus']].map(([k, n]) => `<span>${k === 'xb' ? virg(S[0].xb) : S[0][k]}</span><span>${n}</span><span>${k === 'xb' ? virg(S[1].xb) : S[1][k]}</span>`).join('')}</div>
     <button class="btn plein" style="margin-top:14px" data-act="finMatch">Continuer</button></div>
+  ${presseHTML()}
   <div class="carte"><h2>Notes de ton équipe</h2><div class="liste">${notes.map(([id, n]) => { const j = M.joueurs[id], p = X.perf[id];
     return `<div class="el">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}</b><span>${[p.b ? p.b + ' but' + (p.b > 1 ? 's' : '') : '', p.arr ? p.arr + ' arrêt' + (p.arr > 1 ? 's' : '') : '', p.cog ? p.cog + ' cognard' + (p.cog > 1 ? 's' : '') : '', p.vif ? 'vif d\'or' : ''].filter(Boolean).join(' · ') || '—'}</span></div><span class="note ${n >= 7 ? 'n4' : n >= 6 ? 'n3' : n >= 5 ? 'n2' : 'n1'}">${n.toFixed(1)}</span></div>`; }).join('')}</div></div>`;
 }
@@ -1314,6 +1395,7 @@ function rendreTempsMort(){
     ${sel ? (e.banc || []).map(id => { const j = M.joueurs[id]; const p = ['P', 'B', 'A', 'G'].find(q => e[q].includes(sel)); return `<button class="el" data-act="entre" data-j="${id}">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}</b><span>Note au poste ${QM.note(j, p)} · fatigue ${Math.round(X.fat[id] || 0)} %</span></div></button>`; }).join('') || '<p class="mut">Plus personne sur le banc.</p>'
       : tit.map(([p, id]) => { const j = M.joueurs[id]; return `<button class="el" data-act="sort" data-j="${id}" ${X.rempl[moi] <= 0 ? 'disabled style="opacity:.5"' : ''}>${posteB(p)}<div class="t"><b>${esc(nomJ(j))}</b><span>Fatigue ${Math.round(X.fat[id])} %</span></div></button>`; }).join('')}
     </div></div>
+    ${causerieHTML('tm')}
     <button class="btn plein" style="margin-top:12px" data-act="fermer">Reprendre le match</button>`);
 }
 function reprendreApresTM(){ U.live.tm = false; U.live.sortant = null; reprendre(); }
@@ -1361,6 +1443,15 @@ const ACT = {
   boite:ficheBoite,
   palmares:fichePalmares,
   jeton:d => ficheJeton(d.slot),
+  causerie:d => { const r = HH().causerie(M, X, X.joueur, d.t, d.m); X.moral[X.joueur] = Math.max(-3, Math.min(3, X.moral[X.joueur] + r.delta)); r.txt = `${({calme:'Calme', exigeant:'Exigeant', encourageant:'Encourageant'})[d.t]} : ${r.txt}`;
+    if (d.m === 'avant') X.causerieAvant = r; else { X.causerieTM = X.tm[X.joueur]; X.causerieTxt = r.txt; }
+    toast(r.avis === 'bon' ? 'Message reçu 👍' : r.avis === 'mauvais' ? 'Message mal passé 👎' : 'Message entendu');
+    if (d.m === 'avant') rendre(); else rendreTempsMort(); },
+  presse:d => { if (d.r){ const r = HH().repondrePresse(M, X, d.k, d.r); X.presseFaite = r.msg || 'Réponse donnée.'; } else X.presseFaite = 'Pas de commentaire : la presse reste sur sa faim.'; rendre(); },
+  parier:d => { const r = HH().parier(M, X, +d.m); toast(r.msg); rendre(); },
+  soudoyer:() => { if (!confirm('Soudoyer le gardien adverse ? Si le ministère l\'apprend, la sanction sera lourde.')) return; const r = HH().soudoyer(M, X); toast(r.msg); rendre(); },
+  mentor:() => { const a = $('#mentorA'), b = $('#mentorB'); if (!a || !b) return; const r = HH().mentorer(M, a.value, b.value); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
+  finMentor:d => { HH().finMentorat(M, d.j); sauver(); rendre(); },
   son:() => { REG.son = !REG.son; regler(); if (REG.son && U.live && U.live.parti && !X.fini){ Son.demarrer(); } else Son.arreter(); const b = document.querySelector('.ctrl [data-act="son"]'); if (b){ b.textContent = REG.son ? '🔊' : '🔈'; b.setAttribute('aria-pressed', !!REG.son); b.setAttribute('aria-label', REG.son ? 'Couper le son' : 'Activer le son'); } },
   synthese:() => { REG.synthese = REG.synthese === false; regler(); rendre(); },
   phase:d => { U.phase = d.p; rendre(); },
@@ -1400,8 +1491,19 @@ const ACT = {
   prolonger:d => { OFFRE = null; ficheOffre(d.j, 'prolonger'); },
   pasOffre:d => { const k = d.k, v = OFFRE[k], st = k === 'sal' ? (v >= 10000 ? 500 : 250) : (v >= 1e6 ? 100000 : 25000); OFFRE[k] = Math.max(0, v + (+d.d) * st); OFFRE.msg = ''; ficheOffre(OFFRE.j, OFFRE.mode); },
   ansOffre:d => { OFFRE.ans = +d.v; ficheOffre(OFFRE.j, OFFRE.mode); },
+  offreType:d => { OFFRE.type = d.v; OFFRE.msg = ''; ficheOffre(OFFRE.j, OFFRE.mode); },
+  offrePart:d => { OFFRE.part = +d.v; OFFRE.msg = ''; ficheOffre(OFFRE.j, OFFRE.mode); },
+  offreOption:d => { OFFRE.option = d.v === 'true'; ficheOffre(OFFRE.j, OFFRE.mode); },
+  offrePct:d => { OFFRE.pct = +d.v; ficheOffre(OFFRE.j, OFFRE.mode); },
+  offreClause:d => { OFFRE.clause = +d.v; ficheOffre(OFFRE.j, OFFRE.mode); },
+  offrePrime:d => { OFFRE.primeVif = d.v === 'true'; ficheOffre(OFFRE.j, OFFRE.mode); },
+  preter:d => { const j = M.joueurs[d.j]; if (!confirm(`Prêter ${nomJ(j)} jusqu'à la fin de la saison ?`)) return; const r = HH().preter(M, d.j); toast(r.msg); if (r.ok){ retirerFeuille(); sauver(); rendre(); } },
+  leverOption:d => { const r = HH().leverOption(M, d.j); toast(r.msg); if (r.ok){ sauver(); retirerFeuille(); rendre(); ficheJoueur(d.j); } },
+  accepterContre:d => { const r = HH().accepterContre(M, d.c); toast(r.msg); sauver(); rendre(); },
+  refuserContre:d => { HH().refuserContre(M, d.c); sauver(); rendre(); },
   envoyerOffre:() => {
-    const o = OFFRE, r = o.mode === 'prolonger' ? C.prolonger(M, o.j, o.sal, o.ans) : C.proposerTransfert(M, o.j, o.montant, o.sal, o.ans);
+    const o = OFFRE, j = M.joueurs[o.j], r = o.mode === 'prolonger' ? C.prolonger(M, o.j, o.sal, o.ans)
+      : HH().envoyerHibou(M, {j:o.j, type:o.type, montant:o.montant, sal:o.sal, ans:o.ans, pct:+o.pct, clause:+o.clause, primeVif:!!o.primeVif, part:+o.part, option:o.option ? Math.round(C.valeur(M, j) * 1.1 / 5000) * 5000 : 0});
     if (r.ok){ OFFRE = null; retirerFeuille(); sauver(); rendre(); toast(r.msg); return; }
     o.msg = r.msg; if (r.contre){ if (r.contre.montant) o.montant = r.contre.montant; if (r.contre.sal) o.sal = r.contre.sal; if (r.contre.ans) o.ans = r.contre.ans; if (r.contre.montant || r.contre.sal) o.msg += ' (montant reporté ci-dessus)'; }
     ficheOffre(o.j, o.mode);
@@ -1455,6 +1557,9 @@ document.addEventListener('change', e => {
   if (t.dataset.chg === 'pause'){ REG.pauses[t.dataset.k] = t.checked; regler(); }
   if (t.dataset.chg === 'resumes'){ REG.resumes = t.checked ? 'enjeu' : 'tout'; regler(); }
   if (t.dataset.chg === 'son'){ REG.son = t.checked; regler(); }
+  if (t.dataset.chg === 'causeries'){ REG.causeries = t.checked; regler(); }
+  if (t.dataset.chg === 'presse'){ REG.presse = t.checked; regler(); }
+  if (t.dataset.chg === 'triche' && M){ HH().etat(M).triche = t.checked; sauver(); toast(t.checked ? 'Paris et pots-de-vin activés pour cette partie' : 'Désactivés'); }
   if (t.dataset.chg === 'produit'){ const r = B.reglerProduit(M, t.dataset.p, 'actif', t.checked); if (!r.ok){ t.checked = !t.checked; toast(r.msg); return; } sauver(); rendre(); return; }
   if (t.dataset.chg === 'poste'){ placerSlot(ctxCompo(), t.dataset.j, t.value || null); return; }
   if (t.dataset.chg === 'autoSync'){ REG.autoSync = t.checked; regler(); if (t.checked) toast('Envoi automatique activé'); }

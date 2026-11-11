@@ -1,4 +1,4 @@
-// mon-ecran-version: 48a0693f
+// mon-ecran-version: 7911ba3d
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -274,11 +274,11 @@ function mercatoIA(M, S, r){
     if (faits >= 8) break;
     /* comptes dans le rouge ou masse salariale trop lourde : on se sépare du remplaçant le plus cher */
     if ((c.budget < 0 || masse(M, c) > c.masseMax * 1.1) && c.effectif.length > 15){
-      const cher = c.effectif.map(id => M.joueurs[id]).filter(j => !Q().titulaires(c.compo).includes(j.id)).sort((a, b) => b.contrat.sal - a.contrat.sal)[0];
+      const cher = c.effectif.map(id => M.joueurs[id]).filter(j => !j.pret && !Q().titulaires(c.compo).includes(j.id)).sort((a, b) => b.contrat.sal - a.contrat.sal)[0];
       if (cher){ const riche = clubs.filter(o => o.id !== c.id && o.budget > valeur(M, cher) * 2 && masse(M, o) + cher.contrat.sal < o.masseMax).sort(() => r() - 0.5)[0];
         if (riche) transfert(M, cher.id, riche.id, valeur(M, cher), salaireDemande(cher, riche), r.ent(1, 3)); else libererJoueur(M, cher); faits++; }
     }
-    if (c.effectif.length > 21){ const pire = c.effectif.map(id => M.joueurs[id]).filter(j => !Q().titulaires(c.compo).includes(j.id)).sort((a, b) => (n20(a) - a.age / 20) - (n20(b) - b.age / 20))[0]; if (pire) libererJoueur(M, pire); }
+    if (c.effectif.length > 21){ const pire = c.effectif.map(id => M.joueurs[id]).filter(j => !j.pret && !Q().titulaires(c.compo).includes(j.id)).sort((a, b) => (n20(a) - a.age / 20) - (n20(b) - b.age / 20))[0]; if (pire) libererJoueur(M, pire); }
     if (r() > (c.effectif.length < 16 ? 0.7 : 0.22)) continue;
     const b = besoin(M, c), budget = c.budget * 0.6, place = c.masseMax * 1.05 - masse(M, c);
     if (budget <= 0 || place <= 0) continue;
@@ -310,8 +310,8 @@ function offresIA(M, S, r){
     M.offres.push(o); enCours.add(j.id);
     Q().message(M, `Offre pour ${nomJ(j)}`, `${c.nom} propose ${euros(montant)}. Réponds dans le mercato (onglet Club) avant deux semaines.`, 'mercato');
   };
-  for (const id of U.aVendre) if (!enCours.has(id) && M.joueurs[id] && r() < 0.4) offre(M.joueurs[id], 0.75 + r() * 0.3, false);
-  const tops = U.effectif.map(id => M.joueurs[id]).sort((a, b) => n20(b) - n20(a)).slice(0, 3);
+  for (const id of U.aVendre) if (!enCours.has(id) && M.joueurs[id] && !M.joueurs[id].pret && r() < 0.4) offre(M.joueurs[id], 0.75 + r() * 0.3, false);
+  const tops = U.effectif.map(id => M.joueurs[id]).filter(j => !j.pret).sort((a, b) => n20(b) - n20(a)).slice(0, 3);
   for (const j of tops) if (!enCours.has(j.id) && r() < 0.04) offre(j, 1.05 + r() * 0.25, true);
 }
 

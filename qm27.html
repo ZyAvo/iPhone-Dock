@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="ca15fd7b">
+<meta name="mon-ecran-version" content="27753d49">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -176,6 +176,8 @@ html.desk .tab-cache{display:table-cell}
 .score .eq{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
 .score .eq.dr{flex-direction:row-reverse;text-align:right}
 .score .eq b{font-size:.86rem;line-height:1.15;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.score .eq b .ct{display:none}
+@media (max-width:560px){.score .eq b .lg{display:none}.score .eq b .ct{display:inline}}
 .score .pts{flex:none;display:flex;flex-direction:column;align-items:center}
 .score .pts strong{font-size:1.6rem;letter-spacing:-.03em;font-weight:800;line-height:1}
 .score .pts span{font-size:.74rem;color:var(--ink-soft);margin-top:3px}
@@ -270,6 +272,18 @@ html.desk .grille{grid-template-columns:repeat(4, 1fr)}
 .histo div{flex:1;height:100%;display:flex;align-items:flex-end}
 .histo i{display:block;width:100%;border-radius:4px 4px 0 0;min-height:3px}
 .cons .ligne .btn{flex:none;width:48px;padding:0}
+/* v90 : vestiaire et mercato */
+.at.flou b{font-weight:700;font-size:.72rem}
+.note.flou{font-size:.66rem;min-width:46px}
+.av.mini{width:30px;height:30px;border-radius:50%;flex:none}
+.clauses{margin:6px 0 2px;border:1px solid var(--line);border-radius:12px;padding:6px 10px}
+.clauses summary{cursor:pointer;font-weight:650;font-size:.86rem;padding:4px 0}
+.mentor-form{display:grid;gap:8px;margin-top:8px}
+.mentor-form label{display:flex;flex-direction:column;gap:4px;font-size:.78rem;color:var(--ink-soft)}
+.mentor-form select{font:inherit;font-size:16px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--card-2);color:var(--ink)}
+.caus .seg button{font-size:.8rem}
+.triche{border-color:color-mix(in srgb, var(--mauvais) 40%, var(--line))}
+.presse .el{min-height:44px}
 /* v89 : match et tactique */
 .seg.phase{margin:0 0 8px}
 .seg.phase button{font-size:.8rem}
@@ -496,6 +510,7 @@ html.desk .er{cursor:grab}
 <script src="qm27-club.js"></script>
 <script src="qm27-carriere.js"></script>
 <script src="qm27-domaine.js"></script>
+<script src="qm27-vestiaire.js"></script>
 <script src="qm27-visuel.js"></script>
 <script src="qm27-ui.js"></script>
 <script src="commun.js"></script>

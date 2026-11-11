@@ -1,4 +1,4 @@
-// mon-ecran-version: e610457c
+// mon-ecran-version: 0dfe619b
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -7,7 +7,7 @@
 'use strict';
 const D = root.QMD;
 const EQ = D.EQ;
-const VERSION = 5;   // v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
+const VERSION = 6;   // v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty ; v90 : vestiaire et mercato (qm27-vestiaire.js)   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
 const C = () => root.QMC;   // gestion du club (qm27-club.js), facultative pour le moteur
 
 /* ---------- Hasard à graine (mulberry32) ---------- */
@@ -263,7 +263,7 @@ function creerMatch(M, e0, e1, graine, opts = {}){
              vifApp:(EQ.vifApparitionMin + r() * (EQ.vifApparitionMax - EQ.vifApparitionMin) + (meteo === 'brouillard' ? 6 : 0)) * 60,
              vifVu:false, vifCache:0, vifDepuis:0, sonne:[0, 0], gSonne:[0, 0], tm:[2, 2], rempl:[3, 3], moral:[0, 0],
              perf:{}, fat:{}, bless:[], jour:[1 + r.gauss() * EQ.jour, 1 + r.gauss() * EQ.jour], domicile:opts.domicile !== false, avecTexte:opts.texte !== false, r, rt, M};
-  X.e.forEach((e, k) => { if (e.cap) X.moral[k] = 0.5; if (e.moralDom && k === 0 && X.domicile) X.moral[k] += e.moralDom; });
+  X.e.forEach((e, k) => { if (e.cap) X.moral[k] = 0.5; if (e.moralDom && k === 0 && X.domicile) X.moral[k] += e.moralDom; if (e.moralBase) X.moral[k] = borne(X.moral[k] + e.moralBase, -3, 3); });
   for (const e of X.e) for (const id of [...titulaires(e), ...(e.banc || [])]){ const j = M.joueurs[id]; X.fat[id] = j ? j.fat : 0; X.perf[id] = {eq:X.e.indexOf(e), b:0, t:0, arr:0, cog:0, enc:0, vif:0, rate:0, m:titulaires(e).includes(id) ? 1 : 0}; }
   dire(X, 'debut', -1, {}, true);
   return X;
@@ -296,10 +296,10 @@ function forces(X, eq){
   const Df = moyP(e.P.map(id => { const j = J(X, id); return ((at(j, 'int') * 2 + at(j, 'bou') + at(j, 'ant') * 2 + at(j, 'pla') + at(j, 'vit') + at(j, 'acc')) / 8) * f(X, eq, id); }), wD) * dom;
   const B = moy(e.B.map(id => { const j = J(X, id); return ((at(j, 'fra') * 3 + at(j, 'pre') * 2 + at(j, 'for') + at(j, 'ant') + at(j, 'agr')) / 8) * f(X, eq, id); })) * (dom > 1 ? 1.02 : 1);
   const g = J(X, e.G[0]);
-  const G = g ? ((ga(g, 'arr') * 3 + ga(g, 'cou_a') * 2 + ga(g, 'sor') + at(g, 'ref') * 2 + at(g, 'agi') + at(g, 'pla')) / 10) * f(X, eq, e.G[0]) + (role(X, eq, e.G[0]) === 'ligne' ? 0.6 : 0) + (aManie(g, 'mur') ? 0.35 : 0) : 5;
+  const G = g ? ((ga(g, 'arr') * 3 + ga(g, 'cou_a') * 2 + ga(g, 'sor') + at(g, 'ref') * 2 + at(g, 'agi') + at(g, 'pla')) / 10) * f(X, eq, e.G[0]) + (role(X, eq, e.G[0]) === 'ligne' ? 0.6 : 0) + (aManie(g, 'mur') ? 0.35 : 0) : 5;   // (v90 : gMalus = gardien soudoyé, appliqué plus bas)
   const s = J(X, e.A[0]);
   const S = s ? ((at(s, 'vit') * 2 + at(s, 'acc') * 2 + at(s, 'piq') * 2 + at(s, 'acu') * 2 + at(s, 'san') + at(s, 'con') + at(s, 'vir')) / 11) * f(X, eq, e.A[0]) + (b.vit * us - 6) * 0.15 : 5;
-  return {A, D:Df, B, G, S, T};
+  return {A, D:Df, B, G:G * (1 - (e.gMalus || 0)), S, T};
 }
 function tireur(X, eq){
   const e = X.e[eq]; const p = e.P.map(id => { const j = J(X, id); return [id, Math.pow(at(j, 'tir') + at(j, 'pre') * 0.5, 2) * ({finisseur:2.2, meneur:0.7}[role(X, eq, id)] || 1) * (aManie(j, 'loin') ? 1.35 : 1)]; });
@@ -480,6 +480,7 @@ function equipesPour(M, m){
   if (m.ligue === 'sixn') return [selection(M, m.dom), selection(M, m.ext)];
   const E = [equipeClub(M, m.dom), equipeClub(M, m.ext)];
   if (root.QMB) E.forEach((e, k) => Object.assign(e, root.QMB.bonusMatch(M, M.clubs[e.id], M.clubs[E[1 - k].id])));   // v88 : bonus du domaine
+  if (root.QMH) E.forEach(e => Object.assign(e, root.QMH.bonusMatch(M, M.clubs[e.id])));   // v90 : ambiance du vestiaire
   return E;
 }
 /* le match du joueur, prêt à être joué en direct */
