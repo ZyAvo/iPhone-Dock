@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><<meta name="mon-ecran-version" content="e2155d1d">
+meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QM27 — galerie des graphismes</title>
+<style>
+  :root{--ink:#16202c;--ink-soft:#5b6675;--line:#d5dbe3;--card:#fff;color-scheme:light dark}
+  @media (prefers-color-scheme: dark){:root{--ink:#e8edf3;--ink-soft:#9aa6b4;--line:#334155;--card:#1b2433}}
+  body{font:14px system-ui,sans-serif;margin:16px;background:var(--card);color:var(--ink)}
+  h2{margin:22px 0 8px;font-size:15px}
+  .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+  .c{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;text-align:center;color:var(--ink-soft)}
+  .blz{width:56px;height:62px} .blz.p{width:26px;height:29px} .mt{width:52px;height:52px} .av{width:56px;height:56px;border-radius:50%}
+  .radar{width:220px}
+</style></head><body>
+<p>Outil de développement : tous les blasons, maillots et des avatars tirés au hasard (graines fixes). Ouvrir depuis la racine du dépôt servie en local.</p>
+<h2>Blasons et maillots des 48 clubs</h2><div class="g" id="clubs"></div>
+<h2>Sélections</h2><div class="g" id="nat"></div>
+<h2>Avatars</h2><div class="g" id="av"></div>
+<h2>Radar</h2><div id="radar"></div>
+<script src="../../qm27-donnees.js"></script><script src="../../qm27-visuel.js"></script>
+<script>
+const D = QMD, V = QMV;
+document.getElementById('clubs').innerHTML = D.CLUBS.map(c => { const o = {id:c[0], nom:c[1], couleurs:[c[6], c[7]]};
+  return `<div class="c">${V.blason(o)}${V.blason(o, 'p')}${V.maillot(o, 7)}<span>${c[1]}<br>${V.emblemeDe(c[0])}</span></div>`; }).join('');
+document.getElementById('nat').innerHTML = D.SIX_NATIONS.map(n => `<div class="c">${V.maillot({id:n, couleurs:V.couleursNation(n), motif:'uni'}, 10)}<span>${D.NATIONS[n].nom}</span></div>`).join('');
+const nats = Object.keys(D.NOMS); let html = '';
+for (let i = 0; i < 48; i++){ const nat = nats[i % nats.length], N = D.NOMS[nat], p = N.p[(i * 7) % N.p.length], n = N.n[(i * 5) % N.n.length], age = 17 + (i * 3) % 20;
+  const c = D.CLUBS[i]; html += `<div class="c">${V.avatar({id:'j' + i, p, n, nat, age}, '', {couleurs:[c[6], c[7]]})}<span>${p} ${n}<br>${age} ans</span></div>`; }
+document.getElementById('av').innerHTML = html;
+document.getElementById('radar').innerHTML = V.radar([['Vitesse', 14], ['Vol', 12], ['Attaque', 16], ['Duel', 8], ['Mental', 11], ['Caractère', 13]], '#3a7bd5');
+</script></body></html>

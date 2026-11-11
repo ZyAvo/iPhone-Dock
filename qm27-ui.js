@@ -1,4 +1,4 @@
-// mon-ecran-version: 73703a40
+// mon-ecran-version: b6c2a87a
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -43,10 +43,13 @@ const fmtDate = (t, long) => new Date(t).toLocaleDateString('fr-FR', long ? {wee
 const lab = an => `${an}-${String(an + 1).slice(2)}`;
 const club = id => M.clubs[id];
 const nat = id => D.NATIONS[id];
+const V = window.QMV;   // v87 : graphismes (qm27-visuel.js)
+/* avatar d'un joueur, d'un membre du staff ou du manager, aux couleurs de son club */
+const avatarDe = (p, cls, clubId) => { const c = clubId !== undefined ? (clubId ? M.clubs[clubId] : null) : (p.club ? M.clubs[p.club] : null); return V.avatar(p, cls, c ? {couleurs:c.couleurs} : {}); };
 const nomEq = (id, sixn) => sixn ? nat(id).nom : club(id).nom;
 function blason(id, taille, sixn){
   if (sixn || D.NATIONS[id]) return `<span class="blason nat ${taille || ''}" aria-hidden="true">${nat(id).drapeau}</span>`;
-  const c = club(id); return `<span class="blason ${taille || ''}" style="--c1:${c.couleurs[0]};--c2:${c.couleurs[1]}" aria-hidden="true">${esc(c.sigle)}</span>`;
+  return V.blason(club(id), taille);   // v87 : blason dessiné
 }
 const classeNote = n => n >= 66 ? 'n4' : n >= 56 ? 'n3' : n >= 46 ? 'n2' : 'n1';
 const classeAttr = v => v >= 15 ? 'n4' : v >= 10 ? 'n3' : v >= 6 ? 'n2' : 'n1';
@@ -195,7 +198,7 @@ function vueDemarrage(){
   <p class="petit mut">Les parties sont gardées sur cet appareil. Pour les retrouver ailleurs : « Entre appareils » ci-dessus (synchronisation de KiosK), ou exporte la partie puis importe le fichier.</p>`;
   rendreNuage();
 }
-function blasonCode(id){ const c = D.CLUBS.find(x => x[0] === id); return `<span class="blason" style="--c1:${c[6]};--c2:${c[7]}" aria-hidden="true">${esc(c[2].normalize('NFD').replace(/[^\w]/g, '').toUpperCase().slice(0, 3))}</span>`; }
+function blasonCode(id){ const c = D.CLUBS.find(x => x[0] === id); return V.blason({id, couleurs:[c[6], c[7]]}); }
 let MONDE_NEUF = null;
 function vueChoixClub(){
   if (!MONDE_NEUF) MONDE_NEUF = QM.nouveauMonde((Math.random() * 2 ** 32) >>> 0);
@@ -208,7 +211,7 @@ function vueChoixClub(){
     <div class="seg" role="tablist">${Object.values(W.ligues).map(l => `<button role="tab" data-act="ligueChoix" data-l="${l.id}" class="${l.id === U.ligueChoix ? 'on' : ''}">${esc(l.court)}</button>`).join('')}</div>
     <div class="liste" style="margin-top:8px">${clubs.map(c => {
       const o = QM.objectif(W, c.id);
-      return `<button class="el" data-act="voirClub" data-c="${c.id}"><span class="blason" style="--c1:${c.couleurs[0]};--c2:${c.couleurs[1]}" aria-hidden="true">${esc(c.sigle)}</span>
+      return `<button class="el" data-act="voirClub" data-c="${c.id}">${V.blason(c)}
         <div class="t"><b>${esc(c.nom)}</b><span>${flag(c.nat)} ${esc(c.ville)} · ${esc(o.txt)}</span></div><div class="d">${etoiles(c.rep)}</div></button>`; }).join('')}</div>
   </div>
   <button class="btn sec plein" data-act="annulerNeuf">Annuler</button>`;
@@ -219,7 +222,7 @@ function ficheClubNeuf(id){
   const top = c.effectif.map(x => W.joueurs[x]).sort((a, b) => QM.note(b) - QM.note(a)).slice(0, 5);
   const moy = Math.round(QM.titulaires(c.compo).reduce((s, x) => s + QM.note(W.joueurs[x], ['P', 'B', 'A', 'G'].find(p => c.compo[p].includes(x))), 0) / 7);
   const balai = D.BALAIS.find(b => b.id === c.balai);
-  feuille(`${teteF(esc(c.nom), `${flag(c.nat)} ${esc(c.ville)} · ${esc(W.ligues[c.ligue].nom)}`, `<span class="blason g" style="--c1:${c.couleurs[0]};--c2:${c.couleurs[1]}" aria-hidden="true">${esc(c.sigle)}</span>`)}
+  feuille(`${teteF(esc(c.nom), `${flag(c.nat)} ${esc(c.ville)} · ${esc(W.ligues[c.ligue].nom)}`, V.blason(c, 'g'))}
     <div class="carte"><div class="ligne" style="justify-content:space-between"><span>Réputation</span>${etoiles(c.rep)}</div><div class="sep"></div>
       <div class="ligne" style="justify-content:space-between"><span>Note moyenne des titulaires</span><span class="note ${classeNote(moy)}">${moy}</span></div><div class="sep"></div>
       <div class="ligne" style="justify-content:space-between"><span>Stade</span><b>${c.stade.toLocaleString('fr-FR')} places</b></div><div class="sep"></div>
@@ -322,35 +325,72 @@ function vueEffectif(){
   <div class="chips">${F.map(([k, n]) => `<button class="chip ${U.filtre === k ? 'on' : ''}" data-act="filtre" data-f="${k}">${n}</button>`).join('')}</div>
   <div class="seg">${[['poste', 'Poste'], ['note', 'Note'], ['age', 'Âge'], ['forme', 'Forme']].map(([k, n]) => `<button data-act="tri" data-t="${k}" class="${U.tri === k ? 'on' : ''}">${n}</button>`).join('')}</div>
   <div class="carte"><div class="liste">${L.map(j => { const r = roleDe(j.id), n = QM.note(j);
-    return `<button class="el" data-act="joueur" data-j="${j.id}"><span class="num">${j.num}</span>${posteB(j.poste)}
-      <div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>${j.age} ans · ${r.tit ? '<span class="badge tit">Titulaire</span>' : r.banc ? 'Remplaçant' : 'Réserve'}${j.bless ? ` · <span class="badge bless">✚ ${j.bless.jours} j</span>` : ''}${j.contrat && j.contrat.fin <= M.saison ? ' · <span class="badge" style="color:var(--moyen)">fin de contrat</span>' : ''}${c.aVendre.includes(j.id) ? ' · <span class="badge">à vendre</span>' : ''}</span></div>
+    return `<button class="el" data-act="joueur" data-j="${j.id}"><span class="avp">${avatarDe(j)}<i class="poste ${j.poste}">${j.poste}</i></span>
+      <div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>n° ${j.num} · ${j.age} ans · ${r.tit ? '<span class="badge tit">Titulaire</span>' : r.banc ? 'Remplaçant' : 'Réserve'}${j.bless ? ` · <span class="badge bless">✚ ${j.bless.jours} j</span>` : ''}${j.contrat && j.contrat.fin <= M.saison ? ' · <span class="badge" style="color:var(--moyen)">fin de contrat</span>' : ''}${c.aVendre.includes(j.id) ? ' · <span class="badge">à vendre</span>' : ''}</span></div>
       <div class="d"><div class="barre" title="Forme ${j.forme}/10"><i style="width:${j.forme * 10}%"></i></div><div class="barre fat" style="margin-top:4px" title="Fatigue ${j.fat} %"><i style="width:${j.fat}%"></i></div></div>
       <span class="note ${classeNote(n)}">${n}</span></button>`; }).join('') || '<p class="mut">Personne ici.</p>'}</div></div>
   <p class="petit mut">Barres : forme (en haut), fatigue (en bas). Toucher un joueur pour sa fiche.</p>`;
 }
+/* v87 : fiche joueur compacte — avatar, radar du profil, rapport du recruteur, attributs serrés en colonnes */
+const COURT_ATTR = {res:'Résistance', acu:'Acuité', equ:'Équilibre', frm:'Formation', ctl:'Contrôle', fra:'Frappe', vis:'Vision', equi:'Collectif', cou_a:'Couverture', vir:'Virages', acc:'Accélér.', ant:'Anticipation', con:'Concentration'};
+const IDX = k => D.ATTRS.findIndex(a => a[0] === k);
+const moyA = (j, L) => L.reduce((s, k) => s + j.a[IDX(k)], 0) / L.length;
+function axesRadar(j){
+  const g = j.g.reduce((s, x) => s + x, 0) / j.g.length;
+  return [['Vitesse', moyA(j, ['vit', 'acc', 'agi'])], ['Vol', moyA(j, ['pil', 'vir', 'piq', 'equ', 'frm'])],
+    j.poste === 'G' ? ['Gardien', g] : ['Attaque', moyA(j, ['pas', 'rec', 'tir', 'pre', 'ctl'])],
+    j.poste === 'G' ? ['Réflexes', moyA(j, ['ref', 'acu', 'agi'])] : ['Duel', moyA(j, ['int', 'bou', 'fra', 'for', 'res'])],
+    ['Mental', moyA(j, ['vis', 'ant', 'pla', 'dec', 'con', 'san'])], ['Caractère', moyA(j, ['agr', 'cou', 'equi', 'det', 'end'])]];
+}
+const COULEUR_POSTE = {P:'#3a7bd5', B:'#c0392b', A:'#c99a1c', G:'#1f7a52'};
+/* rapport du recruteur : le meilleur atout du poste, un défaut éventuel, la forme ou l'âge */
+const ATOUTS = {vit:'Rapide comme l\'éclair sur son balai.', acc:'Démarre plus vite que son ombre.', end:'Ne faiblit jamais, même après trois heures de match.',
+  for:'Solide comme un troll des montagnes.', agi:'Souple comme un chat de gouttière.', ref:'Des réflexes de chat.', acu:'Repère un vif d\'or à cent mètres.',
+  res:'Encaisse les cognards sans broncher.', pil:'Pilote son balai comme personne.', vir:'Prend les virages au millimètre.', piq:'Ses piqués font frémir les tribunes.',
+  equ:'Tient sur son balai par tous les temps.', frm:'Vole en formation comme une volée d\'oies.', pas:'Ses passes arrivent toujours dans les mains.',
+  rec:'Des mains collantes : rien ne lui échappe.', tir:'Lance le souafle comme un cognard.', pre:'Trouve l\'anneau le plus étroit.', ctl:'Le souafle semble collé à sa main.',
+  int:'Lit les passes adverses avant qu\'elles partent.', bou:'Ne recule devant aucun contact.', fra:'Frappe les cognards à boulet rouge.', vis:'Voit le jeu avant tout le monde.',
+  ant:'Toujours un coup d\'avance.', pla:'Toujours au bon endroit.', dec:'Prend rarement la mauvaise décision.', con:'Une concentration à toute épreuve.',
+  san:'Du sang-froid à revendre dans les moments chauds.', agr:'Joue dur, parfois trop.', cou:'Se jette dans la mêlée sans hésiter.', equi:'Joue pour l\'équipe avant tout.',
+  det:'Ne lâche jamais rien.', arr:'Un mur devant ses anneaux.', cou_a:'Couvre les trois anneaux à la fois.', sor:'Sort toujours au bon moment.', rel:'Relance vite et juste.', com:'Commande sa défense de la voix.'};
+const DEFAUTS = {Physique:'Manque encore de coffre.', Vol:'Encore un peu fragile sur son balai.', Balle:'Maladroit avec le souafle.', Mental:'Perd parfois le fil du match.'};
+function rapportRecruteur(j){
+  const w = QM.POIDS[j.poste], cand = D.ATTRS.map((a, i) => [a[0], j.a[i], w[i], a[2]]);
+  if (j.poste === 'G') D.GARDIEN.forEach((g, i) => cand.push([g[0], j.g[i], 3, 'Gardien']));
+  const cibles = cand.filter(x => x[2] === 3), top = cand.filter(x => x[2] >= 1).sort((a, b) => b[1] + b[2] * 0.4 - a[1] - a[2] * 0.4)[0];
+  const faible = cibles.slice().sort((a, b) => a[1] - b[1])[0], est = C.potentielEstime(M, j), L = [];
+  if (top && top[1] >= 11) L.push(ATOUTS[top[0]]); else L.push('Un joueur sans point fort marqué.');
+  if (faible && faible[1] <= Math.max(7, top ? top[1] - 7 : 7) && DEFAUTS[faible[3]]) L.push(DEFAUTS[faible[3]]);
+  if (j.bless) L.push('Pour l\'instant à l\'infirmerie.');
+  else if (j.forme >= 8) L.push('En pleine bourre en ce moment.');
+  else if (j.forme <= 4) L.push('Traverse une mauvaise passe.');
+  else if (j.age <= 21 && est >= 4) L.push('Un diamant brut, à polir.');
+  else if (j.age >= 32) L.push('L\'expérience compense les jambes.');
+  return L.slice(0, 3).join(' ');
+}
 function ficheJoueur(id){
   const j = M.joueurs[id]; if (!j) return;
-  const mon = j.club === M.manager.club, r = mon ? roleDe(id) : {};
-  const cible = {}; D.ATTRS.forEach((a, i) => { cible[a[0]] = a[3]['PBAG'.indexOf(j.poste)] === '●'; });
-  const fam = ['Physique', 'Vol', 'Balle', 'Mental'];
-  const pot = j.cache.pot, potE = Math.max(1, Math.min(5, Math.round((pot * 5 - 40) / 12)));
-  const s = j.saison;
-  feuille(`${teteF(`${esc(nomJ(j))}`, `${flag(j.nat)} ${esc(nat(j.nat).nom)} · ${j.age} ans · ${D.POSTES[j.poste].nom}${j.club ? (mon ? ' · n° ' + j.num : ' · ' + esc(club(j.club).nom)) : ' · agent libre'}`, `<span class="blason g nat" aria-hidden="true">${posteB(j.poste)}</span>`)}
-    <div class="npostes">${['P', 'B', 'A', 'G'].map(p => `<div class="${p === j.poste ? 'on' : ''}"><b class="${classeNote(QM.note(j, p))}" style="color:inherit">${QM.note(j, p)}</b><span>${D.POSTES[p].nom}</span></div>`).join('')}</div>
-    <div class="carte" style="margin-top:10px"><h2>Attributs <span class="mut petit">● cibles du poste</span></h2><div class="attrs">
-      ${fam.map(f => `<div class="fam">${f}</div>` + D.ATTRS.map((a, i) => a[2] !== f ? '' : `<div class="attr ${cible[a[0]] ? 'c' : ''}"><span>${a[1]}</span><b class="v ${classeAttr(j.a[i])}">${j.a[i]}</b></div>`).join('')).join('')}
-      ${j.poste === 'G' ? `<div class="fam">Gardien</div>` + D.GARDIEN.map((g, i) => `<div class="attr ${j.poste === 'G' ? 'c' : ''}"><span>${g[1]}</span><b class="v ${classeAttr(j.g[i])}">${j.g[i]}</b></div>`).join('') : ''}
-    </div></div>
-    <div class="carte" style="margin-top:10px"><h2>État et saison</h2>
-      <div class="stat" style="grid-template-columns:1fr auto">
-        <span style="text-align:left;font-weight:400">Forme</span><b>${j.forme} / 10</b>
-        <span style="text-align:left;font-weight:400">Fatigue</span><b>${j.fat} %</b>
-        <span style="text-align:left;font-weight:400">Moral</span><b>${Math.round(j.moral)} / 100</b>
-        <span style="text-align:left;font-weight:400">Blessure</span><b>${j.bless ? esc(j.bless.nom) + ' · ' + j.bless.jours + ' j' : 'aucune'}</b>
-        <span style="text-align:left;font-weight:400">Potentiel estimé par ${mon ? 'le staff' : 'ton recruteur'}</span><span class="etoiles">${'★'.repeat(C.potentielEstime(M, j))}${'☆'.repeat(5 - C.potentielEstime(M, j))}</span>
-        <span style="text-align:left;font-weight:400">Matchs · buts · vifs</span><b>${s.m} · ${s.b} · ${s.v}</b>
-        <span style="text-align:left;font-weight:400">Note moyenne</span><b>${s.m ? (s.notes / s.m).toFixed(1) : '—'}</b>
+  const mon = j.club === M.manager.club, r = mon ? roleDe(id) : {}, cl = j.club ? club(j.club) : null;
+  const cible = {}; D.ATTRS.forEach(a => { cible[a[0]] = a[3]['PBAG'.indexOf(j.poste)] === '●'; });
+  const s = j.saison, est = C.potentielEstime(M, j), rec = mon ? club(M.manager.club).staff.recruteur : null;
+  const ligne = (k, nom, v, c) => `<div class="at${c ? ' c' : ''}" title="${esc(nom)}"><span>${esc(COURT_ATTR[k] || nom)}</span><b class="${classeAttr(v)}">${v}</b></div>`;
+  const fam = f => `<div class="fa"><h4>${f}</h4>${D.ATTRS.map((a, i) => a[2] !== f ? '' : ligne(a[0], a[1], j.a[i], cible[a[0]])).join('')}</div>`;
+  feuille(`${teteF(`${esc(nomJ(j))}`, `${flag(j.nat)} ${esc(nat(j.nat).nom)} · ${j.age} ans · ${D.POSTES[j.poste].nom}${cl ? ' · ' + (mon ? 'n° ' + j.num : esc(cl.nom)) : ' · agent libre'}`, `<span class="avp g">${avatarDe(j, 'g')}${cl ? `<span class="blp">${V.blason(cl, 'p')}</span>` : ''}</span>`)}
+    <div class="fj-haut"><div class="fj-radar">${V.radar(axesRadar(j), COULEUR_POSTE[j.poste])}</div>
+      <div class="fj-etat">
+        <div><span>Forme</span><b>${j.forme}<small>/10</small></b><div class="barre"><i style="width:${j.forme * 10}%"></i></div></div>
+        <div><span>Fatigue</span><b>${j.fat}<small> %</small></b><div class="barre fat"><i style="width:${j.fat}%"></i></div></div>
+        <div><span>Moral</span><b>${Math.round(j.moral)}<small>/100</small></b><div class="barre"><i style="width:${Math.round(j.moral)}%"></i></div></div>
+        <div><span>Potentiel</span><span class="etoiles">${'★'.repeat(est)}${'☆'.repeat(5 - est)}</span></div>
+        ${j.bless ? `<div class="bls"><span>Blessure</span><b>${esc(j.bless.nom)} · ${j.bless.jours} j</b></div>` : ''}
       </div></div>
+    <blockquote class="rapport">« ${esc(rapportRecruteur(j))} »<span>${rec ? `Rapport de ${esc(rec.p + ' ' + rec.n)}, recruteur` : 'Rapport de ton recruteur'}</span></blockquote>
+    <div class="npostes">${['P', 'B', 'A', 'G'].map(p => `<div class="${p === j.poste ? 'on' : ''}"><b class="${classeNote(QM.note(j, p))}" style="color:inherit">${QM.note(j, p)}</b><span>${D.POSTES[p].nom}</span></div>`).join('')}</div>
+    <div class="carte fj-attrs"><h2>Attributs <span class="mut petit">en gras : cibles du poste</span></h2><div class="cols-at">
+      ${fam('Physique')}${fam('Vol')}${fam('Balle')}${fam('Mental')}
+      ${j.poste === 'G' ? `<div class="fa"><h4>Gardien</h4>${D.GARDIEN.map((g, i) => ligne(g[0], g[1], j.g[i], true)).join('')}</div>` : ''}
+    </div></div>
+    <p class="fj-saison"><b>Saison</b> ${s.m} match${s.m > 1 ? 's' : ''} · ${s.b} but${s.b > 1 ? 's' : ''} · ${s.v} vif${s.v > 1 ? 's' : ''} · note moyenne ${s.m ? (s.notes / s.m).toFixed(1) : '—'}</p>
     ${j.acad ? blocJeune(j) : blocContrat(j, mon)}
     ${mon ? `<p class="petit mut" style="margin-top:10px">${r.tit ? `Titulaire (${D.POSTES[r.p].nom.toLowerCase()}).` : r.banc ? 'Remplaçant.' : 'Hors du groupe de 12.'} Les changements se font dans Tactique.</p>` : ''}`);
 }
@@ -419,13 +459,15 @@ const TERRAIN_SVG = `<svg viewBox="0 0 100 140" aria-hidden="true"><defs><patter
     <path d="M37 27 A13 9 0 0 1 63 27"/><path d="M37 113 A13 9 0 0 0 63 113"/></g>
   <g class="anneaux"><circle cx="40" cy="10" r="2.3"/><circle cx="50" cy="8.6" r="3"/><circle cx="60" cy="10" r="2.3"/><circle cx="40" cy="130" r="2.3"/><circle cx="50" cy="131.4" r="3"/><circle cx="60" cy="130" r="2.3"/></g>
   <circle cx="50" cy="70" r="1.2" class="vif"/></svg>`;
+/* maillot de l'équipe affichée : club du manager ou sélection */
+const kitDe = sel => sel ? {id:M.manager.selection.nat, couleurs:V.couleursNation(M.manager.selection.nat), motif:'uni'} : club(M.manager.club);
 function jetonHTML(K, s, sel){
   const id = lireSlot(K, s), j = M.joueurs[id], banc = s[0] === 'R';
   const pos = banc ? '' : ` style="left:${POS_T[s][0]}%;top:${POS_T[s][1]}%"`, eti = banc ? `<em>${nomSlot(s)}</em>` : '';
   if (!j) return `<button class="jeton vide${banc ? ' b' : ''}" data-act="jeton" data-slot="${s}"${pos} aria-label="${nomSlot(s)} : place libre">${eti}<span class="rond">+</span><b>${banc ? 'Libre' : D.POSTES[s[0]].nom}</b></button>`;
   const p = banc ? j.poste : s[0], n = QM.note(j, p), hors = !banc && j.poste !== p;
   return `<button class="jeton ${p}${hors ? ' hors' : ''}${banc ? ' b' : ''}${U.flash === id ? ' flash' : ''}" data-act="jeton" data-slot="${s}" data-j="${id}"${pos} aria-label="${esc(nomJ(j))}, ${nomSlot(s)}, note ${n}">${eti}
-    <span class="rond">${sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? ''}${K.cap === id && !banc ? '<i class="cap">C</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : ''}</span><b>${esc(j.n)}</b><span class="nt ${classeNote(n)}">${n}${hors ? ' · ' + j.poste : ''}</span></button>`;
+    <span class="rond kit">${V.maillot(kitDe(sel), sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? '')}<i class="ps">${p}</i>${K.cap === id && !banc ? '<i class="cap">C</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : ''}</span><b>${esc(j.n)}</b><span class="nt ${classeNote(n)}">${n}${hors ? ' · ' + j.poste : ''}</span></button>`;
 }
 function ligneEff(ctx, j){
   const K = ctx.K, s = slotDe(K, j.id), p = s && s[0] !== 'R' ? s[0] : j.poste, n = QM.note(j, p);
@@ -768,7 +810,7 @@ function vueStaff(){
   const c = club(M.manager.club);
   VUE.innerHTML = `<div><h1 class="grand">Staff</h1><p class="sous">Toucher un poste pour voir les candidats libres. Remplacer coûte 8 semaines de salaire de l'ancien.</p></div>
   <div class="carte"><div class="liste">${D.STAFF.map(([k, nom]) => { const x = c.staff[k];
-    return `<button class="el" data-act="ficheStaff" data-r="${k}"><span class="note ${x.note >= 15 ? 'n4' : x.note >= 10 ? 'n3' : x.note >= 6 ? 'n2' : 'n1'}">${x.note}</span><div class="t"><b>${esc(nom)}</b><span>${flag(x.nat)} ${esc(x.p + ' ' + x.n)} · ${eur(x.sal)}/sem. · ${esc(D.EFFETS_STAFF[k])}</span></div><span class="mut">›</span></button>`; }).join('')}</div></div>`;
+    return `<button class="el" data-act="ficheStaff" data-r="${k}"><span class="avp">${avatarDe(x, '', c.id)}</span><span class="note ${x.note >= 15 ? 'n4' : x.note >= 10 ? 'n3' : x.note >= 6 ? 'n2' : 'n1'}">${x.note}</span><div class="t"><b>${esc(nom)}</b><span>${flag(x.nat)} ${esc(x.p + ' ' + x.n)} · ${eur(x.sal)}/sem. · ${esc(D.EFFETS_STAFF[k])}</span></div><span class="mut">›</span></button>`; }).join('')}</div></div>`;
 }
 function ficheStaff(role){
   const c = club(M.manager.club), x = c.staff[role], L = M.staffLibres.filter(s => s.role === role).sort((a, b) => b.note - a.note);
@@ -814,7 +856,7 @@ function vueChomage(){
 }
 function vueCarriere(){
   const mg = M.manager, oc = C.offresCarriere(M), U = mg.club ? club(mg.club) : null;
-  VUE.innerHTML = `<div><h1 class="grand">Carrière</h1><p class="sous">${esc(mg.nom)}${U ? ' · ' + esc(U.nom) : ' · sans club'}</p></div>
+  VUE.innerHTML = `<div class="tete-mg"><span class="avp g">${avatarDe({id:'manager', p:(mg.nom || '').split(' ')[0], n:mg.nom, nat:U ? U.nat : 'FRA', age:40}, 'g', mg.club || null)}</span><div><h1 class="grand">Carrière</h1><p class="sous">${esc(mg.nom)}${U ? ' · ' + esc(U.nom) : ' · sans club'}</p></div></div>
   <div class="carte"><h2>Réputation</h2><div class="jauge"><i style="width:${mg.rep}%"></i></div><p class="petit mut" style="margin:8px 0 0">${Math.round(mg.rep)} / 100 · elle monte avec les résultats au-dessus des attentes, les objectifs atteints et les titres. À partir de ${E.carriere.repSelection}, les fédérations peuvent proposer le poste de sélectionneur.</p></div>
   ${oc.length ? `<div class="carte" style="border-color:var(--or)"><h2>Offres de clubs</h2>${oc.map(o => { const c = club(o.club);
     return `<div class="el">${blason(c.id)}<div class="t"><b>${esc(c.nom)}</b><span>${esc(M.ligues[c.ligue].court)} · réputation ${c.rep} · ${esc(QM.objectif(M, c.id).txt.toLowerCase())}</span></div></div>

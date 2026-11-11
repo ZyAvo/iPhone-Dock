@@ -1,0 +1,191 @@
+// mon-ecran-version: 739d3b50
+/* QM27 (v87) — graphismes dessinés par le code, sans image : blasons des clubs, maillots, avatars, radar du profil.
+   Tout est déterministe : un club ou une personne a toujours le même dessin (graine = identifiant).
+   window.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe}. Aucune dépendance (QMD seulement pour les prénoms). */
+(function(root){
+'use strict';
+const D = () => root.QMD;
+
+/* ---------- outils ---------- */
+const hash = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+function rng(graine){ let a = hash(graine) || 1; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const choix = (r, L) => L[Math.floor(r() * L.length)];
+const pondere = (r, L) => { const tot = L.reduce((s, x) => s + x[1], 0); let v = r() * tot; for (const [x, p] of L) { v -= p; if (v < 0) return x; } return L[L.length - 1][0]; };
+let compteur = 0; const uid = () => 'qv' + (++compteur).toString(36);
+const rgb = h => { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+const hex = ([r, g, b]) => '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+const melange = (a, b, t) => { const x = rgb(a), y = rgb(b); return hex(x.map((v, i) => v + (y[i] - v) * t)); };
+const lum = h => { const [r, g, b] = rgb(h).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const contraste = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+/* couleur lisible sur un fond : la couleur voulue si elle contraste assez, sinon blanc ou presque noir */
+const lisible = (fond, voulue) => voulue && contraste(fond, voulue) >= 2.2 ? voulue : (lum(fond) > 0.45 ? '#16202c' : '#ffffff');
+const ton = (c, t) => lum(c) > 0.5 ? melange(c, '#000000', t) : melange(c, '#ffffff', t);
+
+/* ---------- emblèmes (24 × 24, couleur C) ---------- */
+const EMB = {
+  serpent:C => `<path d="M17.6 6.2c-2.4-2-6.6-1.4-6.9 1.4-.4 3.4 6.6 3.5 6 7.6-.6 3.9-6.8 4.6-10.6 2.4" fill="none" stroke="${C}" stroke-width="2.6" stroke-linecap="round"/><circle cx="18.3" cy="6.4" r="2.2" fill="${C}"/><path d="M20.2 6.1l2-1M20.3 6.8l2.1.6" stroke="${C}" stroke-width=".9" stroke-linecap="round"/>`,
+  aile:C => `<path d="M21.5 3.5C14 3.8 7.5 8 3 18.5c2.6-1.8 4.7-2.4 6.8-2.6-1 1.5-1.6 3-1.7 4.6 2-2.5 4.2-3.6 6.3-4-.5 1-.7 2-.6 3 3.2-3.6 6-8.2 7.7-16z" fill="${C}"/><path d="M10 13.6c2.6-2.6 5.6-5.2 9.6-7.4M8.4 17.2c3-2.2 6.3-4.3 9.6-6.2" stroke="rgba(0,0,0,.28)" stroke-width=".8" fill="none"/>`,
+  oiseau:C => `<path d="M2.5 9.5c3.4-.4 6 .6 8 3 .8-3.8 3.6-6.7 8.6-7.2-.8 1.6-1.8 2.8-3.2 3.7 2.8.1 4.6 1 5.6 2.6-3.6-.4-6.6.6-8.5 3.4l-1.7 4.4-1-4.2c-2.2-2.3-4.6-4.3-7.8-5.7z" fill="${C}"/><circle cx="17.1" cy="8.4" r=".7" fill="rgba(0,0,0,.45)"/>`,
+  hibou:C => `<path d="M6 6.5l2.6 2.2a8 8 0 0 1 6.8 0L18 6.5l-.4 4.3A7.6 8.4 0 1 1 6.4 10.8z" fill="${C}"/><circle cx="9.4" cy="12.4" r="2.6" fill="rgba(255,255,255,.92)"/><circle cx="14.6" cy="12.4" r="2.6" fill="rgba(255,255,255,.92)"/><circle cx="9.6" cy="12.6" r="1.2" fill="#16202c"/><circle cx="14.4" cy="12.6" r="1.2" fill="#16202c"/><path d="M12 14.3l-1 1.6h2z" fill="#e2a33b"/><path d="M8.5 18.6c2.3 1 4.7 1 7 0" stroke="rgba(0,0,0,.3)" stroke-width=".8" fill="none"/>`,
+  flamme:C => `<path d="M12.4 2c.6 4.2 6.4 6.3 6.4 12.5a6.8 6.8 0 0 1-13.6 0c0-3.4 2-5.5 3.3-6.7.1 2.2 1 3.4 2.3 3.6-.3-4.2-.4-6.6 1.6-9.4z" fill="${C}"/><path d="M12 21c-2 0-3.3-1.4-3.3-3.3 0-1.8 1.4-3 2.2-4 .4 1.4 1.4 2.1 2.2 2.3 1 .9 2 1.7 2 2.6 0 1.4-1.3 2.4-3.1 2.4z" fill="rgba(255,255,255,.35)"/>`,
+  etoile:C => `<path d="M12 2.5l2.9 6.2 6.7.8-5 4.6 1.4 6.7L12 17.4l-6 3.4 1.4-6.7-5-4.6 6.7-.8z" fill="${C}"/>`,
+  comete:C => `<path d="M15.6 4.2l1.5 3.2 3.5.4-2.6 2.4.7 3.5-3.1-1.8-3.1 1.8.7-3.5-2.6-2.4 3.5-.4z" fill="${C}"/><path d="M11 12.5L3 20.5M12.6 15.2l-5.2 5.4M8.4 10.8L3 14.8" stroke="${C}" stroke-width="1.8" stroke-linecap="round"/>`,
+  oeil:C => `<path d="M1.8 12c3-5 6.6-7.4 10.2-7.4S19.2 7 22.2 12c-3 5-6.6 7.4-10.2 7.4S4.8 17 1.8 12z" fill="${C}"/><circle cx="12" cy="12" r="4.4" fill="rgba(255,255,255,.92)"/><circle cx="12" cy="12" r="2.2" fill="#16202c"/><circle cx="13" cy="11" r=".7" fill="#fff"/>`,
+  chapeau:C => `<path d="M7.4 17.6c.9-3.6 2-7.4 4.2-10.4 1.6-2.2 3.8-3.6 6-4.4-.8 1.6-1.2 3.4-1 5.4.3 3 1.4 6 1.9 9.4z" fill="${C}"/><ellipse cx="12" cy="18.2" rx="10" ry="2.6" fill="${C}"/><path d="M7.9 15.8c2.8.9 5.8 1 9 .1" stroke="rgba(0,0,0,.35)" stroke-width="1.4" fill="none"/>`,
+  chaudron:C => `<path d="M4.4 9.5h15.2c.4 1.2.6 2.4.6 3.6 0 4.2-3.6 6.8-8.2 6.8S3.8 17.3 3.8 13.1c0-1.2.2-2.4.6-3.6z" fill="${C}"/><rect x="3" y="8" width="18" height="2.4" rx="1.2" fill="${C}"/><path d="M6.5 19.4l-1.2 2.4M17.5 19.4l1.2 2.4" stroke="${C}" stroke-width="1.8" stroke-linecap="round"/><circle cx="9.4" cy="5.6" r="1.4" fill="${C}"/><circle cx="13.2" cy="4" r="1" fill="${C}"/><circle cx="15" cy="6.4" r=".8" fill="${C}"/>`,
+  fiole:C => `<path d="M9.6 2.8h4.8M10.3 3v5.8c-3.5 1.2-5.8 4.1-5.8 7.4 0 3.7 3.3 6 7.5 6s7.5-2.3 7.5-6c0-3.3-2.3-6.2-5.8-7.4V3" fill="${C}" stroke="${C}" stroke-width="1.6" stroke-linejoin="round"/><path d="M6.2 15.4c3.6-1.2 7.6 1.1 11.6 0" stroke="rgba(255,255,255,.5)" stroke-width="1.1" fill="none"/><circle cx="10" cy="18" r=".9" fill="rgba(255,255,255,.55)"/><circle cx="13.4" cy="17.2" r=".6" fill="rgba(255,255,255,.55)"/>`,
+  livre:C => `<path d="M12 6.2C9.6 4.4 6.4 4 2.8 4.6v13.6c3.4-.5 6.6-.2 9.2 1.6 2.6-1.8 5.8-2.1 9.2-1.6V4.6C17.6 4 14.4 4.4 12 6.2z" fill="${C}"/><path d="M12 6.4v13.2M5 8.6c1.8-.2 3.6 0 5.2.8M5 11.6c1.8-.2 3.6 0 5.2.8M13.8 9.4c1.6-.8 3.4-1 5.2-.8M13.8 12.4c1.6-.8 3.4-1 5.2-.8" stroke="rgba(0,0,0,.32)" stroke-width=".9" fill="none"/>`,
+  lune:C => `<path d="M15.6 2.8a9.6 9.6 0 1 0 5.8 15.6A7.8 7.8 0 0 1 15.6 2.8z" fill="${C}"/><path d="M19 4.5l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6z" fill="${C}"/>`,
+  fantome:C => `<path d="M5.4 21V10.6a6.6 6.6 0 0 1 13.2 0V21l-2.2-2-2.2 2-2.2-2-2.2 2-2.2-2z" fill="${C}"/><ellipse cx="9.6" cy="11" rx="1.3" ry="1.8" fill="#16202c"/><ellipse cx="14.4" cy="11" rx="1.3" ry="1.8" fill="#16202c"/><ellipse cx="12" cy="15.2" rx="1.4" ry="1.1" fill="#16202c" opacity=".7"/>`,
+  queue:C => `<path d="M6.4 2.6c4.6 1.4 7.8 4.8 7.9 9.2.1 2.4-.7 4.4-1.9 6l4.9 3.6c-2.6.6-4.9.3-6.7-.8-.3 1.6-1.4 2.8-3.4 3.6.7-2.4.6-4.2-.3-5.6 1.9-1.6 3.1-3.8 3.1-6.4 0-3.6-1.2-6.6-3.6-9.6z" fill="${C}"/><path d="M8.6 6.8c1 .2 2 .1 2.8-.4M9.8 9.8c1 .2 2 .1 2.8-.4M10.2 12.8c.9.2 1.8.1 2.6-.4" stroke="rgba(0,0,0,.3)" stroke-width=".8" fill="none"/>`,
+  licorne:C => `<path d="M8.6 21.4l.8-5.4-3.2-2.6 1.6-4.4 3.6-2.2 2.2-3.2.4 3.6 2.8 2.4c1.1 1.4 1.5 2.8 1 4.2l-3.2-1.2-1 3.8.8 5z" fill="${C}"/><path d="M14.2 6.4L19.8 1.8l-3.6 6.2z" fill="${C}"/><circle cx="12.9" cy="9.6" r=".7" fill="#16202c"/><path d="M9.4 6.8c-1.2.8-2.4 2.4-2.8 4" stroke="rgba(0,0,0,.3)" stroke-width=".9" fill="none"/>`,
+  masque:C => `<path d="M5.4 3.6l3.2 3.6a8.2 8.2 0 0 1 6.8 0l3.2-3.6.2 5.6c.8 1.4 1.2 3 1.2 4.6 0 4.6-3.6 7.6-8 7.6s-8-3-8-7.6c0-1.6.4-3.2 1.2-4.6z" fill="${C}"/><path d="M7.6 12l3 1.2M16.4 12l-3 1.2" stroke="#16202c" stroke-width="1.6" stroke-linecap="round"/><path d="M8.4 16.6h7.2l-1 1.8-1.2-1-1.2 1-1.2-1-1.2 1z" fill="#16202c"/>`,
+  feuille:C => `<path d="M4 20C3.6 10.8 9 4.2 20.4 3.6 20.6 14.6 14.2 20.6 4 20z" fill="${C}"/><path d="M4.6 19.4C8.6 14.6 12.4 10.8 17.6 6.6M9 15.4l-.4-3.6M12 12.4l3.6.2M11.2 13.2l-.4-3" stroke="rgba(0,0,0,.32)" stroke-width="1" fill="none" stroke-linecap="round"/>`,
+  lanterne:C => `<path d="M12 1.8v2.4M8 4.4h8l-1 2H9z" stroke="${C}" stroke-width="1.6" fill="${C}" stroke-linejoin="round"/><path d="M7.4 7.2h9.2l1 11.4H6.4z" fill="${C}"/><path d="M12 9.8c1.6 1.8 2 3.2 2 4.4a2 2 0 0 1-4 0c0-1.2.4-2.6 2-4.4z" fill="rgba(255,236,160,.95)"/><rect x="5.6" y="18.4" width="12.8" height="2.4" rx="1" fill="${C}"/>`,
+  etincelle:C => `<path d="M12 1.8l2.3 7.9 7.9 2.3-7.9 2.3-2.3 7.9-2.3-7.9-7.9-2.3 7.9-2.3z" fill="${C}"/><path d="M19.4 2.6l.6 1.8 1.8.6-1.8.6-.6 1.8-.6-1.8-1.8-.6 1.8-.6z" fill="${C}"/>`,
+  baguette:C => `<path d="M3.6 20.4L15.4 8.6" stroke="${C}" stroke-width="2.4" stroke-linecap="round"/><path d="M17.6 2.4l1 2.8 2.8 1-2.8 1-1 2.8-1-2.8-2.8-1 2.8-1z" fill="${C}"/><circle cx="21" cy="11.6" r=".9" fill="${C}"/><circle cx="12.6" cy="3.4" r=".8" fill="${C}"/>`,
+  boule:C => `<circle cx="12" cy="10.2" r="7.4" fill="${C}"/><path d="M8.2 7.6a4.4 4.4 0 0 1 4.2-2.2" stroke="rgba(255,255,255,.75)" stroke-width="1.4" stroke-linecap="round" fill="none"/><path d="M6.6 18.6h10.8l1.4 3H5.2z" fill="${C}"/><circle cx="13.6" cy="12" r="1" fill="rgba(255,255,255,.5)"/>`,
+  champignon:C => `<path d="M2.8 12.4C3.4 6.8 7.2 3.6 12 3.6s8.6 3.2 9.2 8.8z" fill="${C}"/><path d="M9.4 12.4h5.2l.8 7.2c0 1-1.6 1.6-3.4 1.6s-3.4-.6-3.4-1.6z" fill="${C}" opacity=".8"/><circle cx="8.2" cy="8.4" r="1.4" fill="rgba(255,255,255,.75)"/><circle cx="14" cy="6.6" r="1.1" fill="rgba(255,255,255,.75)"/><circle cx="16.6" cy="9.8" r="1.2" fill="rgba(255,255,255,.75)"/>`,
+  balai:C => `<path d="M3.2 3.2l10.6 10.6" stroke="${C}" stroke-width="2.2" stroke-linecap="round"/><path d="M12.4 13.2l2.8-1.6 7.2 7.2c-1.6 1.6-3.8 2.6-6 2.4-.2-1.2-.6-2.2-1.4-3l-1.4 1.6c-.4-1.6-1-3.4-2.2-4.6z" fill="${C}"/><path d="M13.6 14.6l3.6 4.4M15.4 13.4l4 4.6" stroke="rgba(0,0,0,.3)" stroke-width=".8"/>`,
+};
+const EMBLEMES = {bath:'serpent', york:'aile', canterbury:'baguette', glastonbury:'livre', whitby:'chapeau', norwich:'lune', oxford:'boule', inverness:'queue',
+  aberdeen:'fiole', stirling:'queue', conwy:'chaudron', swansea:'baguette', aberystwyth:'oeil', galway:'fantome', cork:'aile', dublin:'feuille',
+  rennes:'etincelle', paris:'masque', lyon:'chapeau', carcassonne:'chapeau', nantes:'oiseau', strasbourg:'hibou', besancon:'serpent', brest:'masque',
+  toulouse:'champignon', bordeaux:'fantome', marseille:'queue', poitiers:'serpent', lille:'comete', montpellier:'feuille', reims:'licorne', grenoble:'etincelle',
+  benevento:'chapeau', perugia:'aile', venezia:'flamme', milano:'serpent', torino:'etincelle', arezzo:'masque', napoli:'oeil', roma:'boule',
+  firenze:'etoile', palermo:'masque', bologna:'champignon', genova:'lanterne', verona:'baguette', trieste:'fantome', bari:'flamme', bergamo:'balai'};
+const emblemeDe = id => EMBLEMES[id] || choix(rng('emb' + id), Object.keys(EMB));
+
+/* sélections : couleurs du maillot */
+const NATIONS = {ENG:['#f4f4f4', '#c8102e'], SCO:['#1b2a4a', '#ffffff'], WAL:['#c8102e', '#ffffff'], IRL:['#169b62', '#ffffff'], FRA:['#1f3c88', '#ffffff'], ITA:['#2a7de1', '#ffffff']};
+const couleursNation = n => NATIONS[n] || ['#33415c', '#e0e1dd'];
+
+/* ---------- blason ---------- */
+const FORMES = {
+  ecu:'M4 3.5h32v17.5c0 10.4-7.4 16.2-16 19.6C11.4 37.2 4 31.4 4 21z',
+  rond:'M20 2.5a18.5 18.5 0 1 1 0 37 18.5 18.5 0 0 1 0-37z',
+  ancien:'M4 6.5c5.6 0 10.6-1.6 16-4 5.4 2.4 10.4 4 16 4V21c0 10.4-7.4 16.2-16 19.6C11.4 37.2 4 31.4 4 21z',
+  pointe:'M4 3.5h32V24L20 40.6 4 24z',
+};
+const PARTITIONS = {
+  plein:() => '',
+  parti:(t) => `<rect x="20" y="0" width="20" height="44" fill="${t}"/>`,
+  coupe:(t) => `<rect x="0" y="22" width="40" height="22" fill="${t}"/>`,
+  chevron:(t) => `<path d="M0 30L20 16 40 30v14H0z" fill="${t}"/>`,
+  bande:(t) => `<path d="M-4 10L10 -4 48 34 34 48z" fill="${t}"/>`,
+  pal:(t) => `<rect x="14" y="0" width="12" height="44" fill="${t}"/>`,
+  rayures:(t) => [4, 14, 24, 34].map(x => `<rect x="${x}" y="0" width="5" height="44" fill="${t}"/>`).join(''),
+  ecartele:(t) => `<rect x="20" y="0" width="20" height="22" fill="${t}"/><rect x="0" y="22" width="20" height="22" fill="${t}"/>`,
+};
+function blason(c, cls){
+  const r = rng('blason' + c.id), [c1, c2] = c.couleurs || ['#445', '#ddd'];
+  const forme = pondere(r, [['ecu', 5], ['ancien', 2], ['rond', 2], ['pointe', 1.4]]);
+  const part = pondere(r, [['plein', 2], ['parti', 1.4], ['coupe', 1], ['chevron', 1.6], ['bande', 1.4], ['pal', 1], ['rayures', 1], ['ecartele', 0.8]]);
+  const ombre = ton(c1, 0.2), emb = lisible(c1, c2), id = uid();
+  const bord = contraste(c1, c2) >= 1.6 ? c2 : ton(c1, 0.45);
+  const icone = EMB[emblemeDe(c.id)](emb);
+  return `<svg class="blz ${cls || ''}" viewBox="0 0 40 44" aria-hidden="true"><defs><clipPath id="${id}"><path d="${FORMES[forme]}"/></clipPath></defs>
+    <path d="${FORMES[forme]}" fill="${c1}"/><g clip-path="url(#${id})">${PARTITIONS[part](ombre)}<path d="M0 0h40v14C26 10 14 12 0 20z" fill="#fff" opacity=".1"/></g>
+    <path d="${FORMES[forme]}" fill="none" stroke="${bord}" stroke-width="2.2"/><path d="${FORMES[forme]}" fill="none" stroke="rgba(0,0,0,.28)" stroke-width=".6"/>
+    <g transform="translate(8.6 ${forme === 'rond' ? 9.6 : forme === 'pointe' ? 7.2 : 8.4}) scale(.95)">${icone}</g></svg>`;
+}
+
+/* ---------- maillot ---------- */
+const MAILLOT = 'M13.4 3.6L5.4 7.2 1.6 16.4l5.8 2.4 2.2-3.8V38h20.8V15l2.2 3.8 5.8-2.4-3.8-9.2-8-3.6c-1 2.8-3.6 4.2-6.6 4.2s-5.6-1.4-6.6-4.2z';
+const MOTIFS = {
+  uni:() => '',
+  rayures:(t) => [10.6, 16.6, 22.6, 28.6].map(x => `<rect x="${x}" y="0" width="3" height="40" fill="${t}"/>`).join(''),
+  cerceaux:(t) => [14, 22, 30].map(y => `<rect x="0" y="${y}" width="40" height="4" fill="${t}"/>`).join(''),
+  chevron:(t) => `<path d="M0 12l20 9 20-9v6l-20 9-20-9z" fill="${t}"/>`,
+  echarpe:(t) => `<path d="M6 4l6-2 24 34-6 3z" fill="${t}"/>`,
+  moitie:(t) => `<rect x="20" y="0" width="20" height="40" fill="${t}"/>`,
+  manches:(t) => `<path d="M0 0h10v40H0zM30 0h10v40H30z" fill="${t}"/>`,
+  epaules:(t) => `<path d="M0 0h40v12C30 9 10 9 0 12z" fill="${t}"/>`,
+};
+function maillot(c, num, cls){
+  const r = rng('maillot' + c.id), [c1, c2] = c.couleurs || ['#445', '#ddd'];
+  const motif = c.motif || pondere(r, [['uni', 2.2], ['rayures', 1.2], ['cerceaux', 1], ['chevron', 1.2], ['echarpe', 1], ['moitie', 0.7], ['manches', 1], ['epaules', 1]]);
+  const t = contraste(c1, c2) >= 1.4 ? c2 : ton(c1, 0.35), id = uid();
+  const cn = motif === 'uni' || motif === 'epaules' || motif === 'manches' ? lisible(c1, c2) : (lum(c1) > 0.55 ? '#16202c' : '#ffffff');
+  return `<svg class="mt ${cls || ''}" viewBox="0 0 40 40" aria-hidden="true"><defs><clipPath id="${id}"><path d="${MAILLOT}"/></clipPath></defs>
+    <path d="${MAILLOT}" fill="${c1}"/><g clip-path="url(#${id})">${MOTIFS[motif](t)}<path d="M0 0h20v40H0z" fill="#fff" opacity=".07"/></g>
+    <path d="M13.4 3.6c1 2.8 3.6 4.2 6.6 4.2s5.6-1.4 6.6-4.2" fill="none" stroke="${t}" stroke-width="1.8"/>
+    <path d="${MAILLOT}" fill="none" stroke="rgba(0,0,0,.35)" stroke-width=".8" stroke-linejoin="round"/>
+    ${num !== undefined && num !== null && num !== '' ? `<text x="20" y="28.6" text-anchor="middle" font-size="${String(num).length > 1 ? 12 : 13}" font-weight="800" font-family="system-ui,-apple-system,sans-serif" fill="${cn}" stroke="${melange(lum(cn) > 0.5 ? c1 : '#ffffff', lum(cn) > 0.5 ? '#000000' : '#ffffff', 0.5)}" stroke-width="${motif === 'uni' || motif === 'epaules' ? 0.8 : 2.4}" stroke-linejoin="round" paint-order="stroke">${num}</text>` : ''}</svg>`;
+}
+
+/* ---------- avatar ---------- */
+const PEAUX = [['#f7dccb', 26], ['#efc4a4', 28], ['#dca57f', 18], ['#bf8357', 12], ['#93603e', 9], ['#61402b', 7]];
+const CHEVEUX = ['#1e1b19', '#3b2a20', '#5b3c27', '#8a5a35', '#c9a161', '#e3c98f', '#a8482a'];
+function feminin(p){
+  if (p.f !== undefined) return !!p.f;
+  const N = D() && D().NOMS[p.nat]; if (!N) return hash(p.p || p.id) % 2 === 0;
+  const i = N.p.indexOf(p.p); return i >= N.p.length / 2;
+}
+function avatar(p, cls, opt){
+  opt = opt || {};
+  const r = rng('avatar' + (p.id || '') + (p.p || '') + (p.n || '')), f = feminin(p), age = p.age || 30;
+  const peau = pondere(r, PEAUX), fonce = lum(peau) < 0.3;
+  let ch = fonce ? choix(r, CHEVEUX.slice(0, 3)) : pondere(r, [[CHEVEUX[0], 3], [CHEVEUX[1], 4], [CHEVEUX[2], 4], [CHEVEUX[3], 3], [CHEVEUX[4], 2], [CHEVEUX[5], 1.2], [CHEVEUX[6], 1.2]]);
+  if (age >= 34 && r() < (age - 30) / 14) ch = r() < 0.5 ? '#9b9b9b' : '#cfcfcf';
+  const coupe = f ? pondere(r, [['long', 3], ['queue', 2.4], ['chignon', 1.6], ['carre', 2], ['boucle', 1.6], ['court', 1]])
+                  : pondere(r, [['court', 4], ['rase', 2], ['frange', 2], ['boucle', 1.4], ['crete', 0.4], ['long', 0.5], ['chauve', age >= 31 ? 1.4 : 0.15]]);
+  const barbe = !f && r() < 0.32 ? choix(r, ['barbe', 'bouc', 'moustache', 'courte']) : null;
+  const lunettes = r() < 0.12, taches = !fonce && r() < 0.12, sourire = r();
+  const [k1, k2] = opt.couleurs || ['#5a6a80', '#e6e9ee'];
+  const fond = opt.fond || melange(k1, '#ffffff', 0.72), ombrePeau = melange(peau, '#000000', 0.16), id = uid();
+  const yeuxY = 18.6, ox = r() * 0.6 - 0.3;
+  const cheveuxDerriere = {long:`<path d="M10.6 16c-.6 7 0 13 1.8 18h15.2c1.8-5 2.4-11 1.8-18z" fill="${ch}"/>`, carre:`<path d="M11 16c-.4 4.4 0 8 1 10.6h16c1-2.6 1.4-6.2 1-10.6z" fill="${ch}"/>`,
+    queue:`<path d="M27.4 13.6c3.4 1.6 4.4 6.4 3 11.2-1-2.8-2.4-4.6-4-5.6z" fill="${ch}"/>`, chignon:`<circle cx="20" cy="6.2" r="3.6" fill="${ch}"/>`}[coupe] || '';
+  const dessus = {
+    court:`<path d="M11.8 18.2c-.8-6.6 2.6-11 8.2-11s9 4.4 8.2 11c-.8-2.6-2.4-4.6-5-5.4-2.6 1.4-6.4 1.8-9.4.6-1 1.2-1.6 2.8-2 4.8z" fill="${ch}"/>`,
+    rase:`<path d="M12 16.6c0-5.6 3.4-9 8-9s8 3.4 8 9c-1.4-3-4.4-4.6-8-4.6s-6.6 1.6-8 4.6z" fill="${ch}" opacity=".75"/>`,
+    frange:`<path d="M11.6 19c-1-7 2.6-11.6 8.4-11.6S29.4 12 28.4 19c-.6-2.4-1.6-4.2-3-5.4-.6 1.4-1.8 2.2-3.4 2.4l.4-2c-1.4 1.2-3.4 1.8-6 1.8l.6-1.8c-1.4 1-2.6 1.6-4 2-.6 1-1 2-1.4 3z" fill="${ch}"/>`,
+    boucle:[[13, 12.4, 3.4], [17, 9.6, 3.6], [21.6, 9, 3.8], [25.8, 11, 3.4], [27.8, 14.6, 2.6], [12.2, 15.8, 2.4]].map(([x, y, rr]) => `<circle cx="${x}" cy="${y}" r="${rr}" fill="${ch}"/>`).join(''),
+    crete:`<path d="M17.6 13.4c0-4 1-6.6 2.4-8 1.4 1.4 2.4 4 2.4 8z" fill="${ch}"/><path d="M12 16.6c0-5.6 3.4-9 8-9s8 3.4 8 9c-1.4-3-4.4-4.6-8-4.6s-6.6 1.6-8 4.6z" fill="${ch}" opacity=".35"/>`,
+    long:`<path d="M11.2 20c-1.2-7.6 2.6-12.6 8.8-12.6s10 5 8.8 12.6c-1-3.8-3.2-6.2-6-7.2-2.2 1.6-5.4 2.4-8.6 2-1.4 1.4-2.4 3-3 5.2z" fill="${ch}"/>`,
+    carre:`<path d="M11.2 20.4c-1.2-7.8 2.6-13 8.8-13s10 5.2 8.8 13c-.8-3.4-2-6-3.8-7.6-3 .8-7 .8-10.2 0-1.8 1.6-3 4.2-3.6 7.6z" fill="${ch}"/>`,
+    queue:`<path d="M11.8 18.4c-.8-6.8 2.6-11.2 8.2-11.2s9 4.4 8.2 11.2c-.8-3.2-2.6-5.4-5.4-6.2-2.4 1-6 1.2-8.8.4-1.2 1.4-1.8 3.4-2.2 5.8z" fill="${ch}"/>`,
+    chignon:`<path d="M11.8 18.4c-.8-6.8 2.6-11.2 8.2-11.2s9 4.4 8.2 11.2c-1.2-4-3.6-6.4-8.2-6.4s-7 2.4-8.2 6.4z" fill="${ch}"/>`,
+    chauve:`<path d="M11.8 19.4c-.6-2.6-.2-4.6.6-6 .4 1.6.8 2.8 1.2 3.8M28.2 19.4c.6-2.6.2-4.6-.6-6-.4 1.6-.8 2.8-1.2 3.8" stroke="${ch}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`,
+  }[coupe] || '';
+  const sourc = sourire < 0.5 ? `<path d="M17.4 24.6c1.6 1.2 3.6 1.2 5.2 0" stroke="#5b2f22" stroke-width="1" fill="none" stroke-linecap="round"/>`
+    : sourire < 0.8 ? `<path d="M17.8 24.8h4.4" stroke="#5b2f22" stroke-width="1" stroke-linecap="round"/>`
+    : `<path d="M17 24.2c1.8 2 4.2 2 6 0z" fill="#fff" stroke="#5b2f22" stroke-width=".8" stroke-linejoin="round"/>`;
+  const barbes = {barbe:`<path d="M12.4 20.6c0 5.4 3.4 9.2 7.6 9.2s7.6-3.8 7.6-9.2c-.6 2-1.6 3.2-3 3.6-1.4-1-3-1.4-4.6-1.4s-3.2.4-4.6 1.4c-1.4-.4-2.4-1.6-3-3.6z" fill="${ch}"/>`,
+    bouc:`<path d="M17.6 26.4c.6 1.8 1.4 2.8 2.4 2.8s1.8-1 2.4-2.8c-1.4.4-3.4.4-4.8 0z" fill="${ch}"/><path d="M17.4 23.4c1.6-.8 3.6-.8 5.2 0" stroke="${ch}" stroke-width="1.1" fill="none"/>`,
+    moustache:`<path d="M16.6 23.6c1.4-1.4 2.6-1.2 3.4-.4.8-.8 2-1 3.4.4-1.4.2-2.4 0-3.4-.4-1 .4-2 .6-3.4.4z" fill="${ch}"/>`,
+    courte:`<path d="M12.6 21c.4 5 3.4 8.4 7.4 8.4s7-3.4 7.4-8.4c-1.6 2.6-3.6 3.6-7.4 3.6S14.2 23.6 12.6 21z" fill="${ch}" opacity=".45"/>`}[barbe] || '';
+  return `<svg class="av ${cls || ''}" viewBox="0 0 40 40" aria-hidden="true"><defs><clipPath id="${id}"><circle cx="20" cy="20" r="20"/></clipPath></defs>
+    <g clip-path="url(#${id})"><rect width="40" height="40" fill="${fond}"/>${cheveuxDerriere}
+    <path d="M4 40c.6-6.4 5.4-9.6 11-10.6h10c5.6 1 10.4 4.2 11 10.6z" fill="${k1}"/><path d="M15.4 29.4c1.2 2.2 2.8 3.2 4.6 3.2s3.4-1 4.6-3.2" fill="none" stroke="${k2}" stroke-width="1.6"/>
+    <path d="M16.6 25.4h6.8v4.6c-1 1.4-2.2 2-3.4 2s-2.4-.6-3.4-2z" fill="${ombrePeau}"/>
+    <ellipse cx="11.6" cy="19.6" rx="1.6" ry="2.4" fill="${peau}"/><ellipse cx="28.4" cy="19.6" rx="1.6" ry="2.4" fill="${peau}"/>
+    <path d="M20 8.4c4.6 0 8.2 3.6 8.2 9.4 0 6.2-3.6 10.6-8.2 10.6s-8.2-4.4-8.2-10.6c0-5.8 3.6-9.4 8.2-9.4z" fill="${peau}"/>
+    ${barbes}${dessus}
+    <path d="M${15.2 + ox} 16.6c.9-.5 2-.6 2.9-.3M${21.9 + ox} 16.3c.9-.3 2-.2 2.9.3" stroke="${melange(ch, '#000000', 0.2)}" stroke-width="${f ? 0.8 : 1.1}" stroke-linecap="round" fill="none"/>
+    <ellipse cx="${16.6 + ox}" cy="${yeuxY}" rx=".95" ry="1.1" fill="#1e1a18"/><ellipse cx="${23.4 + ox}" cy="${yeuxY}" rx=".95" ry="1.1" fill="#1e1a18"/>
+    <path d="M20 19.4l-.9 3.2c.6.3 1.2.3 1.8 0" stroke="${ombrePeau}" stroke-width=".9" fill="none" stroke-linecap="round"/>
+    ${taches ? `<g fill="${melange(peau, '#8a4b2a', 0.45)}"><circle cx="15" cy="21.6" r=".35"/><circle cx="16.4" cy="22.2" r=".3"/><circle cx="23.8" cy="22.2" r=".3"/><circle cx="25" cy="21.6" r=".35"/><circle cx="15.8" cy="21" r=".28"/><circle cx="24.4" cy="21" r=".28"/></g>` : ''}
+    ${sourc}
+    ${lunettes ? `<g fill="none" stroke="#2b2b2b" stroke-width=".9"><circle cx="${16.6 + ox}" cy="${yeuxY}" r="2.5"/><circle cx="${23.4 + ox}" cy="${yeuxY}" r="2.5"/><path d="M${19.1 + ox} ${yeuxY}h1.8M${14.1 + ox} ${yeuxY - 0.4}l-2.2-.6M${25.9 + ox} ${yeuxY - 0.4}l2.2-.6"/></g>` : ''}
+    ${age >= 32 ? `<path d="M14.6 21.2c.6.4 1.2.5 1.8.4M25.4 21.2c-.6.4-1.2.5-1.8.4" stroke="${ombrePeau}" stroke-width=".6" fill="none"/>` : ''}
+    </g></svg>`;
+}
+
+/* ---------- radar ---------- */
+/* axes : [[libellé, valeur sur 20], …] ; couleur du poste */
+function radar(axes, couleur, cls){
+  const n = axes.length, cx = 60, cy = 60, R = 42;
+  const pt = (i, v) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; return [cx + Math.cos(a) * R * v, cy + Math.sin(a) * R * v]; };
+  const anneaux = [0.25, 0.5, 0.75, 1].map(k => `<polygon points="${axes.map((_, i) => pt(i, k).join(',')).join(' ')}" fill="none" stroke="var(--line)" stroke-width="${k === 1 ? 1 : 0.7}"/>`).join('');
+  const rayons = axes.map((_, i) => `<line x1="${cx}" y1="${cy}" x2="${pt(i, 1)[0]}" y2="${pt(i, 1)[1]}" stroke="var(--line)" stroke-width=".7"/>`).join('');
+  const poly = axes.map(([, v], i) => pt(i, Math.max(0.06, Math.min(1, v / 20))).map(x => x.toFixed(1)).join(',')).join(' ');
+  const lab = axes.map(([l, v], i) => { const [x, y] = pt(i, 1.16), ta = Math.abs(x - cx) < 4 ? 'middle' : x < cx ? 'end' : 'start';
+    return `<text x="${x.toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="${ta}" font-size="10.5" fill="var(--ink-soft)">${l} <tspan font-weight="800" fill="var(--ink)">${Math.round(v)}</tspan></text>`; }).join('');
+  return `<svg class="radar ${cls || ''}" viewBox="-34 -2 188 124" role="img" aria-label="Profil : ${axes.map(([l, v]) => l + ' ' + Math.round(v)).join(', ')}">${anneaux}${rayons}
+    <polygon points="${poly}" fill="${couleur}" fill-opacity=".28" stroke="${couleur}" stroke-width="1.8" stroke-linejoin="round"/>${lab}</svg>`;
+}
+
+root.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe, feminin, EMB, EMBLEMES, lisible, melange};
+})(typeof window !== 'undefined' ? window : globalThis);
