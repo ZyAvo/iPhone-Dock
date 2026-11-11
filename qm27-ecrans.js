@@ -1,4 +1,4 @@
-// mon-ecran-version: ee23d529
+// mon-ecran-version: 660fd341
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -91,7 +91,23 @@ function badgesLieux(){
   if (D.BATIMENTS.some(b => B.amelEnAttente(c, b[0]))) r.technique = '★';
   return r;
 }
+/* v93 : la carte illustrée (fond et lieux dessinés à part, images/qm27/) ; x, y = pied du bâtiment sur sa clairière, l = largeur */
+const POS_IMG = {poudlard:[85, 150, 92], direction:[272, 150, 84], stade:[181, 262, 128], vestiaire:[54, 238, 78], voliere:[311, 240, 78], technique:[66, 372, 90], gringotts:[174, 424, 88], trophees:[300, 374, 84]};
+function carteIllustree(){
+  const c = moi(), bdg = badgesLieux(), I = V.IMAGES, L = Object.entries(LIEUX);
+  /* deux passes : les bâtiments, puis les plaques et pastilles par-dessus (jamais cachées par un voisin) */
+  return `<svg class="carte-dom illus" viewBox="0 0 360 540" role="group" aria-label="Le domaine de ${esc(c.nom)}">
+    <image href="${I}fond-jour.webp" x="0" y="0" width="360" height="540" preserveAspectRatio="xMidYMid slice" class="fond-img"/><rect width="360" height="540" class="nuit-voile"/>
+    ${L.map(([k, l]) => { const [x, y, w] = POS_IMG[k];
+      return `<g class="lieu" data-act="lieu" data-l="${k}" role="button" tabindex="0" aria-label="${esc(l.nom)} : ${esc(l.sous)}" transform="translate(${x} ${y})">
+        <rect x="${-w / 2}" y="${-w + 8}" width="${w}" height="${w + 12}" fill="transparent"/><image href="${I}lieux/${k}.webp" x="${-w / 2}" y="${-w + 6}" width="${w}" height="${w}" class="bat-img"/><title>${esc(l.nom)} : ${esc(l.sous)}</title></g>`; }).join('')}
+    ${L.map(([k, l]) => { const [x, y] = POS_IMG[k], b = bdg[k];
+      return `<g class="lieu plaque-g" data-act="lieu" data-l="${k}" aria-hidden="true" transform="translate(${x} ${y + 14})"><rect x="-${l.nom.length * 3.1 + 10}" y="-9" width="${l.nom.length * 6.2 + 20}" height="18" rx="9" class="plaque"/><text y="4" text-anchor="middle" class="plaque-t">${esc(l.nom)}</text>
+        ${b ? `<g transform="translate(${l.nom.length * 3.1 + 8} -10)"><circle r="8" class="pastille"/><text y="3.4" text-anchor="middle" class="pastille-t">${b}</text></g>` : ''}</g>`; }).join('')}
+  </svg>`;
+}
 function carteDomaine(){
+  if (V.IMAGES) return carteIllustree();
   const c = moi(), bdg = badgesLieux();
   return `<svg class="carte-dom" viewBox="0 0 360 400" role="group" aria-label="Le domaine de ${esc(c.nom)}">
     <defs><linearGradient id="dCiel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ciel1"/><stop offset="1" class="ciel2"/></linearGradient></defs>
@@ -292,18 +308,22 @@ function vuePlus(){
 }
 
 /* ============================== Effectif en colonnes ============================== */
-const VUES_EFF = {
-  general:{nom:'Général', cols:[['note', 'Note', 44], ['forme', 'Forme', 40], ['moral', 'Moral', 42]]},
-  scout:{nom:'Estimation', cols:[['note', 'Note', 62], ['pot', 'Pot.', 40], ['valeur', 'Valeur', 58]]},
-  contrats:{nom:'Contrats', cols:[['sal', 'Salaire', 54], ['fin', 'Fin', 46], ['valeur', 'Valeur', 58]]},
-  physique:{nom:'Physique', cols:[['fat', 'Fatigue', 52], ['forme', 'Forme', 40], ['bless', 'Dispo', 44]]},
-  saison:{nom:'Saison', cols:[['m', 'MJ', 30], ['stat', 'Stat', 50], ['moy', 'Moy.', 38]]},
-};
+/* v92 : catalogue des colonnes [libellé court, largeur, description] et vues de l'effectif réglables (roue ⚙︎) */
+const COLS = {note:['Note', 44, 'Note au poste'], pot:['Pot.', 40, 'Potentiel estimé (étoiles)'], forme:['Forme', 40, 'Forme sur 10'], moral:['Moral', 42, 'Moral sur 100'],
+  fat:['Fatigue', 50, 'Fatigue'], bless:['Dispo', 44, 'Blessure ou sélection'], m:['MJ', 30, 'Matchs joués cette saison'], stat:['Stat', 50, 'Buts, cognards, vifs d\'or ou arrêts'],
+  moy:['Moy.', 38, 'Note moyenne en match'], sal:['Salaire', 54, 'Salaire par semaine'], fin:['Fin', 46, 'Fin de contrat'], valeur:['Valeur', 58, 'Valeur estimée'],
+  clause:['Clause', 58, 'Clause libératoire'], prog:['Prog.', 44, 'Progression de la note cette saison']};
+const VUES_DEF = [{id:'general', nom:'Général', cols:['note', 'forme', 'moral']}, {id:'contrats', nom:'Contrats', cols:['sal', 'fin', 'valeur']},
+  {id:'physique', nom:'Physique', cols:['fat', 'forme', 'bless']}, {id:'saison', nom:'Saison', cols:['m', 'stat', 'moy']}];
+const VUES_EFF = {scout:{nom:'Estimation', cols:['note', 'pot', 'valeur']}};
+for (const v of VUES_DEF) VUES_EFF[v.id] = v;
+const vuesPerso = () => { const L = LS.lire('qm27:vuesEff', null); return Array.isArray(L) && L.length ? L.filter(v => v && v.id && Array.isArray(v.cols)) : VUES_DEF.map(v => ({...v, cols:v.cols.slice()})); };
+const vueEff = id => vuesPerso().find(v => v.id === id) || VUES_EFF[id] || VUES_DEF[0];
 const statut = (K, id) => { for (const p of ['P', 'B', 'A', 'G']) if (K[p].includes(id)) return ['T', 'tit', 'Titulaire']; const i = K.banc.indexOf(id); return i >= 0 ? ['R' + (i + 1), 'rem', 'Remplaçant ' + (i + 1)] : ['–', 'res', 'Réserve']; };
 function valeurCol(j, k, ctx){
   const M_ = M(), s = j.saison || {};
   switch (k){
-    case 'note': { const v = ctx.vue ? noteVue(j, j.poste) : {txt:window.QM.note(j), mid:window.QM.note(j), exact:true}; return [v.mid, `<span class="note ${classeNote(v.mid)}${v.exact ? '' : ' flou'}">${v.txt}</span>`]; }
+    case 'note': { const v = noteVue(j, j.poste); return [v.mid, `<span class="note ${classeNote(v.mid)}${v.exact ? '' : ' flou'}">${v.txt}</span>`]; }
     case 'forme': return [j.forme, `<span class="${j.forme >= 7 ? 'bon' : j.forme < 5 ? 'mauvais' : ''}">${(Math.round(j.forme * 10) / 10).toLocaleString('fr-FR')}</span>`];
     case 'moral': return [j.moral, `<span class="${j.moral >= 70 ? 'bon' : j.moral < 40 ? 'mauvais' : ''}">${Math.round(j.moral)}</span>`];
     case 'fat': return [j.fat, `<span class="${j.fat >= 60 ? 'mauvais' : j.fat >= 35 ? 'moyen' : ''}">${Math.round(j.fat)} %</span>`];
@@ -315,24 +335,28 @@ function valeurCol(j, k, ctx){
     case 'm': return [s.m || 0, s.m || 0];
     case 'stat': { const v = j.poste === 'P' ? s.b : j.poste === 'B' ? s.cog : j.poste === 'A' ? s.v : s.arr; return [v || 0, `${v || 0}<span class="mut petit"> ${({P:'b', B:'cog', A:'vif', G:'arr'})[j.poste]}</span>`]; }
     case 'moy': { const v = s.m ? s.notes / s.m : 0; return [v, v ? (Math.round(v * 10) / 10).toLocaleString('fr-FR') : '—']; }
+    case 'clause': { const v = j.contrat && j.contrat.clause || 0; return [v, v ? eur(v) : '—']; }
+    case 'prog': { const c = j.club && club(j.club), v = c && c.progres ? c.progres[j.id] || 0 : 0; return [v, v ? `<span class="${v > 0 ? 'bon' : 'mauvais'}">${v > 0 ? '+' : ''}${(Math.round(v * 10) / 10).toLocaleString('fr-FR')}</span>` : '—']; }
   }
   return [0, ''];
 }
 /* tableau de joueurs : ctx = {vue:'general'…, tri, sens, liste, K (composition, pour le statut), autre (club adverse : notes estimées), act} */
 function tableJoueurs(L, ctx){
-  const V_ = VUES_EFF[ctx.vue], tri = ctx.tri || 'poste', sens = ctx.sens || 1;
-  const rows = L.map(j => ({j, v:Object.fromEntries(V_.cols.map(([k]) => [k, valeurCol(j, k, ctx)]))}));
+  const cles = (ctx.cols || (VUES_EFF[ctx.vue] || VUES_DEF[0]).cols).filter(k => COLS[k]), CC = cles.map(k => [k, COLS[k][0], COLS[k][1], COLS[k][2]]);
+  const tri = ctx.tri || 'poste', sens = ctx.sens || 1;
+  const rows = L.map(j => ({j, v:Object.fromEntries(cles.map(k => [k, valeurCol(j, k, ctx)]))}));
+  const large = 40 + 34 + 150 + CC.reduce((t, c) => t + c[2] + 4, 0);
   const ord = {P:0, B:1, A:2, G:3};
   rows.sort((a, b) => tri === 'poste' ? ord[a.j.poste] - ord[b.j.poste] || (b.v.note ? b.v.note[0] - a.v.note[0] : window.QM.note(b.j) - window.QM.note(a.j))
     : tri === 'nom' ? sens * a.j.n.localeCompare(b.j.n, 'fr') : tri === 'age' ? sens * (a.j.age - b.j.age) : sens * ((b.v[tri] || [0])[0] - (a.v[tri] || [0])[0]));
-  const th = (k, n, w) => `<button class="th ${tri === k ? 'on' : ''}" style="${w ? 'width:' + w + 'px' : ''}" data-act="${ctx.act || 'effTri'}" data-t="${k}">${n}${tri === k ? (sens > 0 ? ' ▾' : ' ▴') : ''}</button>`;
-  return `<div class="tj" role="table"><div class="tj-h" role="row">${th('poste', 'Poste', 40)}${th('nom', 'Joueur')}${th('age', 'Âge', 34)}${V_.cols.map(([k, n, w]) => th(k, n, w)).join('')}</div>
+  const th = (k, n, w, t) => `<button class="th ${tri === k ? 'on' : ''}" style="${w ? 'width:' + w + 'px' : ''}" data-act="${ctx.act || 'effTri'}" data-t="${k}"${t ? ` title="${esc(t)}"` : ''}>${n}${tri === k ? (sens > 0 ? ' ▾' : ' ▴') : ''}</button>`;
+  return `<div class="tj" role="table" style="min-width:${large}px"><div class="tj-h" role="row">${th('poste', 'Poste', 40)}${th('nom', 'Joueur')}${th('age', 'Âge', 34)}${CC.map(([k, n, w, t]) => th(k, n, w, t)).join('')}</div>
     ${rows.map(({j, v}) => { const st = ctx.K ? statut(ctx.K, j.id) : null, U_ = moi();
       return `<button class="tj-l ${j.bless || j.inter ? 'indispo' : ''}" role="row" data-act="joueur" data-j="${j.id}">
         <span style="width:40px" class="tj-p">${posteB(j.poste)}${st ? `<i class="st ${st[1]}" title="${st[2]}">${st[0]}</i>` : ''}</span>
-        <span class="tj-n">${ctx.nat && j.nat === ctx.nat ? '' : flag(j.nat)}<b>${j.num != null && ctx.K ? `<span class="num">${j.num}</span>` : ''}${esc(j.p[0])}. ${esc(j.n)}</b>${j.pret ? '<i class="tag">prêt</i>' : ''}${U_ && U_.aVendre.includes(j.id) ? '<i class="tag">vente</i>' : ''}${!ctx.K && U_ && U_.suivi.includes(j.id) ? '<i class="tag or">suivi</i>' : ''}${j.inter ? '<i class="tag">✈︎ sél.</i>' : ''}</span>
+        <span class="tj-n">${flag(j.nat)}<b>${j.num != null && ctx.K ? `<span class="num">${j.num}</span>` : ''}${esc(j.p[0])}. ${esc(j.n)}</b>${j.pret ? '<i class="tag">prêt</i>' : ''}${U_ && U_.aVendre.includes(j.id) ? '<i class="tag">vente</i>' : ''}${!ctx.K && U_ && U_.suivi.includes(j.id) ? '<i class="tag or">suivi</i>' : ''}${j.inter ? '<i class="tag">✈︎ sél.</i>' : ''}</span>
         <span style="width:34px" class="tj-c">${j.age}</span>
-        ${V_.cols.map(([k, , w]) => `<span class="tj-c" style="width:${w}px">${v[k][1]}</span>`).join('')}</button>`; }).join('') || '<p class="mut" style="padding:10px">Personne ici.</p>'}</div>`;
+        ${CC.map(([k, , w]) => `<span class="tj-c" style="width:${w}px">${v[k][1]}</span>`).join('')}</button>`; }).join('') || '<p class="mut" style="padding:10px">Personne ici.</p>'}</div>`;
 }
 Z.tableJoueurs = tableJoueurs;
 const EFF = Object.assign({vue:'general', tri:'poste', sens:1, poste:'tous'}, LS.lire('qm27:effectif', {}));
@@ -342,13 +366,48 @@ function vueEffectif(){
   if (EFF.poste === 'bless') L = L.filter(j => j.bless || j.inter); else if (EFF.poste !== 'tous') L = L.filter(j => j.poste === EFF.poste);
   const masse = C.masse(M(), c);
   VUE.innerHTML = `<div><h1 class="grand">Effectif</h1><p class="sous">${plur(c.effectif.length, 'joueur')} · masse salariale ${eur(masse)} / ${eur(c.masseMax)} par semaine</p></div>
-  <div class="onglets" role="tablist">${Object.entries(VUES_EFF).filter(([k]) => k !== 'scout').map(([k, x]) => `<button role="tab" class="${EFF.vue === k ? 'on' : ''}" aria-selected="${EFF.vue === k}" data-act="effVue" data-v="${k}">${x.nom}</button>`).join('')}</div>
+  <div class="onglets-l"><div class="onglets" role="tablist">${vuesPerso().map(x => `<button role="tab" class="${EFF.vue === x.id ? 'on' : ''}" aria-selected="${EFF.vue === x.id}" data-act="effVue" data-v="${x.id}">${esc(x.nom)}</button>`).join('')}</div>
+    <button class="mini-b roue" data-act="effReglages" aria-label="Régler les vues de l'effectif" title="Régler les vues">⚙︎</button></div>
   <div class="chips petites">${[['tous', 'Tous'], ['P', 'Pours.'], ['B', 'Batteurs'], ['A', 'Attrap.'], ['G', 'Gardiens'], ['bless', 'Absents']].map(([k, n]) => `<button class="chip ${EFF.poste === k ? 'on' : ''}" data-act="effPoste" data-p="${k}">${n}</button>`).join('')}</div>
-  <div class="carte tj-carte">${tableJoueurs(L, {vue:EFF.vue, tri:EFF.tri, sens:EFF.sens, K, nat:c.nat})}</div>
+  <div class="carte tj-carte">${tableJoueurs(L, {cols:vueEff(EFF.vue).cols, tri:EFF.tri, sens:EFF.sens, K})}</div>
   <p class="petit mut">T titulaire · R1-R5 remplaçants · – réserve · ✈︎ en sélection. Touche un en-tête pour trier, un joueur pour sa fiche.</p>`;
 }
 const garderEff = () => LS.ecrire('qm27:effectif', {vue:EFF.vue, tri:EFF.tri, sens:EFF.sens});
-ACT.effVue = d => { EFF.vue = d.v; if (!['poste', 'nom', 'age'].includes(EFF.tri) && !VUES_EFF[d.v].cols.some(c => c[0] === EFF.tri)) EFF.tri = 'poste'; garderEff(); rendre(); };
+ACT.effVue = d => { EFF.vue = d.v; if (!['poste', 'nom', 'age'].includes(EFF.tri) && !vueEff(d.v).cols.includes(EFF.tri)) EFF.tri = 'poste'; garderEff(); rendre(); };
+/* roue ⚙︎ : choisir, créer, modifier, ordonner et supprimer ses vues */
+const ecrireVues = L => LS.ecrire('qm27:vuesEff', L);
+function ficheVues(){
+  const L = vuesPerso();
+  feuille(`${teteF('Vues de l\'effectif', 'Choisis les colonnes de chaque vue')}
+    <div class="liste">${L.map((v, i) => `<div class="el"><div class="t"><b>${esc(v.nom)}</b><span>${v.cols.map(k => COLS[k] ? COLS[k][0] : k).join(' · ') || 'aucune colonne'}</span></div>
+      <button class="mini-b" data-act="vueMonte" data-i="${i}" aria-label="Monter" ${i ? '' : 'disabled'}>↑</button><button class="mini-b" data-act="vueEditer" data-i="${i}" aria-label="Modifier ${esc(v.nom)}">✎</button><button class="mini-b" data-act="vueCopier" data-i="${i}" aria-label="Dupliquer ${esc(v.nom)}">⧉</button><button class="mini-b" data-act="vueSuppr" data-i="${i}" aria-label="Supprimer ${esc(v.nom)}" ${L.length > 1 ? '' : 'disabled'}>✕</button></div>`).join('')}</div>
+    <div class="btns" style="margin-top:12px"><button class="btn sec" data-act="vuesRaz">Vues d'origine</button><button class="btn" data-act="vueNouvelle">Nouvelle vue</button></div>
+    <p class="petit mut" style="margin:10px 0 0">⧉ duplique une vue : par exemple Général, puis ajoute le salaire et la fin de contrat. Au-delà de 4 colonnes, le tableau défile sur le côté.</p>`);
+}
+let VE = null;
+function ficheVue(){
+  const dispo = Object.keys(COLS).filter(k => !VE.cols.includes(k));
+  feuille(`${teteF(VE.i == null ? 'Nouvelle vue' : 'Modifier la vue', 'Nom et colonnes')}
+    <label class="petit mut" for="nomVue">Nom</label><input class="champ" id="nomVue" maxlength="20" value="${esc(VE.nom)}">
+    <h4 class="sous-t">Colonnes affichées</h4>${VE.cols.length ? `<div class="liste">${VE.cols.map((k, i) => `<div class="el"><div class="t"><b>${COLS[k][0]}</b><span>${COLS[k][2]}</span></div>
+      <button class="mini-b" data-act="colMonte" data-i="${i}" ${i ? '' : 'disabled'} aria-label="Monter">↑</button><button class="mini-b" data-act="colRetire" data-i="${i}" aria-label="Retirer">✕</button></div>`).join('')}</div>` : '<p class="mut">Aucune colonne : ajoute-en ci-dessous.</p>'}
+    <h4 class="sous-t">Ajouter</h4><div class="chips" style="flex-wrap:wrap">${dispo.map(k => `<button class="chip" data-act="colAjoute" data-k="${k}" title="${esc(COLS[k][2])}">+ ${COLS[k][0]}</button>`).join('') || '<span class="mut petit">Toutes les colonnes sont déjà là.</span>'}</div>
+    <div class="btns" style="margin-top:14px"><button class="btn sec" data-act="effReglages">Retour</button><button class="btn" data-act="vueOk">Enregistrer</button></div>`);
+  const n = document.getElementById('nomVue'); if (n) n.addEventListener('input', e => { VE.nom = e.target.value; });
+}
+ACT.effReglages = () => { VE = null; ficheVues(); };
+ACT.vueNouvelle = () => { VE = {i:null, nom:'Ma vue', cols:['note']}; ficheVue(); };
+ACT.vueEditer = d => { const v = vuesPerso()[+d.i]; VE = {i:+d.i, nom:v.nom, cols:v.cols.slice()}; ficheVue(); };
+ACT.vueCopier = d => { const v = vuesPerso()[+d.i]; VE = {i:null, nom:(v.nom + ' +').slice(0, 20), cols:v.cols.slice()}; ficheVue(); };
+ACT.vueSuppr = d => { const L = vuesPerso(); if (L.length <= 1) return; const [x] = L.splice(+d.i, 1); ecrireVues(L); if (EFF.vue === x.id){ EFF.vue = L[0].id; garderEff(); } ficheVues(); rendre(); ficheVues(); };
+ACT.vueMonte = d => { const L = vuesPerso(), i = +d.i; if (i > 0){ [L[i - 1], L[i]] = [L[i], L[i - 1]]; ecrireVues(L); } rendre(); ficheVues(); };
+ACT.vuesRaz = () => { if (!confirm('Revenir aux quatre vues d\'origine ?')) return; LS.ecrire('qm27:vuesEff', null); EFF.vue = 'general'; garderEff(); rendre(); ficheVues(); };
+ACT.colAjoute = d => { if (!VE.cols.includes(d.k)) VE.cols.push(d.k); ficheVue(); };
+ACT.colRetire = d => { VE.cols.splice(+d.i, 1); ficheVue(); };
+ACT.colMonte = d => { const i = +d.i; if (i > 0) [VE.cols[i - 1], VE.cols[i]] = [VE.cols[i], VE.cols[i - 1]]; ficheVue(); };
+ACT.vueOk = () => { const L = vuesPerso(), nom = (VE.nom || '').trim() || 'Ma vue';
+  if (VE.i == null){ const id = 'v' + Date.now().toString(36); L.push({id, nom, cols:VE.cols}); EFF.vue = id; } else { L[VE.i] = {...L[VE.i], nom, cols:VE.cols}; EFF.vue = L[VE.i].id; }
+  ecrireVues(L); garderEff(); VE = null; fermerFeuille(); rendre(); toast('Vue enregistrée'); };
 ACT.effPoste = d => { EFF.poste = d.p; rendre(); };
 ACT.effTri = d => { if (EFF.tri === d.t) EFF.sens = -EFF.sens; else { EFF.tri = d.t; EFF.sens = 1; } garderEff(); rendre(); };
 
@@ -523,7 +582,47 @@ document.addEventListener('change', e => { const t = e.target;
   if (t.dataset.chg === 'atelier' && PROG){ PROG.p.ateliers[t.dataset.p] = t.value; ficheProg(); }
 });
 
+/* ============================== v92 : menu de tous les écrans (barre à gauche sur grand écran, tiroir ☰ sur téléphone) ============================== */
+function MENU(){
+  const M_ = M(), mg = M_.manager, cl = !!mg.club, nl = nonLus(), ouvert = cl && C.mercatoOuvert(window.QM.semaine(M_));
+  const G_ = [
+    ['Mon club', [['accueil', 'Accueil', '🏠'], ['boite', 'Boîte de réception', '✉️', nl || ''], ['calendrier', 'Calendrier', '📅', '', 1]]],
+    ['Équipe', [['effectif', 'Effectif', '👥', '', 1], ['tactique', 'Tactique', '🧭', '', 1], ['entrainement', 'Entraînement', '🏃', '', 1], ['vestiaire', 'Vestiaire et mentorat', '🛋️', '', 1], ['formation', 'Poudlard (formation)', '🎓', '', 1], ...(mg.selection ? [['selection', 'Sélection', '🏆']] : [])]],
+    ['Recrutement', [['mercato', 'Mercato', '🦉', ouvert ? '●' : '', 1], ['clubs', 'Clubs et joueurs', '🔭'], ['staff', 'Staff', '🧙', '', 1]]],
+    ['Domaine', [['club', 'Carte du domaine', '🏰', '', 1], ['direction', 'Bureau du président', '🏛️', '', 1], ['finances', 'Finances et banque', '💰', '', 1], ['stade', 'Stade et tribunes', '🏟️', '', 1], ['boutique', 'Bazar', '🛍️', '', 1], ['partenaires', 'Partenaires', '🤝', '', 1], ['domaine', 'Bâtiments', '🧱', '', 1], ['trophees', 'Salle des trophées', '🏆', '', 1]]],
+    ['Compétitions', [['classements', 'Classements', '📊']]],
+    ['Moi', [['profil', 'Mon profil', '🧑'], ['carriere', 'Carrière', '🧭']]],
+    ['Partie', [['sauvegardes', 'Sauvegardes', '💾'], ['aide', 'Règles et réglages', '⚙️'], ['quitterKiosk', 'Quitter vers KiosK', '⏏︎', '', 0, 1]]],
+  ];
+  return G_.map(([g, L]) => [g, L.filter(x => cl || !x[4])]).filter(([, L]) => L.length);
+}
+const GROUPE_DE = {vestiaire:'effectif', clubFiche:'clubs', match:'accueil'};
+function menuHTML(){
+  const act = GROUPE_DE[U.vue] && !MENU().some(([, L]) => L.some(x => x[0] === U.vue)) ? GROUPE_DE[U.vue] : U.vue;
+  return MENU().map(([g, L]) => `<div class="mg-g"><h3>${g}</h3>${L.map(([v, n, ico, b, , direct]) => `<button class="mg-l ${act === v ? 'on' : ''}" ${direct ? `data-act="${v}"` : `data-act="vue" data-v="${v}"`} ${act === v ? 'aria-current="page"' : ''}><span class="mg-i" aria-hidden="true">${ico}</span><span class="mg-n">${n}</span>${b ? `<i class="mg-b">${b}</i>` : ''}</button>`).join('')}</div>`).join('');
+}
+function majMenu(){
+  const enJeu = !!(M() && M().manager) && U.vue !== 'match';
+  let a = document.getElementById('menuG');
+  if (!a){ a = document.createElement('nav'); a.id = 'menuG'; a.setAttribute('aria-label', 'Tous les menus'); document.body.appendChild(a); }
+  a.innerHTML = enJeu ? menuHTML() : '';
+  const t = document.querySelector('.tiroir-fond'); if (t) fermerTiroir();
+}
+function fermerTiroir(){ const t = document.querySelector('.tiroir-fond'); if (t) t.remove(); const b = document.getElementById('hdMenu'); if (b) b.setAttribute('aria-expanded', 'false'); }
+ACT.menu = () => {
+  if (document.querySelector('.tiroir-fond')) return fermerTiroir();
+  retirerFeuille();
+  const f = document.createElement('div'); f.className = 'tiroir-fond';
+  f.innerHTML = `<nav class="tiroir" aria-label="Tous les menus"><div class="tiroir-t"><b>Menus</b><button class="fermer" data-act="fermerTiroir" aria-label="Fermer">✕</button></div>${menuHTML()}</nav>`;
+  f.addEventListener('click', e => { if (e.target === f) fermerTiroir(); });
+  document.body.appendChild(f); const b = document.getElementById('hdMenu'); if (b) b.setAttribute('aria-expanded', 'true');
+  const on = f.querySelector('.mg-l.on'); if (on) on.scrollIntoView({block:'center'});
+};
+ACT.fermerTiroir = fermerTiroir;
+addEventListener('keydown', e => { if (e.key === 'Escape') fermerTiroir(); });
+Z.apresRendu = majMenu;
+
 /* ============================== Enregistrement ============================== */
 Object.assign(VUES, {club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});
-if (Z.M && Z.M.manager) rendre();
+if (Z.M && Z.M.manager) rendre(); else majMenu();
 })();

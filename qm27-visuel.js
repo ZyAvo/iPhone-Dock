@@ -1,4 +1,4 @@
-// mon-ecran-version: cc218c7f
+// mon-ecran-version: 90ad237a
 /* QM27 (v87) — graphismes dessinés par le code, sans image : blasons des clubs, maillots, avatars, radar du profil.
    Tout est déterministe : un club ou une personne a toujours le même dessin (graine = identifiant).
    window.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe}. Aucune dépendance (QMD seulement pour les prénoms). */
@@ -77,7 +77,14 @@ const PARTITIONS = {
   rayures:(t) => [4, 14, 24, 34].map(x => `<rect x="${x}" y="0" width="5" height="44" fill="${t}"/>`).join(''),
   ecartele:(t) => `<rect x="20" y="0" width="20" height="22" fill="${t}"/><rect x="0" y="22" width="20" height="22" fill="${t}"/>`,
 };
+/* v93 : illustrations (images/qm27/ : blasons, lieux et bâtiments du domaine, fond de carte) ; les dessins en code restent pour la galerie et en secours */
+const IMAGES = 'images/qm27/';
+const aImage = id => !!(D() && D().CLUBS.some(x => x[0] === id));
 function blason(c, cls){
+  if (c && aImage(c.id)) return `<img class="blz img ${cls || ''}" src="${IMAGES}blasons/${c.id}.webp" alt="" aria-hidden="true" decoding="async" draggable="false">`;
+  return blasonDessin(c, cls);
+}
+function blasonDessin(c, cls){
   const r = rng('blason' + c.id), [c1, c2] = c.couleurs || ['#445', '#ddd'];
   const forme = pondere(r, [['ecu', 5], ['ancien', 2], ['rond', 2], ['pointe', 1.4]]);
   const part = pondere(r, [['plein', 2], ['parti', 1.4], ['coupe', 1], ['chevron', 1.6], ['bande', 1.4], ['pal', 1], ['rayures', 1], ['ecartele', 0.8]]);
@@ -188,28 +195,36 @@ const lauriers = () => { let o = '';
     for (const d of [1.25, -1.25]){ const xx = x + Math.cos(t) * d * cote, yy = y - Math.sin(t) * d; o += `<ellipse cx="${xx.toFixed(2)}" cy="${yy.toFixed(2)}" rx="1.7" ry=".75" transform="rotate(${(ang + (d > 0 ? 28 : -28) * cote).toFixed(1)} ${xx.toFixed(2)} ${yy.toFixed(2)})"/>`; }
   }
   return o + '<path d="M9.4 19C5 16.6 3.6 10.4 7.3 5.6M14.6 19c4.4-2.4 5.8-8.6 2.1-13.4" stroke="#008c45" stroke-width=".9" fill="none"/>'; };
+/* v92 : écussons sans clipPath (affichage fiable partout) : anneau aux couleurs du drapeau, disque crème, symbole au centre */
+const rose = () => { let o = ''; for (let k = 0; k < 5; k++){ const a = (-90 + 72 * k + 36) * Math.PI / 180; o += `<path d="M12 12l${(Math.cos(a) * 7.2).toFixed(2)} ${(Math.sin(a) * 7.2).toFixed(2)}" stroke="#2e7d32" stroke-width="1.6" stroke-linecap="round"/>`; }
+  for (let k = 0; k < 5; k++){ const a = (-90 + 72 * k) * Math.PI / 180; o += `<circle cx="${(12 + Math.cos(a) * 3.4).toFixed(2)}" cy="${(12 + Math.sin(a) * 3.4).toFixed(2)}" r="3.2" fill="#c8102e"/>`; }
+  for (let k = 0; k < 5; k++){ const a = (-54 + 72 * k) * Math.PI / 180; o += `<circle cx="${(12 + Math.cos(a) * 1.7).toFixed(2)}" cy="${(12 + Math.sin(a) * 1.7).toFixed(2)}" r="1.75" fill="#fff"/>`; }
+  return o + '<circle cx="12" cy="12" r="1.2" fill="#e8b83c"/>'; };
 const EMBL = {
-  ENG:{fond:'#ffffff', bord:'#c8102e', nom:'la rose', svg:`<path d="M12 14.6v5.4" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round"/><path d="M12 17.4c-1.6-1.8-3.6-1.9-4.6-.8 1.3 1.1 3.1 1.4 4.6.8zM12 16.4c1.5-1.6 3.4-1.7 4.3-.6-1.2 1-2.9 1.2-4.3.6z" fill="#2e7d32"/>
-    <circle cx="12" cy="10" r="4.6" fill="#c8102e"/><path d="M12 6.8c1.8 0 3 1.3 3 2.9 0 1.5-1.2 2.7-2.8 2.7-1.4 0-2.4-1-2.4-2.2 0-1.1.8-1.9 1.9-1.9.9 0 1.5.6 1.5 1.3" stroke="#ff9aa8" stroke-width=".9" fill="none" stroke-linecap="round"/>`},
-  FRA:{fond:'#1d3f8f', bord:'#1d3f8f', nom:'le coq', svg:`<path d="M8.2 13.4C6.2 12 5.3 9.6 5.8 7.2M9 12.8c-1-1.9-1-4 .1-5.8M10.1 12.4c-.3-1.7.3-3.3 1.4-4.3" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-    <ellipse cx="12.2" cy="14.4" rx="4.9" ry="3.7" fill="#fff"/><path d="M13.6 12.6l1.4-3.6 3 .6-1.2 4.2z" fill="#fff"/><circle cx="16.6" cy="9" r="2.1" fill="#fff"/>
-    <path d="M15 7.4c.3-1 .9-1.4 1.3-.8.4-.9 1.2-.9 1.5-.1.6-.4 1.2 0 1 .8z" fill="#e1251b"/><path d="M18.5 8.6l1.9.5-1.9.6z" fill="#f2b632"/><circle cx="18" cy="10.5" r=".65" fill="#e1251b"/><circle cx="17" cy="8.7" r=".35" fill="#1d3f8f"/>
-    <path d="M11 17.8v2.6M13.6 17.8v2.6" stroke="#f2b632" stroke-width="1.2" stroke-linecap="round"/>`},
-  IRL:{fond:'#169b62', bord:'#169b62', nom:'le trèfle', svg:`<path d="M12 12.4c0 3 .7 5.4 2.2 7.6" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-    <circle cx="12" cy="7.9" r="3" fill="#fff"/><circle cx="8.4" cy="12.2" r="3" fill="#fff"/><circle cx="15.6" cy="12.2" r="3" fill="#fff"/><circle cx="12" cy="11.2" r="2" fill="#fff"/>`},
-  SCO:{fond:'#e6eef9', bord:'#0065bd', nom:'le chardon', svg:`<path d="M12 14v6.2" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round"/><path d="M12 17.6c-1.4-.4-2.6-1.4-3.2-2.8l1.4.3-.4-1.4 1.4.8M12 16.8c1.4-.4 2.6-1.4 3.2-2.8l-1.4.3.4-1.4-1.4.8" stroke="#2e7d32" stroke-width="1" fill="none" stroke-linejoin="round"/>
-    <path d="M8.4 9.6 8.8 4.6l1.4 2.6.6-3.6 1.2 3.4 1.2-3.4.6 3.6 1.4-2.6.4 5z" fill="#7b3fa0"/><ellipse cx="12" cy="11.6" rx="3.6" ry="2.8" fill="#3f9142"/><path d="M9.4 10.4l5.2 2.6M14.6 10.4l-5.2 2.6" stroke="#2a6a2d" stroke-width=".7"/>`},
-  WAL:{fond:'#ffffff', bord:'#00a651', bas:'#00a651', nom:'le dragon rouge', svg:`<g fill="#d21f2b"><path d="M11 11.6 12.2 4.4l1.7 2.6 1.6-3.2 1.1 3.6 2.1-1.8-.9 6z"/><ellipse cx="13.8" cy="12.8" rx="4.8" ry="2.3"/>
+  ENG:{anneau:['#c8102e'], nom:'la rose', svg:rose()},
+  FRA:{anneau:['#1d3f8f', '#ffffff', '#e1251b'], nom:'le coq', svg:`<g transform="translate(12 12.4) scale(.8) translate(-12.6 -12.6)"><path d="M8.2 13.4C6.2 12 5.3 9.6 5.8 7.2M9 12.8c-1-1.9-1-4 .1-5.8M10.1 12.4c-.3-1.7.3-3.3 1.4-4.3" stroke="#1d3f8f" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <ellipse cx="12.2" cy="14.4" rx="4.9" ry="3.7" fill="#1d3f8f"/><path d="M13.6 12.6l1.4-3.6 3 .6-1.2 4.2z" fill="#1d3f8f"/><circle cx="16.6" cy="9" r="2.1" fill="#1d3f8f"/>
+    <path d="M15 7.4c.3-1 .9-1.4 1.3-.8.4-.9 1.2-.9 1.5-.1.6-.4 1.2 0 1 .8z" fill="#e1251b"/><path d="M18.5 8.6l1.9.5-1.9.6z" fill="#e8b83c"/><circle cx="18" cy="10.5" r=".65" fill="#e1251b"/><circle cx="17" cy="8.7" r=".38" fill="#fff"/>
+    <path d="M11 17.8v2.6M13.6 17.8v2.6" stroke="#e8b83c" stroke-width="1.3" stroke-linecap="round"/></g>`},
+  IRL:{anneau:['#169b62', '#ffffff', '#ff883e'], nom:'le trèfle', svg:`<g transform="translate(12 12) scale(.82) translate(-12 -12.4)"><path d="M12 12.4c0 3 .7 5.4 2.2 7.6" stroke="#169b62" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+    <circle cx="12" cy="7.9" r="3" fill="#169b62"/><circle cx="8.4" cy="12.2" r="3" fill="#169b62"/><circle cx="15.6" cy="12.2" r="3" fill="#169b62"/><circle cx="12" cy="11.2" r="2" fill="#169b62"/></g>`},
+  SCO:{anneau:['#0065bd'], nom:'le chardon', svg:`<g transform="translate(12 12) scale(.82) translate(-12 -12.4)"><path d="M12 14v6.2" stroke="#2e7d32" stroke-width="1.6" stroke-linecap="round"/><path d="M12 17.6c-1.4-.4-2.6-1.4-3.2-2.8l1.4.3-.4-1.4 1.4.8M12 16.8c1.4-.4 2.6-1.4 3.2-2.8l-1.4.3.4-1.4-1.4.8" stroke="#2e7d32" stroke-width="1.1" fill="none" stroke-linejoin="round"/>
+    <path d="M8.4 9.6 8.8 4.6l1.4 2.6.6-3.6 1.2 3.4 1.2-3.4.6 3.6 1.4-2.6.4 5z" fill="#7b3fa0"/><ellipse cx="12" cy="11.6" rx="3.6" ry="2.8" fill="#3f9142"/><path d="M9.4 10.4l5.2 2.6M14.6 10.4l-5.2 2.6" stroke="#2a6a2d" stroke-width=".7"/></g>`},
+  WAL:{anneau:['#ffffff', '#00a651'], nom:'le dragon rouge', bas:'#00a651', svg:`<g transform="translate(12 12) scale(.8) translate(-12.6 -11.6)"><g fill="#d21f2b"><path d="M11 11.6 12.2 4.4l1.7 2.6 1.6-3.2 1.1 3.6 2.1-1.8-.9 6z"/><ellipse cx="13.8" cy="12.8" rx="4.8" ry="2.3"/>
     <path d="M10 12.4 7.4 9.4l-2.2.1-1.6-.9.6 1.5-.9 1.1h2.2l1.6.4 2.6 2.6z"/><path d="M19.4 8.2l1.9.5-.9 1.7z"/></g>
-    <path d="M18.2 13.4c1.8.7 3.1.2 3.5-1.4.3-1.2-.4-2.2-1.4-2.4M10.8 14.6l-1 2.4h1.6M15.8 14.8l.8 2.4h-1.6" stroke="#d21f2b" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="5.9" cy="9.9" r=".5" fill="#fff"/>`},
-  ITA:{fond:'#ffffff', bord:'#008c45', nom:'la couronne de laurier', svg:`<g fill="#008c45">${lauriers()}</g><path d="M10.2 19.6l1.8-1.4 1.8 1.4M10.6 20.6l1.4-1.2 1.4 1.2" stroke="#cd212a" stroke-width="1.1" fill="none" stroke-linecap="round"/>`},
+    <path d="M18.2 13.4c1.8.7 3.1.2 3.5-1.4.3-1.2-.4-2.2-1.4-2.4M10.8 14.6l-1 2.4h1.6M15.8 14.8l.8 2.4h-1.6" stroke="#d21f2b" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="5.9" cy="9.9" r=".5" fill="#fff"/></g>`},
+  ITA:{anneau:['#008c45', '#ffffff', '#cd212a'], nom:'la couronne de laurier', svg:`<g transform="translate(12 12) scale(.8) translate(-12 -12)"><g fill="#008c45">${lauriers()}</g><path d="M10.2 19.6l1.8-1.4 1.8 1.4M10.6 20.6l1.4-1.2 1.4 1.2" stroke="#cd212a" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    <path d="M12 7.4l.9 1.9 2 .2-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.2z" fill="#e8b83c"/></g>`},
 };
-let nEmb = 0;
+function anneauDe(L){
+  const r = 10.3, C = 2 * Math.PI * r, n = L.length, seg = C / n;
+  return L.map((c, i) => `<circle cx="12" cy="12" r="${r}" fill="none" stroke="${c}" stroke-width="2.6" stroke-dasharray="${(seg + (n > 1 ? 0.05 : 0)).toFixed(3)} ${(C - seg).toFixed(3)}" stroke-dashoffset="${(-seg * i).toFixed(3)}" transform="rotate(-90 12 12)"/>`).join('');
+}
 function embleme(n, cls){
   const e = EMBL[n]; if (!e) return '';
-  const id = 'emb' + (++nEmb) + n;
-  return `<svg class="emb ${cls || ''}" viewBox="0 0 24 24" role="img" aria-label="${D().NATIONS[n] ? D().NATIONS[n].nom : n} (${e.nom})"><defs><clipPath id="${id}"><circle cx="12" cy="12" r="11"/></clipPath></defs>
-    <circle cx="12" cy="12" r="11.2" fill="${e.fond}"/>${e.bas ? `<rect x="0" y="12.6" width="24" height="12" fill="${e.bas}" clip-path="url(#${id})"/>` : ''}<g clip-path="url(#${id})">${e.svg}</g><circle cx="12" cy="12" r="11.2" fill="none" stroke="${e.bord}" stroke-width="1.4"/></svg>`;
+  return `<svg class="emb ${cls || ''}" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="${D().NATIONS[n] ? D().NATIONS[n].nom : n} (${e.nom})">
+    <circle cx="12" cy="12" r="9" fill="#fbf8f0"/>${e.bas ? `<path d="M3 12.6a9 9 0 0 0 18 0z" fill="${e.bas}" opacity=".9"/>` : ''}${anneauDe(e.anneau)}
+    <circle cx="12" cy="12" r="11.6" fill="none" stroke="rgba(0,0,0,.3)" stroke-width=".7"/><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(0,0,0,.14)" stroke-width=".5"/>${e.svg}</svg>`;
 }
 
 /* ---------- radar ---------- */
@@ -261,7 +276,11 @@ const BAT_ICONES = {
   hangar:(c1, c2) => `${ombreSol}<path d="M8 58V30a24 14 0 0 1 48 0v28z" fill="#b5835a" stroke="${TRAIT}"/><path d="M20 58V38h24v20z" fill="${BOIS2}" stroke="${TRAIT}" stroke-width=".6"/><path d="M20 38l24 20M44 38L20 58" stroke="${BOIS}" stroke-width="1.2"/>
     <path d="M50 58l6-20" stroke="#6b4a2a" stroke-width="1.4"/><path d="M48.5 58l3-6 3 2-2 4z" fill="#d9b05b"/><path d="M12 32h40" stroke="rgba(0,0,0,.25)" stroke-width=".8"/>`,
 };
-function batiment(type, c1, c2){ return (BAT_ICONES[type] || BAT_ICONES.bureau)(c1 || '#5a6a80', c2 || '#e6e9ee'); }
+const BAT_IMG = {bureau:'lieux/direction', tribunes:'batiments/tribunes', boutique:'batiments/boutique', buvettes:'batiments/buvettes', formation:'batiments/formation', infirmerie:'batiments/infirmerie', aire:'batiments/aire',
+  hangar:'batiments/hangar', salle:'batiments/salle', voliere:'batiments/voliere', divination:'batiments/divination', trophees:'batiments/trophees', residence:'batiments/residence'};
+/* dans un <svg viewBox="0 0 64 64"> : l'illustration si elle existe, sinon le dessin */
+function batiment(type, c1, c2){ return BAT_IMG[type] ? `<image href="${IMAGES}${BAT_IMG[type]}.webp" x="-2" y="-4" width="68" height="68" preserveAspectRatio="xMidYMax meet"/>` : batimentDessin(type, c1, c2); }
+function batimentDessin(type, c1, c2){ return (BAT_ICONES[type] || BAT_ICONES.bureau)(c1 || '#5a6a80', c2 || '#e6e9ee'); }
 /* trophée (coupe) : variante selon le titre */
 function trophee(k, titre){
   const r = rng('trophee' + k + titre), or = choix(r, ['#e2b23a', '#d9a62e', '#c9c9c9', '#e8c55a']), anse = r() < 0.5;
@@ -270,5 +289,5 @@ function trophee(k, titre){
     <rect x="18" y="22" width="4" height="10" fill="${or}"/><path d="M12 32h16l2 6H10z" fill="${melange(or, '#000000', 0.2)}"/><rect x="9" y="38" width="22" height="7" rx="1" fill="#4a3a2a"/><path d="M14 9c0 4 1 7 4 8" stroke="#fff" stroke-width="1.2" opacity=".55" fill="none"/></svg>`;
 }
 
-root.QMV = {embleme, EMBL, blason, maillot, avatar, radar, couleursNation, emblemeDe, feminin, EMB, EMBLEMES, lisible, melange, batiment, trophee};
+root.QMV = {IMAGES, blasonDessin, batimentDessin, embleme, EMBL, blason, maillot, avatar, radar, couleursNation, emblemeDe, feminin, EMB, EMBLEMES, lisible, melange, batiment, trophee};
 })(typeof window !== 'undefined' ? window : globalThis);

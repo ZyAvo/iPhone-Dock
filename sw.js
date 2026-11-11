@@ -1,4 +1,4 @@
-// mon-ecran-version: 32f769aa
+// mon-ecran-version: f7eeb6e3
 /* Mon Écran — mise en mémoire sur l'iPhone pour un démarrage instantané, même sans réseau.
    - Pages (accueil, actus, sport, état) : dernière version si le réseau répond en moins de 1,5 s,
      sinon la version en mémoire tout de suite, mise à jour en arrière-plan (la page se recharge seule
@@ -6,7 +6,7 @@
    - Données (matchs, programme TV, actus, état) : réseau d'abord ; sans réseau, dernière version connue.
    - Polices Google : gardées en mémoire.
    Les sites extérieurs (ESPN, Spotify, flux RSS…) ne passent pas par ici. */
-const PAGES = 'pages-v1', DATA = 'donnees-v1', FONTS = 'polices-v1';
+const PAGES = 'pages-v1', DATA = 'donnees-v1', FONTS = 'polices-v1', IMAGES = 'images-v1';   // v93 : illustrations de QM27
 const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'pronos.html', 'reglages.html', 'tv.html', 'ambreval.html', 'ambreval.js', 'ambreval-art.js', 'ambreval-ui.js', 'qm27.html', 'qm27.js', 'qm27-donnees.js', 'qm27-club.js', 'qm27-carriere.js', 'qm27-domaine.js', 'qm27-vestiaire.js', 'qm27-bureau.js', 'qm27-visuel.js', 'qm27-ui.js', 'qm27-ecrans.js', 'noyau.js', 'themes.js', 'tv.js', 'match.js', 'synchro.js', 'commun.js', 'commun.css', 'polices/Geist-Variable.woff2', 'manifest.json', 'manifest-pronos.json', 'apple-touch-icon.png', 'icone-192.png', 'icone-512.png'];
 
 self.addEventListener('install', e => {
@@ -14,7 +14,7 @@ self.addEventListener('install', e => {
   e.waitUntil(Promise.all([caches.open(PAGES), caches.open(FONTS)]).then(([p, f]) => Promise.all(SHELL.map(u => (/^polices\//.test(u) ? f : p).add(new Request(u, {cache:'reload'})).catch(() => {})))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => ![PAGES, DATA, FONTS].includes(k)).map(k => caches.delete(k))))
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => ![PAGES, DATA, FONTS, IMAGES].includes(k)).map(k => caches.delete(k))))
     .then(() => caches.open(DATA)).then(c => c.keys().then(l => Promise.all(l.filter(r => /\/donnees\/tv\//.test(r.url)).map(r => c.delete(r)))))   // v52 : catalogue TV (19 Mo) retiré de la mémoire
     .then(() => self.clients.claim()));
 });
@@ -75,6 +75,7 @@ self.addEventListener('fetch', e => {
   if (/^fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) return e.respondWith(cacheFirst(e, FONTS));
   if (url.origin !== self.location.origin) return;
   if (/\/polices\//.test(url.pathname)) return e.respondWith(cacheFirst(e, FONTS));      // v53 : polices hébergées avec le dock
+  if (/\/images\/qm27\//.test(url.pathname)) return e.respondWith(cacheFirst(e, IMAGES));   // v93 : illustrations, gardées après le premier affichage
   // v52 : catalogue TV (19 Mo, relu une fois par jour) et lectures partielles (Range) : directement au réseau, sans mémoire
   if (/\/donnees\/tv\//.test(url.pathname) || req.headers.has('range')) return;
   if (/\.json$/.test(url.pathname)) return e.respondWith(networkFirst(e));

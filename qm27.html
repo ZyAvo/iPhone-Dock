@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="c7f4e2f9">
+<meta name="mon-ecran-version" content="bf159777">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -433,6 +433,46 @@ table.cl tr.lien{cursor:pointer} table.cl tr.lien:hover td{background:var(--card
   .raccourcis,.raccourcis-n{display:none}
   .carte-dom{max-height:none}
 }
+/* v92 : menu de tous les écrans, vues réglables de l'effectif */
+#menuG{display:none}
+.mg-g{margin-bottom:10px}
+.mg-g h3{margin:8px 10px 4px;font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft)}
+.mg-l{display:flex;align-items:center;gap:10px;width:100%;min-height:38px;padding:0 10px;border-radius:10px;text-align:left;font-size:.9rem;font-weight:550;color:var(--ink)}
+.mg-l:hover{background:var(--card-2)}
+.mg-l.on{background:var(--accent);color:var(--on-accent)}
+.mg-i{flex:none;width:22px;text-align:center;font-size:1rem}
+.mg-n{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mg-b{font-style:normal;flex:none;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--mauvais);color:#fff;font-size:.65rem;font-weight:800;display:grid;place-items:center}
+.mg-l.on .mg-b{background:var(--on-accent);color:var(--accent)}
+.tiroir-fond{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.38);animation:fondu .2s}
+.tiroir{position:absolute;top:0;bottom:0;left:0;width:min(300px, 86vw);background:var(--sheet-solid);overflow:auto;padding:calc(10px + env(safe-area-inset-top, 0px)) 8px calc(20px + env(safe-area-inset-bottom, 0px));box-shadow:4px 0 30px rgba(0,0,0,.25);animation:tiroirIn .22s ease-out}
+@keyframes tiroirIn{from{transform:translateX(-100%)}to{transform:none}}
+.tiroir-t{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 6px 10px}
+.tiroir-t b{font-size:1.1rem}
+@media (min-width:1100px){
+  body.en-jeu #menuG{display:block;position:fixed;top:calc(53px + env(safe-area-inset-top, 0px));left:0;bottom:0;width:232px;overflow:auto;padding:10px 8px 24px;background:var(--head);backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);border-right:1px solid var(--line);z-index:5}
+  body.en-jeu main,body.en-jeu header.qm .wrap{padding-left:232px}
+  body.en-jeu nav.qm-nav,body.en-jeu #hdMenu{display:none}
+}
+.onglets-l{display:flex;align-items:flex-end;gap:8px}
+.onglets-l .onglets{flex:1;min-width:0}
+.onglets-l .roue{margin-bottom:10px;font-size:1.05rem}
+.tj-carte{overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--sheet-solid)}
+.tj-carte .tj-h{position:static}
+.tj-carte .tj-p,.tj-carte .tj-n{position:sticky;background:var(--sheet-solid);z-index:1}
+.tj-carte .tj-p{left:0} .tj-carte .tj-n{left:40px;min-width:120px}
+.tj-carte .tj-h .th:first-child,.tj-carte .tj-h .th:nth-child(2){position:sticky;background:var(--sheet-solid);z-index:2}
+.tj-carte .tj-h .th:first-child{left:0} .tj-carte .tj-h .th:nth-child(2){left:40px;min-width:120px}
+/* v93 : illustrations */
+img.blz{object-fit:contain;-webkit-user-drag:none;user-select:none}
+img.blz.g{width:62px;height:62px} img.blz.p{width:26px;height:26px}
+img.blz:not(.g):not(.p){width:38px;height:38px}
+.carte-dom.illus{max-height:none}
+@media (min-width:900px){.carte-dom.illus{max-height:calc(100vh - 170px)}}
+.carte-dom .nuit-voile{fill:#081226;opacity:0;pointer-events:none}
+.carte-dom .bat-img{filter:drop-shadow(0 3px 3px rgba(0,0,0,.25))}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .carte-dom .fond-img{filter:brightness(.62) saturate(.75) hue-rotate(-8deg)} :root:not([data-theme="light"]) .carte-dom .nuit-voile{opacity:.32} :root:not([data-theme="light"]) .carte-dom .bat-img{filter:brightness(.9) drop-shadow(0 3px 3px rgba(0,0,0,.35))}}
+:root[data-theme="dark"] .carte-dom .fond-img{filter:brightness(.62) saturate(.75) hue-rotate(-8deg)} :root[data-theme="dark"] .carte-dom .nuit-voile{opacity:.32} :root[data-theme="dark"] .carte-dom .bat-img{filter:brightness(.9) drop-shadow(0 3px 3px rgba(0,0,0,.35))}
 /* v90 : vestiaire et mercato */
 .at.flou b{font-weight:700;font-size:.72rem}
 .note.flou{font-size:.66rem;min-width:46px}
@@ -658,8 +698,9 @@ html.desk .er{cursor:grab}
 <header class="qm">
   <div class="wrap">
     <a class="hd-btn kiosk" id="hdKiosk" href="index.html" aria-label="Retour à KiosK"><svg class="k-logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9.2" height="9.2" rx="2.6"/><rect x="12.8" y="2" width="9.2" height="9.2" rx="2.6" opacity=".6"/><rect x="2" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".78"/><rect x="12.8" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".4"/></svg></a>
+    <button class="hd-btn" id="hdMenu" data-act="menu" aria-label="Tous les menus" aria-expanded="false" hidden><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <button class="hd-btn" id="hdRetour" data-act="retour" aria-label="Retour" hidden><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
-    <button class="hd-btn" id="hdMaison" data-act="maison" aria-label="Accueil du jeu" hidden><svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z"/></svg></button>
+
     <div class="titre" id="titre"><b><span class="marque-qm">QM27</span></b><span>Quidditch Manager 27</span></div>
     <div class="hd-dr" id="hdDr"></div>
   </div>

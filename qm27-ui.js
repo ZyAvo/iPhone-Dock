@@ -1,4 +1,4 @@
-// mon-ecran-version: e1d90b38
+// mon-ecran-version: 08fc5a6d
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -151,8 +151,9 @@ addEventListener('pagehide', () => { if (M && !U.live) sauver(); });
 function entete(){
   const t = $('#titre'), dr = $('#hdDr'), enJeu = !!(M && M.manager);
   /* v91 : plus de gros retour KiosK pendant la partie — retour écran par écran et maison ; KiosK seulement depuis l'écran des parties */
-  const ret = $('#hdRetour'), mai = $('#hdMaison'), kio = $('#hdKiosk');
-  if (ret){ ret.hidden = !enJeu || PROF <= 0 || U.vue === 'match'; mai.hidden = !enJeu || U.vue === 'accueil' || U.vue === 'match'; kio.hidden = enJeu; }
+  const ret = $('#hdRetour'), men = $('#hdMenu'), kio = $('#hdKiosk');
+  if (ret){ ret.hidden = !enJeu || PROF <= 0 || U.vue === 'match'; men.hidden = !enJeu || U.vue === 'match'; kio.hidden = enJeu; }
+  document.body.classList.toggle('en-jeu', enJeu && U.vue !== 'match');
   if (!M || !M.manager){ t.innerHTML = '<b><span class="marque-qm">QM27</span></b><span>Quidditch Manager 27</span>'; dr.innerHTML = ''; return; }
   const S = QM.semaine(M);
   if (!M.manager.club){ t.innerHTML = `<b>${esc(M.manager.nom)} · sans club</b><span><span class="marque-qm">QM27</span> · ${lab(M.saison)}${S ? ' · ' + fmtDate(S.date) : ''}</span>`; dr.innerHTML = ''; return; }
@@ -179,6 +180,7 @@ function rendre(){
   if (!M.manager.club && U.vue === 'accueil') return vueChomage();
   if (U.vue === 'selection' && !M.manager.selection) U.vue = 'accueil';
   (VUES[U.vue] || VUES.accueil)();
+  if (window.QMU && QMU.apresRendu) QMU.apresRendu();   // v92 : menu latéral
 }
 /* v91 : navigation — chaque écran entre dans l'historique du navigateur (retour, geste de retour de l'iPhone) */
 let PROF = 0;
@@ -898,17 +900,12 @@ const coutEntretien = (c, k) => ((E.inst[k] || E.bat[k] || {}).entretien || 0) *
 function stadePlan(c){
   const lv = C.niv(c, 'tribunes'), [c1, c2] = c.couleurs, toit = lv >= 3;
   return `<g class="dbat" data-act="batiment" data-b="tribunes" role="button" tabindex="0" aria-label="Stade, niveau ${lv}">
-    <ellipse cx="210" cy="166" rx="84" ry="58" fill="${toit ? V.melange(c1, '#000000', .25) : '#b9b2a3'}" stroke="rgba(0,0,0,.35)"/>
-    <ellipse cx="210" cy="166" rx="74" ry="50" fill="${c1}" opacity=".92"/>${[0, 1, 2, 3, 4, 5].map(k => `<ellipse cx="210" cy="166" rx="${70 - k * 3.4}" ry="${46.5 - k * 2.4}" fill="none" stroke="${V.melange(c1, '#ffffff', .35)}" stroke-width=".6" opacity=".7"/>`).join('')}
-    <ellipse cx="210" cy="166" rx="50" ry="31" fill="#5aa764" stroke="#fff" stroke-width=".8"/><path d="M210 135v62" stroke="rgba(255,255,255,.6)" stroke-width=".6"/>
-    ${[178, 242].map(x => `<g fill="none" stroke="#f3d36b" stroke-width="1.2">${[-6, 0, 6].map(dy => `<circle cx="${x}" cy="${166 + dy}" r="${dy ? 2 : 2.6}"/>`).join('')}</g>`).join('')}
-    ${[[130, 118], [290, 118], [130, 214], [290, 214]].map(([x, y]) => `<path d="M${x} ${y}v-12" stroke="#555" stroke-width=".8"/><path d="M${x} ${y - 12}h7l-2 2 2 2h-7z" fill="${c2}"/>`).join('')}
-    ${B.a(c, 'dragon') ? '<path d="M296 196l8-10 4 4 6-3-2 7 5 4h-21z" fill="#8b8f96" stroke="rgba(0,0,0,.4)" stroke-width=".6"/>' : ''}
-    ${B.a(c, 'ecran') ? '<rect x="196" y="104" width="28" height="9" rx="1.5" fill="#1d2430" stroke="#000" stroke-width=".5"/>' : ''}</g>
-    <text x="210" y="238" text-anchor="middle" class="dlab">Stade · ${c.stade.toLocaleString('fr-FR')} places</text>`;
+    <image href="${V.IMAGES}lieux/stade.webp" x="125" y="78" width="170" height="170" preserveAspectRatio="xMidYMid meet"/>   <!-- v93 : illustration -->
+    ${B.a(c, 'dragon') ? '<path d="M296 196l8-10 4 4 6-3-2 7 5 4h-21z" fill="#8b8f96" stroke="rgba(0,0,0,.4)" stroke-width=".6"/>' : ''}</g>
+    <text x="210" y="246" text-anchor="middle" class="dlab">Stade · ${c.stade.toLocaleString('fr-FR')} places</text>`;
 }
 function batPlan(c, k){
-  const [x, y] = POS_DOM[k], s = 0.82, n = k === 'bureau' ? 0 : C.niv(c, k), tr = c.travaux.find(t => t.type === k), att = k !== 'bureau' && B.amelEnAttente(c, k);
+  const [x, y] = POS_DOM[k], s = 0.95, n = k === 'bureau' ? 0 : C.niv(c, k), tr = c.travaux.find(t => t.type === k), att = k !== 'bureau' && B.amelEnAttente(c, k);
   return `<g class="dbat" data-act="batiment" data-b="${k}" role="button" tabindex="0" aria-label="${esc(nomBat(k))}${n ? ', niveau ' + n : ''}${tr ? ', travaux en cours' : ''}${att ? ', amélioration à choisir' : ''}">
     <g transform="translate(${x - 32 * s} ${y - 40 * s}) scale(${s})">${V.batiment(k, c.couleurs[0], c.couleurs[1])}
       ${tr ? '<g class="echaf"><path d="M6 58V22h52v36M6 34h52M6 46h52M6 22l52 36M58 22L6 58" fill="none" stroke="#c98a2b" stroke-width="1.4"/></g>' : ''}</g>
@@ -936,7 +933,7 @@ function vueDomaine(){
       <p class="petit mut" style="margin:8px 0 0">Les supporters suivent les résultats, le prix des places et ceux du Bazar. Contents, ils remplissent le stade et rassurent le président.</p></div>
   </div><div>
     <div class="carte"><h2>Bâtiments</h2><div class="liste">${['bureau', ...D.BATIMENTS.map(b => b[0])].map(k => { const n = k === 'bureau' ? 0 : C.niv(c, k), tr = c.travaux.find(t => t.type === k), a = k !== 'bureau' && B.amelEnAttente(c, k);
-      return `<button class="el" data-act="batiment" data-b="${k}"><svg class="bmini" viewBox="0 0 64 64" aria-hidden="true">${k === 'tribunes' ? '<ellipse cx="32" cy="36" rx="28" ry="18" fill="' + c.couleurs[0] + '"/><ellipse cx="32" cy="36" rx="16" ry="10" fill="#5aa764"/>' : V.batiment(k, c.couleurs[0], c.couleurs[1])}</svg>
+      return `<button class="el" data-act="batiment" data-b="${k}"><svg class="bmini" viewBox="0 0 64 64" aria-hidden="true">${V.batiment(k, c.couleurs[0], c.couleurs[1])}</svg>
         <div class="t"><b>${esc(nomBat(k))}</b><span>${k === 'bureau' ? 'Finances, partenaires, banque' : k === 'tribunes' ? c.stade.toLocaleString('fr-FR') + ' places' : esc(B.BAT[k][3].split(' :')[0].split('(')[0])}</span></div>
         ${a ? '<span class="badge" style="color:var(--or);border-color:var(--or)">à choisir</span>' : tr ? `<span class="badge">${tr.fin - (M.tic || 0)} sem.</span>` : n ? pips(n) : ''}</button>`; }).join('')}</div></div>
   </div></div>`;
@@ -960,7 +957,7 @@ function ficheBat(k){
       ${B.a(c, 'apothicaire') ? `<p class="petit mut" style="margin:8px 0 0">Potion de forme : ${(M.tic || 0) - c.dom.potion >= 4 ? 'disponible (fiche du joueur)' : 'prochaine dans ' + (4 - ((M.tic || 0) - c.dom.potion)) + ' semaine(s)'}.</p>` : ''}</div>`; }
   if (k === 'divination') extra = `<div class="carte" style="margin-top:10px"><h2>Ce que voit le cabinet</h2><p class="petit" style="margin:0">${['Niveau 1 : la forme de l\'adversaire.', 'Niveau 2 : sa tactique (rythme, attrapeur, pressing).', 'Niveau 3 : son joueur clé.', 'Niveau 4 : la note moyenne de ses titulaires.', 'Niveau 5 : son point faible.'].map((t, i) => `<span style="display:block;${i < n ? '' : 'opacity:.45'}">${i < n ? '✓' : '·'} ${t}</span>`).join('')}</p><p class="petit mut" style="margin:6px 0 0">Le rapport s'affiche avant chaque match de championnat.</p></div>`;
   if (k === 'trophees'){ const T = B.titres(M, c); extra = `<div class="carte" style="margin-top:10px"><h2>${T.length} titre${T.length > 1 ? 's' : ''}</h2><p class="petit mut" style="margin:0">Visites : ${eur(B.visites(M, c))} par semaine.</p></div>`; }
-  feuille(`${teteF(esc(b[1]), `Niveau ${n} / 5 · entretien ${eur(coutEntretien(c, k))} par semaine`, `<svg class="bico" viewBox="0 0 64 64" aria-hidden="true">${k === 'tribunes' ? '<ellipse cx="32" cy="36" rx="28" ry="18" fill="' + c.couleurs[0] + '"/><ellipse cx="32" cy="36" rx="16" ry="10" fill="#5aa764"/>' : V.batiment(k, c.couleurs[0], c.couleurs[1])}</svg>`)}
+  feuille(`${teteF(esc(b[1]), `Niveau ${n} / 5 · entretien ${eur(coutEntretien(c, k))} par semaine`, `<svg class="bico" viewBox="0 0 64 64" aria-hidden="true">${V.batiment(k, c.couleurs[0], c.couleurs[1])}</svg>`)}
     <p style="margin:0 0 6px">${esc(b[3])}</p>${pips(n)}
     <div class="btns" style="margin:12px 0">${n >= 5 ? '<span class="badge tit">Niveau maximal</span>' : tr ? `<span class="badge">Travaux en cours · fin dans ${tr.fin - (M.tic || 0)} semaine(s)</span>` : `<button class="btn" data-act="ameliorer" data-b="${k}">Passer au niveau ${n + 1} · ${eur(cout)} · ${sem} sem.</button>`}
       ${vue ? `<button class="btn sec" data-act="allerVue" data-v="${vue}">Ouvrir</button>` : ''}</div>

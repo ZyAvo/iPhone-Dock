@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
-<meta name="mon-ecran-version" content="9c27a293">
+<meta name="mon-ecran-version" content="a0ee99d4">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>QM27 — galerie des graphismes</title>
 <style>
@@ -14,7 +14,7 @@
   .radar{width:220px}
 </style></head><body>
 <p>Outil de développement : tous les blasons, maillots et des avatars tirés au hasard (graines fixes). Ouvrir depuis la racine du dépôt servie en local.</p>
-<h2>Blasons et maillots des 48 clubs</h2><div class="g" id="clubs"></div>
+<h2>Blasons des 48 clubs (illustration v93, dessin de secours) et maillots</h2><div class="g" id="clubs"></div>
 <h2>Sélections (emblèmes v91 et maillots)</h2><div class="g" id="nat"></div>
 <h2>Avatars</h2><div class="g" id="av"></div>
 <h2>Radar</h2><div id="radar"></div>
@@ -22,7 +22,7 @@
 <script>
 const D = QMD, V = QMV;
 document.getElementById('clubs').innerHTML = D.CLUBS.map(c => { const o = {id:c[0], nom:c[1], couleurs:[c[6], c[7]]};
-  return `<div class="c">${V.blason(o)}${V.blason(o, 'p')}${V.maillot(o, 7)}<span>${c[1]}<br>${V.emblemeDe(c[0])}</span></div>`; }).join('');
+  return `<div class="c"><img src="../../images/qm27/blasons/${c[0]}.webp" width="56" height="56" alt="">${V.blasonDessin(o)}${V.maillot(o, 7)}<span>${c[1]}<br>${V.emblemeDe(c[0])}</span></div>`; }).join('');
 document.getElementById('nat').innerHTML = D.SIX_NATIONS.map(n => `<div class="c">${V.embleme(n).replace('class="emb ', 'width="56" height="56" class="emb ')}${V.maillot({id:n, couleurs:V.couleursNation(n), motif:'uni'}, 10)}<span>${D.NATIONS[n].nom}</span></div>`).join('');
 const nats = Object.keys(D.NOMS); let html = '';
 for (let i = 0; i < 48; i++){ const nat = nats[i % nats.length], N = D.NOMS[nat], p = N.p[(i * 7) % N.p.length], n = N.n[(i * 5) % N.n.length], age = 17 + (i * 3) % 20;
