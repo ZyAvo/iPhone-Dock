@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="816de245">
+<meta name="mon-ecran-version" content="6d77b6ff">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -270,6 +270,51 @@ html.desk .grille{grid-template-columns:repeat(4, 1fr)}
 .histo div{flex:1;height:100%;display:flex;align-items:flex-end}
 .histo i{display:block;width:100%;border-radius:4px 4px 0 0;min-height:3px}
 .cons .ligne .btn{flex:none;width:48px;padding:0}
+/* v88 : domaine du club */
+.plan-carte{padding:10px}
+.plan{display:block;width:100%;height:auto;border-radius:14px}
+.dsol{fill:#a7cf8e} .dcolline{fill:#8fbf78} .dchemin{fill:none;stroke:#e6d6b0;stroke-width:7;stroke-linecap:round} .dlac{fill:#7fc0dd;stroke:#5fa8c8;stroke-width:1}
+.darbre{fill:#4f8f4a} .darbre2{fill:#6aab5f}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .dsol{fill:#2d4a33} :root:not([data-theme="light"]) .dcolline{fill:#27412c} :root:not([data-theme="light"]) .dchemin{stroke:#5d5644} :root:not([data-theme="light"]) .dlac{fill:#2c5d78;stroke:#3a7392} :root:not([data-theme="light"]) .darbre{fill:#2f5f30} :root:not([data-theme="light"]) .darbre2{fill:#3f7a3e}}
+:root[data-theme="dark"] .dsol{fill:#2d4a33} :root[data-theme="dark"] .dcolline{fill:#27412c} :root[data-theme="dark"] .dchemin{stroke:#5d5644} :root[data-theme="dark"] .dlac{fill:#2c5d78;stroke:#3a7392} :root[data-theme="dark"] .darbre{fill:#2f5f30} :root[data-theme="dark"] .darbre2{fill:#3f7a3e}
+.dlab{font-size:10px;font-weight:700;fill:#1d2a1f;paint-order:stroke;stroke:rgba(255,255,255,.75);stroke-width:2.6px;stroke-linejoin:round}
+:root[data-theme="dark"] .dlab{fill:#eef3ea;stroke:rgba(0,0,0,.6)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .dlab{fill:#eef3ea;stroke:rgba(0,0,0,.6)}}
+.dbat{cursor:pointer;outline:none}
+.dbat:hover > g:first-of-type,.dbat:focus-visible > g:first-of-type{filter:drop-shadow(0 0 5px rgba(255,214,90,.95))}
+.echaf{animation:echaf 1.6s ease-in-out infinite alternate}
+@keyframes echaf{to{opacity:.45}}
+.bmini{flex:none;width:40px;height:40px}
+.bico{flex:none;width:56px;height:56px}
+.pips{display:inline-flex;gap:3px;vertical-align:middle}
+.pips i{width:9px;height:6px;border-radius:2px;background:var(--line)}
+.pips i.on{background:var(--or)}
+.amel-niv{margin-top:10px} .amel-niv h4{margin:0 0 6px;font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft)}
+.amel-choix{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.amel{display:flex;flex-direction:column;gap:4px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--card-2)}
+.amel b{font-size:.86rem} .amel span{font-size:.76rem;color:var(--ink-soft);flex:1}
+.amel .btn{margin-top:4px;min-height:34px}
+.amel.pris{border-color:var(--or);background:var(--or-doux)} .amel.non{opacity:.45}
+.stadev{display:block;width:100%;height:auto}
+.trib{cursor:pointer;outline:none} .trib:hover path:first-child,.trib:focus-visible path:first-child{filter:brightness(1.15)}
+.tlab{font-size:9.5px;font-weight:800;fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.45);stroke-width:2px;pointer-events:none}
+.el.prod{flex-wrap:wrap}
+.interr{position:relative;flex:none;width:42px;height:26px;cursor:pointer}
+.interr input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.interr span{position:absolute;inset:0;border-radius:13px;background:var(--line);transition:background .15s}
+.interr span::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
+.interr input:checked + span{background:var(--bon)} .interr input:checked + span::after{transform:translateX(16px)}
+.interr input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+.seg.mini{margin:0;flex:none} .seg.mini button{padding:4px 8px;font-size:.72rem;min-height:28px}
+@media (max-width:520px){ .el.prod .seg.mini{flex:0 0 calc(100% - 52px);max-width:calc(100% - 52px);margin-left:52px;box-sizing:border-box} }
+.spons{display:flex;align-items:center;gap:14px} .spons .mt{width:84px;height:84px;flex:none}
+.spons b{display:block;font-size:1rem} .spons span{display:block;font-size:.8rem;color:var(--ink-soft);margin-top:2px}
+.trophees{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:12px}
+.trophees .tr{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px}
+.trophees .tr b{font-size:.8rem} .trophees .tr span{font-size:.7rem;color:var(--ink-soft)}
+.trophees .tr.ancien .tro{filter:grayscale(.55) brightness(.9);opacity:.85}
+.tro{width:52px;height:62px}
+.div-carte{border-color:color-mix(in srgb, #3d4f8f 45%, var(--line))}
 /* v87 : graphismes (blasons, maillots, avatars) et fiche joueur compacte */
 .blz{flex:none;display:block;width:34px;height:38px}
 .blz.g{width:56px;height:62px} .blz.p{width:22px;height:25px}
@@ -415,6 +460,7 @@ html.desk .er{cursor:grab}
 <script src="qm27.js"></script>
 <script src="qm27-club.js"></script>
 <script src="qm27-carriere.js"></script>
+<script src="qm27-domaine.js"></script>
 <script src="qm27-visuel.js"></script>
 <script src="qm27-ui.js"></script>
 <script src="commun.js"></script>

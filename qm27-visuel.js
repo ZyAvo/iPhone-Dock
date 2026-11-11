@@ -1,4 +1,4 @@
-// mon-ecran-version: 739d3b50
+// mon-ecran-version: 49d82ea0
 /* QM27 (v87) — graphismes dessinés par le code, sans image : blasons des clubs, maillots, avatars, radar du profil.
    Tout est déterministe : un club ou une personne a toujours le même dessin (graine = identifiant).
    window.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe}. Aucune dépendance (QMD seulement pour les prénoms). */
@@ -102,7 +102,7 @@ const MOTIFS = {
   manches:(t) => `<path d="M0 0h10v40H0zM30 0h10v40H30z" fill="${t}"/>`,
   epaules:(t) => `<path d="M0 0h40v12C30 9 10 9 0 12z" fill="${t}"/>`,
 };
-function maillot(c, num, cls){
+function maillot(c, num, cls, sponsor){   // v88 : nom du sponsor sur la poitrine
   const r = rng('maillot' + c.id), [c1, c2] = c.couleurs || ['#445', '#ddd'];
   const motif = c.motif || pondere(r, [['uni', 2.2], ['rayures', 1.2], ['cerceaux', 1], ['chevron', 1.2], ['echarpe', 1], ['moitie', 0.7], ['manches', 1], ['epaules', 1]]);
   const t = contraste(c1, c2) >= 1.4 ? c2 : ton(c1, 0.35), id = uid();
@@ -111,6 +111,7 @@ function maillot(c, num, cls){
     <path d="${MAILLOT}" fill="${c1}"/><g clip-path="url(#${id})">${MOTIFS[motif](t)}<path d="M0 0h20v40H0z" fill="#fff" opacity=".07"/></g>
     <path d="M13.4 3.6c1 2.8 3.6 4.2 6.6 4.2s5.6-1.4 6.6-4.2" fill="none" stroke="${t}" stroke-width="1.8"/>
     <path d="${MAILLOT}" fill="none" stroke="rgba(0,0,0,.35)" stroke-width=".8" stroke-linejoin="round"/>
+    ${sponsor ? `<rect x="11.4" y="15.4" width="17.2" height="5.4" rx="1.2" fill="#ffffff" opacity=".92"/><text x="20" y="19.5" text-anchor="middle" font-size="${Math.min(3.6, 26 / Math.max(6, sponsor.split(' ')[0].length + 1))}" font-weight="800" font-family="system-ui,-apple-system,sans-serif" fill="#16202c">${sponsor.split(' ')[0].toUpperCase().replace(/[<&>]/g, '')}</text>` : ''}
     ${num !== undefined && num !== null && num !== '' ? `<text x="20" y="28.6" text-anchor="middle" font-size="${String(num).length > 1 ? 12 : 13}" font-weight="800" font-family="system-ui,-apple-system,sans-serif" fill="${cn}" stroke="${melange(lum(cn) > 0.5 ? c1 : '#ffffff', lum(cn) > 0.5 ? '#000000' : '#ffffff', 0.5)}" stroke-width="${motif === 'uni' || motif === 'epaules' ? 0.8 : 2.4}" stroke-linejoin="round" paint-order="stroke">${num}</text>` : ''}</svg>`;
 }
 
@@ -187,5 +188,49 @@ function radar(axes, couleur, cls){
     <polygon points="${poly}" fill="${couleur}" fill-opacity=".28" stroke="${couleur}" stroke-width="1.8" stroke-linejoin="round"/>${lab}</svg>`;
 }
 
-root.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe, feminin, EMB, EMBLEMES, lisible, melange};
+/* ---------- v88 : bâtiments du domaine (64 × 64, sol vers y = 58) ---------- */
+const PIERRE = '#c9c2b4', PIERRE2 = '#a69d8c', BOIS = '#9a6a3f', BOIS2 = '#7a5230', TRAIT = 'rgba(0,0,0,.35)', VITRE = '#ffe6a3';
+const ombreSol = `<ellipse cx="32" cy="58.5" rx="24" ry="3.6" fill="rgba(0,0,0,.18)"/>`;
+const fenetre = (x, y, w = 4, h = 5) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1" fill="${VITRE}" stroke="${TRAIT}" stroke-width=".6"/>`;
+const fumee = (x, y) => `<g fill="rgba(200,200,210,.75)"><circle cx="${x}" cy="${y}" r="2"/><circle cx="${x + 2.5}" cy="${y - 3.5}" r="2.6"/><circle cx="${x + .5}" cy="${y - 7.5}" r="2.2"/></g>`;
+const BAT_ICONES = {
+  bureau:(c1, c2) => `${ombreSol}<rect x="18" y="20" width="28" height="38" fill="${PIERRE}" stroke="${TRAIT}"/><path d="M16 20h32v-5h-4v3h-4v-3h-4v3h-4v-3h-4v3h-4v-3h-4z" fill="${PIERRE2}" stroke="${TRAIT}"/>
+    <path d="M28 58v-10a4 4 0 0 1 8 0v10z" fill="${BOIS2}"/>${fenetre(22, 28)}${fenetre(38, 28)}${fenetre(30, 30, 4, 6)}<path d="M32 15V3" stroke="#555" stroke-width="1"/><path d="M32 3h11l-3 3 3 3H32z" fill="${c1}" stroke="${TRAIT}" stroke-width=".5"/>`,
+  infirmerie:(c1, c2) => `${ombreSol}<rect x="12" y="26" width="40" height="32" fill="#f3f1ec" stroke="${TRAIT}"/><path d="M8 28L32 12l24 16z" fill="#7fb69a" stroke="${TRAIT}"/>
+    <circle cx="32" cy="38" r="6.4" fill="#fff" stroke="${TRAIT}" stroke-width=".6"/><path d="M30.6 33.6h2.8v2.2c2 .7 3.2 2.3 3.2 4.2 0 2.5-2 4-4.6 4s-4.6-1.5-4.6-4c0-1.9 1.2-3.5 3.2-4.2z" fill="#4caf7d"/>${fenetre(16, 32)}${fenetre(44, 32)}<rect x="29" y="47" width="6" height="11" fill="${BOIS2}"/>`,
+  salle:(c1, c2) => `${ombreSol}<rect x="18" y="24" width="28" height="34" rx="2" fill="${PIERRE}" stroke="${TRAIT}"/><path d="M14 26L32 6l18 20z" fill="${c1}" stroke="${TRAIT}"/>
+    <rect x="40" y="10" width="5" height="10" fill="${PIERRE2}" stroke="${TRAIT}" stroke-width=".6"/>${fumee(43, 7)}${fenetre(22, 32, 6, 7)}${fenetre(36, 32, 6, 7)}<path d="M28 58v-9a4 4 0 0 1 8 0v9z" fill="${BOIS2}"/>`,
+  formation:(c1, c2) => `${ombreSol}<rect x="8" y="30" width="48" height="28" fill="#e8dcc4" stroke="${TRAIT}"/><path d="M6 31L18 16l12 15zM34 31l12-15 12 15z" fill="${c1}" stroke="${TRAIT}"/><path d="M26 31l6-8 6 8z" fill="${c1}" stroke="${TRAIT}"/>
+    ${fenetre(12, 36)}${fenetre(20, 36)}${fenetre(40, 36)}${fenetre(48, 36)}<rect x="28" y="44" width="8" height="14" fill="${BOIS2}"/><path d="M18 16v-6M46 16v-6" stroke="#555" stroke-width=".8"/><path d="M18 10h6l-2 2 2 2h-6zM46 10h6l-2 2 2 2h-6z" fill="${c2}" stroke="${TRAIT}" stroke-width=".4"/>`,
+  voliere:(c1, c2) => `${ombreSol}<path d="M24 58l2-40h12l2 40z" fill="${PIERRE}" stroke="${TRAIT}"/><path d="M21 19L32 2l11 17z" fill="${c1}" stroke="${TRAIT}"/>
+    <circle cx="32" cy="26" r="2.4" fill="#3a3a3a"/><circle cx="32" cy="38" r="2.4" fill="#3a3a3a"/><path d="M28 58v-8h8v8z" fill="${BOIS2}"/><path d="M45 12l3 2 3-2M48 22l2.4 1.6 2.4-1.6M12 16l3 2 3-2" stroke="#3a3a3a" stroke-width="1" fill="none" stroke-linecap="round"/>`,
+  divination:(c1, c2) => `${ombreSol}<rect x="14" y="34" width="36" height="24" fill="${PIERRE}" stroke="${TRAIT}"/><path d="M12 35a20 20 0 0 1 40 0z" fill="#3d4f8f" stroke="${TRAIT}"/>
+    <path d="M32 18l1 3 3 1-3 1-1 3-1-3-3-1 3-1z" fill="#ffd86b"/><circle cx="24" cy="28" r=".9" fill="#ffd86b"/><circle cx="41" cy="27" r=".7" fill="#ffd86b"/><path d="M36 21l9-7" stroke="#555" stroke-width="2.2" stroke-linecap="round"/>${fenetre(20, 42)}${fenetre(40, 42)}<path d="M28 58v-8a4 4 0 0 1 8 0v8z" fill="${BOIS2}"/>`,
+  aire:(c1, c2) => `<ellipse cx="32" cy="50" rx="28" ry="9" fill="#6fb36f" stroke="${TRAIT}" stroke-width=".6"/><path d="M8 50h48" stroke="rgba(255,255,255,.6)" stroke-width=".7"/>
+    ${[[20, 22], [32, 16], [44, 22]].map(([x, y]) => `<path d="M${x} 50V${y + 5}" stroke="#777" stroke-width="1.2"/><circle cx="${x}" cy="${y}" r="${x === 32 ? 5 : 4}" fill="none" stroke="#e8b931" stroke-width="1.8"/>`).join('')}
+    <path d="M50 30l6-3M51 34l5 .5" stroke="${c1}" stroke-width="1.6" stroke-linecap="round"/>`,
+  trophees:(c1, c2) => `${ombreSol}<rect x="10" y="54" width="44" height="4" fill="${PIERRE2}" stroke="${TRAIT}" stroke-width=".6"/><rect x="12" y="30" width="40" height="24" fill="#efe9dc" stroke="${TRAIT}"/>
+    ${[15, 23, 37, 45].map(x => `<rect x="${x}" y="31" width="4" height="23" fill="#fff" stroke="${TRAIT}" stroke-width=".5"/>`).join('')}<path d="M8 31L32 16l24 15z" fill="#d6b44a" stroke="${TRAIT}"/>
+    <path d="M27 36h10v3a5 5 0 0 1-10 0zM31 44h2v4h3v2h-8v-2h3z" fill="#e2b23a" stroke="${TRAIT}" stroke-width=".5"/>`,
+  residence:(c1, c2) => `${ombreSol}<rect x="6" y="30" width="52" height="28" fill="#eadfcf" stroke="${TRAIT}"/><path d="M4 31L14 18h36l10 13z" fill="${c1}" stroke="${TRAIT}"/>
+    ${[10, 18, 26, 34, 42, 50].map(x => fenetre(x, 36, 4, 5)).join('')}${[10, 18, 42, 50].map(x => fenetre(x, 46, 4, 5)).join('')}<rect x="28" y="46" width="8" height="12" fill="${BOIS2}"/><rect x="44" y="12" width="4" height="8" fill="${PIERRE2}"/>`,
+  buvettes:(c1, c2) => `${ombreSol}<rect x="12" y="28" width="38" height="30" fill="#f1e2c6" stroke="${TRAIT}"/><path d="M12 28h38M12 40h38M22 28v30M40 28v30" stroke="${BOIS}" stroke-width="1.4"/><path d="M8 29L31 12l23 17z" fill="#8c4a2f" stroke="${TRAIT}"/>
+    <rect x="15" y="10" width="5" height="10" fill="${PIERRE2}"/>${fumee(17, 7)}<path d="M50 32h8M56 32v3" stroke="#555" stroke-width="1"/><rect x="52" y="35" width="8" height="7" rx="1.5" fill="${c1}" stroke="${TRAIT}" stroke-width=".5"/>
+    <rect x="27" y="46" width="8" height="12" fill="${BOIS2}"/>${fenetre(15, 31, 5, 6)}${fenetre(42, 31, 5, 6)}`,
+  boutique:(c1, c2) => `${ombreSol}<rect x="10" y="26" width="44" height="32" fill="#f6efe2" stroke="${TRAIT}"/><path d="M8 26h48l-3-8H11z" fill="#8c6b4f" stroke="${TRAIT}"/>
+    <path d="M8 26h48v6c-2 2-4 2-6 0-2 2-4 2-6 0-2 2-4 2-6 0-2 2-4 2-6 0-2 2-4 2-6 0-2 2-4 2-6 0-2 2-4 2-6 0-2 2-4 2-6 0z" fill="${c1}" stroke="${TRAIT}" stroke-width=".6"/>
+    ${[14, 26, 38, 50].map(x => `<rect x="${x - 2}" y="26" width="4" height="6" fill="${c2}" opacity=".9"/>`).join('')}<rect x="14" y="38" width="14" height="12" fill="${VITRE}" stroke="${TRAIT}" stroke-width=".6"/><rect x="36" y="40" width="10" height="18" fill="${BOIS2}"/>`,
+  hangar:(c1, c2) => `${ombreSol}<path d="M8 58V30a24 14 0 0 1 48 0v28z" fill="#b5835a" stroke="${TRAIT}"/><path d="M20 58V38h24v20z" fill="${BOIS2}" stroke="${TRAIT}" stroke-width=".6"/><path d="M20 38l24 20M44 38L20 58" stroke="${BOIS}" stroke-width="1.2"/>
+    <path d="M50 58l6-20" stroke="#6b4a2a" stroke-width="1.4"/><path d="M48.5 58l3-6 3 2-2 4z" fill="#d9b05b"/><path d="M12 32h40" stroke="rgba(0,0,0,.25)" stroke-width=".8"/>`,
+};
+function batiment(type, c1, c2){ return (BAT_ICONES[type] || BAT_ICONES.bureau)(c1 || '#5a6a80', c2 || '#e6e9ee'); }
+/* trophée (coupe) : variante selon le titre */
+function trophee(k, titre){
+  const r = rng('trophee' + k + titre), or = choix(r, ['#e2b23a', '#d9a62e', '#c9c9c9', '#e8c55a']), anse = r() < 0.5;
+  return `<svg class="tro" viewBox="0 0 40 48" aria-hidden="true"><path d="M11 6h18v8a9 9 0 0 1-18 0z" fill="${or}" stroke="rgba(0,0,0,.35)" stroke-width=".8"/>
+    ${anse ? `<path d="M11 8H6c0 5 2 8 6 9M29 8h5c0 5-2 8-6 9" fill="none" stroke="${or}" stroke-width="2"/>` : `<circle cx="20" cy="4" r="2.4" fill="${or}"/><path d="M14 5l-4-3M26 5l4-3" stroke="${or}" stroke-width="1.6" stroke-linecap="round"/>`}
+    <rect x="18" y="22" width="4" height="10" fill="${or}"/><path d="M12 32h16l2 6H10z" fill="${melange(or, '#000000', 0.2)}"/><rect x="9" y="38" width="22" height="7" rx="1" fill="#4a3a2a"/><path d="M14 9c0 4 1 7 4 8" stroke="#fff" stroke-width="1.2" opacity=".55" fill="none"/></svg>`;
+}
+
+root.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe, feminin, EMB, EMBLEMES, lisible, melange, batiment, trophee};
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,4 +1,4 @@
-// mon-ecran-version: 42f3957e
+// mon-ecran-version: 928c1724
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -191,6 +191,15 @@ const EQ = {
   inst:{boutique:{base:400e3, entretien:500, semaines:4}, buvettes:{base:300e3, entretien:400, semaines:3}, tribunes:{base:800e3, entretien:800, semaines:8}, formation:{base:600e3, entretien:1200, semaines:6}},
   /* v85 : carrière */
   carriere:{repSelection:70, licenciement:5, offreSemaine:0.05, chomageOffre:0.6, academieMax:12},
+  /* v88 : domaine du club. Bâtiments (niveau 1 à 5) : coût du niveau suivant = base × niveau actuel, entretien par niveau et par semaine.
+     boutique, buvettes, tribunes (= le stade) et formation reprennent les réglages de « inst » ci-dessus. */
+  bat:{infirmerie:{base:350e3, entretien:300, semaines:4}, aire:{base:450e3, entretien:350, semaines:5}, hangar:{base:250e3, entretien:200, semaines:3},
+       salle:{base:250e3, entretien:200, semaines:3}, voliere:{base:200e3, entretien:150, semaines:3}, divination:{base:300e3, entretien:200, semaines:4},
+       trophees:{base:300e3, entretien:150, semaines:4}, residence:{base:400e3, entretien:300, semaines:5}},
+  partenaires:{maillot:0.7, panneaux:0.3, offres:3, panneauxBase:4},   // part des sponsors : maillot 70 %, panneaux 30 % (tous vendus)
+  supporters:{depart:60, equilibre:55},
+  banque:{tauxMin:0.03, tauxMax:0.09, maxRevenus:0.6, frais:0.02},
+  evenements:0.04,              // chance d'un petit événement au domaine chaque semaine
 };
 
 /* v84 : staff du club : [clé, nom, groupe entraîné] */
@@ -201,7 +210,65 @@ const EFFETS_STAFF = {entP:'progression des poursuiveurs', entB:'progression des
 /* v85 : installations du stade */
 const INSTALLATIONS = [['boutique', 'Boutique', 'Recettes de la boutique'], ['buvettes', 'Buvettes', 'Recettes de restauration par spectateur'],
   ['tribunes', 'Tribunes couvertes', 'Remplissage du stade'], ['formation', 'Centre de formation', 'Nombre et qualité des jeunes chaque été']];
-/* v84 : rôles individuels par poste : [clé, nom, effet] */
+/* v88 : bâtiments du domaine. [clé, nom, icône du plan, ce que fait chaque niveau, vue ouverte depuis le bâtiment,
+   améliorations au choix au niveau 3 puis au niveau 5 : [clé, nom, effet]]. La clé « tribunes » est le stade (capacité à part). */
+const BATIMENTS = [
+  ['tribunes', 'Stade', 'stade', 'Tribunes couvertes : le stade se remplit mieux (+2 % par niveau au-dessus de 2).', 'stade',
+    [['loges', 'Loges des mécènes', 'Recettes VIP à chaque match à domicile.'], ['ecran', 'Écran géant enchanté', 'Affluence +4 %.']],
+    [['lanternes', 'Lanternes féeriques', 'Matchs en soirée : billetterie +10 %.'], ['dragon', 'Dragon de pierre gardien', 'Avantage du terrain +2 %.']]],
+  ['boutique', 'Bazar du club', 'bazar', 'Recettes de la boutique (×0,85 au niveau 1, ×1,45 au niveau 5) et un produit de plus en rayon par niveau.', 'boutique',
+    [['hibou', 'Vente par hibou', 'La boutique vend aussi les semaines sans match à domicile (+25 %).'], ['atelier', 'Atelier de maillots', 'Nouveau produit : maillots éditions spéciales.']],
+    [['echarpes', 'Écharpes qui changent de couleur', 'Nouveau produit vedette.'], ['chocolat', 'Vifs d\'or en chocolat', 'Nouveau produit vedette.']]],
+  ['buvettes', 'Taverne du stade', 'taverne', 'Recettes de restauration par spectateur (×0,85 au niveau 1, ×1,45 au niveau 5).', null,
+    [['chaudron', 'Chaudron géant', 'Restauration +15 %.'], ['ouverte', 'Taverne ouverte en semaine', 'Recettes même sans match à domicile.']],
+    [['hydromel', 'Hydromel maison', 'Restauration +15 %, les supporters adorent.'], ['banquets', 'Banquets d\'après-match', 'Recettes VIP après les victoires à domicile.']]],
+  ['formation', 'Pensionnat des jeunes ailes', 'pensionnat', 'Centre de formation : plus de jeunes chaque été, et de meilleurs.', 'formation',
+    [['dortoirs', 'Dortoirs agrandis', '2 places de plus au centre.'], ['terrain', 'Terrain miniature', 'Les jeunes du centre progressent 25 % plus vite.']],
+    [['detection', 'Réseau de détection dans les écoles', 'Chaque été, un des nouveaux est un prodige.'], ['bourses', 'Bourses d\'études', 'Un jeune de plus chaque été.']]],
+  ['infirmerie', 'Infirmerie', 'infirmerie', 'Blessures plus courtes : −6 % par niveau.', 'infirmerie',
+    [['serre', 'Serre de plantes médicinales', 'Blessures légères (10 jours ou moins) : 3 jours de moins.'], ['bains', 'Bains chauds enchantés', 'La fatigue part 25 % plus vite.']],
+    [['apothicaire', 'Apothicaire attitré', 'Une potion de forme par mois (fiche du joueur).'], ['guerisseur', 'Guérisseur réputé', 'Blessures graves (plus de 3 semaines) : −30 %.']]],
+  ['aire', 'Aire d\'envol', 'aire', 'Terrain d\'entraînement : progression de tous (+4 % par niveau au-dessus de 2).', 'entrainement',
+    [['anneaux', 'Anneaux mobiles', 'Poursuiveurs et gardiens : +10 % de progression.'], ['cognards', 'Cognards apprivoisés', 'Batteurs : +15 % de progression.']],
+    [['brumes', 'Vents et brumes artificiels', 'La météo gêne deux fois moins ton équipe.'], ['vifs', 'Volière à vifs d\'or d\'exercice', 'Attrapeurs : +20 % de progression.']]],
+  ['hangar', 'Hangar à balais', 'hangar', 'Balais mieux entretenus : vitesse et maniabilité (+0,3 par niveau au-dessus de 2).', 'balais',
+    [['etabli', 'Établi d\'artisan', 'Balais neufs 25 % moins chers.'], ['vernis', 'Vernis anti-usure', 'Les balais s\'usent deux fois moins vite.']],
+    [['fabricant', 'Contrat avec un fabricant', '80 000 € de sponsoring par saison.'], ['prototype', 'Prototype maison', 'Un balai unique : +1 partout.']]],
+  ['salle', 'Salle commune', 'salle', 'Vestiaires : la cohésion monte plus vite (+0,25 par semaine et par niveau au-dessus de 2).', 'tactique',
+    [['cheminee', 'Cheminée et fauteuils', 'Le moral baisse moins après une défaite.'], ['tableau', 'Tableau noir enchanté', 'Cohésion +0,5 par semaine.']],
+    [['portraits', 'Portraits des légendes du club', 'Moral de l\'équipe en hausse à domicile.'], ['jeunes', 'Coin des jeunes', 'Les moins de 22 ans progressent 10 % plus vite.']]],
+  ['voliere', 'Volière à hiboux', 'voliere', 'Recrutement : ton recruteur estime mieux le potentiel (+1,5 par niveau au-dessus de 2).', 'mercato',
+    [['grandsducs', 'Grands-ducs voyageurs', 'Les clubs vendeurs demandent 8 % de moins.'], ['correspondants', 'Correspondants à l\'étranger', 'Estimations encore plus justes (+3).']],
+    [['espion', 'Hibou espion', 'Composition adverse connue avant chaque match.'], ['agent', 'Agent attitré', 'Salaires demandés 10 % plus bas.']]],
+  ['divination', 'Cabinet de divination', 'divination', 'Rapport sur l\'adversaire avant chaque match : plus de détails à chaque niveau.', null,
+    [['boule', 'Boule de cristal', 'La météo du prochain match est connue une semaine avant.'], ['pensine', 'Pensine des matchs', 'Cohésion +1 après chaque match.']],
+    [['astres', 'Carte du ciel', 'Force +1,5 % contre les 4 premiers du classement.'], ['prophetie', 'Prophétie du vif', 'Ton attrapeur +3 % sur le vif d\'or.']]],
+  ['trophees', 'Salle des trophées', 'trophees', 'Visites payantes chaque semaine, selon le niveau et le palmarès.', 'trophees',
+    [['fantome', 'Guide-fantôme', 'Visites 50 % plus chères.'], ['archives', 'Archives du club', 'Réputation +1 à chaque titre, les supporters s\'en souviennent.']],
+    [['musee', 'Musée du Quidditch', 'Visites doublées.'], ['legendes', 'Allée des légendes', 'Supporters +1 par mois.']]],
+  ['residence', 'Résidence des joueurs', 'residence', 'La fatigue part plus vite (+4 % par niveau au-dessus de 1).', null,
+    [['chambres', 'Chambres insonorisées', 'La fatigue part encore 15 % plus vite.'], ['jardin', 'Jardin d\'hiver', 'Le moral remonte plus vite chaque semaine.']],
+    [['manoir', 'Manoir des stars', 'Salaires demandés 5 % plus bas, les vedettes aiment venir.'], ['spa', 'Thermes du club', 'Blessures −10 % et fatigue −10 %.']]],
+];
+/* v88 : produits du Bazar : [clé, nom, attrait, prix unitaire de base en €, amélioration qui le débloque] */
+const PRODUITS = [
+  ['echarpe', 'Écharpes aux couleurs du club', 1, 15, null], ['maillot', 'Maillots officiels', 1.3, 60, null], ['peluche', 'Vifs d\'or en peluche', 0.9, 18, null],
+  ['balai', 'Balais miniatures', 0.8, 25, null], ['chapeau', 'Chapeaux pointus', 0.7, 20, null], ['fanion', 'Fanions et drapeaux', 0.6, 8, null],
+  ['edition', 'Maillots éditions spéciales', 1.1, 90, 'atelier'], ['echarpe2', 'Écharpes qui changent de couleur', 1.4, 35, 'echarpes'], ['choco', 'Vifs d\'or en chocolat', 1.2, 6, 'chocolat'],
+];
+/* v88 : partenaires inventés (sponsor maillot et panneaux) */
+const SPONSORS = ['Balais Aquilon', 'Chocolaterie Lune d\'Or', 'La Gazette du Soir', 'Chaudrons Martel', 'Hydromel Brasse-Brume', 'Plumes & Parchemins', 'Thés de la Pythie',
+  'Potions Mirabelle', 'Fromagerie des Trois Lunes', 'Assurances Paratonnerre', 'Bottes de Sept Lieues', 'Sorbets Givre-Doux', 'Lunettes Œil-de-Lynx', 'Cheminée Express',
+  'Banque des Gobelins', 'Encres Corbeau', 'Grimoires Ardoise', 'Confiserie Feu Follet', 'Ménagerie Griffe & Plume', 'Radio Sorcière FM'];
+const EVENEMENTS = [
+  ['Un cognard échappé', 'Un cognard s\'est échappé de sa malle et a traversé le toit de la volière. Réparations payées.', -12000],
+  ['Inspection du ministère', 'Les inspecteurs du ministère ont trouvé le domaine en ordre et sont repartis les bras chargés d\'écharpes.', 8000],
+  ['Tempête sur le domaine', 'Une tempête a arraché deux panneaux publicitaires. Les annonceurs ont été dédommagés.', -6000],
+  ['Visite d\'une école', 'Une classe entière est venue visiter le domaine. Les enfants ont dévalisé le Bazar.', 5000],
+  ['Lutins dans la taverne', 'Des lutins ont vidé la réserve de la taverne pendant la nuit. Il a fallu tout racheter.', -4000],
+  ['Gala de charité', 'Le gala organisé au stade a rapporté un peu d\'argent au club et beaucoup de sympathie.', 10000],
+  ['Gnomes au jardin', 'Les gnomes ont retourné la pelouse de l\'aire d\'envol. Un jardinier a dû passer la semaine à les chasser.', -3000],
+];
 const ROLES = {
   P:[['polyvalent', 'Polyvalent', 'Équilibré entre attaque et défense.'], ['meneur', 'Meneur', 'Fait jouer les autres : l\'attaque de l\'équipe compte plus sur lui.'],
      ['finisseur', 'Finisseur', 'Tire beaucoup plus souvent.'], ['harceleur', 'Harceleur', 'Presse le porteur : plus de ballons récupérés.']],
@@ -213,5 +280,5 @@ const ROLES = {
 const FOCUS = [['technique', 'Technique', ['Vol', 'Balle', 'Gardien']], ['physique', 'Physique', ['Physique']], ['tactique', 'Tactique', ['Mental']], ['repos', 'Repos', []]];
 const INTENSITES = [[1, 'Légère'], [2, 'Normale'], [3, 'Intense']];
 
-root.QMD = {INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
+root.QMD = {BATIMENTS, PRODUITS, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
 })(typeof window !== 'undefined' ? window : globalThis);

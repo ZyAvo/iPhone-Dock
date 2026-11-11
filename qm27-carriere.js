@@ -1,4 +1,4 @@
-// mon-ecran-version: 038772b6
+// mon-ecran-version: e38f7208
 /* QM27 (v85, lot 3) — stade et installations, centre de formation, réputation des clubs, carrière du manager
    (offres d'autres clubs, démission, licenciement, sans club) et double poste de sélectionneur pour le Six Nations.
    Sans affichage : complète window.QMC (qm27-club.js) et s'insère dans ses rendez-vous de la semaine et de la saison. */
@@ -17,7 +17,7 @@ const tic = M => M.tic || 0;
 /* ---------- Stade et installations ---------- */
 function coutTravaux(c, type){
   if (type === 'stade') return EQ.stade.tranche * EQ.stade.coutPlace;
-  return EQ.inst[type].base * QMC.niv(c, type);
+  return (EQ.inst[type] || EQ.bat[type]).base * QMC.niv(c, type);   // v88 : bâtiments du domaine
 }
 function lancerTravaux(M, type){
   const c = club(M, M.manager.club);
@@ -26,7 +26,7 @@ function lancerTravaux(M, type){
   if (type !== 'stade' && QMC.niv(c, type) >= 5) return {ok:false, msg:'Niveau maximal atteint.'};
   const cout = coutTravaux(c, type);
   if (cout > c.budget) return {ok:false, msg:`Pas assez d'argent : ${euros(cout)} nécessaires.`};
-  const sem = type === 'stade' ? EQ.stade.semaines : EQ.inst[type].semaines;
+  const sem = type === 'stade' ? EQ.stade.semaines : (EQ.inst[type] || EQ.bat[type]).semaines;
   QMC.compter(c, 'dep', 'travaux', cout);
   c.travaux.push({type, fin:tic(M) + sem, cout});
   return {ok:true, msg:`Travaux lancés : ${sem} semaines`};
@@ -37,7 +37,7 @@ function travauxSemaine(M){
     for (const t of c.travaux.filter(x => x.fin <= tic(M))){
       if (t.type === 'stade') c.stade += EQ.stade.tranche; else c.inst[t.type] = Math.min(5, QMC.niv(c, t.type) + 1);
       if (M.manager && M.manager.club === c.id){
-        const nom = t.type === 'stade' ? `Agrandissement du stade : ${c.stade.toLocaleString('fr-FR')} places` : `${(D.INSTALLATIONS.find(x => x[0] === t.type) || [])[1]} : niveau ${c.inst[t.type]}`;
+        const nom = t.type === 'stade' ? `Agrandissement du stade : ${c.stade.toLocaleString('fr-FR')} places` : `${((D.BATIMENTS || []).find(x => x[0] === t.type) || D.INSTALLATIONS.find(x => x[0] === t.type) || [])[1]} : niveau ${c.inst[t.type]}`;
         Q().message(M, 'Travaux terminés', nom + '.', 'staff');
       }
     }
@@ -58,13 +58,15 @@ function creerJeune(M, r, c){
 }
 function promotion(M, r, c, n){
   const faits = [];
-  for (let k = 0; k < n && c.academie.length < K.academieMax; k++) faits.push(creerJeune(M, r, c));
+  const max = K.academieMax + (root.QMB ? root.QMB.bonus(c, 'academiePlaces') : 0);   // v88 : dortoirs
+  for (let k = 0; k < n && c.academie.length < max; k++) faits.push(creerJeune(M, r, c));
   return faits;
 }
 function academieSemaine(M, r){
   const c = M.manager && M.manager.club ? club(M, M.manager.club) : null; if (!c || !c.academie) return;
   const resp = (c.staff.formation || {note:10}).note, prepa = c.staff.prepa.note, focus = ['technique', 'physique', 'tactique'][M.semaine % 3];
-  for (const id of c.academie){ const j = M.joueurs[id]; if (j) QMC.progression(M, j, focus, 2, resp, prepa, r, null); }
+  const mult = root.QMB ? Math.max(0.5, 1 + root.QMB.bonus(c, 'progression') + root.QMB.bonus(c, 'progAcad')) : 1;   // v88 : aire d'envol, terrain miniature
+  for (const id of c.academie){ const j = M.joueurs[id]; if (j) QMC.progression(M, j, focus, 2, resp, prepa, r, null, mult); }
 }
 function promouvoir(M, jid){
   const c = club(M, M.manager.club), j = M.joueurs[jid];
@@ -95,7 +97,9 @@ function academieSaison(M, r){
       else { libererJeune(M, id); partis.push(nomJ(j)); }
     }
   }
-  const n = 1 + QMC.niv(c, 'formation'), nouveaux = promotion(M, r, c, n);
+  const n = 1 + QMC.niv(c, 'formation') + (root.QMB ? root.QMB.bonus(c, 'academieJeunes') : 0), nouveaux = promotion(M, r, c, n);
+  if (root.QMB && root.QMB.a(c, 'detection') && nouveaux.length){   // v88 : réseau de détection, un prodige par été
+    const p = nouveaux.reduce((x, y) => y.cache.pot > x.cache.pot ? y : x); p.cache.pot = Math.min(19.5, Math.round((p.cache.pot + 2) * 10) / 10); p.prodige = 1; }
   Q().message(M, 'Nouvelle promotion au centre de formation', `${nouveaux.length} jeune${nouveaux.length > 1 ? 's' : ''} de 15-16 ans arrive${nouveaux.length > 1 ? 'nt' : ''} : ${nouveaux.map(j => nomJ(j) + ' (' + D.POSTES[j.poste].nom.toLowerCase() + ')').join(', ')}.${montes.length ? ' Passent pros à 19 ans : ' + montes.join(', ') + '.' : ''}${partis.length ? ' Quittent le centre : ' + partis.join(', ') + '.' : ''}`, 'staff');
 }
 
