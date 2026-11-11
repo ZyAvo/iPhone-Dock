@@ -1,11 +1,11 @@
-// mon-ecran-version: 660fd341
+// mon-ecran-version: 0ec41ee5
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
 (() => {
 'use strict';
 const Z = window.QMU; if (!Z) return;
-const {D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, flag, posteB, etoiles, nomJ, classeNote, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, connu, HH, roleDe, VUES, ACT, VUE, U, LS} = Z;
+const {pieces, eurT, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, flag, posteB, etoiles, nomJ, classeNote, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, connu, HH, roleDe, VUES, ACT, VUE, U, LS} = Z;
 const G = () => window.QMG;
 const M = () => Z.M;
 const moi = () => club(M().manager.club);
@@ -30,7 +30,7 @@ function destinations(l){
   return {
     vestiaire:[['effectif', 'Effectif', `${c.effectif.length} joueurs · vues Général, Contrats, Physique, Saison`], ['vestiaire', 'Ambiance et mentorat', `Ambiance ${amb} / 100 · leaders, clans`]],
     stade:[['tactique', 'Tactique', 'Composition, dispositions, consignes'], ['stade', 'Stade et tribunes', `${c.stade.toLocaleString('fr-FR')} places`], ['boutique', 'Le Bazar', 'Produits et prix'], ['partenaires', 'Partenaires', c.dom && c.dom.sponsor ? esc(c.dom.sponsor.nom) : 'Sponsor à choisir']],
-    direction:[['direction', 'Bureau du président', `Objectif : ${esc(mg.objectif.txt.toLowerCase())} · confiance ${mg.confiance} %`], ['profil', 'Mon profil', 'Avatar, attributs, contrat'], ['carriere', 'Carrière', `Réputation ${Math.round(mg.rep)} · offres`],
+    direction:[['direction', 'Bureau du président', `Objectif : ${esc(mg.objectif.txt.toLowerCase())} · confiance ${Math.round(mg.confiance)} %`], ['profil', 'Mon profil', 'Avatar, attributs, contrat'], ['carriere', 'Carrière', `Réputation ${Math.round(mg.rep)} · offres`],
       ...(mg.selection ? [['selection', 'Sélection', `${esc(nat(mg.selection.nat).nom)} · ${esc(D.TOURNOI.nom)}`]] : [])],
     voliere:[['mercato', 'Mercato', ouvert ? 'Ouvert' : 'Fermé · agents libres disponibles'], ['clubs', 'Clubs et joueurs', 'Tous les effectifs, missions du recruteur']],
     technique:[['entrainement', 'Entraînement', 'Programme de la semaine'], ['staff', 'Staff', 'Entraîneurs, médecin, recruteur'], ['domaine', 'Bâtiments du domaine', 'Niveaux et améliorations']],
@@ -149,9 +149,11 @@ function vueDirection(){
   VUE.innerHTML = `<div><h1 class="grand">Bureau du président</h1><p class="sous">Tour du directeur · ${esc(c.nom)}</p></div>
   <div class="cols"><div>
     <div class="carte"><h2>Objectif de la saison</h2><p style="margin:0 0 6px"><b>${esc(o.txt)}</b></p><p class="petit mut" style="margin:0 0 10px">Aujourd'hui : ${pos}${pos === 1 ? 'er' : 'e'} de la ${esc(M_.ligues[c.ligue].nom)}${mg.bilan ? ` · ${mg.bilan.g} V · ${mg.bilan.n} N · ${mg.bilan.p} D` : ''}.</p>
-      <div class="ligne"><span style="flex:1">Confiance</span><b>${mg.confiance} %</b></div>${jauge(mg.confiance, 'Confiance du président')}
+      <div class="ligne"><span style="flex:1">Confiance</span><b>${Math.round(mg.confiance)} %</b></div>${jauge(mg.confiance, 'Confiance du président')}
       <p class="petit mut" style="margin:8px 0 0">${humeur} Il juge chaque résultat selon la force de l'adversaire.</p>
-      ${c.dom ? `<div class="sep"></div><div class="ligne"><span style="flex:1">Supporters</span><b>${Math.round(c.dom.supp)} / 100</b></div>${jauge(c.dom.supp, 'Humeur des supporters')}` : ''}</div>
+      ${c.dom ? `<div class="sep"></div><div class="ligne"><span style="flex:1">Supporters</span><b>${Math.round(c.dom.supp)} / 100</b></div>${jauge(c.dom.supp, 'Humeur des supporters')}` : ''}
+      <div class="sep"></div><div class="ligne"><span style="flex:1">Relation avec la presse</span><b>${mg.presse ?? 50} / 100</b></div>${jauge(mg.presse ?? 50, 'Relation avec la presse')}
+      <p class="petit mut" style="margin:8px 0 0">Les conférences d'après-match la font bouger ; une bonne relation amplifie ce que la presse rapporte de toi.</p></div>
     <div class="carte"><h2>Finances <button data-act="vue" data-v="finances">Détail</button></h2>
       <div class="stat" style="grid-template-columns:1fr auto"><span style="text-align:left;font-weight:400">Solde</span><b style="color:${c.budget < 0 ? 'var(--mauvais)' : 'inherit'}">${eur(c.budget)}</b>
       <span style="text-align:left;font-weight:400">Masse salariale</span><b>${eur(C.masse(M_, c))} / ${eur(c.masseMax)} par sem.</b></div></div>
@@ -268,14 +270,14 @@ function vueBoite(){
   VUE.innerHTML = `<div><h1 class="grand">Boîte de réception</h1><p class="sous">${plur(M_.boite.length, 'message')} · ${plur(nonLus(), 'non lu')}</p></div>
   <div class="chips filtres-boite">${[['tous', 'Tous'], ['nonlus', `Non lus${nonLus() ? ' (' + nonLus() + ')' : ''}`], ...types.map(t => [t, CAT[t] || t])].map(([k, n]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="boiteF" data-f="${k}">${n}</button>`).join('')}</div>
   <div class="btns" style="margin-bottom:10px"><button class="btn sec" data-act="toutLu" ${nonLus() ? '' : 'disabled'}>Tout marquer lu</button><button class="btn sec" data-act="supprLus" ${M_.boite.some(m => m.lu) ? '' : 'disabled'}>Supprimer les messages lus</button></div>
-  <div class="carte"><div class="liste">${L.map(m => `<div class="el msg-l ${m.lu ? '' : 'neuf'}"><button class="msg-b" data-act="lireMsg" data-id="${m.id}"><span class="ico-msg" aria-hidden="true">${ICO_MSG[m.type] || '✉️'}</span><div class="t"><b>${esc(m.titre)}</b><span>${m.date ? fmtDate(m.date) + ' · ' : ''}${esc(String(m.corps).slice(0, 110))}${String(m.corps).length > 110 ? '…' : ''}</span></div></button>
+  <div class="carte"><div class="liste">${L.map(m => `<div class="el msg-l ${m.lu ? '' : 'neuf'}"><button class="msg-b" data-act="lireMsg" data-id="${m.id}"><span class="ico-msg" aria-hidden="true">${ICO_MSG[m.type] || '✉️'}</span><div class="t"><b>${pieces(esc(m.titre))}</b><span>${m.date ? fmtDate(m.date) + ' · ' : ''}${pieces(esc(String(m.corps).slice(0, 110)))}${String(m.corps).length > 110 ? '…' : ''}</span></div></button>
     <button class="mini-b corb" data-act="supprMsg" data-id="${m.id}" aria-label="Supprimer ce message">✕</button></div>`).join('') || '<p class="mut" style="margin:0">Rien ici.</p>'}</div></div>`;
 }
 const msgDe = id => M().boite.find(m => m.id === id);
 ACT.boite = () => aller('boite');
 ACT.boiteF = d => { U.boiteF = d.f; rendre(); };
 ACT.lireMsg = d => { const m = msgDe(d.id); if (!m) return; m.lu = true; sauver();
-  feuille(`${teteF(esc(m.titre), `${m.date ? fmtDate(m.date, true) + ' · ' : ''}${CAT[m.type] || 'Message'}`)}<p style="white-space:pre-line;margin:0 0 14px">${esc(m.corps)}</p>
+  feuille(`${teteF(pieces(esc(m.titre)), `${m.date ? fmtDate(m.date, true) + ' · ' : ''}${CAT[m.type] || 'Message'}`)}<p style="white-space:pre-line;margin:0 0 14px">${pieces(esc(m.corps))}</p>
     <div class="btns"><button class="btn sec" data-act="nonLu" data-id="${m.id}">Marquer non lu</button><button class="btn sec" data-act="supprMsg" data-id="${m.id}" style="color:var(--mauvais)">Supprimer</button></div>`);
   if (Z.U.vue === 'boite' || Z.U.vue === 'accueil'){ const el = document.querySelector(`[data-act="lireMsg"][data-id="${d.id}"]`); if (el) el.closest('.msg-l, .msg') && el.closest('.msg-l, .msg').classList.remove('neuf'); }
 };
@@ -327,7 +329,7 @@ function valeurCol(j, k, ctx){
     case 'forme': return [j.forme, `<span class="${j.forme >= 7 ? 'bon' : j.forme < 5 ? 'mauvais' : ''}">${(Math.round(j.forme * 10) / 10).toLocaleString('fr-FR')}</span>`];
     case 'moral': return [j.moral, `<span class="${j.moral >= 70 ? 'bon' : j.moral < 40 ? 'mauvais' : ''}">${Math.round(j.moral)}</span>`];
     case 'fat': return [j.fat, `<span class="${j.fat >= 60 ? 'mauvais' : j.fat >= 35 ? 'moyen' : ''}">${Math.round(j.fat)} %</span>`];
-    case 'sal': return [j.contrat ? j.contrat.sal : 0, j.contrat ? eur(j.contrat.sal).replace(' €', ' €') : '—'];
+    case 'sal': return [j.contrat ? j.contrat.sal : 0, j.contrat ? eur(j.contrat.sal) : '—'];
     case 'fin': return [j.contrat ? j.contrat.fin : 0, j.contrat ? `<span class="${j.contrat.fin <= M_.saison ? 'mauvais' : ''}">${lab(j.contrat.fin).slice(2)}</span>` : '—'];
     case 'pot': { const v = C.potentielEstime(M_, j); return [v, `${v}<span class="etoiles petit">★</span>`]; }
     case 'valeur': { const v = C.valeur(M_, j); return [v, eur(v)]; }
@@ -485,6 +487,7 @@ function vueCalendrier(){
   const mode = U.calMode || 'mois';
   const moisListe = []; { let d = new Date(M_.calendrier[0].date); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)); const fin = M_.calendrier[M_.calendrier.length - 1].date;
     while (d.getTime() <= fin){ moisListe.push([d.getUTCFullYear(), d.getUTCMonth()]); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)); } }
+  if (U.calSem !== M_.semaine){ U.calMois = null; U.calSem = M_.semaine; }   // v94 : le calendrier s'ouvre sur le mois de la semaine en cours
   if (U.calMois == null){ const d = new Date(S.date); U.calMois = Math.max(0, moisListe.findIndex(([a, m]) => a === d.getUTCFullYear() && m === d.getUTCMonth())); }
   U.calMois = Math.max(0, Math.min(moisListe.length - 1, U.calMois));
   const legende = `<div class="cal-leg"><span><i class="b mercato"></i>Mercato</span><span><i class="b prepa"></i>Préparation</span><span><i class="b tournoi"></i>${esc(D.TOURNOI.court)}</span><span><i class="b treve"></i>Trêve</span><span><i class="pt V"></i>V</span><span><i class="pt N"></i>N</span><span><i class="pt D"></i>D</span></div>`;

@@ -1,4 +1,4 @@
-// mon-ecran-version: 47cc5d6b
+// mon-ecran-version: 65bd9f1c
 /* QM27 (v91, lot 8) — le bureau du manager, sans affichage. Expose window.QMG et complète window.QMC. Chargé après qm27-vestiaire.js.
    Entraînement programmable : programme de la semaine en 5 séances (lundi-vendredi), intensité, ateliers par poste, modèles,
    préparation physique d'avant-saison ; l'adjoint planifie tout seul si on le laisse faire.
@@ -263,6 +263,16 @@ function missionsSemaine(M){
   if (j > 0) for (const id of U.suivi) H.connaitre(M, id, j * 0.5);
 }
 
+/* ================= v94 : historique de carrière (une ligne par saison) ================= */
+function lignesCarriere(M){
+  for (const j of Object.values(M.joueurs)){
+    const s = j.saison; if (!s || (!s.m && !j.club)) continue;
+    const k = j.carr || (j.carr = {s:[], t:[]});
+    k.s.push([M.saison, j.club || null, s.m, s.b, s.cog, s.v, s.arr, s.m ? Math.round(s.notes / s.m * 10) : 0]);
+    if (k.s.length > 14) k.s.shift();
+  }
+}
+
 /* ================= Branchements ================= */
 const base = {semaine:QMC.semaine, avantSaison:QMC.avantSaison, apresSaison:QMC.apresSaison, migrer:QMC.migrer, prixClub:QMC.prixClub, exigenceJoueur:QMC.exigenceJoueur, accepterPoste:QMC.accepterPoste};
 Object.assign(QMC, {
@@ -277,7 +287,7 @@ Object.assign(QMC, {
       const d = eff(M, 'det'); if (d > 0 && M.manager.confiance < 50) M.manager.confiance = Math.min(100, Math.round((M.manager.confiance + d * 0.15) * 10) / 10);
     }
   },
-  avantSaison(M, r){ initRecords(M); recordsSaison(M); evolutionManager(M, r);
+  avantSaison(M, r){ initRecords(M); recordsSaison(M); evolutionManager(M, r); lignesCarriere(M);
     const U = monClub(M); if (U && U.plan) U.plan.sem = {};
     base.avantSaison(M, r); },
   apresSaison(M, r){
@@ -292,6 +302,7 @@ Object.assign(QMC, {
     }
   },
   migrer(M){ const v = M.v || 1; base.migrer(M); initRecords(M); if (M.manager) profil(M);
+    if (M.manager && v < 8) Q().message(M, 'QM27 : Gallions, presse et carrières', 'La monnaie des sorciers arrive : Gallions (or), Mornilles (argent) et Noises (bronze). 1 Gallion = 17 Mornilles, 1 Mornille = 29 Noises. Les conférences de presse passent à trois questions, posées par plusieurs médias selon le match et la saison ; chaque réponse a un ton et des effets (groupe, joueur, président, supporters, réputation, relation avec la presse). Les notes ne gonflent plus de saison en saison : les potentiels trop généreux ont été ramenés à un niveau réaliste, et les salaires des stars montent moins vite au-dessus de 75. Les clubs gardent désormais leurs meilleurs joueurs en fin de contrat. Chaque fiche joueur a son historique de carrière (à partir de cette saison).', 'club');
     if (M.manager && v < 7) Q().message(M, 'Nouveautés de QM27 : le domaine et le bureau', 'Accueil Club : une carte du domaine à toucher (vestiaire, stade, tour du directeur, Gringotts, zone technique, Poudlard, salle des trophées). Calendrier par mois et par saison. Entraînement programmable avec ton adjoint. Ton profil de manager (avatar, attributs, contrat). Records du club et du championnat. Le Tournoi des Six Emblèmes se joue désormais pendant le championnat dès la saison prochaine : les internationaux manquent les matchs de leur club.', 'club');
     M.v = Q().VERSION; },
   prixClub(M, j){ const v = base.prixClub(M, j), U = monClub(M); return U && j.club !== U.id ? Math.round(v * (1 - eff(M, 'neg') * 0.008) / 5000) * 5000 : v; },

@@ -1,4 +1,4 @@
-// mon-ecran-version: 9d12bc5a
+// mon-ecran-version: b809dbd8
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -11,13 +11,24 @@ const borne = (x, a, b) => Math.max(a, Math.min(b, x));
 const arrondi = (x, pas) => Math.round(x / pas) * pas;
 const n20 = j => Q().note20(j, j.poste);
 const nomJ = j => j ? `${j.p} ${j.n}` : '?';
-const euros = x => { const a = Math.abs(x), s = x < 0 ? '−' : ''; return a >= 1e6 ? `${s}${(a / 1e6).toFixed(a >= 1e7 ? 1 : 2).replace('.', ',')} M€` : a >= 1e3 ? `${s}${Math.round(a / 1e3)} k€` : `${s}${Math.round(a)} €`; };
+/* v94 : monnaie des sorciers. Les montants internes ne changent pas ; à l'affichage, 1 Gallion (G) = 1 000 unités internes,
+   1 Gallion = 17 Mornilles (M), 1 Mornille = 29 Noises (N). Deux pièces au plus : « 4 510 G », « 14 G 4 M », « 11 M 6 N », « 6 N ». L'interface remplace les lettres par des pièces. */
+const GAL = 17 * 29, milliers = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
+const euros = x => {
+  const s = x < 0 ? '−' : '', a = Math.abs(x);
+  if (a >= 100000) return `${s}${milliers(Math.round(a / 1000))} G`;
+  const n = Math.round(a * GAL / 1000), g = Math.floor(n / GAL), m = Math.floor(n % GAL / 29), no = n % 29;
+  if (g) return `${s}${g} G${m ? ' ' + m + ' M' : ''}`;
+  if (m) return `${s}${m} M${no ? ' ' + no + ' N' : ''}`;
+  return `${s}${no} N`;
+};
 const club = (M, id) => M.clubs[id];
 const estJoueur = (M, id) => !!id && !!M.manager && M.manager.club === id;
 const aClub = M => !!(M.manager && M.manager.club);
 
 /* ---------- Argent ---------- */
-const salaireBase = n => ECO.salaireBase * Math.pow(ECO.salaireFacteur, n - ECO.salairePivot);
+/* v94 : au-dessus de 15 sur 20 (note 75), le salaire monte moins vite (×1,3 par point au lieu de ×1,6) */
+const salaireBase = n => ECO.salaireBase * Math.pow(ECO.salaireFacteur, Math.min(n, 15) - ECO.salairePivot) * Math.pow(1.3, Math.max(0, n - 15));
 function salaireDemande(j, c){
   const age = j.age >= 33 ? 0.75 : j.age >= 31 ? 0.88 : 1;
   return arrondi(salaireBase(n20(j)) * (0.85 + (c ? c.rep : 60) / 250) * age * (1 - (c && root.QMB ? root.QMB.bonus(c, 'salaire') : 0)), 50);
@@ -237,6 +248,7 @@ function transfert(M, jid, versId, montant, sal, ans){
   const j = M.joueurs[jid], de = j.club ? club(M, j.club) : null, vers = club(M, versId), S = Q().semaine(M);
   if (de){ retirerDe(M, de, jid); if (montant) compter(de, 'rec', 'ventes', montant); }
   else M.libres = M.libres.filter(x => x !== jid);
+  noterCarriere(M, j, de ? (montant ? 'transfert' : 'libre') : 'libre', de ? de.id : null, versId, montant);
   vers.effectif.push(jid); j.club = versId; j.num = numLibre(M, vers);
   j.contrat = {fin:M.saison + ans, sal}; j.arrivee = M.saison * 100 + M.semaine; if (montant) compter(vers, 'dep', 'achats', montant);
   vers.cohesion = Math.max(30, vers.cohesion - 4);
@@ -247,7 +259,10 @@ function transfert(M, jid, versId, montant, sal, ans){
   M.transferts.unshift({d:S ? S.date : Date.now(), j:jid, nom:nomJ(j), de:de ? de.id : null, vers:versId, montant});
   if (M.transferts.length > 60) M.transferts.length = 60;
 }
+/* v94 : historique de carrière — j.carr = {s:[[saison, club, matchs, buts, cognards, vifs, arrêts, note moyenne × 10]], t:[[saison, semaine, type, de, vers, montant]]} */
+function noterCarriere(M, j, type, de, vers, montant){ const k = j.carr || (j.carr = {s:[], t:[]}); k.t.push([M.saison, M.semaine, type, de || null, vers || null, montant || 0]); if (k.t.length > 12) k.t.shift(); }
 function libererJoueur(M, j){
+  noterCarriere(M, j, 'libere', j.club, null, 0);
   const c = club(M, j.club); retirerDe(M, c, j.id); j.club = null; j.contrat = null; M.libres.push(j.id); reparerCompo(M, c);
 }
 function besoin(M, c){
@@ -403,7 +418,7 @@ function acheterBalais(M, bid){
   compter(U, 'dep', 'balais', cout); U.balai = b.id; U.usure = 100;
   return {ok:true, msg:`Nouveaux balais : ${b.nom}`};
 }
-function reglerPrix(M, prix){ const U = club(M, M.manager.club); U.prix = borne(Math.round(prix), 4, 60); return U.prix; }
+function reglerPrix(M, prix){ const U = club(M, M.manager.club); U.prix = borne(Math.round(prix * GAL / 1000), 2, 29) * 1000 / GAL; /* v94 : le prix se règle à la Noise près (2 à 29 Noises) */ return U.prix; }
 
 /* ---------- Semaine et saison ---------- */
 function semaine(M, S){
@@ -439,9 +454,13 @@ function avantSaison(M, r){
   /* contrats qui se terminent */
   const partis = [];
   for (const c of Object.values(M.clubs)){
+    /* v94 : l'ordinateur garde ses meilleurs joueurs et ses jeunes prometteurs (avant : 72 % au hasard, d'où des cracks libres) */
+    const rang = new Map(c.effectif.map(id => M.joueurs[id]).filter(Boolean).sort((a, b) => n20(b) - n20(a)).map((j, i) => [j.id, i]));
     for (const id of c.effectif.slice()){
       const j = M.joueurs[id]; if (!j || j.contrat.fin > M.saison) continue;
-      if (!estJoueur(M, c.id) && j.age < 33 && r() < 0.72){ j.contrat = {fin:M.saison + 1 + r.ent(0, 2), sal:salaireDemande(j, c)}; continue; }
+      const rg = rang.get(id) ?? 99, prometteur = j.age <= 23 && j.cache.pot - n20(j) >= 1.2;
+      const garde = j.age >= 34 ? 0.15 : rg < 9 || prometteur ? 0.94 : rg < 13 ? 0.7 : 0.4;
+      if (!estJoueur(M, c.id) && r() < garde){ j.contrat = {fin:M.saison + 1 + r.ent(0, 2), sal:Math.max(j.contrat.sal, salaireDemande(j, c))}; continue; }
       if (estJoueur(M, c.id)) partis.push(nomJ(j));
       libererJoueur(M, j);
     }
@@ -484,7 +503,7 @@ function potentielEstime(M, j){
   return Math.round(borne(vrai + bruit, 1, 5));
 }
 
-root.QMC = {niv, multInst, entretienInst, compter, finVide, creerStaff, numLibre, transfert, libererJoueur, reparerCompo, progression, completerClub, besoin, initMonde, migrer, semaine, avantSaison, apresSaison, nouveauJoueur, dureeBlessure, salaireDemande, valeur, masse, masseMax, prixRef, remplissage, euros,
+root.QMC = {noterCarriere, niv, multInst, entretienInst, compter, finVide, creerStaff, numLibre, transfert, libererJoueur, reparerCompo, progression, completerClub, besoin, initMonde, migrer, semaine, avantSaison, apresSaison, nouveauJoueur, dureeBlessure, salaireDemande, valeur, masse, masseMax, prixRef, remplissage, euros,
             mercatoOuvert, prochaineFenetre, proposerTransfert, accepterOffre, refuserOffre, mettreEnVente, suivre, liberer, coutLiberation, prolonger, embaucher,
             acheterBalais, reglerPrix, potentielEstime, prixClub, exigenceJoueur, NOMS_REC, NOMS_DEP, ENT_DEFAUT, revenusSaison};
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,4 +1,4 @@
-// mon-ecran-version: 9250d62a
+// mon-ecran-version: c95f1817
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -7,7 +7,7 @@
 'use strict';
 const D = root.QMD;
 const EQ = D.EQ;
-const VERSION = 7;   // v91 : tournoi pendant le championnat (j.inter), programme d'entraînement, profil du manager, records (qm27-bureau.js) ; v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty ; v90 : vestiaire et mercato (qm27-vestiaire.js)   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
+const VERSION = 8;   // v94 : potentiels plafonnés (fin de l'inflation des notes), historique de carrière (j.carr) ; v7   // v91 : tournoi pendant le championnat (j.inter), programme d'entraînement, profil du manager, records (qm27-bureau.js) ; v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty ; v90 : vestiaire et mercato (qm27-vestiaire.js)   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
 const C = () => root.QMC;   // gestion du club (qm27-club.js), facultative pour le moteur
 
 /* ---------- Hasard à graine (mulberry32) ---------- */
@@ -43,6 +43,10 @@ const note = (j, poste) => Math.round(note20(j, poste || j.poste) * 5);   // aff
 const meilleurPoste = j => ['P', 'B', 'A', 'G'].reduce((b, p) => note20(j, p) > note20(j, b) ? p : b, j.poste);
 
 /* ---------- Création du monde ---------- */
+/* v94 : marge de progression (potentiel − niveau actuel, sur 20). Avant v94 : (22 − âge) × 0,8 + |gauss| × 1,8 à tout âge,
+   d'où une inflation des notes de saison en saison (le meilleur joueur passait de 74 à 92 en six saisons). */
+const margePot = (age, r) => age <= 21 ? (22 - age) * 0.45 + Math.abs(r.gauss()) * 1.0 : age <= 24 ? 0.5 + Math.abs(r.gauss()) * 0.8 : age <= 28 ? Math.abs(r.gauss()) * 0.5 : Math.abs(r.gauss()) * 0.2;
+const margeMax = age => age <= 21 ? (22 - age) * 0.45 + 2.0 : age <= 24 ? 2.1 : age <= 28 ? 1.0 : 0.4;
 function creerJoueur(r, nat, poste, niveau, age, id){
   const N = D.NOMS[nat];
   const w = POIDS[poste];
@@ -52,8 +56,7 @@ function creerJoueur(r, nat, poste, niveau, age, id){
   });
   const g = D.GARDIEN.map(() => Math.round(borne((poste === 'G' ? niveau + 0.8 : niveau - 7) + r.gauss() * 1.6, 1, 20)));
   const ca = note20({a, g}, poste);
-  const jeune = age <= 21 ? (22 - age) * 0.8 : age <= 24 ? 1 : 0;
-  const pot = Math.round(borne(ca + jeune + Math.abs(r.gauss()) * 1.8, ca, 19.5) * 10) / 10;
+  const pot = Math.round(borne(ca + margePot(age, r), ca, 19.5) * 10) / 10;
   const c = () => r.ent(4, 18);
   return {id, p:r.choix(N.p), n:r.choix(N.n), nat, age, poste, a, g,
           cache:{pot, reg:c(), pro:c(), amb:c(), frag:c(), gm:c(), ada:c(), loy:c()},
@@ -712,6 +715,7 @@ function charger(txt){
   for (const c of Object.values(M.clubs)){ completerTactique(c.tactique); if (c.compo && c.compo.pen === undefined) rolesAuto(M, c.compo, true); }   // v89 : dispositions, tireur de penalty
   if (M.sel && M.sel.tactique) completerTactique(M.sel.tactique);
   if (v0 < 5 && M.manager) message(M, 'Nouveautés de QM27 : match et tactique', 'Tactique : deux dispositions, avec et sans le souafle, et une zone d\'attaque à choisir sur le terrain (chaque défense craint une zone). Tireur de penalty désigné, manies des joueurs (fiche joueur), buts attendus. En direct : le terrain vu du dessus, les autres scores à la radio, les conseils de l\'adjoint, des résumés qui suivent l\'enjeu et une ambiance sonore (Réglages).', 'club');
+  if (v0 < 8) for (const j of Object.values(M.joueurs)){ if (!j.cache) continue; const ca = note20(j, j.poste); j.cache.pot = Math.round(Math.max(ca, Math.min(j.cache.pot, ca + margeMax(j.age))) * 10) / 10; }   // v94
   M.v = VERSION;
   if (!Object.values(M.joueurs).some(j => j.inter)) convoquer(M);   // v91 : convocations de la semaine en cours
   return M;

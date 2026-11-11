@@ -1,11 +1,15 @@
-// mon-ecran-version: 08fc5a6d
+// mon-ecran-version: 7a7ba6a0
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
 (() => {
 'use strict';
 const D = window.QMD, E = D.EQ, C = window.QMC;
-const eur = x => C.euros(x);
+/* v94 : Gallions, Mornilles et Noises en pièces (or, argent, bronze) ; eurT = la même somme en texte (confirmations, infobulles) */
+const PIECE = {G:['g', 'Gallions'], M:['m', 'Mornilles'], N:['n', 'Noises']};
+const pieces = html => String(html).replace(/(\d[\d\u202f\u00a0]*) (G|M|N)(?=$|[\s.,;:)»!?…/<])/g, (t, n, u) => `${n}<i class="po ${PIECE[u][0]}" role="img" aria-label="${PIECE[u][1]}"></i>`);
+const eurT = x => C.euros(x);
+const eur = x => `<span class="mon">${pieces(C.euros(x))}</span>`;
 const $ = s => document.querySelector(s);
 const VUE = $('#vue'), NAV = $('#nav');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
@@ -66,7 +70,7 @@ const ICO = {
   plus:'<circle cx="5.5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18.5" cy="12" r="1.4"/>',
   club:'<path d="M12 3 4.5 6v5.5c0 4.4 3.1 8.1 7.5 9.5 4.4-1.4 7.5-5.1 7.5-9.5V6z"/><path d="M8.5 12.5h7M12 9v7"/>',
 };
-function toast(t){ const o = document.querySelector('.toast-qm'); if (o) o.remove(); const d = document.createElement('div'); d.className = 'toast-qm'; d.setAttribute('role', 'status'); d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
+function toast(t){ const o = document.querySelector('.toast-qm'); if (o) o.remove(); const d = document.createElement('div'); d.className = 'toast-qm'; d.setAttribute('role', 'status'); d.innerHTML = pieces(esc(t)); document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
 function feuille(html){
   retirerFeuille();
   const f = document.createElement('div'); f.className = 'fond'; f.innerHTML = `<div class="feuille" role="dialog" aria-modal="true">${html}</div>`;
@@ -312,7 +316,7 @@ function vueAccueil(){
     <div class="carte"><h2>${esc(M.ligues[c.ligue].nom)} <button data-act="vue" data-v="classements">Classement</button></h2>${tableHTML(part, c.ligue, true, deb)}</div>
   </div></div>`;
 }
-const msgHTML = m => `<button class="msg ${m.lu ? '' : 'neuf'}" data-act="lireMsg" data-id="${m.id}"><b>${esc(m.titre)}</b><p>${esc(String(m.corps).length > 160 ? String(m.corps).slice(0, 160) + '…' : m.corps)}</p></button>`;
+const msgHTML = m => `<button class="msg ${m.lu ? '' : 'neuf'}" data-act="lireMsg" data-id="${m.id}"><b>${pieces(esc(m.titre))}</b><p>${pieces(esc(String(m.corps).length > 160 ? String(m.corps).slice(0, 160) + '…' : m.corps))}</p></button>`;
 
 /* ---------- Classements ---------- */
 function tableHTML(rows, ligue, compact, deb = 0){
@@ -375,6 +379,21 @@ const HH = () => window.QMH;
 const connu = j => HH() ? HH().connaissance(M, j) : 100;
 function valVue(j, v, cle, echelle){ if (connu(j) >= 100) return {txt:String(v), mid:v, exact:true}; const [a, b] = HH().fourchette(M, j, v, cle, echelle); return a === b ? {txt:String(a), mid:a, exact:false} : {txt:`${a}–${b}`, mid:(a + b) / 2, exact:false}; }
 const noteVue = (j, p) => valVue(j, QM.note(j, p), 'note' + p, 5);
+/* v94 : historique de carrière (saisons et mouvements), dans la fiche joueur */
+const STAT_P = {P:[3, 'buts'], B:[4, 'cognards'], A:[5, 'vifs'], G:[6, 'arrêts']};
+function carriereHTML(j){
+  const k = j.carr || {s:[], t:[]}, s = j.saison || {}, [ix, nomS] = STAT_P[j.poste];
+  const enCours = [M.saison, j.club, s.m || 0, s.b || 0, s.cog || 0, s.v || 0, s.arr || 0, s.m ? Math.round(s.notes / s.m * 10) : 0];
+  const L = [enCours, ...k.s.slice().reverse()];
+  const nomC = id => id ? (M.clubs[id] ? M.clubs[id].nom : id) : 'sans club', villeC = id => id && M.clubs[id] ? M.clubs[id].ville : 'sans club';
+  const typeT = {transfert:'Transfert', libre:'Arrivée libre', libere:'Fin de contrat', pret:'Prêt', retour:'Retour de prêt'};
+  const tot = L.reduce((a, x) => [a[0] + x[2], a[1] + x[ix]], [0, 0]);
+  return `<details class="carte fj-carriere"><summary><h2 style="display:inline">Carrière</h2> <span class="mut petit">${L.length} saison${L.length > 1 ? 's' : ''} · ${tot[0]} matchs · ${tot[1]} ${nomS}</span></summary>
+    <div class="tab-carr" role="table"><div class="tc-l tc-h" role="row"><span>Saison</span><span>Club</span><span>MJ</span><span>${nomS[0].toUpperCase() + nomS.slice(1)}</span><span>Moy.</span></div>
+    ${L.map((x, i) => `<div class="tc-l" role="row"><span>${lab(x[0])}${i ? '' : ' <i class="mut">en cours</i>'}</span><span class="tc-c">${x[1] && M.clubs[x[1]] ? blason(x[1], 'p') : ''}${esc(villeC(x[1]))}</span><span>${x[2]}</span><span>${x[ix]}</span><span>${x[7] ? (x[7] / 10).toFixed(1).replace('.', ',') : '—'}</span></div>`).join('')}</div>
+    ${k.t.length ? `<h4 class="sous-t">Mouvements</h4><div class="liste">${k.t.slice().reverse().map(t => `<div class="el"><div class="t"><b>${typeT[t[2]] || t[2]}${t[5] ? ' · ' + eur(t[5]) : ''}</b><span>${lab(t[0])} · ${esc(nomC(t[3]))} → ${esc(nomC(t[4]))}</span></div></div>`).join('')}</div>` : ''}
+    ${k.s.length ? '' : '<p class="petit mut" style="margin:8px 0 0">L\'historique a commencé avec la mise à jour v94 : les saisons précédentes ne sont pas connues.</p>'}</details>`;
+}
 function ficheJoueur(id){
   const j = M.joueurs[id]; if (!j) return;
   const mon = j.club === M.manager.club, r = mon ? roleDe(id) : {}, cl = j.club ? club(j.club) : null;
@@ -400,6 +419,7 @@ function ficheJoueur(id){
       ${j.poste === 'G' ? `<div class="fa"><h4>Gardien</h4>${D.GARDIEN.map((g, i) => ligne(g[0], g[1], j.g[i], true)).join('')}</div>` : ''}
     </div></div>
     <p class="fj-saison"><b>Saison</b> ${s.m} match${s.m > 1 ? 's' : ''} · ${s.b} but${s.b > 1 ? 's' : ''} · ${s.v} vif${s.v > 1 ? 's' : ''} · note moyenne ${s.m ? (s.notes / s.m).toFixed(1) : '—'}</p>
+    ${carriereHTML(j)}
     ${mon && B.a(club(M.manager.club), 'apothicaire') ? `<button class="btn sec plein" style="margin-top:10px" data-act="potion" data-j="${j.id}">Potion de forme de l'apothicaire (+2 forme)</button>` : ''}
     ${j.acad ? blocJeune(j) : blocContrat(j, mon)}
     ${mon ? `<p class="petit mut" style="margin-top:10px">${r.tit ? `Titulaire (${D.POSTES[r.p].nom.toLowerCase()}).` : r.banc ? 'Remplaçant.' : 'Hors du groupe de 12.'} Les changements se font dans Tactique.</p>` : ''}`);
@@ -649,7 +669,8 @@ function vueAide(){
     <label class="el"><div class="t"><b>Temps forts selon l'enjeu</b><span>Tout quand le match est serré, l'essentiel quand il est plié</span></div><input type="checkbox" data-chg="resumes" ${REG.resumes !== 'tout' ? 'checked' : ''} style="width:22px;height:22px"></label>
     <label class="el"><div class="t"><b>Ambiance sonore</b><span>Foule, sifflet, carillon du vif d'or</span></div><input type="checkbox" data-chg="son" ${REG.son ? 'checked' : ''} style="width:22px;height:22px"></label>
     <label class="el"><div class="t"><b>Causeries</b><span>Avant le match et aux temps morts</span></div><input type="checkbox" data-chg="causeries" ${REG.causeries !== false ? 'checked' : ''} style="width:22px;height:22px"></label>
-    <label class="el"><div class="t"><b>Conférence de presse</b><span>Une question après chaque match</span></div><input type="checkbox" data-chg="presse" ${REG.presse !== false ? 'checked' : ''} style="width:22px;height:22px"></label>
+    <label class="el"><div class="t"><b>Conférence de presse</b><span>Après chaque match, plusieurs médias, des réponses aux effets différents</span></div><input type="checkbox" data-chg="presse" ${REG.presse !== false ? 'checked' : ''} style="width:22px;height:22px"></label>
+    <label class="el"><div class="t"><b>Questions par conférence</b><span>Une, deux ou trois</span></div><select data-chg="presseN" aria-label="Questions par conférence">${[1, 2, 3].map(n => `<option value="${n}" ${(REG.presseN || 3) === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     ${M && HH() ? `<label class="el"><div class="t"><b>Paris et pots-de-vin (cette partie)</b><span>Parier sur ton match, soudoyer le gardien adverse… au risque d'une enquête du ministère, voire d'Azkaban</span></div><input type="checkbox" data-chg="triche" ${HH().etat(M).triche ? 'checked' : ''} style="width:22px;height:22px"></label>` : ''}
   </div></div>
   <div class="carte aide"><h2>Comment ça marche</h2>
@@ -659,6 +680,8 @@ function vueAide(){
     <p><b>Le match.</b> Une minute de jeu défile en une seconde à vitesse ×1. Deux temps morts par équipe pour changer les consignes et faire entrer des remplaçants : 3 changements libres, plus ceux qui suivent une blessure. Pendant le direct : le match vu du dessus, les autres scores à la radio, les conseils de l'adjoint et, si tu le veux, l'ambiance du stade.</p>
     <p><b>Les joueurs.</b> 31 attributs de 1 à 20, plus 5 pour les gardiens. La note sur 100 dépend du poste : les attributs cibles (●) comptent triple. La forme, la fatigue et le moral changent chaque semaine.</p>
     <p><b>La composition.</b> 7 titulaires sur le terrain et ${NB_BANC()} remplaçants sur le banc (Tactique). Glisse un joueur du banc sur un titulaire pour les échanger, ou choisis la place de chacun avec le menu du panneau Effectif (titulaire, remplaçant ou réserve). Une place laissée libre est complétée au coup d'envoi.</p>
+    <p><b>Monnaie.</b> Gallions (pièce d'or), Mornilles (argent) et Noises (bronze) : 1 Gallion = 17 Mornilles = 493 Noises. Les gros montants s'affichent en Gallions, les petits en Mornilles et Noises.</p>
+    <p><b>Presse.</b> Après chaque match, jusqu'à trois questions de médias différents (réglage ci-dessus). Le ton de ta réponse agit sur le moral du groupe ou d'un joueur, le président, les supporters, ta réputation et ta relation avec la presse ; les effets s'affichent après chaque réponse.</p>
     <p><b>Vestiaire.</b> Club › Vestiaire : ambiance (le moral, surtout celui des leaders), clans, joueurs qui veulent jouer plus, et jusqu'à trois binômes de mentorat (un joueur de 26 ans ou plus guide un jeune de 22 ans ou moins). Causeries avant le match et aux temps morts, conférence de presse après (La Gazette du sorcier) ; tout se désactive ici.</p>
     <p><b>Recrutement.</b> Les attributs des joueurs des autres clubs s'affichent en fourchettes tant que ton recruteur ne les connaît pas bien : suis-les, affronte leur équipe. Les offres partent par hibou et la réponse arrive la semaine suivante (contre-offres dans Mercato › Offres ; un autre club peut doubler). Clauses : pourcentage à la revente, clause libératoire, prime au vif d'or. Prêts jusqu'à la fin de la saison, avec ou sans option d'achat.</p>
     <p><b>Le président.</b> Il fixe un objectif de classement, juge chaque résultat selon la force de l'adversaire et fixe la limite de la masse salariale.</p>
@@ -672,7 +695,7 @@ function vueAide(){
     <p><b>Supporters.</b> Ils suivent les résultats et le prix des places et des produits. Contents, ils remplissent le stade et rassurent le président ; fâchés, ils le font douter. Chaque été, des jeunes de 15-16 ans arrivent au pensionnat ; promus, ils jouent en équipe première.</p>
     <p><b>Carrière.</b> D'autres clubs peuvent te proposer leur banc. Si la confiance du président tombe à zéro, tu es licencié : avance le temps en attendant une offre. Avec une réputation de ${E.carriere.repSelection}, une fédération peut te confier sa sélection pour le Tournoi des Six Emblèmes, en plus de ton club.</p>
     <p><b>Entre appareils.</b> Avec la synchronisation de KiosK activée (page État), Plus › Sauvegardes envoie et récupère la partie, chiffrée.</p>
-    <p class="petit mut">Clubs, joueurs, balais et euros sont inventés.</p>
+    <p class="petit mut">Clubs, joueurs, balais et Gallions sont inventés.</p>
   </div>`;
 }
 
@@ -797,8 +820,8 @@ function ficheFiltres(){
     <h4 class="sous-t">Poste</h4><div class="chips">${[['tous', 'Tous'], ['P', 'Poursuiveurs'], ['B', 'Batteurs'], ['A', 'Attrapeurs'], ['G', 'Gardiens']].map(([k, n]) => `<button class="chip ${MERC.poste === k ? 'on' : ''}" data-act="mercPoste" data-p="${k}">${n}</button>`).join('')}</div>
     <div class="grille-f">
       <label><span>Âge minimum</span>${sel('ageMin', ages, MERC.ageMin)}</label><label><span>Âge maximum</span>${sel('age', [...ages.slice(1), [99, 'Sans limite']], MERC.age)}</label>
-      <label><span>Valeur maximum</span>${sel('valMax', [[0, 'Toutes'], [250000, '250 k€'], [500000, '500 k€'], [1000000, '1 M€'], [2000000, '2 M€'], [5000000, '5 M€']], MERC.valMax)}</label>
-      <label><span>Salaire actuel maximum</span>${sel('salMax', [[0, 'Tous'], [2000, '2 k€ / sem.'], [5000, '5 k€ / sem.'], [10000, '10 k€ / sem.'], [20000, '20 k€ / sem.']], MERC.salMax)}</label>
+      <label><span>Valeur maximum</span>${sel('valMax', [[0, 'Toutes'], ...[250000, 500000, 1000000, 2000000, 5000000].map(v => [v, eurT(v).replace(/ G$/, ' Gallions')])], MERC.valMax)}</label>
+      <label><span>Salaire actuel maximum</span>${sel('salMax', [[0, 'Tous'], ...[2000, 5000, 10000, 20000].map(v => [v, eurT(v).replace(/ G$/, ' Gallions') + ' / sem.'])], MERC.salMax)}</label>
       <label><span>Note estimée minimum</span>${sel('noteMin', [[0, 'Toutes'], [40, '40'], [50, '50'], [55, '55'], [60, '60'], [65, '65'], [70, '70']], MERC.noteMin)}</label>
       <label><span>Nationalité</span>${sel('nat', [['', 'Toutes'], ...D.SIX_NATIONS.map(n => [n, nat(n).nom])], MERC.nat)}</label>
       <label><span>Caractéristique</span>${sel('attr', [['', 'Aucune'], ...D.ATTRS.map(a => [a[0], a[1]])], MERC.attr)}</label>
@@ -833,7 +856,7 @@ function ficheOffre(jid, mode){
         ${j.poste === 'A' ? seg('Prime au vif d\'or', 'offrePrime', [['false', 'Non'], ['true', 'Oui']], o.primeVif, `Salaire demandé 8 % plus bas ; prime de deux semaines de salaire à chaque vif d'or attrapé.`) : ''}
       </details>` : ''}`}
     <p class="petit mut" style="margin:8px 0">Solde ${eur(U.budget)} · place dans la masse salariale : ${eur(place)} / sem.${mode !== 'prolonger' && !libre ? ' · <b>Réponse par hibou la semaine prochaine.</b>' : ''}</p>
-    ${o.msg ? `<p style="margin:0 0 10px;font-weight:600;color:var(--moyen)">${esc(o.msg)}</p>` : ''}
+    ${o.msg ? `<p style="margin:0 0 10px;font-weight:600;color:var(--moyen)">${pieces(esc(o.msg))}</p>` : ''}
     <button class="btn plein" data-act="envoyerOffre">${mode === 'prolonger' ? 'Proposer la prolongation' : libre ? 'Proposer le contrat' : 'Envoyer le hibou'}</button>`);
 }
 function vueFinances(){
@@ -843,15 +866,15 @@ function vueFinances(){
   const h = c.fin.hist, max = Math.max(1, ...h.map(x => Math.abs(x.net)));
   const balai = D.BALAIS.find(b => b.id === c.balai) || D.BALAIS[0];
   const ligne = (n, a, b) => `<tr><td style="text-align:left">${n}</td><td>${eur(a)}</td>${P ? `<td class="tab-cache mut">${eur(b || 0)}</td>` : ''}</tr>`;
-  VUE.innerHTML = `<div><h1 class="grand">Finances</h1><p class="sous">Saison ${lab(M.saison)} · euros fictifs</p></div>
+  VUE.innerHTML = `<div><h1 class="grand">Finances</h1><p class="sous">Saison ${lab(M.saison)} · Gallions fictifs</p></div>
   <div class="cols"><div>
   <div class="carte"><h2>Solde</h2><div style="font-size:1.9rem;font-weight:800;letter-spacing:-.03em;color:${c.budget < 0 ? 'var(--mauvais)' : 'inherit'}">${eur(c.budget)}</div>
     <div style="margin:12px 0 4px" class="ligne"><span style="flex:1">Masse salariale (joueurs et staff)</span><b>${eur(ms)} / ${eur(c.masseMax)}</b></div>
     <div class="jauge" role="meter" aria-valuenow="${Math.round(ms / c.masseMax * 100)}" aria-valuemin="0" aria-valuemax="100" aria-label="Masse salariale"><i style="width:${Math.min(100, ms / c.masseMax * 100)}%;background:${ms > c.masseMax ? 'var(--mauvais)' : 'var(--accent)'}"></i></div>
     <p class="petit mut" style="margin:8px 0 0">Limite fixée par le président : au-delà, il refuse les nouveaux contrats.</p></div>
-  <div class="carte"><h2>16 dernières semaines</h2><div class="histo">${h.map(x => `<div title="${fmtDate(x.d)} : ${eur(x.net)}"><i style="height:${Math.max(3, Math.abs(x.net) / max * 100)}%;background:${x.net < 0 ? 'var(--mauvais)' : 'var(--bon)'}"></i></div>`).join('') || '<p class="mut">Pas encore de semaine jouée.</p>'}</div></div>
-  <div class="carte"><h2>Billetterie</h2><div class="ligne"><button class="btn sec" data-act="prix" data-d="-1" aria-label="Baisser le prix">−</button><b style="flex:1;text-align:center;font-size:1.15rem">${c.prix} € la place</b><button class="btn sec" data-act="prix" data-d="1" aria-label="Monter le prix">+</button></div>
-    <p class="petit mut" style="margin:8px 0 0">Environ ${aff.toLocaleString('fr-FR')} spectateurs (${Math.round(aff / c.stade * 100)} %) contre un adversaire moyen, soit ${eur(aff * c.prix)} par match à domicile. Prix conseillé : ${C.prixRef(c)} €. Plus cher : moins de monde ; les résultats remplissent le stade.</p></div>
+  <div class="carte"><h2>16 dernières semaines</h2><div class="histo">${h.map(x => `<div title="${fmtDate(x.d)} : ${eurT(x.net)}"><i style="height:${Math.max(3, Math.abs(x.net) / max * 100)}%;background:${x.net < 0 ? 'var(--mauvais)' : 'var(--bon)'}"></i></div>`).join('') || '<p class="mut">Pas encore de semaine jouée.</p>'}</div></div>
+  <div class="carte"><h2>Billetterie</h2><div class="ligne"><button class="btn sec" data-act="prix" data-d="-1" aria-label="Baisser le prix">−</button><b style="flex:1;text-align:center;font-size:1.15rem">${eur(c.prix)} la place</b><button class="btn sec" data-act="prix" data-d="1" aria-label="Monter le prix">+</button></div>
+    <p class="petit mut" style="margin:8px 0 0">Environ ${aff.toLocaleString('fr-FR')} spectateurs (${Math.round(aff / c.stade * 100)} %) contre un adversaire moyen, soit ${eur(aff * c.prix)} par match à domicile. Prix conseillé : ${eur(C.prixRef(c))}. Plus cher : moins de monde ; les résultats remplissent le stade.</p></div>
   </div><div>
   <div class="carte"><h2>Recettes ${P ? '<span class="mut petit">saison · précédente</span>' : ''}</h2><table class="cl"><tbody>${Object.keys(C.NOMS_REC).map(k => ligne(C.NOMS_REC[k], F.rec[k] || 0, P && (P.rec[k] || 0))).join('')}<tr><td style="text-align:left"><b>Total</b></td><td><b>${eur(tot(F.rec))}</b></td>${P ? `<td class="tab-cache mut">${eur(tot(P.rec))}</td>` : ''}</tr></tbody></table></div>
   <div class="carte"><h2>Dépenses</h2><table class="cl"><tbody>${Object.keys(C.NOMS_DEP).map(k => ligne(C.NOMS_DEP[k], F.dep[k] || 0, P && (P.dep[k] || 0))).join('')}<tr><td style="text-align:left"><b>Total</b></td><td><b>${eur(tot(F.dep))}</b></td>${P ? `<td class="tab-cache mut">${eur(tot(P.dep))}</td>` : ''}</tr></tbody></table></div>
@@ -991,8 +1014,8 @@ function vueStade(){
     <div class="carte">${stadeVue(c)}<p class="petit mut" style="margin:6px 2px 0">Touche une tribune pour l'agrandir de ${E.stade.tranche.toLocaleString('fr-FR')} places (${eur(C.coutTravaux(c, 'stade'))}, ${E.stade.semaines} semaines). Panneaux vendus : ${c.dom.panneaux.length} / ${B.placesPanneaux(c)}.</p></div>
     <div class="carte"><h2>Tribunes</h2><div class="liste">${Object.keys(nom).map(k => `<div class="el"><div class="t"><b>Tribune ${nom[k]}</b><span>${c.dom.trib[k].toLocaleString('fr-FR')} places</span></div>${ext ? (c.dom.cote === k ? `<span class="badge">travaux · ${ext.fin - (M.tic || 0)} sem.</span>` : '') : `<button class="btn sec" data-act="tribune" data-c="${k}">+ ${(E.stade.tranche / 1000)} k</button>`}</div>`).join('')}</div></div>
   </div><div>
-    <div class="carte"><h2>Billetterie</h2><div class="ligne"><button class="btn sec" data-act="prix" data-d="-1" aria-label="Baisser le prix">−</button><b style="flex:1;text-align:center;font-size:1.15rem">${c.prix} € la place</b><button class="btn sec" data-act="prix" data-d="1" aria-label="Augmenter le prix">+</button></div>
-      <p class="petit mut" style="margin:8px 0 0">Environ ${aff.toLocaleString('fr-FR')} spectateurs (${Math.round(aff / c.stade * 100)} %) contre un adversaire moyen. Prix conseillé : ${C.prixRef(c)} € ; plus cher, les supporters râlent.</p></div>
+    <div class="carte"><h2>Billetterie</h2><div class="ligne"><button class="btn sec" data-act="prix" data-d="-1" aria-label="Baisser le prix">−</button><b style="flex:1;text-align:center;font-size:1.15rem">${eur(c.prix)} la place</b><button class="btn sec" data-act="prix" data-d="1" aria-label="Augmenter le prix">+</button></div>
+      <p class="petit mut" style="margin:8px 0 0">Environ ${aff.toLocaleString('fr-FR')} spectateurs (${Math.round(aff / c.stade * 100)} %) contre un adversaire moyen. Prix conseillé : ${eur(C.prixRef(c))} ; plus cher, les supporters râlent.</p></div>
     <div class="btns"><button class="btn sec" data-act="batiment" data-b="tribunes">Améliorer le stade</button><button class="btn sec" data-act="allerVue" data-v="partenaires">Panneaux et sponsor</button></div>
   </div></div>`;
 }
@@ -1003,7 +1026,7 @@ function vueBoutique(){
   <div class="carte"><div class="liste">${D.PRODUITS.map(p => { const ok = !p[4] || B.a(c, p[4]), st = d.produits[p[0]] || {actif:false, prix:'normal'};
     if (!ok) return `<div class="el" style="opacity:.55"><div class="t"><b>🔒 ${esc(p[1])}</b><span>Débloqué par ${esc(B.AMEL[p[4]].nom)} (${esc(nomBat(B.AMEL[p[4]].bat))}, niveau ${B.AMEL[p[4]].niv})</span></div></div>`;
     return `<div class="el prod"><label class="interr"><input type="checkbox" data-chg="produit" data-p="${p[0]}" ${st.actif ? 'checked' : ''}><span></span></label>
-      <div class="t"><b>${esc(p[1])}</b><span>${'★'.repeat(Math.round(p[2] * 3))} · ${Math.round(p[3] * B.PRIX[st.prix].p)} € · ${st.actif ? '≈ ' + eur(B.recetteProduit(c, p, st)) + ' / sem.' : 'pas en rayon'}</span></div>
+      <div class="t"><b>${esc(p[1])}</b><span>${'★'.repeat(Math.round(p[2] * 3))} · ${eur(p[3] * B.PRIX[st.prix].p)} · ${st.actif ? '≈ ' + eur(B.recetteProduit(c, p, st)) + ' / sem.' : 'pas en rayon'}</span></div>
       <div class="seg mini">${['bas', 'normal', 'haut'].map(v => `<button data-act="prixProduit" data-p="${p[0]}" data-v="${v}" class="${st.prix === v ? 'on' : ''}">${lib[v]}</button>`).join('')}</div></div>`; }).join('')}</div>
     <p class="petit mut" style="margin:8px 0 0">Prix bas : un peu moins de recettes, des supporters ravis. Prix haut : plus de recettes, des supporters qui râlent. Chaque niveau du Bazar ajoute une place en rayon.</p></div>`;
 }
@@ -1092,12 +1115,22 @@ function parisHTML(){
     ${X.pari ? `<p style="margin:0 0 8px">Pari placé : ${eur(X.pari.mise)} à ${String(X.pari.cote).replace('.', ',')} contre 1.</p>` : `<p class="petit" style="margin:0 0 8px">Cote de ta victoire : <b>${String(c).replace('.', ',')}</b>. Le ministère surveille…</p><div class="btns" style="margin-bottom:8px">${[50000, 100000, 250000].map(m => `<button class="btn sec" data-act="parier" data-m="${m}">Parier ${eur(m)}</button>`).join('')}</div>`}
     ${X.pot ? '<p style="margin:0">Le gardien adverse a été « convaincu ».</p>' : `<button class="btn sec plein" data-act="soudoyer">Soudoyer le gardien adverse · ${eur(prix)}</button>`}</div>`;
 }
+/* v94 : conférence de presse en plusieurs questions (qm27-presse.js) */
+const QP = () => window.QMP;
+const puceFx = ([l, v]) => `<span class="pr-fx ${v > 0 ? 'plus' : 'moins'}">${esc(l)} ${v > 0 ? '+' : '−'}${String(Math.abs(v)).replace('.', ',')}</span>`;
 function presseHTML(){
-  if (!X || !X.fini || !HH() || X.presseFaite === undefined && REG.presse === false) return '';
-  if (X.presseFaite) return `<div class="carte presse"><h2>Conférence de presse</h2><p style="margin:0">${esc(X.presseFaite)}</p><p class="petit mut" style="margin:6px 0 0">La Gazette du sorcier en parle dans ta boîte de réception.</p></div>`;
-  const q = HH().questionPresse(M, X);
-  return `<div class="carte presse"><h2>Conférence de presse</h2><p style="margin:0 0 10px"><b>« ${esc(q.q)} »</b></p><div class="liste">${q.r.map(([k, t]) => `<button class="el" data-act="presse" data-k="${q.k}" data-r="${k}"><div class="t" style="white-space:normal"><b style="white-space:normal;font-weight:500">${esc(t)}</b></div></button>`).join('')}</div>
-    <button class="btn sec plein" style="margin-top:8px" data-act="presse" data-k="${q.k}" data-r="">Pas de commentaire</button></div>`;
+  if (!X || !X.fini || !QP() || !X.presse && REG.presse === false) return '';
+  const P = QP().conference(M, X, REG.presseN || 3), TONS = QP().TONS;
+  const faits = P.faits.map((f, i) => `<div class="pr-fait${!P.fin && i === P.faits.length - 1 ? ' dernier' : ''}"><p class="pr-q"><span class="mut">${esc(f.media)} :</span> « ${esc(f.q)} »</p>
+    <p class="pr-r">— « ${esc(f.t)} » <span class="pr-ton">${esc(TONS[f.ton][0])}</span></p>${f.puces.length ? `<div class="pr-fxs">${f.puces.map(puceFx).join('')}</div>` : '<div class="pr-fxs"><span class="pr-fx">Aucun effet</span></div>'}</div>`).join('');
+  if (P.fin) return `<div class="carte presse"><h2>Conférence de presse <span class="mut petit">terminée</span></h2>${faits}
+    <p class="petit mut" style="margin:8px 0 0">La Gazette du sorcier en parle dans ta boîte de réception. Relation avec la presse : <b>${M.manager.presse ?? 50} / 100</b>.</p></div>`;
+  const q = P.qs[P.i];
+  return `<div class="carte presse"><h2>Conférence de presse <span class="mut petit">question ${P.i + 1} / ${P.qs.length}</span></h2>${faits}
+    <p class="pr-media">${esc(q.media)} · ${esc(q.journaliste)}</p><p style="margin:0 0 10px"><b>« ${esc(q.q)} »</b></p>
+    <div class="liste">${q.r.map((a, i) => `<button class="el" data-act="presse" data-r="${i}"><div class="t" style="white-space:normal"><b style="white-space:normal;font-weight:500">${esc(a.t)}</b></div><span class="pr-ton">${esc(TONS[a.ton][0])}</span></button>`).join('')}</div>
+    <div class="btns" style="margin-top:8px"><button class="btn sec pr-bt" data-act="presse" data-r="-1">Pas de commentaire</button><button class="btn sec pr-bt" data-act="presse" data-r="-2">Quitter la salle</button></div>
+    <p class="petit mut" style="margin:8px 0 0">Le ton compte : le groupe, le président, les supporters et les journalistes réagissent à chaque réponse.</p></div>`;
 }
 
 function vueChomage(){
@@ -1426,7 +1459,7 @@ const ACT = {
     if (d.m === 'avant') X.causerieAvant = r; else { X.causerieTM = X.tm[X.joueur]; X.causerieTxt = r.txt; }
     toast(r.avis === 'bon' ? 'Message reçu 👍' : r.avis === 'mauvais' ? 'Message mal passé 👎' : 'Message entendu');
     if (d.m === 'avant') rendre(); else rendreTempsMort(); },
-  presse:d => { if (d.r){ const r = HH().repondrePresse(M, X, d.k, d.r); X.presseFaite = r.msg || 'Réponse donnée.'; } else X.presseFaite = 'Pas de commentaire : la presse reste sur sa faim.'; rendre(); },
+  presse:d => { if (!QP()) return; QP().conference(M, X, REG.presseN || 3); QP().repondre(M, X, +d.r); rendre(); const c = document.querySelector('.carte.presse'); if (c && c.getBoundingClientRect().top < 0) c.scrollIntoView({block:'start', behavior:'smooth'}); },
   parier:d => { const r = HH().parier(M, X, +d.m); toast(r.msg); rendre(); },
   soudoyer:() => { if (!confirm('Soudoyer le gardien adverse ? Si le ministère l\'apprend, la sanction sera lourde.')) return; const r = HH().soudoyer(M, X); toast(r.msg); rendre(); },
   mentor:() => { const a = $('#mentorA'), b = $('#mentorB'); if (!a || !b) return; const r = HH().mentorer(M, a.value, b.value); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
@@ -1468,7 +1501,7 @@ const ACT = {
   mercTri:d => { MERC.tri = d.t; garderMerc(); rendre(); },
   suivre:d => { const on = C.suivre(M, d.j); sauver(); toast(on ? 'Joueur supervisé : ton recruteur le suit de près' : 'Plus supervisé'); ficheJoueur(d.j); },
   vendre:d => { const on = C.mettreEnVente(M, d.j); sauver(); toast(on ? 'Mis en vente : les offres arrivent pendant le mercato' : 'Retiré de la vente'); ficheJoueur(d.j); if (U.vue === 'effectif' || U.vue === 'mercato') rendre(); },
-  liberer:d => { const j = M.joueurs[d.j]; if (!confirm(`Résilier le contrat de ${nomJ(j)} ? Coût : ${eur(C.coutLiberation(M, j))}.`)) return; const r = C.liberer(M, d.j); toast(r.msg); if (r.ok){ retirerFeuille(); sauver(); rendre(); } },
+  liberer:d => { const j = M.joueurs[d.j]; if (!confirm(`Résilier le contrat de ${nomJ(j)} ? Coût : ${eurT(C.coutLiberation(M, j))}.`)) return; const r = C.liberer(M, d.j); toast(r.msg); if (r.ok){ retirerFeuille(); sauver(); rendre(); } },
   offre:d => { OFFRE = null; ficheOffre(d.j, 'transfert'); },
   prolonger:d => { OFFRE = null; ficheOffre(d.j, 'prolonger'); },
   pasOffre:d => { const k = d.k, v = OFFRE[k], st = k === 'sal' ? (v >= 10000 ? 500 : 250) : (v >= 1e6 ? 100000 : 25000); OFFRE[k] = Math.max(0, v + (+d.d) * st); OFFRE.msg = ''; ficheOffre(OFFRE.j, OFFRE.mode); },
@@ -1493,24 +1526,24 @@ const ACT = {
   accepterOffre:d => { const r = C.accepterOffre(M, d.o); toast(r.msg); sauver(); rendre(); },
   refuserOffre:d => { C.refuserOffre(M, d.o); sauver(); rendre(); },
   ent:d => { const E = club(M.manager.club).entrainement; E[d.g][d.k] = d.k === 'i' ? +d.v : d.v; sauver(); rendre(); },
-  prix:d => { const c = club(M.manager.club); C.reglerPrix(M, c.prix + (+d.d)); sauver(); rendre(); },
-  balais:d => { const b = D.BALAIS.find(x => x.id === d.b); if (!confirm(`Acheter un jeu de ${b.nom} pour ${eur(b.prix * 1000)} ?`)) return; const r = C.acheterBalais(M, d.b); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
+  prix:d => { const c = club(M.manager.club); C.reglerPrix(M, c.prix + (+d.d) * 1000 / 493); sauver(); rendre(); },
+  balais:d => { const b = D.BALAIS.find(x => x.id === d.b); if (!confirm(`Acheter un jeu de ${b.nom} pour ${eurT(b.prix * 1000)} ?`)) return; const r = C.acheterBalais(M, d.b); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
   ficheStaff:d => ficheStaff(d.r),
   embaucher:d => { const r = C.embaucher(M, d.s); toast(r.msg); if (r.ok){ retirerFeuille(); sauver(); rendre(); } },
   batiment:d => ficheBat(d.b),
   allerVue:d => { fermerFeuille(); U.vue = d.v; rendre(); scrollTo(0, 0); },
-  ameliorer:d => { const c = club(M.manager.club), cout = C.coutTravaux(c, d.b); if (!confirm(`${nomBat(d.b)} : passer au niveau ${C.niv(c, d.b) + 1} pour ${eur(cout)} ?`)) return; const r = B.lancer(M, d.b); toast(r.msg); if (r.ok){ sauver(); fermerFeuille(); rendre(); } },
+  ameliorer:d => { const c = club(M.manager.club), cout = C.coutTravaux(c, d.b); if (!confirm(`${nomBat(d.b)} : passer au niveau ${C.niv(c, d.b) + 1} pour ${eurT(cout)} ?`)) return; const r = B.lancer(M, d.b); toast(r.msg); if (r.ok){ sauver(); fermerFeuille(); rendre(); } },
   amel:d => { const r = B.choisirAmel(M, d.a); toast(r.msg); if (r.ok){ sauver(); const k = B.AMEL[d.a].bat; rendre(); ficheBat(k); } },
-  tribune:d => { const c = club(M.manager.club); if (c.travaux.some(t => t.type === 'stade')) return toast('Des travaux sont déjà en cours au stade.'); if (!confirm(`Agrandir la tribune ${({N:'nord', S:'sud', E:'est', O:'ouest'})[d.c]} de ${E.stade.tranche.toLocaleString('fr-FR')} places pour ${eur(C.coutTravaux(c, 'stade'))} ?`)) return; const r = B.lancer(M, 'stade', d.c); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
+  tribune:d => { const c = club(M.manager.club); if (c.travaux.some(t => t.type === 'stade')) return toast('Des travaux sont déjà en cours au stade.'); if (!confirm(`Agrandir la tribune ${({N:'nord', S:'sud', E:'est', O:'ouest'})[d.c]} de ${E.stade.tranche.toLocaleString('fr-FR')} places pour ${eurT(C.coutTravaux(c, 'stade'))} ?`)) return; const r = B.lancer(M, 'stade', d.c); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
   prixProduit:d => { const r = B.reglerProduit(M, d.p, 'prix', d.v); if (!r.ok) return toast(r.msg); sauver(); rendre(); },
   sponsor:d => { const r = B.signerSponsor(M, +d.i); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
   panneau:d => { const r = B.signerPanneau(M, +d.i); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
   retirerPanneau:d => { if (!confirm('Retirer ce panneau ? Le contrat s\'arrête sans indemnité.')) return; const r = B.retirerPanneau(M, +d.i); if (r.ok){ toast(r.msg); sauver(); rendre(); } },
   choixPret:d => { const c = club(M.manager.club), p = U.pret || {m:Math.min(1e6, B.plafondPret(c)), s:2}; if (d.m) p.m = +d.m; if (d.s) p.s = +d.s; U.pret = p; rendre(); },
-  emprunter:d => { const c = club(M.manager.club), p = U.pret || {m:Math.min(1e6, B.plafondPret(c)), s:2}; if (!confirm(`Emprunter ${eur(p.m)} sur ${p.s} saison${p.s > 1 ? 's' : ''} ?`)) return; const r = B.emprunter(M, p.m, p.s); toast(r.msg); if (r.ok){ U.pret = null; sauver(); rendre(); } },
+  emprunter:d => { const c = club(M.manager.club), p = U.pret || {m:Math.min(1e6, B.plafondPret(c)), s:2}; if (!confirm(`Emprunter ${eurT(p.m)} sur ${p.s} saison${p.s > 1 ? 's' : ''} ?`)) return; const r = B.emprunter(M, p.m, p.s); toast(r.msg); if (r.ok){ U.pret = null; sauver(); rendre(); } },
   rembourser:() => { if (!confirm('Rembourser tout l\'emprunt maintenant ?')) return; const r = B.rembourser(M); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
   potion:d => { const r = B.potion(M, d.j); toast(r.msg); if (r.ok){ sauver(); retirerFeuille(); rendre(); ficheJoueur(d.j); } },
-  travaux:d => { const c = club(M.manager.club), cout = C.coutTravaux(c, d.t); if (!confirm(`Lancer les travaux pour ${eur(cout)} ?`)) return; const r = C.lancerTravaux(M, d.t); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
+  travaux:d => { const c = club(M.manager.club), cout = C.coutTravaux(c, d.t); if (!confirm(`Lancer les travaux pour ${eurT(cout)} ?`)) return; const r = C.lancerTravaux(M, d.t); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
   promouvoir:d => { const r = C.promouvoir(M, d.j); toast(r.msg); if (r.ok){ retirerFeuille(); sauver(); rendre(); } },
   libererJeune:d => { if (!confirm('Libérer ce jeune ? Il quitte le club.')) return; const r = C.libererJeune(M, d.j); toast(r.msg); if (r.ok){ retirerFeuille(); sauver(); rendre(); } },
   accepterPoste:d => { const c = club(d.c); if (M.manager.club && !confirm(`Quitter ${club(M.manager.club).nom} pour ${c.nom} ?`)) return; const r = C.accepterPoste(M, d.c); toast(r.msg); if (r.ok){ U.vue = 'accueil'; sauver(); rendre(); scrollTo(0, 0); } },
@@ -1541,6 +1574,7 @@ document.addEventListener('change', e => {
   if (t.dataset.chg === 'son'){ REG.son = t.checked; regler(); }
   if (t.dataset.chg === 'causeries'){ REG.causeries = t.checked; regler(); }
   if (t.dataset.chg === 'presse'){ REG.presse = t.checked; regler(); }
+  if (t.dataset.chg === 'presseN'){ REG.presseN = +t.value; regler(); }
   if (t.dataset.chg === 'triche' && M){ HH().etat(M).triche = t.checked; sauver(); toast(t.checked ? 'Paris et pots-de-vin activés pour cette partie' : 'Désactivés'); }
   if (t.dataset.chg === 'produit'){ const r = B.reglerProduit(M, t.dataset.p, 'actif', t.checked); if (!r.ok){ t.checked = !t.checked; toast(r.msg); return; } sauver(); rendre(); return; }
   if (t.dataset.chg === 'poste'){ placerSlot(ctxCompo(), t.dataset.j, t.value || null); return; }
@@ -1566,6 +1600,6 @@ $('#fichier').addEventListener('change', async e => {
 /* pour les essais (outils/dev) et la console : la partie ouverte */
 window.QM27 = {partie:() => M, sauver, rendre};
 /* v91 : boîte à outils de l'interface pour qm27-ecrans.js (écrans du lot 8) */
-window.QMU = {get M(){ return M; }, get X(){ return X; }, get EMP(){ return EMP; }, U, REG, regler, VUES, ACT, VUE, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, nomEq, flag, posteB, etoiles, nomJ, court,
+window.QMU = {pieces, eurT, get M(){ return M; }, get X(){ return X; }, get EMP(){ return EMP; }, U, REG, regler, VUES, ACT, VUE, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, nomEq, flag, posteB, etoiles, nomJ, court,
   classeNote, classeAttr, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, valVue, connu, HH, roleDe, ficheSemaine, msgHTML, tableHTML, ICO, MERC, ligneMercato, IDX, COURT_ATTR, LS, nomBat};
 })();

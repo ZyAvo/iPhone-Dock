@@ -1,4 +1,4 @@
-// mon-ecran-version: cccd573c
+// mon-ecran-version: 43915239
 /* QM27 (v90, lot 7) — vestiaire et mercato, sans affichage. Expose window.QMH et complète window.QMC. Chargé après qm27-domaine.js.
    Vestiaire : ambiance, leaders, clans, mentorat, causeries, presse (La Gazette du sorcier).
    Mercato : attributs connus selon le travail du recruteur, offres par hibou (réponse la semaine suivante, contre-offres, clubs qui doublent),
@@ -124,44 +124,9 @@ function causerie(M, X, eq, ton, moment){
   return {delta:Math.round(v * 100) / 100, avis, txt:R[Math.abs(Q().melange(X.t, ton, eq)) % R.length]};
 }
 
-/* ---------- Presse et Gazette ---------- */
-const QUESTIONS = {
-  victoire:['Belle victoire aujourd\'hui. Qu\'est-ce qui a fait la différence ?', [['equipe', 'Le collectif, tout le monde a tiré dans le même sens.'], ['star', 'Notre meilleur joueur a été immense.'], ['titre', 'On joue le haut du tableau, c\'est clair.']]],
-  defaite:['Une défaite difficile. Comment l\'expliquez-vous ?', [['assume', 'J\'en prends la responsabilité.'], ['joueurs', 'Certains n\'étaient pas au niveau.'], ['arbitre', 'L\'arbitrage nous a coûté cher.']]],
-  vifPerdu:['Vous perdez sur le vif d\'or alors que vous meniez. Frustrant ?', [['assume', 'C\'est le Quidditch, on doit apprendre.'], ['joueurs', 'Notre attrapeur doit faire mieux.'], ['chance', 'Le vif d\'or n\'a pas été juste avec nous.']]],
-  nul:['Un match nul, ce n\'est pas fréquent au Quidditch. Satisfait ?', [['equipe', 'On prend le point, le groupe a montré du caractère.'], ['titre', 'Il fallait gagner, point final.'], ['assume', 'On fera mieux la semaine prochaine.']]],
-};
-const UNES = {
-  equipe:['« Tous ensemble » : {c} fait bloc', 'Le collectif de {c} fait plaisir à voir'],
-  star:['{c} : un joueur au-dessus du lot', 'Un manager sous le charme de sa vedette'],
-  titre:['{c} vise les sommets', 'L\'ambition s\'affiche à {c} : la pression monte'],
-  assume:['{m} prend tout sur lui', 'Un manager qui assume, à {c}'],
-  joueurs:['{m} règle ses comptes dans la presse', 'Le vestiaire de {c} piqué au vif'],
-  arbitre:['{m} s\'en prend à l\'arbitre', 'Polémique arbitrale après la défaite de {c}'],
-  chance:['« Le vif d\'or ne nous aime pas », soupire {m}', '{c} maudit par le vif d\'or ?'],
-};
-function questionPresse(M, X){
-  const moi = X.joueur, d = X.score[moi] - X.score[1 - moi], vifPerdu = d < 0 && X.vif === 1 - moi && X.score[moi] > X.score[1 - moi] - D.EQ.points.vif;
-  const k = d > 0 ? 'victoire' : d === 0 ? 'nul' : vifPerdu ? 'vifPerdu' : 'defaite';
-  return {k, q:QUESTIONS[k][0], r:QUESTIONS[k][1]};
-}
-function repondrePresse(M, X, k, rep){
-  const U = monClub(M), mg = M.manager, nomC = U ? U.nom : (D.NATIONS[X.e[X.joueur].id] || {}).nom || '', h = H()(M);
-  const eff = U ? U.effectif.map(id => M.joueurs[id]).filter(Boolean) : [];
-  const mor = x => { for (const j of eff) j.moral = borne(j.moral + x, 5, 100); };
-  let fx = '';
-  if (rep === 'equipe'){ mor(3); fx = 'Le moral du groupe monte.'; }
-  if (rep === 'star'){ const N = Q().notesMatch(X), best = Object.entries(N).filter(([id]) => X.perf[id] && X.perf[id].eq === X.joueur).sort((a, b) => b[1] - a[1])[0]; if (best && M.joueurs[best[0]]){ M.joueurs[best[0]].moral = Math.min(100, M.joueurs[best[0]].moral + 10); mor(-1); fx = `${nomJ(M.joueurs[best[0]])} est aux anges, les autres un peu moins.`; } }
-  if (rep === 'titre'){ mg.confiance = borne(mg.confiance + 2, 0, 100); if (U && U.dom) U.dom.supp = borne(U.dom.supp + 2, 0, 100); fx = 'Le président et les supporters aiment l\'ambition, mais on t\'attend au tournant.'; }
-  if (rep === 'assume'){ mor(2); mg.confiance = borne(mg.confiance + 1, 0, 100); fx = 'Les joueurs apprécient d\'être protégés.'; }
-  if (rep === 'joueurs'){ mor(-4); fx = 'Le vestiaire n\'a pas aimé : moral en baisse.'; }
-  if (rep === 'arbitre'){ mg.rep = Math.max(1, mg.rep - 0.5); if (U && U.dom) U.dom.supp = borne(U.dom.supp + 1, 0, 100); fx = 'Les supporters approuvent, la fédération beaucoup moins.'; }
-  if (rep === 'chance'){ fx = 'La presse s\'en amuse.'; }
-  const L = UNES[rep] || UNES.equipe, une = L[Q().melange(M.tic || 0, rep) % L.length].replace('{c}', nomC).replace('{m}', mg.nom);
-  h.presse[X.id || tic(M)] = rep;
-  Q().message(M, `La Gazette du sorcier : ${une}`, `Après le match, en conférence de presse : « ${(QUESTIONS[k][1].find(x => x[0] === rep) || [, ''])[1]} » ${fx}`, 'presse');
-  return {ok:true, msg:fx};
-}
+/* ---------- Presse et Gazette : v94, déplacé dans qm27-presse.js (window.QMP) ; ces alias gardent l'ancienne interface ---------- */
+const questionPresse = (M, X) => root.QMP.questionPresse(M, X);
+const repondrePresse = (M, X, k, rep) => { const P = root.QMP.repondre(M, X, +rep); return {ok:true, msg:(P || []).map(p => p[0] + ' ' + (p[1] > 0 ? '+' : '') + p[1]).join(', ')}; };
 
 /* ---------- Offres par hibou, clauses ---------- */
 function verifierPlace(M, U, sal, montant){
@@ -242,6 +207,7 @@ function refuserContre(M, id){ const h = H()(M); h.contres = h.contres.filter(x 
 /* ---------- Prêts ---------- */
 function deplacer(M, j, versId){
   const de = club(M, j.club), vers = club(M, versId);
+  QMC.noterCarriere(M, j, j.pret && j.pret.de === versId ? 'retour' : 'pret', de.id, versId, 0);   // v94
   de.effectif = de.effectif.filter(x => x !== j.id); if (de.compo) QMC.reparerCompo(M, de); de.aVendre = (de.aVendre || []).filter(x => x !== j.id);
   vers.effectif.push(j.id); j.club = vers.id; j.num = QMC.numLibre(M, vers);
 }
