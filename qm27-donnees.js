@@ -1,4 +1,4 @@
-// mon-ecran-version: 9d6adc77
+// mon-ecran-version: 5b160f87
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -14,6 +14,7 @@ const NATIONS = {
   ITA:{nom:'Italie', court:'ITA', drapeau:'🇮🇹'},
 };
 const SIX_NATIONS = ['ENG', 'FRA', 'IRL', 'ITA', 'SCO', 'WAL'];
+const TOURNOI = {nom:'Tournoi des Six Emblèmes', court:'Six Emblèmes'};   // v91 : le tournoi des sélections (se joue pendant le championnat)
 
 const LIGUES = [
   {id:'bi', nom:'Ligue britannique et irlandaise', court:'Ligue B&I'},
@@ -184,7 +185,7 @@ const EQ = {
        tv:1.3e6, tvRep:15e3, sponsors:0.2e6, sponsorsRep:3.0e6, merch:1.8e6, repasBase:3, entretien:1.2, deplacement:12e3, prime:25e3,
        masse:0.9, staffBase:600, staffFacteur:1.25, effectifMax:22, effectifMin:14, libresMax:60},
   /* v84 : entraînement (progression par semaine) et cohésion */
-  ent:{semaines:40, focus:1.7, horsFocus:0.55, cible:1.3, autre:0.6, joue:0.3, intensite:[0.7, 1, 1.3], fatigue:[0, 4, 9], blessure:0.001, cohesion:70},
+  ent:{semaines:35, focus:1.7, horsFocus:0.55, cible:1.3, autre:0.6, joue:0.3, intensite:[0.7, 1, 1.3], fatigue:[0, 4, 9], blessure:0.001, cohesion:70},
   usure:1.2,                    // usure des balais par match (sur 100)
   /* v85 : stade et installations (niveaux 1 à 5 ; coût du niveau suivant = base × niveau actuel ; entretien par niveau et par semaine) */
   stade:{tranche:2000, coutPlace:600, semaines:8, max:60000},
@@ -293,5 +294,5 @@ const ROLES = {
 const FOCUS = [['technique', 'Technique', ['Vol', 'Balle', 'Gardien']], ['physique', 'Physique', ['Physique']], ['tactique', 'Tactique', ['Mental']], ['repos', 'Repos', []]];
 const INTENSITES = [[1, 'Légère'], [2, 'Normale'], [3, 'Intense']];
 
-root.QMD = {MANIES, BATIMENTS, PRODUITS, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
+root.QMD = {TOURNOI, MANIES, BATIMENTS, PRODUITS, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
 })(typeof window !== 'undefined' ? window : globalThis);

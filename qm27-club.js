@@ -1,4 +1,4 @@
-// mon-ecran-version: 7911ba3d
+// mon-ecran-version: 9d12bc5a
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -114,17 +114,17 @@ function dureeBlessure(M, clubId, jours){ const c = club(M, clubId); const med =
 
 /* ---------- Entraînement et progression ---------- */
 const FAM_FOCUS = Object.fromEntries(D.FOCUS.map(f => [f[0], f[2]]));
-function progression(M, j, f, i, coach, prepa, r, suivi, mult = 1){
+function progression(M, j, f, i, coach, prepa, r, suivi, mult = 1, boost = null){   // v91 : f = focus (texte) ou multiplicateurs par famille (programme) ; boost = atelier du poste
   const [p1, p2] = D.PICS[j.poste], ca = n20(j), pot = j.cache.pot, gap = Math.max(0, pot - ca);
   const G = j.age < p1 ? gap * (0.35 + 0.04 * (p1 - j.age)) : j.age <= p2 ? gap * 0.2 : 0;
   const q = 0.55 + coach / 22, qPhys = 0.55 + (coach + prepa) / 44, inten = ENT.intensite[i - 1], pro = 0.6 + j.cache.pro / 25, jeu = 1 + (j.joue ? ENT.joue : 0);
-  const fams = FAM_FOCUS[f] || [], w = Q().POIDS[j.poste];
+  const fams = typeof f === 'string' ? FAM_FOCUS[f] || [] : [], w = Q().POIDS[j.poste];
   const declin = j.age > p2 ? (0.25 + 0.18 * (j.age - p2)) / ENT.semaines * (1.2 - prepa / 40) : 0;
   let plus = 0, moins = 0;
-  const essai = (L, idx, fam, poids) => {
-    const fm = f === 'repos' ? 0 : fams.includes(fam) ? ENT.focus : ENT.horsFocus;
+  const essai = (L, idx, fam, poids, bo) => {
+    const fm = typeof f === 'object' && f ? (f[fam] ?? ENT.horsFocus) : f === 'repos' ? 0 : fams.includes(fam) ? ENT.focus : ENT.horsFocus;
     const pw = poids === 3 ? ENT.cible : poids === 1 ? 1 : ENT.autre;
-    const x = G / ENT.semaines * (fam === 'Physique' ? qPhys : q) * inten * pro * jeu * fm * pw * mult;
+    const x = G / ENT.semaines * (fam === 'Physique' ? qPhys : q) * inten * pro * jeu * fm * pw * mult * (bo ? 1.35 : 1);
     if (x > 0 && ca < pot + 0.2 && L[idx] < 20 && r() < x){ L[idx]++; plus++; if (suivi) suivi.push(idx); }
     if (declin){
       const pd = fam === 'Physique' ? declin : fam === 'Mental' ? 0 : declin * 0.4;
@@ -132,32 +132,33 @@ function progression(M, j, f, i, coach, prepa, r, suivi, mult = 1){
       if (fam === 'Mental' && L[idx] < 20 && r() < 0.12 / ENT.semaines){ L[idx]++; plus++; }
     }
   };
-  for (let k = 0; k < j.a.length; k++) essai(j.a, k, D.ATTRS[k][2], w[k]);
-  if (j.poste === 'G') for (let k = 0; k < j.g.length; k++) essai(j.g, k, 'Gardien', 3);
+  for (let k = 0; k < j.a.length; k++) essai(j.a, k, D.ATTRS[k][2], w[k], boost && boost.a.includes(k));
+  if (j.poste === 'G') for (let k = 0; k < j.g.length; k++) essai(j.g, k, 'Gardien', 3, boost && boost.g.includes(k));
   return plus - moins;
 }
 const FOCUS_IA = ['technique', 'physique', 'tactique'];
 function entrainement(M, S, r){
   for (const c of Object.values(M.clubs)){
     const moi = estJoueur(M, c.id), E = moi ? c.entrainement : null;
+    const P = moi && root.QMG ? root.QMG.programme(M, c, S) : null;   // v91 : programme de la semaine (qm27-bureau.js)
     const prepa = c.staff.prepa.note;
     let tactique = 0;
     for (const id of c.effectif){
       const j = M.joueurs[id]; if (!j) continue;
-      const g = moi ? E[j.poste] : {f:FOCUS_IA[(M.semaine + id.length) % 3], i:2};
+      const g = P ? {f:P.mix, i:P.int} : moi ? E[j.poste] : {f:FOCUS_IA[(M.semaine + id.length) % 3], i:2};
       if (j.bless){ continue; }
       const avant = n20(j);
-      progression(M, j, g.f, g.i, c.staff['ent' + j.poste].note, prepa, r, null, QB() ? QB().multProgression(c, j) : 1);
+      progression(M, j, g.f, g.i, c.staff['ent' + j.poste].note, prepa, r, null, (QB() ? QB().multProgression(c, j) : 1) * (P && j.age <= 21 ? P.jeunes : 1), P ? P.boost[j.poste] : null);
       if (moi){ const d = n20(j) - avant; if (d) c.progres[id] = Math.round(((c.progres[id] || 0) + d) * 100) / 100; }
-      j.fat = borne(j.fat + ENT.fatigue[g.i - 1] - (g.f === 'repos' ? 10 : 0), 0, 100);
-      if (g.i > 1 && r() < ENT.blessure * g.i * g.i * j.cache.frag / 10){
+      j.fat = borne(j.fat + (P ? P.fat : ENT.fatigue[g.i - 1] - (g.f === 'repos' ? 10 : 0)), 0, 100);
+      if (g.i > 1 && r() < ENT.blessure * g.i * g.i * j.cache.frag / 10 * (P ? P.risque : 1)){
         const b = D.BLESSURES[r.ent(0, 3)], jours = dureeBlessure(M, c.id, r.ent(b[1], Math.min(b[2], 12)));
         j.bless = {nom:b[0] + ' (à l\'entraînement)', jours};
         if (moi) Q().message(M, `Blessure à l'entraînement : ${nomJ(j)}`, `${b[0]}. Indisponible environ ${jours} jour${jours > 1 ? 's' : ''}.`, 'bless');
       }
     }
     if (moi) for (const p of ['P', 'B', 'A', 'G']) if (E[p].f === 'tactique') tactique++;
-    c.cohesion = borne(c.cohesion + 1 + (moi ? tactique * 0.5 : 0.5) + (QB() ? QB().bonus(c, 'cohesion') : 0), 30, 100);
+    c.cohesion = borne(c.cohesion + 1 + (P ? P.coh : moi ? tactique * 0.5 : 0.5) + (QB() ? QB().bonus(c, 'cohesion') : 0), 30, 100);
   }
   for (const id of M.libres){ const j = M.joueurs[id]; if (j) progression(M, j, FOCUS_IA[M.semaine % 3], 1, 8, 8, r, null); }
 }

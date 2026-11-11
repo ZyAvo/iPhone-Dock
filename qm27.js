@@ -1,4 +1,4 @@
-// mon-ecran-version: 0dfe619b
+// mon-ecran-version: 9250d62a
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -7,7 +7,7 @@
 'use strict';
 const D = root.QMD;
 const EQ = D.EQ;
-const VERSION = 6;   // v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty ; v90 : vestiaire et mercato (qm27-vestiaire.js)   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
+const VERSION = 7;   // v91 : tournoi pendant le championnat (j.inter), programme d'entraînement, profil du manager, records (qm27-bureau.js) ; v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty ; v90 : vestiaire et mercato (qm27-vestiaire.js)   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
 const C = () => root.QMC;   // gestion du club (qm27-club.js), facultative pour le moteur
 
 /* ---------- Hasard à graine (mulberry32) ---------- */
@@ -111,11 +111,12 @@ const manies = j => j ? (j.m || (j.m = maniesPour(j))) : [];
 const aManie = (j, k) => !!j && manies(j).includes(k);
 
 /* ---------- Compositions ---------- */
-const dispo = (M, id) => { const j = M.joueurs[id]; return j && !j.bless; };
+const dispo = (M, id) => { const j = M.joueurs[id]; return j && !j.bless && !j.inter; };   // v91 : j.inter = convoqué en sélection cette semaine
 const NB_BANC = () => D.EQ.banc || 5;   // v86 : 5 remplaçants
 function compoAuto(M, clubId){
   const club = M.clubs[clubId], pris = new Set();
-  const ids = club.effectif.filter(id => dispo(M, id));
+  let ids = club.effectif.filter(id => dispo(M, id));
+  if (ids.length < 9) ids = club.effectif.filter(id => M.joueurs[id] && !M.joueurs[id].bless);   // v91 : trop d'internationaux absents, on rappelle du monde
   const pick = (poste, n) => {
     const L = ids.filter(id => !pris.has(id)).map(id => { const j = M.joueurs[id]; return [id, note20(j, poste) - (j.fat > 70 ? 1.5 : 0) + (j.poste === poste ? 0.4 : 0)]; })
       .sort((a, b) => b[1] - a[1]).slice(0, n).map(x => x[0]);
@@ -186,7 +187,8 @@ const jour = (an, mois, j) => Date.UTC(an, mois, j);
 function calendrierSaison(M, r){
   const an = M.saison, S = [];
   const tours = {}; for (const L of Object.values(M.ligues)) tours[L.id] = roundRobin(L.clubs, r);
-  /* samedis : journées 1-15 de septembre à décembre, trêve, 16-20 en janvier, Six Nations (février-mars), 21-30 jusqu'à fin mai */
+  /* samedis : journées 1-15 de septembre à décembre, trêve, 16-20 en janvier, puis 21-30 ; v91 : le Tournoi des Six Emblèmes se joue PENDANT
+     les journées 21 à 26 (tours 1-2, semaine de repos, tours 3-5) : les internationaux convoqués manquent le match de leur club (j.inter) */
   const samedi = (mois) => { let x = new Date(jour(an, mois, 1)); while (x.getUTCDay() !== 6) x = new Date(x.getTime() + 864e5); return x; };
   let d = samedi(7);                                   // v84 : préparation en août (mercato d'été ouvert)
   const sept = samedi(8);
@@ -200,12 +202,13 @@ function calendrierSaison(M, r){
   plus(2);                                      // trêve des fêtes
   for (let i = 0; i < 5; i++) ligue();
   const nat = D.SIX_NATIONS.slice(), sixTours = roundRobin(nat, hasard(melange(M.graine, an, 'sixn'))).slice(0, 5);
-  for (let i = 0; i < 5; i++){
-    if (i === 2) plus(1);                       // semaine de repos du tournoi
-    S.push({date:d.getTime(), type:'sixn', tour:i + 1, matchs:sixTours[i].map(([a, b]) => { const [x, y] = an % 2 ? [b, a] : [a, b]; return {id:`${an}-sixn-${i + 1}-${x}`, ligue:'sixn', dom:x, ext:y, res:null}; })});
-    plus(1);
+  for (let i = 0; i < 6; i++){
+    const t = i < 2 ? i : i - 1;                // i = 2 : semaine de repos du tournoi, le championnat joue quand même
+    if (i !== 2){ const L = S.length; ligue(); const s = S[L]; s.tour = t + 1;
+      s.matchs.push(...sixTours[t].map(([a, b]) => { const [x, y] = an % 2 ? [b, a] : [a, b]; return {id:`${an}-sixn-${t + 1}-${x}`, ligue:'sixn', dom:x, ext:y, res:null}; })); }
+    else ligue();
   }
-  for (let i = 0; i < 10; i++) ligue();
+  for (let i = 0; i < 4; i++) ligue();
   S.push({date:d.getTime(), type:'bilan', matchs:[]});
   return S;
 }
@@ -471,10 +474,26 @@ const semaine = M => M.calendrier[M.semaine] || null;
 /* v85 : le club du joueur (null s'il est sans club) et son camp de la semaine (club, ou sa sélection pendant le Six Nations) */
 const clubJoueur = M => (M.manager && M.manager.club) || null;
 const campJoueur = (M, S) => S && S.type === 'sixn' ? (M.manager && M.manager.selection ? M.manager.selection.nat : null) : clubJoueur(M);
-function matchDuJoueur(M){
-  const S = semaine(M), camp = campJoueur(M, S); if (!S || !camp) return null;
-  return S.matchs.find(m => m.dom === camp || m.ext === camp) || null;
+const natJoueur = M => M.manager && M.manager.selection ? M.manager.selection.nat : null;
+const campPour = (M, m) => m.ligue === 'sixn' ? natJoueur(M) : clubJoueur(M);
+/* v91 : les matchs du joueur cette semaine (sa sélection d'abord, puis son club) ; matchDuJoueur = le premier pas encore joué */
+function matchsDuJoueur(M){
+  const S = semaine(M); if (!S) return [];
+  const n = natJoueur(M), c = clubJoueur(M);
+  return [n && S.matchs.find(m => m.ligue === 'sixn' && (m.dom === n || m.ext === n)), c && S.matchs.find(m => m.ligue !== 'sixn' && (m.dom === c || m.ext === c))].filter(Boolean);
 }
+function matchDuJoueur(M){ const L = matchsDuJoueur(M); return L.find(m => !m.res) || L[L.length - 1] || null; }
+/* v91 : convocations de la semaine — les joueurs retenus par leur sélection manquent le match de leur club */
+function convoquer(M){
+  for (const j of Object.values(M.joueurs)) if (j.inter) delete j.inter;
+  const S = semaine(M); if (!S || !S.matchs.some(m => m.ligue === 'sixn') || !S.matchs.some(m => m.ligue !== 'sixn')) return;
+  const moi = natJoueur(M);
+  for (const n of D.SIX_NATIONS){
+    const e = n === moi && C() ? C().convocation(M).compo : selection(M, n);
+    for (const id of [...titulaires(e), ...(e.banc || [])]) if (M.joueurs[id]) M.joueurs[id].inter = n;
+  }
+}
+const convoques = (M, clubId) => (M.clubs[clubId] ? M.clubs[clubId].effectif : []).filter(id => M.joueurs[id] && M.joueurs[id].inter);
 function grainePour(M, m){ return melange(M.graine, m.id); }
 function equipesPour(M, m){
   if (m.ligue === 'sixn') return [selection(M, m.dom), selection(M, m.ext)];
@@ -485,7 +504,7 @@ function equipesPour(M, m){
 }
 /* le match du joueur, prêt à être joué en direct */
 function preparerMatch(M, m){
-  const camp = campJoueur(M, semaine(M));
+  const camp = campPour(M, m);
   let faits = [], e0, e1;
   if (m.ligue !== 'sixn'){
     for (const id of [m.dom, m.ext]) if (id !== camp){ M.clubs[id].compo = compoAuto(M, id); }
@@ -508,7 +527,7 @@ function simulerMatch(M, m){
 /* applique un match terminé : résultat, classement, stats, fatigue, blessures, forme */
 function appliquerMatch(M, m, X){
   const r = resume(X);
-  const camp = campJoueur(M, semaine(M)), duJoueur = !!camp && (m.dom === camp || m.ext === camp);
+  const camp = campPour(M, m), duJoueur = !!camp && (m.dom === camp || m.ext === camp);
   m.res = duJoueur ? r : {score:r.score, vif:r.vif, duree:r.duree};   // autres matchs : le score suffit (sauvegarde plus légère)
   compter(M, m);
   const notes = r.notes;
@@ -558,9 +577,9 @@ function terminerSemaine(M, X){
   if (M.manager){
     const club = clubJoueur(M) ? M.clubs[clubJoueur(M)] : {effectif:[]};
     for (const id of club.effectif){ const j = M.joueurs[id]; if (j.bless && !avant[id]) message(M, `Blessure : ${nomJ(j)}`, `${j.bless.nom}. Indisponible environ ${j.bless.jours} jour${j.bless.jours > 1 ? 's' : ''}.`, 'bless'); }
-    if (S.type === 'sixn'){
-      const L = S.matchs.map(m => `${D.NATIONS[m.dom].nom} ${m.res.score[0]}–${m.res.score[1]} ${D.NATIONS[m.ext].nom}`).join(' · ');
-      message(M, `Six Nations, tour ${S.tour}`, L, 'sixn');
+    if (S.tour){
+      const L = S.matchs.filter(m => m.ligue === 'sixn').map(m => `${D.NATIONS[m.dom].nom} ${m.res.score[0]}–${m.res.score[1]} ${D.NATIONS[m.ext].nom}`).join(' · ');
+      message(M, `${D.TOURNOI.nom}, tour ${S.tour}`, L, 'sixn');
     }
   }
   if (C()) C().semaine(M, S);                         // v84 : entraînement, finances, mercato, contrats
@@ -570,7 +589,16 @@ function terminerSemaine(M, X){
   M.semaine++;
   const N = semaine(M);
   if (N && N.type === 'bilan') finDeSaison(M);
+  convoquer(M);
+  if (M.manager && N && N.tour && clubJoueur(M)){ const L = convoques(M, clubJoueur(M)).map(id => nomJ(M.joueurs[id]));
+    if (L.length) message(M, `${D.TOURNOI.court} : ${L.length} ${L.length > 1 ? 'internationaux absents' : 'international absent'}`, `Tour ${N.tour} du ${D.TOURNOI.nom} : ${L.join(', ')} ${L.length > 1 ? 'jouent' : 'joue'} avec ${L.length > 1 ? 'leur sélection' : 'sa sélection'} et ${L.length > 1 ? 'manqueront' : 'manquera'} le match du club.`, 'sixn'); }
   return S;
+}
+/* v91 : fin du match joué par le joueur. S'il lui reste un autre match cette semaine (sélection puis club), on l'applique seulement. */
+function finirMatchDuJoueur(M, X){
+  const L = matchsDuJoueur(M), m = L.find(x => x.id === X.idMatch), reste = L.some(x => x !== m && !x.res);
+  if (m && reste){ appliquerMatch(M, m, X); if (m.ligue === 'sixn'){ if (C()) C().apresMatchSelection(M, m); } else apresMatchManager(M, m); return {semaineFinie:false, m}; }
+  terminerSemaine(M, X); return {semaineFinie:true, m};
 }
 function attente(M, clubId, adv){ const a = M.clubs[clubId].rep, b = adv.rep || 60; return borne(0.5 + (a - b) / 60, 0.15, 0.85); }
 function apresMatchManager(M, m){
@@ -618,7 +646,7 @@ function finDeSaison(M){
     M.manager.rep = Math.round(borne(M.manager.rep + ecart * 1.2 + (pos === 1 ? 8 : 0), 1, 100) * 10) / 10;
     M.manager.confiance = Math.round(borne(M.manager.confiance + ecart * 4, 0, 100));
     M.manager.saisons.push({saison:lab, club:M.manager.club, pos});
-    message(M, `Bilan de la saison ${lab}`, `${M.clubs[M.manager.club].nom} termine ${pos}${pos === 1 ? 'er' : 'e'} (objectif : ${o.vise === 1 ? 'titre' : 'top ' + o.vise}). Champions : ${Object.values(M.ligues).map(L => M.clubs[champs[L.id]].nom).join(', ')}. Six Nations : ${D.NATIONS[sixn].nom}.`, 'pres');
+    message(M, `Bilan de la saison ${lab}`, `${M.clubs[M.manager.club].nom} termine ${pos}${pos === 1 ? 'er' : 'e'} (objectif : ${o.vise === 1 ? 'titre' : 'top ' + o.vise}). Champions : ${Object.values(M.ligues).map(L => M.clubs[champs[L.id]].nom).join(', ')}. ${D.TOURNOI.court} : ${D.NATIONS[sixn].nom}.`, 'pres');
   }
   M.histo.push(h);
 }
@@ -685,10 +713,11 @@ function charger(txt){
   if (M.sel && M.sel.tactique) completerTactique(M.sel.tactique);
   if (v0 < 5 && M.manager) message(M, 'Nouveautés de QM27 : match et tactique', 'Tactique : deux dispositions, avec et sans le souafle, et une zone d\'attaque à choisir sur le terrain (chaque défense craint une zone). Tireur de penalty désigné, manies des joueurs (fiche joueur), buts attendus. En direct : le terrain vu du dessus, les autres scores à la radio, les conseils de l\'adjoint, des résumés qui suivent l\'enjeu et une ambiance sonore (Réglages).', 'club');
   M.v = VERSION;
+  if (!Object.values(M.joueurs).some(j => j.inter)) convoquer(M);   // v91 : convocations de la semaine en cours
   return M;
 }
 
-root.QM = {VERSION, clubJoueur, campJoueur, tactiqueIA, apresMatchManager, finDeSaison, hasard, melange, note, note20, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
+root.QM = {matchsDuJoueur, convoquer, convoques, finirMatchDuJoueur, natJoueur, VERSION, clubJoueur, campJoueur, tactiqueIA, apresMatchManager, finDeSaison, hasard, melange, note, note20, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
            semaine, matchDuJoueur, preparerMatch, simulerMatch, creerMatch, equipeClub, selection, pas, jusquAuBout, tempsMort, remplacer, resume, notesMatch,
            terminerSemaine, saisonSuivante, classement, objectif, serialiser, charger, nomJ, message, attente,
            manies, aManie, maniesPour, sansDe, CONTRE, completerTactique,

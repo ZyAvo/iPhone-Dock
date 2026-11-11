@@ -1,4 +1,4 @@
-// mon-ecran-version: 0b5cc7cb
+// mon-ecran-version: 015fd5ca
 // QM27 : vérifie l'équilibrage du moteur. Usage : node outils/dev/qm27-essai.mjs [nb de matchs] [nb de saisons]
 // Joue des matchs et des saisons complètes sans affichage, puis compare les moyennes aux cibles du GDD
 // (buts par équipe, durée, part des matchs décidés par le vif d'or, blessures, avantage du terrain).
@@ -8,7 +8,7 @@ import vm from 'node:vm';
 const ctx = {console, Date, Math, JSON};
 ctx.globalThis = ctx;
 vm.createContext(ctx);
-for (const f of ['qm27-donnees.js', 'qm27.js', 'qm27-club.js', 'qm27-carriere.js', 'qm27-domaine.js', 'qm27-vestiaire.js']) vm.runInContext(readFileSync(new URL('../../' + f, import.meta.url), 'utf8'), ctx, {filename:f});
+for (const f of ['qm27-donnees.js', 'qm27.js', 'qm27-club.js', 'qm27-carriere.js', 'qm27-domaine.js', 'qm27-vestiaire.js', 'qm27-bureau.js']) vm.runInContext(readFileSync(new URL('../../' + f, import.meta.url), 'utf8'), ctx, {filename:f});
 const QM = ctx.QM, D = ctx.QMD, QMC = ctx.QMC;
 
 const nbMatchs = +(process.argv[2] || 1000), nbSaisons = +(process.argv[3] || 2);

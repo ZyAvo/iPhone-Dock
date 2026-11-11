@@ -1,4 +1,4 @@
-// mon-ecran-version: 49d82ea0
+// mon-ecran-version: cc218c7f
 /* QM27 (v87) — graphismes dessinés par le code, sans image : blasons des clubs, maillots, avatars, radar du profil.
    Tout est déterministe : un club ou une personne a toujours le même dessin (graine = identifiant).
    window.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe}. Aucune dépendance (QMD seulement pour les prénoms). */
@@ -126,15 +126,20 @@ function feminin(p){
 function avatar(p, cls, opt){
   opt = opt || {};
   const r = rng('avatar' + (p.id || '') + (p.p || '') + (p.n || '')), f = feminin(p), age = p.age || 30;
-  const peau = pondere(r, PEAUX), fonce = lum(peau) < 0.3;
+  let peau = pondere(r, PEAUX); const fonce = lum(peau) < 0.3;
   let ch = fonce ? choix(r, CHEVEUX.slice(0, 3)) : pondere(r, [[CHEVEUX[0], 3], [CHEVEUX[1], 4], [CHEVEUX[2], 4], [CHEVEUX[3], 3], [CHEVEUX[4], 2], [CHEVEUX[5], 1.2], [CHEVEUX[6], 1.2]]);
   if (age >= 34 && r() < (age - 30) / 14) ch = r() < 0.5 ? '#9b9b9b' : '#cfcfcf';
-  const coupe = f ? pondere(r, [['long', 3], ['queue', 2.4], ['chignon', 1.6], ['carre', 2], ['boucle', 1.6], ['court', 1]])
+  let coupe = f ? pondere(r, [['long', 3], ['queue', 2.4], ['chignon', 1.6], ['carre', 2], ['boucle', 1.6], ['court', 1]])
                   : pondere(r, [['court', 4], ['rase', 2], ['frange', 2], ['boucle', 1.4], ['crete', 0.4], ['long', 0.5], ['chauve', age >= 31 ? 1.4 : 0.15]]);
-  const barbe = !f && r() < 0.32 ? choix(r, ['barbe', 'bouc', 'moustache', 'courte']) : null;
-  const lunettes = r() < 0.12, taches = !fonce && r() < 0.12, sourire = r();
+  let barbe = !f && r() < 0.32 ? choix(r, ['barbe', 'bouc', 'moustache', 'courte']) : null;
+  let lunettes = r() < 0.12, taches = !fonce && r() < 0.12, sourire = r();
+  /* v91 : apparence choisie (profil du manager) : peau, cheveux, coupe, barbe, lunettes, chapeau, sourire */
+  const L = p.look || {};
+  if (L.peau) peau = L.peau; if (L.cheveux) ch = L.cheveux; if (L.coupe) coupe = L.coupe; if (L.barbe !== undefined) barbe = L.barbe || null;
+  if (L.lunettes !== undefined) lunettes = !!L.lunettes; if (L.sourire !== undefined) sourire = L.sourire;
   const [k1, k2] = opt.couleurs || ['#5a6a80', '#e6e9ee'];
-  const fond = opt.fond || melange(k1, '#ffffff', 0.72), ombrePeau = melange(peau, '#000000', 0.16), id = uid();
+  const ombreP = () => melange(peau, '#000000', 0.16);
+  const fond = opt.fond || melange(k1, '#ffffff', 0.72), ombrePeau = ombreP(), id = uid();
   const yeuxY = 18.6, ox = r() * 0.6 - 0.3;
   const cheveuxDerriere = {long:`<path d="M10.6 16c-.6 7 0 13 1.8 18h15.2c1.8-5 2.4-11 1.8-18z" fill="${ch}"/>`, carre:`<path d="M11 16c-.4 4.4 0 8 1 10.6h16c1-2.6 1.4-6.2 1-10.6z" fill="${ch}"/>`,
     queue:`<path d="M27.4 13.6c3.4 1.6 4.4 6.4 3 11.2-1-2.8-2.4-4.6-4-5.6z" fill="${ch}"/>`, chignon:`<circle cx="20" cy="6.2" r="3.6" fill="${ch}"/>`}[coupe] || '';
@@ -171,7 +176,40 @@ function avatar(p, cls, opt){
     ${sourc}
     ${lunettes ? `<g fill="none" stroke="#2b2b2b" stroke-width=".9"><circle cx="${16.6 + ox}" cy="${yeuxY}" r="2.5"/><circle cx="${23.4 + ox}" cy="${yeuxY}" r="2.5"/><path d="M${19.1 + ox} ${yeuxY}h1.8M${14.1 + ox} ${yeuxY - 0.4}l-2.2-.6M${25.9 + ox} ${yeuxY - 0.4}l2.2-.6"/></g>` : ''}
     ${age >= 32 ? `<path d="M14.6 21.2c.6.4 1.2.5 1.8.4M25.4 21.2c-.6.4-1.2.5-1.8.4" stroke="${ombrePeau}" stroke-width=".6" fill="none"/>` : ''}
+    ${L.chapeau ? `<path d="M7.6 12.4c3.4-1.6 21.4-1.6 24.8 0-2.8 1.4-21.6 1.4-24.8 0z" fill="${L.chapeau}"/><path d="M12.6 11.6c1.6-3.6 3.6-7.6 9.2-9.6-1 1.6-1 3 .2 4.2 1.4 1.4 2.4 3.2 3.4 5.4-4.2.8-8.6.8-12.8 0z" fill="${L.chapeau}"/><path d="M12.8 11.2c4.2.7 8.6.7 12.6 0" stroke="#d9b54a" stroke-width="1.1" fill="none"/>` : ''}
     </g></svg>`;
+}
+
+/* ---------- v91 : emblèmes des six nations (remplacent les drapeaux emoji, mal affichés sur Windows et une partie des Android) ---------- */
+const lauriers = () => { let o = '';
+  for (const cote of [1, -1]) for (let k = 0; k < 6; k++){
+    const t = (250 - k * 24) * Math.PI / 180, R = 7.4, x0 = 12 + R * Math.cos(t), y = 12 - R * Math.sin(t), x = cote > 0 ? x0 : 24 - x0;
+    const ang = Math.atan2(-Math.cos(t), -Math.sin(t) * cote) * 180 / Math.PI;
+    for (const d of [1.25, -1.25]){ const xx = x + Math.cos(t) * d * cote, yy = y - Math.sin(t) * d; o += `<ellipse cx="${xx.toFixed(2)}" cy="${yy.toFixed(2)}" rx="1.7" ry=".75" transform="rotate(${(ang + (d > 0 ? 28 : -28) * cote).toFixed(1)} ${xx.toFixed(2)} ${yy.toFixed(2)})"/>`; }
+  }
+  return o + '<path d="M9.4 19C5 16.6 3.6 10.4 7.3 5.6M14.6 19c4.4-2.4 5.8-8.6 2.1-13.4" stroke="#008c45" stroke-width=".9" fill="none"/>'; };
+const EMBL = {
+  ENG:{fond:'#ffffff', bord:'#c8102e', nom:'la rose', svg:`<path d="M12 14.6v5.4" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round"/><path d="M12 17.4c-1.6-1.8-3.6-1.9-4.6-.8 1.3 1.1 3.1 1.4 4.6.8zM12 16.4c1.5-1.6 3.4-1.7 4.3-.6-1.2 1-2.9 1.2-4.3.6z" fill="#2e7d32"/>
+    <circle cx="12" cy="10" r="4.6" fill="#c8102e"/><path d="M12 6.8c1.8 0 3 1.3 3 2.9 0 1.5-1.2 2.7-2.8 2.7-1.4 0-2.4-1-2.4-2.2 0-1.1.8-1.9 1.9-1.9.9 0 1.5.6 1.5 1.3" stroke="#ff9aa8" stroke-width=".9" fill="none" stroke-linecap="round"/>`},
+  FRA:{fond:'#1d3f8f', bord:'#1d3f8f', nom:'le coq', svg:`<path d="M8.2 13.4C6.2 12 5.3 9.6 5.8 7.2M9 12.8c-1-1.9-1-4 .1-5.8M10.1 12.4c-.3-1.7.3-3.3 1.4-4.3" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="12.2" cy="14.4" rx="4.9" ry="3.7" fill="#fff"/><path d="M13.6 12.6l1.4-3.6 3 .6-1.2 4.2z" fill="#fff"/><circle cx="16.6" cy="9" r="2.1" fill="#fff"/>
+    <path d="M15 7.4c.3-1 .9-1.4 1.3-.8.4-.9 1.2-.9 1.5-.1.6-.4 1.2 0 1 .8z" fill="#e1251b"/><path d="M18.5 8.6l1.9.5-1.9.6z" fill="#f2b632"/><circle cx="18" cy="10.5" r=".65" fill="#e1251b"/><circle cx="17" cy="8.7" r=".35" fill="#1d3f8f"/>
+    <path d="M11 17.8v2.6M13.6 17.8v2.6" stroke="#f2b632" stroke-width="1.2" stroke-linecap="round"/>`},
+  IRL:{fond:'#169b62', bord:'#169b62', nom:'le trèfle', svg:`<path d="M12 12.4c0 3 .7 5.4 2.2 7.6" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <circle cx="12" cy="7.9" r="3" fill="#fff"/><circle cx="8.4" cy="12.2" r="3" fill="#fff"/><circle cx="15.6" cy="12.2" r="3" fill="#fff"/><circle cx="12" cy="11.2" r="2" fill="#fff"/>`},
+  SCO:{fond:'#e6eef9', bord:'#0065bd', nom:'le chardon', svg:`<path d="M12 14v6.2" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round"/><path d="M12 17.6c-1.4-.4-2.6-1.4-3.2-2.8l1.4.3-.4-1.4 1.4.8M12 16.8c1.4-.4 2.6-1.4 3.2-2.8l-1.4.3.4-1.4-1.4.8" stroke="#2e7d32" stroke-width="1" fill="none" stroke-linejoin="round"/>
+    <path d="M8.4 9.6 8.8 4.6l1.4 2.6.6-3.6 1.2 3.4 1.2-3.4.6 3.6 1.4-2.6.4 5z" fill="#7b3fa0"/><ellipse cx="12" cy="11.6" rx="3.6" ry="2.8" fill="#3f9142"/><path d="M9.4 10.4l5.2 2.6M14.6 10.4l-5.2 2.6" stroke="#2a6a2d" stroke-width=".7"/>`},
+  WAL:{fond:'#ffffff', bord:'#00a651', bas:'#00a651', nom:'le dragon rouge', svg:`<g fill="#d21f2b"><path d="M11 11.6 12.2 4.4l1.7 2.6 1.6-3.2 1.1 3.6 2.1-1.8-.9 6z"/><ellipse cx="13.8" cy="12.8" rx="4.8" ry="2.3"/>
+    <path d="M10 12.4 7.4 9.4l-2.2.1-1.6-.9.6 1.5-.9 1.1h2.2l1.6.4 2.6 2.6z"/><path d="M19.4 8.2l1.9.5-.9 1.7z"/></g>
+    <path d="M18.2 13.4c1.8.7 3.1.2 3.5-1.4.3-1.2-.4-2.2-1.4-2.4M10.8 14.6l-1 2.4h1.6M15.8 14.8l.8 2.4h-1.6" stroke="#d21f2b" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="5.9" cy="9.9" r=".5" fill="#fff"/>`},
+  ITA:{fond:'#ffffff', bord:'#008c45', nom:'la couronne de laurier', svg:`<g fill="#008c45">${lauriers()}</g><path d="M10.2 19.6l1.8-1.4 1.8 1.4M10.6 20.6l1.4-1.2 1.4 1.2" stroke="#cd212a" stroke-width="1.1" fill="none" stroke-linecap="round"/>`},
+};
+let nEmb = 0;
+function embleme(n, cls){
+  const e = EMBL[n]; if (!e) return '';
+  const id = 'emb' + (++nEmb) + n;
+  return `<svg class="emb ${cls || ''}" viewBox="0 0 24 24" role="img" aria-label="${D().NATIONS[n] ? D().NATIONS[n].nom : n} (${e.nom})"><defs><clipPath id="${id}"><circle cx="12" cy="12" r="11"/></clipPath></defs>
+    <circle cx="12" cy="12" r="11.2" fill="${e.fond}"/>${e.bas ? `<rect x="0" y="12.6" width="24" height="12" fill="${e.bas}" clip-path="url(#${id})"/>` : ''}<g clip-path="url(#${id})">${e.svg}</g><circle cx="12" cy="12" r="11.2" fill="none" stroke="${e.bord}" stroke-width="1.4"/></svg>`;
 }
 
 /* ---------- radar ---------- */
@@ -232,5 +270,5 @@ function trophee(k, titre){
     <rect x="18" y="22" width="4" height="10" fill="${or}"/><path d="M12 32h16l2 6H10z" fill="${melange(or, '#000000', 0.2)}"/><rect x="9" y="38" width="22" height="7" rx="1" fill="#4a3a2a"/><path d="M14 9c0 4 1 7 4 8" stroke="#fff" stroke-width="1.2" opacity=".55" fill="none"/></svg>`;
 }
 
-root.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe, feminin, EMB, EMBLEMES, lisible, melange, batiment, trophee};
+root.QMV = {embleme, EMBL, blason, maillot, avatar, radar, couleursNation, emblemeDe, feminin, EMB, EMBLEMES, lisible, melange, batiment, trophee};
 })(typeof window !== 'undefined' ? window : globalThis);
