@@ -1,4 +1,4 @@
-// mon-ecran-version: e38f7208
+// mon-ecran-version: dc0f27a6
 /* QM27 (v85, lot 3) — stade et installations, centre de formation, réputation des clubs, carrière du manager
    (offres d'autres clubs, démission, licenciement, sans club) et double poste de sélectionneur pour le Six Nations.
    Sans affichage : complète window.QMC (qm27-club.js) et s'insère dans ses rendez-vous de la semaine et de la saison. */
@@ -236,7 +236,7 @@ function convocation(M){
 function equipeSelection(M){
   const nat = M.manager.selection.nat, {compo, changements} = convocation(M);
   return {id:nat, nom:D.NATIONS[nat].nom, sigle:D.NATIONS[nat].court, couleurs:['#33415c', '#e0e1dd'], tactique:{...M.sel.tactique}, balai:D.BALAIS[4],
-          P:compo.P.slice(), B:compo.B.slice(), A:compo.A.slice(), G:compo.G.slice(), banc:compo.banc.slice(), rep:70, roles:{...(compo.roles || {})}, cap:compo.cap, cohesion:60, usure:100, changements};
+          P:compo.P.slice(), B:compo.B.slice(), A:compo.A.slice(), G:compo.G.slice(), banc:compo.banc.slice(), rep:70, roles:{...(compo.roles || {})}, cap:compo.cap, pen:compo.pen, cohesion:60, usure:100, changements};
 }
 function apresMatchSelection(M, m){
   const mg = M.manager, k = m.dom === mg.selection.nat ? 0 : 1, a = m.res.score[k], b = m.res.score[1 - k];

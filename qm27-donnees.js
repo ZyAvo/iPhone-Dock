@@ -1,4 +1,4 @@
-// mon-ecran-version: 928c1724
+// mon-ecran-version: 9d6adc77
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -173,7 +173,7 @@ const EQ = {
   pas:15,                       // secondes de jeu par pas
   echelleTir:6,               // s dans P(tir) = 1 / (1 + e^(−(A − D) / s))
   baseTir:-0.7,                    // décalage de la sigmoïde
-  baseBut:0.40, kBut:0.022, butMin:0.10, butMax:0.80,
+  baseBut:0.385, kBut:0.022, butMin:0.10, butMax:0.80,   // v89 : baseBut 0,40 avant les dispositions et les zones d'attaque
   garde:0.55,                   // possession gardée après une action sans tir
   cognard:0.05, blessure:0.035, faute:0.004, fauteGrave:0.12, penalty:0.70,
   vifApparitionMin:20, vifApparitionMax:50, p0:0.00245, vifRef:13, vifCache:0.008, vifMaxMin:240,
@@ -250,6 +250,19 @@ const BATIMENTS = [
     [['chambres', 'Chambres insonorisées', 'La fatigue part encore 15 % plus vite.'], ['jardin', 'Jardin d\'hiver', 'Le moral remonte plus vite chaque semaine.']],
     [['manoir', 'Manoir des stars', 'Salaires demandés 5 % plus bas, les vedettes aiment venir.'], ['spa', 'Thermes du club', 'Blessures −10 % et fatigue −10 %.']]],
 ];
+/* v89 : manies des joueurs : [clé, nom, postes, effet, attributs qui la rendent probable] */
+const MANIES = [
+  ['loin', 'Tire de loin', 'P', 'Tente plus souvent sa chance, de plus loin.', ['tir', 'pre']],
+  ['passeur', 'Cherche la passe', 'P', 'Fait mieux jouer les autres poursuiveurs.', ['pas', 'vis']],
+  ['provoc', 'Provoque les fautes', 'P', 'Les défenseurs commettent plus de fautes sur lui.', ['agi', 'cou']],
+  ['cogneur', 'Frappe à boulet rouge', 'B', 'Ses cognards blessent plus souvent.', ['fra', 'for']],
+  ['garde', 'Garde du corps', 'B', 'Protège le porteur du souafle des cognards.', ['pla', 'equi']],
+  ['feinte', 'Feinte de Wronski', 'A', 'Un peu plus dangereux sur le vif d\'or.', ['piq', 'san']],
+  ['oeil', 'Œil de lynx', 'A', 'Repère le vif d\'or plus vite.', ['acu', 'con']],
+  ['mur', 'Reste sur sa ligne', 'G', 'Meilleur sur les tirs de près.', ['pla', 'ref']],
+  ['relance', 'Relance vite', 'G', 'Après un arrêt, son équipe garde mieux le souafle.', ['vis', 'pas']],
+  ['tete', 'Tête brûlée', 'PBAG', 'Commet plus de fautes en défense, mais ne lâche rien.', ['agr', 'cou']],
+];
 /* v88 : produits du Bazar : [clé, nom, attrait, prix unitaire de base en €, amélioration qui le débloque] */
 const PRODUITS = [
   ['echarpe', 'Écharpes aux couleurs du club', 1, 15, null], ['maillot', 'Maillots officiels', 1.3, 60, null], ['peluche', 'Vifs d\'or en peluche', 0.9, 18, null],
@@ -280,5 +293,5 @@ const ROLES = {
 const FOCUS = [['technique', 'Technique', ['Vol', 'Balle', 'Gardien']], ['physique', 'Physique', ['Physique']], ['tactique', 'Tactique', ['Mental']], ['repos', 'Repos', []]];
 const INTENSITES = [[1, 'Légère'], [2, 'Normale'], [3, 'Intense']];
 
-root.QMD = {BATIMENTS, PRODUITS, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
+root.QMD = {MANIES, BATIMENTS, PRODUITS, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
 })(typeof window !== 'undefined' ? window : globalThis);

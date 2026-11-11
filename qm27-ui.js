@@ -1,4 +1,4 @@
-// mon-ecran-version: c9e4f013
+// mon-ecran-version: 69fa1e5e
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -386,6 +386,7 @@ function ficheJoueur(id){
         ${j.bless ? `<div class="bls"><span>Blessure</span><b>${esc(j.bless.nom)} · ${j.bless.jours} j</b></div>` : ''}
       </div></div>
     <blockquote class="rapport">« ${esc(rapportRecruteur(j))} »<span>${rec ? `Rapport de ${esc(rec.p + ' ' + rec.n)}, recruteur` : 'Rapport de ton recruteur'}</span></blockquote>
+    ${QM.manies(j).length ? `<div class="manies">${QM.manies(j).map(k => { const m = D.MANIES.find(x => x[0] === k); return m ? `<span class="manie"><b>${esc(m[1])}</b>${esc(m[3])}</span>` : ''; }).join('')}</div>` : ''}
     <div class="npostes">${['P', 'B', 'A', 'G'].map(p => `<div class="${p === j.poste ? 'on' : ''}"><b class="${classeNote(QM.note(j, p))}" style="color:inherit">${QM.note(j, p)}</b><span>${D.POSTES[p].nom}</span></div>`).join('')}</div>
     <div class="carte fj-attrs"><h2>Attributs <span class="mut petit">en gras : cibles du poste</span></h2><div class="cols-at">
       ${fam('Physique')}${fam('Vol')}${fam('Balle')}${fam('Mental')}
@@ -403,13 +404,21 @@ const CONSIGNES = [
   ['risque', 'Prise de risque', 'Élevée : on tire plus souvent, de moins bonnes positions.', [[1, 'Faible'], [2, 'Normale'], [3, 'Élevée']]],
   ['agressivite', 'Agressivité', 'Plus de cognards réussis, plus de fautes et de penalties.', [[1, 'Calme'], [2, 'Normale'], [3, 'Dure']]],
   ['passes', 'Jeu de passes', 'Court : tirs plus sûrs. Long : plus de tirs.', [['court', 'Court'], ['long', 'Long']]],
-  ['pressing', 'Pressing', 'Haut : gêne l\'adversaire mais fatigue et laisse des espaces.', [['repli', 'Repli'], ['haut', 'Haut']]],
   ['cible', 'Cible des cognards', 'Poursuiveurs : pertes de balle. Attrapeur : le gêne. Gardien : ouvre les anneaux.', [['poursuiveur', 'Poursuiveurs'], ['attrapeur', 'Attrapeur'], ['gardien', 'Gardien']]],
   ['attrapeur', 'Attrapeur', 'Le choix clé : prendre le vif d\'or quand on est mené de plus de 150 points fait perdre.', [['gagnant', 'Si ça fait gagner'], ['chasse', 'Chasse'], ['marquage', 'Marquage']]],
   ['gardien', 'Gardien', 'Sortir : moins de tirs adverses, mais buts plus faciles s\'il est passé.', [['anneaux', 'Aux anneaux'], ['sortie', 'Sortir']]],
 ];
+/* v89 : dispositions avec et sans le souafle, zone d'attaque */
+const DISPOS = [
+  ['avec', 'Poursuiveurs avec le souafle', 'Triangle : équilibré. Ligne : plus de tirs, moins précis. Pointe : tirs plus sûrs, plus de ballons perdus.', [['triangle', 'Triangle'], ['ligne', 'Ligne'], ['pointe', 'Pointe']]],
+  ['batAvec', 'Batteurs avec le souafle', 'Escorte : protègent le porteur. Devant : gênent le gardien adverse mais exposent le porteur.', [['escorte', 'Escorte'], ['devant', 'Devant']]],
+  ['zone', 'Zone d\'attaque', 'Chaque défense craint une zone : le pressing craint l\'axe, la zone craint les couloirs, le repli craint les tirs de loin.', [['axe', 'Axe'], ['couloirs', 'Couloirs'], ['loin', 'De loin']]],
+  ['sans', 'Poursuiveurs sans le souafle', 'Pressing : récupère vite mais fatigue et ouvre des espaces. Zone : équilibré. Repli : moins de buts encaissés, moins de ballons récupérés.', [['pressing', 'Pressing'], ['zone', 'Zone'], ['repli', 'Repli']]],
+  ['batSans', 'Batteurs sans le souafle', 'Protection : couvrent les anneaux. Harcèlement : plus de cognards sur le porteur adverse, anneaux moins gardés.', [['protection', 'Protection'], ['harcelement', 'Harcèlement']]],
+];
+const nomOpt = (k, v) => { const c = [...CONSIGNES, ...DISPOS].find(x => x[0] === k); return c ? ((c[3].find(o => String(o[0]) === String(v)) || [])[1] || '') : ''; };
 function consignesHTML(T, act, liste){
-  return CONSIGNES.filter(c => !liste || liste.includes(c[0])).map(([k, n, d, opts]) => `<div class="cons"><b>${n}</b><div class="seg">${opts.map(([v, l]) => `<button data-act="${act}" data-k="${k}" data-v="${v}" class="${String(T[k]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div><span>${d}</span></div>`).join('');
+  return (liste ? [...CONSIGNES, ...DISPOS] : CONSIGNES).filter(c => !liste || liste.includes(c[0])).map(([k, n, d, opts]) => `<div class="cons"><b>${n}</b><div class="seg">${opts.map(([v, l]) => `<button data-act="${act}" data-k="${k}" data-v="${v}" class="${String(T[k]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div><span>${d}</span></div>`).join('');
 }
 function ficheRole(id, p){
   const k = club(M.manager.club).compo, j = M.joueurs[id], r = (k.roles || {})[id];
@@ -428,7 +437,23 @@ const nomSlot = s => s[0] === 'R' ? 'R' + (+s.slice(1) + 1) : s[0] === 'A' || s[
 const lireSlot = (K, s) => ((s[0] === 'R' ? K.banc : K[s[0]]) || [])[+s.slice(1)] || null;
 const ecrireSlot = (K, s, id) => { (s[0] === 'R' ? K.banc : K[s[0]])[+s.slice(1)] = id || null; };
 const slotDe = (K, id) => [...SLOTS_T, ...SLOTS_B()].find(s => lireSlot(K, s) === id) || null;
-const POS_T = {P0:[21, 45], P1:[50, 37], P2:[79, 45], B0:[27, 65], B1:[73, 65], A0:[50, 18], G0:[50, 82]};   // % du terrain, nos anneaux en bas
+/* v89 : positions (% du terrain, nos anneaux en bas) selon la phase (avec ou sans le souafle) et la disposition choisie */
+const FORM = {
+  avec:{P:{triangle:[[24, 40], [50, 29], [76, 40]], ligne:[[15, 36], [50, 36], [85, 36]], pointe:[[25, 47], [50, 21], [75, 47]]}, B:{escorte:[[30, 55], [70, 55]], devant:[[27, 23], [73, 23]]}, A:[87, 64], G:[50, 82]},
+  sans:{P:{pressing:[[24, 45], [50, 37], [76, 45]], zone:[[22, 59], [50, 53], [78, 59]], repli:[[24, 71], [50, 65], [76, 71]]}, B:{protection:[[31, 79], [69, 79]], harcelement:[[27, 47], [73, 47]]}, A:[13, 30], G:[50, 87]}};
+function posT(s, T){
+  const ph = U.phase || 'avec', F = FORM[ph], i = +s.slice(1); T = QM.completerTactique({...(T || {})});
+  if (s[0] === 'P') return F.P[ph === 'avec' ? T.avec : T.sans][i];
+  if (s[0] === 'B') return F.B[ph === 'avec' ? T.batAvec : T.batSans][i];
+  return F[s[0]];
+}
+/* zones d'attaque dessinées sur la moitié adverse (repère du terrain 100 × 140) */
+const ZONES = {axe:[[34, 8, 32, 31]], couloirs:[[5, 12, 27, 36], [68, 12, 27, 36]], loin:[[12, 50, 76, 12]]};
+const NOM_ZONE = {axe:'Axe', couloirs:'Couloir', loin:'De loin'};
+function zonesHTML(T){
+  const z = T.zone || 'axe';
+  return `<svg class="zones" viewBox="0 0 100 140" aria-label="Zone d'attaque : ${esc(nomOpt('zone', z))}">${Object.entries(ZONES).map(([k, R]) => R.map(([x, y, w, h]) => `<g class="zn${k === z ? ' on' : ''}" data-act="zoneAtt" data-z="${k}" role="button" tabindex="0" aria-label="Attaquer : ${esc(nomOpt('zone', k))}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/><text x="${x + w / 2}" y="${y + h / 2 + 1.6}" text-anchor="middle">${NOM_ZONE[k]}</text></g>`).join('')).join('')}</svg>`;
+}
 function normaliserK(K){
   for (const [p, n] of [['P', 3], ['B', 2], ['A', 1], ['G', 1]]) K[p] = Array.from({length:n}, (_, i) => (K[p] || [])[i] || null);
   K.banc = Array.from({length:NB_BANC()}, (_, i) => (K.banc || [])[i] || null);
@@ -437,10 +462,10 @@ function normaliserK(K){
 function ctxCompo(){
   if (U.vue === 'selection' && M.manager.selection){
     const n = M.manager.selection.nat, K = normaliserK(JSON.parse(JSON.stringify(C.convocation(M).compo)));
-    return {sel:true, K, pool:Object.values(M.joueurs).filter(j => j.nat === n && j.club && !j.acad), valider(){ M.sel.compo = K; M.sel.perso = true; }};
+    return {sel:true, K, T:M.sel.tactique, pool:Object.values(M.joueurs).filter(j => j.nat === n && j.club && !j.acad), valider(){ M.sel.compo = K; M.sel.perso = true; }};
   }
   const c = club(M.manager.club);
-  return {sel:false, K:normaliserK(c.compo), pool:c.effectif.map(id => M.joueurs[id]).filter(Boolean), valider(){}};
+  return {sel:false, K:normaliserK(c.compo), T:c.tactique, pool:c.effectif.map(id => M.joueurs[id]).filter(Boolean), valider(){}};
 }
 /* met le joueur à une place (null : réserve) ; l'occupant prend l'ancienne place du joueur, ou part en réserve */
 function placerSlot(ctx, id, cible){
@@ -463,13 +488,13 @@ const TERRAIN_SVG = `<svg viewBox="0 0 100 140" aria-hidden="true"><defs><patter
   <circle cx="50" cy="70" r="1.2" class="vif"/></svg>`;
 /* maillot de l'équipe affichée : club du manager ou sélection */
 const kitDe = sel => sel ? {id:M.manager.selection.nat, couleurs:V.couleursNation(M.manager.selection.nat), motif:'uni'} : club(M.manager.club);
-function jetonHTML(K, s, sel){
-  const id = lireSlot(K, s), j = M.joueurs[id], banc = s[0] === 'R';
-  const pos = banc ? '' : ` style="left:${POS_T[s][0]}%;top:${POS_T[s][1]}%"`, eti = banc ? `<em>${nomSlot(s)}</em>` : '';
+function jetonHTML(K, s, sel, T){
+  const id = lireSlot(K, s), j = M.joueurs[id], banc = s[0] === 'R', ps = banc ? null : posT(s, T);
+  const pos = banc ? '' : ` style="left:${ps[0]}%;top:${ps[1]}%"`, eti = banc ? `<em>${nomSlot(s)}</em>` : '';
   if (!j) return `<button class="jeton vide${banc ? ' b' : ''}" data-act="jeton" data-slot="${s}"${pos} aria-label="${nomSlot(s)} : place libre">${eti}<span class="rond">+</span><b>${banc ? 'Libre' : D.POSTES[s[0]].nom}</b></button>`;
   const p = banc ? j.poste : s[0], n = QM.note(j, p), hors = !banc && j.poste !== p;
   return `<button class="jeton ${p}${hors ? ' hors' : ''}${banc ? ' b' : ''}${U.flash === id ? ' flash' : ''}" data-act="jeton" data-slot="${s}" data-j="${id}"${pos} aria-label="${esc(nomJ(j))}, ${nomSlot(s)}, note ${n}">${eti}
-    <span class="rond kit">${V.maillot(kitDe(sel), sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? '')}<i class="ps">${p}</i>${K.cap === id && !banc ? '<i class="cap">C</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : ''}</span><b>${esc(j.n)}</b><span class="nt ${classeNote(n)}">${n}${hors ? ' · ' + j.poste : ''}</span></button>`;
+    <span class="rond kit">${V.maillot(kitDe(sel), sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? '')}<i class="ps">${p}</i>${K.cap === id && !banc ? '<i class="cap">C</i>' : ''}${K.pen === id && !banc ? '<i class="pn" title="Tireur de penalty">Pen</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : ''}</span><b>${esc(j.n)}</b><span class="nt ${classeNote(n)}">${n}${hors ? ' · ' + j.poste : ''}</span></button>`;
 }
 function ligneEff(ctx, j){
   const K = ctx.K, s = slotDe(K, j.id), p = s && s[0] !== 'R' ? s[0] : j.poste, n = QM.note(j, p);
@@ -497,10 +522,12 @@ function compoHTML(ctx){
   return `<div class="tac${ouvert ? ' ouvert' : ''}">
     <div class="tpan-fond" data-act="panneau"></div><aside class="tpan" aria-label="Effectif">${panneauHTML(ctx)}</aside>
     <div class="tcentre"><div class="tbarre"><button class="btn sec" data-act="panneau" aria-expanded="${ouvert}">☰ ${ctx.sel ? 'Joueurs' : 'Effectif'}</button><button class="btn sec" data-act="${ctx.sel ? 'selAuto' : 'compoAuto'}">Auto</button></div>
-      <div class="tterrain">${TERRAIN_SVG}${SLOTS_T.map(x => jetonHTML(K, x, ctx.sel)).join('')}</div></div>
-    <div class="tbanc"><h3>Banc</h3>${SLOTS_B().map(x => jetonHTML(K, x, ctx.sel)).join('')}</div>
+      <div class="seg phase" role="tablist">${[['avec', 'Avec le souafle'], ['sans', 'Sans le souafle']].map(([k, n]) => `<button data-act="phase" data-p="${k}" class="${(U.phase || 'avec') === k ? 'on' : ''}" role="tab" aria-selected="${(U.phase || 'avec') === k}">${n}</button>`).join('')}</div>
+      <div class="tterrain">${TERRAIN_SVG}${(U.phase || 'avec') === 'avec' ? zonesHTML(ctx.T) : ''}${SLOTS_T.map(x => jetonHTML(K, x, ctx.sel, ctx.T)).join('')}</div></div>
+    <div class="tbanc"><h3>Banc</h3>${SLOTS_B().map(x => jetonHTML(K, x, ctx.sel, ctx.T)).join('')}</div>
   </div>
-  <p class="petit mut aide-tac">Glisse un remplaçant sur un titulaire pour les échanger (ou deux titulaires entre eux). Touche un joueur pour son rôle et sa fiche.</p>`;
+  <p class="petit mut aide-tac">Glisse un remplaçant sur un titulaire pour les échanger (ou deux titulaires entre eux). Touche un joueur pour son rôle et sa fiche.${(U.phase || 'avec') === 'avec' ? ' Touche une zone du camp adverse pour choisir où attaquer.' : ''}</p>
+  <div class="carte dispos"><h2>${(U.phase || 'avec') === 'avec' ? 'Avec le souafle' : 'Sans le souafle'}</h2>${consignesHTML(ctx.T, ctx.sel ? 'consigneSel' : 'consigne', (U.phase || 'avec') === 'avec' ? ['avec', 'batAvec', 'zone'] : ['sans', 'batSans'])}</div>`;
 }
 /* garde la position de la liste du panneau quand l'écran se redessine */
 function avecPanneau(f){ const l = document.querySelector('.tpan-liste'), y = l ? l.scrollTop : 0; f(); const n = document.querySelector('.tpan-liste'); if (n) n.scrollTop = y; U.flash = null; }
@@ -524,6 +551,7 @@ function ficheJeton(s){
   feuille(`${teteF(esc(nomJ(j)), `${banc ? 'Remplaçant ' + nomSlot(s) : D.POSTES[p].nom} · note ${n} · forme ${j.forme} · fatigue ${j.fat} %${ctx.sel ? ' · ' + esc(club(j.club).nom) : ''}`, posteB(p || j.poste))}
     ${!banc && !ctx.sel ? `<div class="grp">Rôle</div><div class="liste">${D.ROLES[p].map(([v, nm, d]) => `<button class="el" data-act="choisirRole" data-j="${id}" data-r="${v}"><span class="poste ${p}" aria-hidden="true">${v === r ? '✓' : ''}</span><div class="t"><b>${nm}</b><span style="white-space:normal">${esc(d)}</span></div></button>`).join('')}</div>
     <div class="sep"></div><button class="btn ${K.cap === id ? 'sec' : ''} plein" data-act="capitaine" data-j="${id}">${K.cap === id ? 'Déjà capitaine' : 'Nommer capitaine'}</button><div style="height:8px"></div>` : ''}
+    ${p === 'P' ? `<button class="btn ${K.pen === id ? 'sec' : ''} plein" data-act="tireurPen" data-j="${id}">${K.pen === id ? 'Tireur de penalty désigné' : 'Désigner tireur de penalty'}</button><div style="height:8px"></div>` : ''}
     <div class="btns"><button class="btn sec" ${changer}>Changer de joueur</button><button class="btn sec" data-act="joueur" data-j="${id}">Fiche du joueur</button></div>
     <div style="height:8px"></div><button class="btn sec plein" data-act="enReserve" data-j="${id}">Sortir du groupe (réserve)</button>`);
 }
@@ -641,10 +669,15 @@ function vueAide(){
   <div class="carte"><h2>Pauses automatiques pendant le direct</h2><div class="liste">
     ${[['blessure', 'Blessure'], ['faute_grave', 'Faute grave'], ['vif_apercu', 'Vif d\'or aperçu']].map(([k, n]) => `<label class="el"><div class="t"><b>${n}</b></div><input type="checkbox" data-chg="pause" data-k="${k}" ${P[k] ? 'checked' : ''} style="width:22px;height:22px"></label>`).join('')}
   </div></div>
+  <div class="carte"><h2>Pendant le direct</h2><div class="liste">
+    <label class="el"><div class="t"><b>Temps forts selon l'enjeu</b><span>Tout quand le match est serré, l'essentiel quand il est plié</span></div><input type="checkbox" data-chg="resumes" ${REG.resumes !== 'tout' ? 'checked' : ''} style="width:22px;height:22px"></label>
+    <label class="el"><div class="t"><b>Ambiance sonore</b><span>Foule, sifflet, carillon du vif d'or</span></div><input type="checkbox" data-chg="son" ${REG.son ? 'checked' : ''} style="width:22px;height:22px"></label>
+  </div></div>
   <div class="carte aide"><h2>Comment ça marche</h2>
     <p><b>Points.</b> Un but de poursuiveur vaut ${E.points.but} points, le vif d'or ${E.points.vif} et termine le match. Victoire ${E.points.victoire} points au classement, nul ${E.points.nul}.</p>
     <p><b>Le vif d'or.</b> Il apparaît entre la ${E.vifApparitionMin}e et la ${E.vifApparitionMax}e minute, peut se cacher puis revenir. Plus le temps passe, plus il est facile à attraper. Attention : le prendre quand on est mené de plus de 150 points fait perdre le match. La consigne « Si ça fait gagner » demande à l'attrapeur de le laisser filer dans ce cas.</p>
-    <p><b>Le match.</b> Une minute de jeu défile en une seconde à vitesse ×1. Deux temps morts par équipe pour changer les consignes et faire entrer des remplaçants : 3 changements libres, plus ceux qui suivent une blessure.</p>
+    <p><b>Dispositions.</b> Dans Tactique, deux phases : avec le souafle (poursuiveurs en triangle, en ligne ou en pointe ; batteurs en escorte ou devant ; zone d'attaque à toucher sur le terrain) et sans le souafle (pressing, zone ou repli ; batteurs en protection ou en harcèlement). Chaque défense craint une zone : le pressing craint l'axe, la zone craint les couloirs, le repli craint les tirs de loin. Désigne aussi ton tireur de penalty (touche un poursuiveur).</p>
+    <p><b>Le match.</b> Une minute de jeu défile en une seconde à vitesse ×1. Deux temps morts par équipe pour changer les consignes et faire entrer des remplaçants : 3 changements libres, plus ceux qui suivent une blessure. Pendant le direct : le match vu du dessus, les autres scores à la radio, les conseils de l'adjoint et, si tu le veux, l'ambiance du stade.</p>
     <p><b>Les joueurs.</b> 31 attributs de 1 à 20, plus 5 pour les gardiens. La note sur 100 dépend du poste : les attributs cibles (●) comptent triple. La forme, la fatigue et le moral changent chaque semaine.</p>
     <p><b>La composition.</b> 7 titulaires sur le terrain et ${NB_BANC()} remplaçants sur le banc (Tactique). Glisse un joueur du banc sur un titulaire pour les échanger, ou choisis la place de chacun avec le menu du panneau Effectif (titulaire, remplaçant ou réserve). Une place laissée libre est complétée au coup d'envoi.</p>
     <p><b>Le président.</b> Il fixe un objectif de classement, juge chaque résultat selon la force de l'adversaire et fixe la limite de la masse salariale.</p>
@@ -1001,7 +1034,7 @@ function divinationHTML(){
   const T = M.tables[club(adv.id).ligue] || {}, L = [];
   const forme = ((T[adv.id] || {}).forme || []).join(' ') || 'pas encore de match';
   L.push(`Forme : <b>${forme}</b>`);
-  if (n >= 2){ const t = adv.tactique; L.push(`Tactique : rythme ${esc(((CONSIGNES[0][3].find(o => o[0] === t.rythme) || [])[1] || '').toLowerCase())}, attrapeur « ${esc(((CONSIGNES[6][3].find(o => o[0] === t.attrapeur) || [])[1] || '').toLowerCase())} », pressing ${t.pressing === 'haut' ? 'haut' : 'en repli'}`); }
+  if (n >= 2){ const t = adv.tactique; L.push(`Tactique : rythme ${esc(nomOpt('rythme', t.rythme).toLowerCase())}, attrapeur « ${esc(nomOpt('attrapeur', t.attrapeur).toLowerCase())} », sans le souafle : ${esc(nomOpt('sans', QM.sansDe(t)).toLowerCase())}, attaque par ${esc(nomOpt('zone', t.zone).toLowerCase())}`); }
   const tit = ['P', 'B', 'A', 'G'].flatMap(p => adv[p].map(id => [p, M.joueurs[id]])).filter(([, j]) => j);
   if (n >= 3){ const [p, j] = tit.reduce((x, y) => QM.note(y[1], y[0]) > QM.note(x[1], x[0]) ? y : x); L.push(`Joueur clé : <b>${esc(nomJ(j))}</b> (${D.POSTES[p].nom.toLowerCase()}, ${QM.note(j, p)})`); }
   if (n >= 4){ const m = e => { const t = ['P', 'B', 'A', 'G'].flatMap(p => e[p].map(id => QM.note(M.joueurs[id], p))); return Math.round(t.reduce((a, b) => a + b, 0) / t.length); }; L.push(`Note moyenne des titulaires : <b>${m(adv)}</b> contre ${m(moi)} pour toi`); }
@@ -1075,13 +1108,125 @@ function vueMatch(){
       <button data-act="lecture" aria-label="${L.pause ? 'Reprendre' : 'Pause'}">${L.pause ? '▶︎' : '❚❚'}</button>
       ${[1, 2, 4].map(v => `<button data-act="vitesse" data-v="${v}" class="${REG.vitesse === v ? 'on' : ''}">×${v}</button>`).join('')}
       <button data-act="tempsMort" aria-label="Temps mort, ${X.tm[moi]} restant${X.tm[moi] > 1 ? 's' : ''}" ${X.tm[moi] <= 0 ? 'disabled style="opacity:.4"' : ''}>TM ${X.tm[moi]}</button>
+      <button data-act="son" aria-label="${REG.son ? 'Couper le son' : 'Activer le son'}" aria-pressed="${!!REG.son}">${REG.son ? '🔊' : '🔈'}</button>
       <button data-act="direct" aria-label="Aller à la fin du match">Fin ⏭</button>
     </div>` : ''}
   </div>
   ${avant ? avantMatchHTML() : ''}
   ${fini ? apresMatchHTML() : ''}
-  ${!avant ? `<div class="carte"><h2>${fini ? 'Tout le match' : 'En direct'}</h2><div class="fil" id="fil">${X.ev.slice().reverse().map(evHTML).join('')}</div></div>` : ''}`;
+  ${!avant ? `<div class="cols live-cols"><div>${!fini && REG.synthese !== false ? `<div class="carte synth"><h2>Vue du dessus <button data-act="synthese" aria-label="Masquer la vue du dessus">Masquer</button></h2>${terrainLive()}<p class="stl" id="stl">${statsLive()}</p></div>` : !fini ? '<button class="btn sec plein" data-act="synthese" style="margin-bottom:12px">Afficher la vue du dessus</button>' : ''}
+    ${!fini ? '<div class="carte adj" id="adj" hidden></div>' : ''}</div>
+    <div>${L.radio && L.radio.length ? `<div class="carte radio"><h2>Radio Sorcière FM <span class="mut petit">${fini ? 'scores à la fin de ton match' : 'les autres matchs'}</span></h2><div class="radio-g" id="radio">${radioHTML()}</div></div>` : ''}</div></div>
+  <div class="carte"><h2>${fini ? 'Tout le match' : 'En direct'} ${!fini ? '<span class="badge" id="enjeu"></span>' : ''}</h2><div class="fil" id="fil">${(fini ? X.ev : X.ev.filter(montrer)).slice().reverse().map(evHTML).join('')}</div></div>` : ''}`;
+  if (!avant && !fini){ majTerrain([]); majAdjoint(); majEnjeu(); }
 }
+const virg = x => (Math.round((x || 0) * 10) / 10).toFixed(1).replace('.', ',');
+/* ---------- v89 : le direct enrichi : vue du dessus, radio, adjoint, temps forts, sons ---------- */
+const FORM_LIVE = {avec:{P:{triangle:[[62, 28], [74, 50], [62, 72]], ligne:[[68, 14], [68, 50], [68, 86]], pointe:[[58, 26], [82, 50], [58, 74]]}, B:{escorte:[[54, 30], [54, 70]], devant:[[80, 22], [80, 78]]}, G:[11, 50]},
+                   sans:{P:{pressing:[[56, 28], [62, 50], [56, 72]], zone:[[40, 26], [44, 50], [40, 74]], repli:[[24, 28], [28, 50], [24, 72]]}, B:{protection:[[18, 30], [18, 70]], harcelement:[[50, 28], [50, 72]]}, G:[6, 50]}};
+const rgbDe = h => { h = (h || '#888').replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+const ecart = (a, b) => { const x = rgbDe(a), y = rgbDe(b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };
+function couleursLive(){
+  const col = e => D.NATIONS[e.id] ? V.couleursNation(e.id) : (e.couleurs || ['#556', '#ddd']), GAZON = '#4f9d5c';
+  const kit = (c, eviter) => { const f = [c[0], c[1], '#f4f4f4', '#1d2430'].find(x => ecart(x, GAZON) >= 100 && eviter.every(e => ecart(x, e) >= 110)) || c[0];
+    const s = [c[1], c[0], '#16202c', '#ffffff'].find(x => ecart(x, f) >= 120) || '#ffffff'; return [f, s]; };
+  const k0 = kit(col(X.e[0]), []); return [k0, kit(col(X.e[1]), [k0[0]])];
+}
+function terrainLive(){
+  const [c0, c1] = couleursLive();
+  const anneaux = x => [-12, 0, 12].map(dy => `<circle cx="${x}" cy="${56 + dy}" r="${dy ? 3 : 3.8}"/>`).join('');
+  const jet = (k, id, p) => { const c = k ? c1 : c0;
+    return `<g class="lj" id="lj-${id}" style="transform:translate(100px,56px)"><circle r="4.8" fill="${c[0]}" stroke="${c[1]}" stroke-width="1.3"/>${p === 'A' ? '<circle r="1.5" fill="#f3d36b"/>' : p === 'G' ? `<rect x="-1.7" y="-1.7" width="3.4" height="3.4" fill="${c[1]}"/>` : p === 'B' ? `<path d="M-2.2 2.2l4.4-4.4" stroke="${c[1]}" stroke-width="1.4"/>` : ''}</g>`; };
+  return `<svg class="tl" viewBox="0 0 200 112" role="img" aria-label="Le match vu du dessus : ${esc(X.e[0].nom)} attaque vers la droite"><rect width="200" height="112" rx="10" class="tl-gz"/>
+    <path d="M100 5v102M6 56h0" class="tl-l"/><circle cx="100" cy="56" r="12" class="tl-l"/><path d="M38 5v102M162 5v102" class="tl-l tl-z"/>
+    <g class="tl-ann">${anneaux(8)}${anneaux(192)}</g>
+    ${[0, 1].flatMap(k => ['G', 'B', 'P', 'A'].flatMap(p => X.e[k][p].map(id => jet(k, id, p)))).join('')}
+    <g id="lj-souafle" class="souafle" style="transform:translate(100px,56px)"><circle r="2.3"/></g>
+    <g id="lj-vif" class="vifl" style="transform:translate(100px,56px);opacity:0"><path d="M-1.4 0l-3.4-1.8M1.4 0l3.4-1.8"/><circle r="1.9"/></g></svg>`;
+}
+function majTerrain(evs){
+  const svg = document.querySelector('.tl'); if (!svg || !X) return;
+  if (X.e.some(e => ['P', 'B', 'A', 'G'].some(p => e[p].some(id => !svg.querySelector('#lj-' + id))))){ svg.outerHTML = terrainLive(); return majTerrain(evs); }
+  const n = X.pas, alea = s => { const x = Math.sin(n * 12.9898 + s * 78.233) * 43758.5453; return x - Math.floor(x) - 0.5; };
+  const P = {}, place = (id, k, u, v) => { const x = 8 + Math.max(0, Math.min(100, u)) * 1.84, y = 6 + Math.max(2, Math.min(98, v)); P[id] = [k ? 200 - x : x, y]; };
+  const vifVisible = X.vif < 0 && X.vifVu && !X.vifCache, L = U.live;
+  if (vifVisible){ L.vp = L.vp || [100, 30]; L.vp = [Math.max(20, Math.min(180, L.vp[0] + alea(91) * 26)), Math.max(10, Math.min(102, L.vp[1] + alea(92) * 20))]; }
+  for (const k of [0, 1]){
+    const e = X.e[k], T = QM.completerTactique({...e.tactique}), ph = X.poss === k ? 'avec' : 'sans', F = FORM_LIVE[ph];
+    e.P.forEach((id, i) => { const [u, v] = F.P[ph === 'avec' ? T.avec : T.sans][i]; place(id, k, u + alea(i + k * 7) * 9, v + alea(i + 3 + k * 7) * 10); });
+    e.B.forEach((id, i) => { const [u, v] = F.B[ph === 'avec' ? T.batAvec : T.batSans][i]; place(id, k, u + alea(20 + i + k) * 12, v + alea(24 + i + k) * 14); });
+    e.G.forEach(id => place(id, k, F.G[0] + alea(30 + k) * 3, F.G[1] + alea(31 + k) * 16));
+    e.A.forEach(id => { if (vifVisible){ const [x, y] = L.vp, cur = (L.pa || {})[id] || [100, k ? 96 : 16]; P[id] = [cur[0] + (x - cur[0]) * 0.45 + alea(40 + k) * 6, cur[1] + (y - cur[1]) * 0.45 + alea(41 + k) * 6]; }
+      else place(id, k, 46 + alea(42 + k) * 30, k ? 92 + alea(43) * 6 : 10 + alea(44) * 6); });
+  }
+  L.pa = P;
+  for (const [id, [x, y]] of Object.entries(P)){ const g = svg.querySelector('#lj-' + id); if (g) g.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`; }
+  const but = evs.find(ev => ev.but), ball = svg.querySelector('#lj-souafle');
+  if (ball){ let bx, by;
+    if (but){ bx = but.e === 0 ? 192 : 8; by = 56 + alea(50) * 18; }
+    else { const car = X.e[X.poss].P[(n >> 2) % X.e[X.poss].P.length]; [bx, by] = P[car] || [100, 56]; bx += X.poss ? -3 : 3; by -= 3; }
+    ball.style.transform = `translate(${bx.toFixed(1)}px,${by.toFixed(1)}px)`; }
+  const vif = svg.querySelector('#lj-vif');
+  if (vif){ if (X.vif >= 0){ const sid = X.e[X.vif].A[0], p = P[sid] || [100, 56]; vif.style.opacity = 1; vif.style.transform = `translate(${p[0]}px,${p[1] - 4}px)`; }
+    else if (vifVisible){ vif.style.opacity = 1; vif.style.transform = `translate(${L.vp[0].toFixed(1)}px,${L.vp[1].toFixed(1)}px)`; } else vif.style.opacity = 0; }
+}
+function statsLive(){ const S = X.stats; return `Tirs <b>${S[0].tirs}–${S[1].tirs}</b> · Buts attendus <b>${virg(S[0].xb)}–${virg(S[1].xb)}</b> · Cognards <b>${S[0].cog}–${S[1].cog}</b>`; }
+/* radio : les autres matchs de la semaine, simulés d'avance (même graine que plus tard) et dévoilés minute par minute */
+function preparerRadio(){
+  const S = QM.semaine(M), mj = QM.matchDuJoueur(M); if (!S || !mj) return [];
+  const ligue = mj.ligue;
+  return S.matchs.filter(m => m.id !== mj.id && !m.res).sort((a, b) => (b.ligue === ligue) - (a.ligue === ligue)).slice(0, 8).map(m => {
+    const Y = QM.simulerMatch(M, m); return {dom:m.dom, ext:m.ext, sixn:m.ligue === 'sixn', ev:Y.ev.filter(e => e.but || e.fin).map(e => [e.t, e.sc]), fin:Y.t, score:Y.score.slice()}; });
+}
+function radioHTML(){
+  const t = X.fini ? Infinity : X.t, sig = (id, sx) => esc(sx || D.NATIONS[id] ? nat(id).court : club(id).sigle);
+  return (U.live.radio || []).map(r => { const fini = t >= r.fin, sc = fini ? r.score : (r.ev.filter(e => e[0] <= t).pop() || [0, [0, 0]])[1];
+    return `<div class="rd${fini ? ' fin' : ''}"><span>${sig(r.dom, r.sixn)}</span><b>${sc[0]}–${sc[1]}</b><span>${sig(r.ext, r.sixn)}</span><i>${fini ? 'fin' : Math.floor(Math.min(t, r.fin) / 60) + "'"}</i></div>`; }).join('');
+}
+/* l'adjoint : deux conseils au plus, appliqués au prochain temps mort */
+function conseils(){
+  if (!X || X.fini) return [];
+  const moi = X.joueur, T = QM.completerTactique({...X.e[moi].tactique}), To = X.e[1 - moi].tactique, d = X.score[moi] - X.score[1 - moi], S = X.stats, L = [], min = X.t / 60;
+  if (d < -150 && T.attrapeur === 'chasse') L.push(['Mené de plus de 150 points : ton attrapeur doit attendre (« Si ça fait gagner »).', 'attrapeur', 'gagnant']);
+  const sd = QM.sansDe(To), cz = QM.CONTRE[sd];
+  if (min >= 3 && cz && T.zone !== cz) L.push([`Ils défendent en ${nomOpt('sans', sd).toLowerCase()} : attaque ${cz === 'loin' ? 'de loin' : cz === 'axe' ? 'par l\'axe' : 'par les couloirs'}.`, 'zone', cz]);
+  if (min > 12 && (S[1 - moi].xb || 0) - (S[moi].xb || 0) > 3 && T.sans !== 'repli') L.push(['Ils se créent plus d\'occasions que nous : resserre-toi en repli.', 'sans', 'repli']);
+  if (d > 120 && T.rythme > 1) L.push(['On mène largement : baisse le rythme pour garder des forces.', 'rythme', 1]);
+  if (d < -40 && min > 35 && T.risque < 3) L.push(['Il faut revenir au score : prends plus de risques.', 'risque', 3]);
+  const tit = QM.titulaires(X.e[moi]), fat = Math.round(tit.reduce((s, id) => s + (X.fat[id] || 0), 0) / (tit.length || 1));
+  if (fat > 55 && X.rempl[moi] > 0) L.push([`Les jambes sont lourdes (fatigue moyenne ${fat} %) : fais tourner au prochain temps mort.`, null, null]);
+  return L.slice(0, 2);
+}
+function majAdjoint(){
+  const el = $('#adj'); if (!el) return;
+  const L = conseils(); el.hidden = !L.length; if (!L.length) return;
+  el.innerHTML = `<h2>L'adjoint</h2>${L.map(c => `<p>${esc(c[0])}</p>`).join('')}${X.tm[X.joueur] > 0 ? `<button class="btn sec" data-act="tempsMort">Temps mort (${X.tm[X.joueur]})</button>` : '<p class="petit mut" style="margin:0">Plus de temps mort : à garder pour la prochaine fois.</p>'}`;
+}
+/* temps forts : tout montrer quand le match est serré, l'essentiel quand il est plié */
+function enjeu(){ if (!X) return 'fort'; const d = Math.abs(X.score[0] - X.score[1]); return d <= 70 || (X.vifVu && !X.vifCache) || X.sixn ? 'fort' : d >= 150 ? 'faible' : 'moyen'; }
+function montrer(ev){
+  if (REG.resumes === 'tout' || !ev.txt) return true;
+  if (ev.cle || /^(vif|fin|remplacement|temps_mort|penalty|blessure|faute_grave|debut)/.test(ev.k)) return true;
+  const e = enjeu(); return e === 'fort' || (e === 'moyen' && !!ev.but);
+}
+function majEnjeu(){ const b = $('#enjeu'); if (!b) return; const e = REG.resumes === 'tout' ? 'tout' : enjeu(); b.textContent = {tout:'tout le match', fort:'match serré : tout', moyen:'temps forts', faible:'match plié : l\'essentiel'}[e]; }
+/* sons de stade, fabriqués à la volée (Web Audio), coupés par défaut */
+const Son = (() => {
+  let ctx = null, foule = null, gainF = null;
+  const pret = () => { if (!REG.son) return null; if (!ctx){ try{ ctx = new (window.AudioContext || window.webkitAudioContext)(); }catch{ return null; } } if (ctx.state === 'suspended') ctx.resume(); return ctx; };
+  function bruit(c){ const n = c.sampleRate * 2, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < n; i++){ l = (l + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3.5; } return b; }
+  return {
+    demarrer(){ const c = pret(); if (!c || foule) return; const s = c.createBufferSource(); s.buffer = bruit(c); s.loop = true; const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 650;
+      gainF = c.createGain(); gainF.gain.value = 0.0001; s.connect(f).connect(gainF).connect(c.destination); s.start(); gainF.gain.exponentialRampToValueAtTime(0.16, c.currentTime + 1.5); foule = s; },
+    arreter(){ if (foule && ctx){ try{ gainF.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.25); foule.stop(ctx.currentTime + 1.2); }catch{} } foule = null; },
+    clameur(f){ if (!gainF || !ctx) return; const t = ctx.currentTime; try{ gainF.gain.cancelScheduledValues(t); gainF.gain.setValueAtTime(Math.max(0.0001, gainF.gain.value), t); gainF.gain.linearRampToValueAtTime(0.16 + 0.55 * f, t + 0.2); gainF.gain.exponentialRampToValueAtTime(0.16, t + 2.4); }catch{} },
+    sifflet(long){ const c = pret(); if (!c) return; const o = c.createOscillator(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain(), t = c.currentTime, d = long ? 0.9 : 0.3;
+      o.frequency.value = 2900; lfo.frequency.value = 28; lg.gain.value = 140; lfo.connect(lg).connect(o.frequency); g.gain.value = 0.0001; o.connect(g).connect(c.destination);
+      g.gain.exponentialRampToValueAtTime(0.1, t + 0.03); g.gain.setValueAtTime(0.1, t + d); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.08); o.start(t); lfo.start(t); o.stop(t + d + 0.1); lfo.stop(t + d + 0.1); },
+    carillon(){ const c = pret(); if (!c) return; [1318.5, 1760, 2637].forEach((fq, i) => { const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + i * 0.09; o.frequency.value = fq; g.gain.value = 0.0001; o.connect(g).connect(c.destination);
+      g.gain.exponentialRampToValueAtTime(0.07, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6); o.start(t); o.stop(t + 0.65); }); },
+  };
+})();
 function evHTML(ev){
   if (!ev.txt) return '';
   const coul = ev.e >= 0 ? X.e[ev.e].couleurs[0] : '';
@@ -1094,7 +1239,7 @@ function avantMatchHTML(){
   return `${divinationHTML()}<div class="carte"><h2>Ta composition <button data-act="vue" data-v="${X.sixn ? 'selection' : 'tactique'}">Modifier</button></h2>
     ${ch ? `<p class="petit" style="margin:0 0 8px;color:var(--moyen)">Changé pour blessure : ${esc(ch)}</p>` : ''}
     <div class="liste">${['P', 'B', 'A', 'G'].flatMap(p => e[p].map(id => { const j = M.joueurs[id]; return `<div class="el">${posteB(p)}<div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>Forme ${j.forme} · fatigue ${j.fat} %</span></div><span class="note ${classeNote(QM.note(j, p))}">${QM.note(j, p)}</span></div>`; })).join('')}</div>
-    <p class="petit mut" style="margin:8px 0 0">Attrapeur : ${esc((CONSIGNES[6][3].find(o => o[0] === T.attrapeur) || [])[1] || '')} · rythme ${esc((CONSIGNES[0][3].find(o => o[0] === T.rythme) || [])[1] || '')} · cognards sur ${esc((CONSIGNES[5][3].find(o => o[0] === T.cible) || [])[1] || '').toLowerCase()}</p></div>
+    <p class="petit mut" style="margin:8px 0 0">Attrapeur : ${esc(nomOpt('attrapeur', T.attrapeur))} · rythme ${esc(nomOpt('rythme', T.rythme))} · avec le souafle : ${esc(nomOpt('avec', T.avec).toLowerCase())}, par ${esc(nomOpt('zone', T.zone).toLowerCase())} · sans : ${esc(nomOpt('sans', QM.sansDe(T)).toLowerCase())}</p></div>
   <div class="btns"><button class="btn or" data-act="lancer">Lancer le direct</button><button class="btn sec" data-act="direct">Résultat direct</button></div>
   <button class="btn sec plein" data-act="vue" data-v="accueil">Plus tard</button>`;
 }
@@ -1107,13 +1252,13 @@ function apresMatchHTML(){
   return `<div class="carte" style="border-color:${r > 0 ? 'var(--bon)' : r < 0 ? 'var(--mauvais)' : 'var(--line)'}"><h2>${titre}</h2>
     <p style="margin:0 0 4px">Vif d'or attrapé par <b>${esc(vifNom)}</b> (${esc(X.e[X.vif].nom)}) à la ${Math.round(X.t / 60)}e minute.</p>
     ${homme ? `<p class="sous" style="margin:0 0 10px">Homme du match : ${esc(nomJ(M.joueurs[homme[0]]))} (${homme[1]})</p>` : ''}
-    <div class="stat">${[['buts', 'Buts'], ['tirs', 'Tirs'], ['arrets', 'Arrêts'], ['cog', 'Cognards réussis'], ['fautes', 'Fautes'], ['pen', 'Penalties obtenus']].map(([k, n]) => `<span>${S[0][k]}</span><span>${n}</span><span>${S[1][k]}</span>`).join('')}</div>
+    <div class="stat">${[['buts', 'Buts'], ['xb', 'Buts attendus'], ['tirs', 'Tirs'], ['arrets', 'Arrêts'], ['cog', 'Cognards réussis'], ['fautes', 'Fautes'], ['pen', 'Penalties obtenus']].map(([k, n]) => `<span>${k === 'xb' ? virg(S[0].xb) : S[0][k]}</span><span>${n}</span><span>${k === 'xb' ? virg(S[1].xb) : S[1][k]}</span>`).join('')}</div>
     <button class="btn plein" style="margin-top:14px" data-act="finMatch">Continuer</button></div>
   <div class="carte"><h2>Notes de ton équipe</h2><div class="liste">${notes.map(([id, n]) => { const j = M.joueurs[id], p = X.perf[id];
     return `<div class="el">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}</b><span>${[p.b ? p.b + ' but' + (p.b > 1 ? 's' : '') : '', p.arr ? p.arr + ' arrêt' + (p.arr > 1 ? 's' : '') : '', p.cog ? p.cog + ' cognard' + (p.cog > 1 ? 's' : '') : '', p.vif ? 'vif d\'or' : ''].filter(Boolean).join(' · ') || '—'}</span></div><span class="note ${n >= 7 ? 'n4' : n >= 6 ? 'n3' : n >= 5 ? 'n2' : 'n1'}">${n.toFixed(1)}</span></div>`; }).join('')}</div></div>`;
 }
 /* direct */
-function demarrerDirect(){ U.live = {parti:true, pause:false, timer:null}; rendre(); boucle(); }
+function demarrerDirect(){ U.live = {parti:true, pause:false, timer:null, radio:preparerRadio()}; rendre(); Son.demarrer(); Son.sifflet(true); boucle(); }
 function boucle(){
   clearInterval(U.live && U.live.timer);
   if (!U.live || U.live.pause || X.fini) return;
@@ -1123,9 +1268,13 @@ function tic(){
   if (!X || X.fini){ clearInterval(U.live.timer); return; }
   const evs = QM.pas(X);
   const fil = $('#fil');
-  if (fil) for (const ev of evs){ const h = evHTML(ev); if (h) fil.insertAdjacentHTML('afterbegin', h); }
-  majTableau();
-  if (X.fini){ clearInterval(U.live.timer); setTimeout(() => { rendre(); scrollTo({top:0, behavior:'smooth'}); }, 1100); return; }
+  if (fil) for (const ev of evs){ if (!montrer(ev)) continue; const h = evHTML(ev); if (h) fil.insertAdjacentHTML('afterbegin', h); }
+  for (const ev of evs){ if (ev.but) Son.clameur(ev.e === X.joueur ? 1 : 0.45); if (ev.k === 'vif_apercu' && ev.vif === 'vu') Son.carillon(); if (/^penalty|^faute_grave/.test(ev.k)) Son.sifflet(false); }
+  majTableau(); majTerrain(evs);
+  const st = $('#stl'); if (st) st.innerHTML = statsLive();
+  if (X.pas % 4 === 0){ const rd = $('#radio'); if (rd) rd.innerHTML = radioHTML(); majEnjeu(); }
+  if (X.pas % 12 === 0) majAdjoint();
+  if (X.fini){ clearInterval(U.live.timer); Son.sifflet(true); Son.clameur(X.vif === X.joueur ? 1 : 0.3); setTimeout(() => Son.arreter(), 2500); setTimeout(() => { rendre(); scrollTo({top:0, behavior:'smooth'}); }, 1100); return; }
   const k = evs.find(ev => ev.cle && ((ev.k === 'blessure' && REG.pauses.blessure) || (ev.k === 'faute_grave' && REG.pauses.faute_grave) || (ev.k === 'vif_apercu' && ev.vif === 'vu' && REG.pauses.vif_apercu)));
   if (k) pauseAuto(k);
 }
@@ -1159,7 +1308,8 @@ function rendreTempsMort(){
   const tit = ['P', 'B', 'A', 'G'].flatMap(p => e[p].map(id => [p, id]));
   const sel = U.live.sortant;
   feuille(`${teteF('Temps mort', `${X.rempl[moi]} changement${X.rempl[moi] > 1 ? 's' : ''} libre${X.rempl[moi] > 1 ? 's' : ''} · ${Math.floor(X.t / 60)}e minute`)}
-    <div class="carte"><h2>Consignes</h2>${consignesHTML(e.tactique, 'consigneLive', ['rythme', 'risque', 'agressivite', 'cible', 'attrapeur'])}</div>
+    ${conseils().filter(c => c[1]).length ? `<div class="carte adj"><h2>L'adjoint</h2>${conseils().filter(c => c[1]).map(c => `<div class="ligne" style="gap:10px;margin-bottom:8px"><span style="flex:1">${esc(c[0])}</span><button class="btn sec" data-act="consigneLive" data-k="${c[1]}" data-v="${c[2]}">Appliquer</button></div>`).join('')}</div>` : ''}
+    <div class="carte" style="margin-top:10px"><h2>Consignes</h2>${consignesHTML(QM.completerTactique(e.tactique), 'consigneLive', ['rythme', 'risque', 'agressivite', 'avec', 'batAvec', 'zone', 'sans', 'batSans', 'cible', 'attrapeur'])}</div>
     <div class="carte" style="margin-top:10px"><h2>${sel ? 'Qui entre ?' : 'Remplacement : qui sort ?'}</h2><div class="liste">
     ${sel ? (e.banc || []).map(id => { const j = M.joueurs[id]; const p = ['P', 'B', 'A', 'G'].find(q => e[q].includes(sel)); return `<button class="el" data-act="entre" data-j="${id}">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}</b><span>Note au poste ${QM.note(j, p)} · fatigue ${Math.round(X.fat[id] || 0)} %</span></div></button>`; }).join('') || '<p class="mut">Plus personne sur le banc.</p>'
       : tit.map(([p, id]) => { const j = M.joueurs[id]; return `<button class="el" data-act="sort" data-j="${id}" ${X.rempl[moi] <= 0 ? 'disabled style="opacity:.5"' : ''}>${posteB(p)}<div class="t"><b>${esc(nomJ(j))}</b><span>Fatigue ${Math.round(X.fat[id])} %</span></div></button>`; }).join('')}
@@ -1168,6 +1318,7 @@ function rendreTempsMort(){
 }
 function reprendreApresTM(){ U.live.tm = false; U.live.sortant = null; reprendre(); }
 function finDuMatch(){
+  Son.arreter();
   const m = QM.matchDuJoueur(M);
   clearInterval(U.live && U.live.timer);
   QM.terminerSemaine(M, X);
@@ -1210,6 +1361,11 @@ const ACT = {
   boite:ficheBoite,
   palmares:fichePalmares,
   jeton:d => ficheJeton(d.slot),
+  son:() => { REG.son = !REG.son; regler(); if (REG.son && U.live && U.live.parti && !X.fini){ Son.demarrer(); } else Son.arreter(); const b = document.querySelector('.ctrl [data-act="son"]'); if (b){ b.textContent = REG.son ? '🔊' : '🔈'; b.setAttribute('aria-pressed', !!REG.son); b.setAttribute('aria-label', REG.son ? 'Couper le son' : 'Activer le son'); } },
+  synthese:() => { REG.synthese = REG.synthese === false; regler(); rendre(); },
+  phase:d => { U.phase = d.p; rendre(); },
+  zoneAtt:d => { const ctx = ctxCompo(); ctx.T.zone = d.z; sauver(); rendre(); toast(`Attaque : ${nomOpt('zone', d.z).toLowerCase()}`); },
+  tireurPen:d => { const ctx = ctxCompo(); ctx.K.pen = d.j; ctx.valider(); sauver(); fermerFeuille(); rendre(); toast(`${court(M.joueurs[d.j])} tirera les penalties`); },
   panneau:() => { const desk = document.documentElement.classList.contains('desk'); U.panneau = !(U.panneau ?? desk); rendre(); },
   enReserve:d => { fermerFeuille(); placerSlot(ctxCompo(), d.j, null); },
   slot:d => choisirPour(d.p, +d.i, false),
@@ -1297,6 +1453,8 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if (t.dataset.chg === 'pause'){ REG.pauses[t.dataset.k] = t.checked; regler(); }
+  if (t.dataset.chg === 'resumes'){ REG.resumes = t.checked ? 'enjeu' : 'tout'; regler(); }
+  if (t.dataset.chg === 'son'){ REG.son = t.checked; regler(); }
   if (t.dataset.chg === 'produit'){ const r = B.reglerProduit(M, t.dataset.p, 'actif', t.checked); if (!r.ok){ t.checked = !t.checked; toast(r.msg); return; } sauver(); rendre(); return; }
   if (t.dataset.chg === 'poste'){ placerSlot(ctxCompo(), t.dataset.j, t.value || null); return; }
   if (t.dataset.chg === 'autoSync'){ REG.autoSync = t.checked; regler(); if (t.checked) toast('Envoi automatique activé'); }

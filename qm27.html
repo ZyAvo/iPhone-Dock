@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="6d77b6ff">
+<meta name="mon-ecran-version" content="ca15fd7b">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -270,6 +270,41 @@ html.desk .grille{grid-template-columns:repeat(4, 1fr)}
 .histo div{flex:1;height:100%;display:flex;align-items:flex-end}
 .histo i{display:block;width:100%;border-radius:4px 4px 0 0;min-height:3px}
 .cons .ligne .btn{flex:none;width:48px;padding:0}
+/* v89 : match et tactique */
+.seg.phase{margin:0 0 8px}
+.seg.phase button{font-size:.8rem}
+.zones{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.zn{pointer-events:all;cursor:pointer;outline:none}
+.zn rect{fill:rgba(255,255,255,.08);stroke:rgba(255,255,255,.55);stroke-width:.5;stroke-dasharray:2 1.5;transition:fill .15s}
+.zn text{font-size:3.6px;font-weight:800;fill:rgba(255,255,255,.85);pointer-events:none;letter-spacing:.02em;text-transform:uppercase}
+.zn.on rect{fill:rgba(243,211,107,.32);stroke:#f3d36b;stroke-dasharray:none;stroke-width:.8}
+.zn.on text{fill:#fff6d6}
+.zn:hover rect,.zn:focus-visible rect{fill:rgba(243,211,107,.2)}
+.jeton .pn{position:absolute;left:-12px;top:17px;padding:0 3px;height:13px;border-radius:5px;display:grid;place-items:center;font-size:.5rem;font-style:normal;font-weight:800;background:#16202c;color:#f3d36b;border:1px solid #f3d36b}
+.dispos{margin-top:12px}
+.manies{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.manie{display:flex;flex-direction:column;padding:6px 10px;border-radius:12px;background:var(--card-2);border:1px solid var(--line);font-size:.72rem;color:var(--ink-soft);max-width:100%}
+.manie b{font-size:.8rem;color:var(--ink)}
+.live-cols{align-items:start}
+.synth h2{display:flex;justify-content:space-between;align-items:center}
+.synth h2 button,.carte h2 > button{font:inherit;font-size:.72rem;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-transform:none;letter-spacing:0}
+.tl{display:block;width:100%;height:auto;border-radius:10px}
+.tl-gz{fill:#4f9d5c} .tl-l{fill:none;stroke:rgba(255,255,255,.6);stroke-width:.6} .tl-z{stroke-dasharray:2 2;stroke:rgba(255,255,255,.35)}
+.tl-ann circle{fill:none;stroke:#f3d36b;stroke-width:.9}
+.lj{transition:transform .32s ease}
+.souafle{transition:transform .28s ease} .souafle circle{fill:#b5532c;stroke:#fff;stroke-width:.7}
+.vifl{transition:transform .25s linear,opacity .3s} .vifl circle{fill:#f3d36b;filter:drop-shadow(0 0 2px #ffe08a)} .vifl path{stroke:#fff;stroke-width:.7;fill:none}
+:root[data-theme="dark"] .tl-gz{fill:#2f6b3d}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .tl-gz{fill:#2f6b3d}}
+@media (prefers-reduced-motion: reduce){ .lj,.souafle,.vifl{transition:none} }
+.stl{margin:8px 2px 0;font-size:.78rem;color:var(--ink-soft)} .stl b{color:var(--ink)}
+.adj{border-color:color-mix(in srgb, var(--accent) 45%, var(--line))}
+.adj p{margin:0 0 8px;font-size:.88rem}
+.radio-g{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
+.rd{display:grid;grid-template-columns:1fr auto 1fr auto;gap:6px;align-items:center;font-size:.8rem;padding:4px 0;border-bottom:1px solid var(--line)}
+.rd span:first-child{text-align:right} .rd b{font-variant-numeric:tabular-nums} .rd i{font-style:normal;font-size:.68rem;color:var(--ink-faint);min-width:24px;text-align:right}
+.rd.fin b{color:var(--ink-soft)}
+#enjeu{font-size:.66rem;text-transform:none;letter-spacing:0;font-weight:600}
 /* v88 : domaine du club */
 .plan-carte{padding:10px}
 .plan{display:block;width:100%;height:auto;border-radius:14px}
