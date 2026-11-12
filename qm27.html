@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="6a042da0">
+<meta name="mon-ecran-version" content="d6f55e0b">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -563,6 +563,24 @@ i.fit.moyen{background:var(--moyen)}i.fit.faible{background:var(--mauvais)}
 .reun-appel{border-color:var(--or, #c9a227)}
 .reun-msg{border-color:var(--accent)}.reun-msg p{font-weight:600}
 .liste .el.sel{background:color-mix(in srgb, var(--accent) 9%, transparent)}
+/* v98 : terrain épuré — étiquette unique nom + note (pastille d'adéquation), zone d'attaque réglée au-dessus du terrain */
+.zones,.zn{pointer-events:none!important}
+.zn.on rect{fill:rgba(243,211,107,.18);stroke:rgba(243,211,107,.7);stroke-dasharray:2 1.5;stroke-width:.5}
+.tzone{margin:0 0 8px}.tzone>span{display:block;font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 3px}
+.tterrain .jeton{width:auto;gap:1px}
+.tterrain .jeton .rond.kit{width:36px;height:36px}
+html.desk .tterrain .jeton .rond.kit{width:50px;height:50px}
+.jeton .ntj{position:absolute;right:-15px;bottom:-1px;font-style:normal;font-size:.58rem;font-weight:800;padding:0 3px;border-radius:5px;background:rgba(255,255,255,.94);color:#10233a;line-height:1.35;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+html.desk .jeton .ntj{font-size:.68rem;right:-18px}
+.jeton b.eti{display:flex;align-items:center;gap:3px;max-width:84px;padding:1px 3px 1px 4px;font-size:.62rem}
+html.desk .jeton b.eti{max-width:120px;font-size:.72rem;gap:4px}
+.jeton b.eti .nm{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.jeton b.eti .nt{font-size:.62rem;padding:0 4px;border-radius:5px;line-height:1.35}
+.jeton b.eti i.fit{flex:none;width:7px;height:7px;box-shadow:none}
+.jeton b.eti .hp{font-size:.56rem;font-weight:800;color:#10233a;background:#ffd36b;border-radius:4px;padding:0 3px}
+.jeton .pn{left:-6px;top:-4px;width:16px;height:16px;padding:0;border-radius:50%;font-size:.55rem}
+.jeton .cap{top:-4px;right:-6px;width:16px;height:16px;font-size:.55rem}
+.num-l input{width:64px;min-height:36px;text-align:center;font-weight:700;font-size:1rem;border:1px solid var(--line);border-radius:9px;background:var(--card-2);color:var(--ink)}
 /* v90 : vestiaire et mercato */
 .at.flou b{font-weight:700;font-size:.72rem}
 .note.flou{font-size:.66rem;min-width:46px}

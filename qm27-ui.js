@@ -1,4 +1,4 @@
-// mon-ecran-version: c3936149
+// mon-ecran-version: 607a4d55
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -528,9 +528,9 @@ const lireSlot = (K, s) => ((s[0] === 'R' ? K.banc : K[s[0]]) || [])[+s.slice(1)
 const ecrireSlot = (K, s, id) => { (s[0] === 'R' ? K.banc : K[s[0]])[+s.slice(1)] = id || null; };
 const slotDe = (K, id) => [...SLOTS_T, ...SLOTS_B()].find(s => lireSlot(K, s) === id) || null;
 /* v89 : positions (% du terrain, nos anneaux en bas) selon la phase (avec ou sans le souafle) et la disposition choisie */
-const FORM = {
-  avec:{P:{triangle:[[24, 40], [50, 29], [76, 40]], ligne:[[15, 36], [50, 36], [85, 36]], pointe:[[25, 47], [50, 21], [75, 47]]}, B:{escorte:[[30, 55], [70, 55]], devant:[[27, 23], [73, 23]]}, A:[87, 64], G:[50, 82]},
-  sans:{P:{pressing:[[24, 45], [50, 37], [76, 45]], zone:[[22, 59], [50, 53], [78, 59]], repli:[[24, 71], [50, 65], [76, 71]]}, B:{protection:[[31, 79], [69, 79]], harcelement:[[27, 47], [73, 47]]}, A:[13, 30], G:[50, 87]}};
+const FORM = {   // v98 : positions recalculées pour qu'aucun joueur n'en recouvre un autre, même sur téléphone
+  avec:{P:{triangle:[[17, 34], [50, 22], [83, 34]], ligne:[[17, 30], [50, 30], [83, 30]], pointe:[[20, 38], [50, 16], [80, 38]]}, B:{escorte:[[28, 56], [72, 56]], devant:[[15, 12], [85, 12]]}, A:[50, 71], G:[50, 89]},
+  sans:{P:{pressing:[[22, 32], [50, 22], [78, 32]], zone:[[17, 48], [50, 40], [83, 48]], repli:[[17, 62], [50, 56], [83, 62]]}, B:{protection:[[24, 79], [76, 79]], harcelement:[[15, 13], [85, 13]]}, A:[50, 7], G:[50, 91]}};
 function posT(s, T){
   const ph = U.phase || 'avec', F = FORM[ph], i = +s.slice(1); T = QM.completerTactique({...(T || {})});
   if (s[0] === 'P') return F.P[ph === 'avec' ? T.avec : T.sans][i];
@@ -542,7 +542,8 @@ const ZONES = {axe:[[34, 8, 32, 31]], couloirs:[[5, 12, 27, 36], [68, 12, 27, 36
 const NOM_ZONE = {axe:'Axe', couloirs:'Couloir', loin:'De loin'};
 function zonesHTML(T){
   const z = T.zone || 'axe';
-  return `<svg class="zones" viewBox="0 0 100 140" aria-label="Zone d'attaque : ${esc(nomOpt('zone', z))}">${Object.entries(ZONES).map(([k, R]) => R.map(([x, y, w, h]) => `<g class="zn${k === z ? ' on' : ''}" data-act="zoneAtt" data-z="${k}" role="button" tabindex="0" aria-label="Attaquer : ${esc(nomOpt('zone', k))}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/><text x="${x + w / 2}" y="${y + h / 2 + 1.6}" text-anchor="middle">${NOM_ZONE[k]}</text></g>`).join('')).join('')}</svg>`;
+  /* v98 : simple repère visuel de la zone choisie (le choix se fait au-dessus du terrain) */
+  return `<svg class="zones" viewBox="0 0 100 140" aria-hidden="true">${Object.entries(ZONES).filter(([k]) => k === z).map(([k, R]) => R.map(([x, y, w, h]) => `<g class="zn on"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/></g>`).join('')).join('')}</svg>`;
 }
 function normaliserK(K){
   for (const [p, n] of [['P', 3], ['B', 2], ['A', 1], ['G', 1]]) K[p] = Array.from({length:n}, (_, i) => (K[p] || [])[i] || null);
@@ -584,7 +585,7 @@ function jetonHTML(K, s, sel, T){
   if (!j) return `<button class="jeton vide${banc ? ' b' : ''}" data-act="jeton" data-slot="${s}"${pos} aria-label="${nomSlot(s)} : place libre">${eti}<span class="rond">+</span><b>${banc ? 'Libre' : D.POSTES[s[0]].nom}</b></button>`;
   const p = banc ? j.poste : s[0], n = QM.note(j, p), hors = !banc && j.poste !== p;
   return `<button class="jeton ${p}${hors ? ' hors' : ''}${banc ? ' b' : ''}${U.flash === id ? ' flash' : ''}" data-act="jeton" data-slot="${s}" data-j="${id}"${pos} aria-label="${esc(nomJ(j))}, ${nomSlot(s)}, note ${n}">${eti}
-    <span class="rond kit">${V.maillot(kitDe(sel), sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? '')}<i class="ps">${p}</i>${K.cap === id && !banc ? '<i class="cap">C</i>' : ''}${K.pen === id && !banc ? '<i class="pn" title="Tireur de penalty">Pen</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : ''}${j.inter && !sel ? '<i class="bl" title="En sélection">✈︎</i>' : ''}${!banc && U.fitMap ? pastille(U.fitMap[id]) : ''}</span><b>${esc(j.n)}</b><span class="nt ${classeNote(n)}">${n}${hors ? ' · ' + j.poste : ''}</span></button>`;
+    <span class="rond kit">${V.maillot(kitDe(sel), sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? '')}${banc ? `<i class="ps">${p}</i>` : ''}${K.cap === id && !banc ? '<i class="cap" title="Capitaine">C</i>' : ''}${K.pen === id && !banc ? '<i class="pn" title="Tireur de penalty">P</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : ''}${j.inter && !sel ? '<i class="bl" title="En sélection">✈︎</i>' : ''}${banc ? '' : `<i class="ntj ${classeNote(n)}">${n}</i>`}</span>${banc ? `<b>${esc(j.n)}</b><span class="nt ${classeNote(n)}">${n}</span>` : `<b class="eti">${U.fitMap && U.fitMap[id] ? pastille(U.fitMap[id]) : ''}<span class="nm">${esc(j.n)}</span>${hors ? `<span class="hp" title="Hors de son poste">${j.poste}</span>` : ''}</b>`}</button>`;
 }
 function ligneEff(ctx, j){
   const K = ctx.K, s = slotDe(K, j.id), p = s && s[0] !== 'R' ? s[0] : j.poste, n = QM.note(j, p);
@@ -613,10 +614,11 @@ function compoHTML(ctx){
     <div class="tpan-fond" data-act="panneau"></div><aside class="tpan" aria-label="Effectif">${panneauHTML(ctx)}</aside>
     <div class="tcentre"><div class="tbarre"><button class="btn sec" data-act="panneau" aria-expanded="${ouvert}">☰ ${ctx.sel ? 'Joueurs' : 'Effectif'}</button><button class="btn sec" data-act="${ctx.sel ? 'selAuto' : 'compoAuto'}">Auto</button></div>
       <div class="seg phase" role="tablist">${[['avec', 'Avec le souafle'], ['sans', 'Sans le souafle']].map(([k, n]) => `<button data-act="phase" data-p="${k}" class="${(U.phase || 'avec') === k ? 'on' : ''}" role="tab" aria-selected="${(U.phase || 'avec') === k}">${n}</button>`).join('')}</div>
+      ${(U.phase || 'avec') === 'avec' ? `<div class="tzone"><span>Zone d'attaque</span><div class="seg mini" role="group" aria-label="Zone d'attaque">${['axe', 'couloirs', 'loin'].map(k => `<button data-act="zoneAtt" data-z="${k}" class="${(ctx.T.zone || 'axe') === k ? 'on' : ''}" aria-pressed="${(ctx.T.zone || 'axe') === k}">${esc(nomOpt('zone', k))}</button>`).join('')}</div></div>` : ''}
       <div class="tterrain">${TERRAIN_SVG}${(U.phase || 'avec') === 'avec' ? zonesHTML(ctx.T) : ''}${SLOTS_T.map(x => jetonHTML(K, x, ctx.sel, ctx.T)).join('')}</div></div>
     <div class="tbanc"><h3>Banc</h3>${SLOTS_B().map(x => jetonHTML(K, x, ctx.sel, ctx.T)).join('')}</div>
   </div>
-  <p class="petit mut aide-tac">Glisse un remplaçant sur un titulaire pour les échanger. Touche un joueur pour son rôle. Pastille : <i class="fit bon"></i> adapté, <i class="fit moyen"></i> moyen, <i class="fit faible"></i> peu adapté à sa place, son rôle et aux consignes.${(U.phase || 'avec') === 'avec' ? ' Touche une zone adverse pour choisir où attaquer.' : ''}</p>`;
+  <p class="petit mut aide-tac">Glisse un remplaçant sur un titulaire pour les échanger ; touche un joueur pour son rôle. <i class="fit bon"></i> adapté · <i class="fit moyen"></i> moyen · <i class="fit faible"></i> peu adapté · C capitaine · P tireur de penalty.</p>`;
 }
 /* garde la position de la liste du panneau quand l'écran se redessine */
 function avecPanneau(f){ const l = document.querySelector('.tpan-liste'), y = l ? l.scrollTop : 0; f(); const n = document.querySelector('.tpan-liste'); if (n) n.scrollTop = y; U.flash = null; }

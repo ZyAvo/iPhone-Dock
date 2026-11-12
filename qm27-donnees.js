@@ -1,4 +1,4 @@
-// mon-ecran-version: 6a639959
+// mon-ecran-version: eb1d1d52
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -136,10 +136,13 @@ const METEO_MOIS = m => (m >= 4 && m <= 8) ? {soleil:45, nuages:30, pluie:12, ve
   : (m === 11 || m <= 1) ? {soleil:12, nuages:30, pluie:28, vent:16, brouillard:11, orage:3} : {soleil:22, nuages:32, pluie:22, vent:14, brouillard:7, orage:3};
 
 /* Blessures : [nom, jours min, jours max, poids] — de la contusion d'un jour à la fracture */
+/* [nom, jours min, jours max, poids]. v98 : durées allongées — une blessure sur deux environ fait manquer au moins un match
+   (la semaine du match compte déjà 7 jours de soins). Les 4 premières servent aussi aux blessures d'entraînement (plafonnées à 12 jours). */
 const BLESSURES = [
-  ['Contusion à l\'épaule', 1, 4, 30], ['Doigts retournés par un cognard', 3, 10, 18], ['Entorse du poignet', 7, 18, 14], ['Côtes froissées', 10, 21, 10],
-  ['Commotion légère (voit des vifs d\'or partout)', 7, 14, 9], ['Cheville tordue à l\'atterrissage', 6, 16, 9], ['Clavicule fêlée', 21, 42, 5], ['Fracture du bras', 35, 63, 3],
-  ['Torticolis de piqué', 2, 6, 12], ['Brûlure d\'échardes de balai', 1, 3, 10],
+  ['Contusion à l\'épaule', 2, 6, 25], ['Doigts retournés par un cognard', 6, 14, 16], ['Entorse du poignet', 10, 24, 14], ['Côtes froissées', 12, 28, 10],
+  ['Commotion légère (voit des vifs d\'or partout)', 9, 20, 9], ['Cheville tordue à l\'atterrissage', 10, 26, 10], ['Claquage en plein piqué', 14, 35, 6],
+  ['Clavicule fêlée', 28, 56, 5], ['Fracture du bras', 42, 84, 3], ['Ligaments du genou arrachés à l\'atterrissage', 70, 140, 1],
+  ['Torticolis de piqué', 3, 8, 10], ['Brûlure d\'échardes de balai', 1, 4, 8],
 ];
 
 /* Commentaires : {j} joueur, {c} son club, {a} l'adversaire, {g} gardien adverse, {s} score, {m} minute */

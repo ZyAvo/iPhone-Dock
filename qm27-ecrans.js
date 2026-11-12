@@ -1,4 +1,4 @@
-// mon-ecran-version: e4a916cd
+// mon-ecran-version: 0e5d545d
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -375,7 +375,7 @@ function vueEffectif(){
   const masse = C.masse(M(), c);
   VUE.innerHTML = `<div><h1 class="grand">Effectif</h1><p class="sous">${plur(c.effectif.length, 'joueur')} · masse salariale ${eur(masse)} / ${eur(c.masseMax)} par semaine</p></div>
   <div class="onglets-l"><div class="onglets" role="tablist">${vuesPerso().map(x => `<button role="tab" class="${EFF.vue === x.id ? 'on' : ''}" aria-selected="${EFF.vue === x.id}" data-act="effVue" data-v="${x.id}">${esc(x.nom)}</button>`).join('')}</div>
-    <button class="mini-b roue" data-act="effReglages" aria-label="Régler les vues de l'effectif" title="Régler les vues">⚙︎</button></div>
+    <button class="mini-b roue" data-act="effNumeros" aria-label="Numéros de maillot" title="Numéros de maillot">#</button><button class="mini-b roue" data-act="effReglages" aria-label="Régler les vues de l'effectif" title="Régler les vues">⚙︎</button></div>
   <div class="chips petites">${[['tous', 'Tous'], ['P', 'Pours.'], ['B', 'Batteurs'], ['A', 'Attrap.'], ['G', 'Gardiens'], ['bless', 'Absents']].map(([k, n]) => `<button class="chip ${EFF.poste === k ? 'on' : ''}" data-act="effPoste" data-p="${k}">${n}</button>`).join('')}</div>
   <div class="chips petites tri-eff"><span class="mut petit">Ordre</span>${[['poste', 'Par poste'], ['sel', 'Composition'], ['note', 'Note']].map(([k, n]) => `<button class="chip ${EFF.tri === k ? 'on' : ''}" data-act="effOrdre" data-t="${k}" aria-pressed="${EFF.tri === k}">${n}</button>`).join('')}</div>
   <div class="carte tj-carte">${tableJoueurs(L, {cols:vueEff(EFF.vue).cols, tri:EFF.tri, sens:EFF.sens, K})}</div>
@@ -418,6 +418,16 @@ ACT.vueOk = () => { const L = vuesPerso(), nom = (VE.nom || '').trim() || 'Ma vu
   if (VE.i == null){ const id = 'v' + Date.now().toString(36); L.push({id, nom, cols:VE.cols}); EFF.vue = id; } else { L[VE.i] = {...L[VE.i], nom, cols:VE.cols}; EFF.vue = L[VE.i].id; }
   ecrireVues(L); garderEff(); VE = null; fermerFeuille(); rendre(); toast('Vue enregistrée'); };
 ACT.effPoste = d => { EFF.poste = d.p; rendre(); };
+/* v98 : numéros de maillot (1 à 99, uniques dans le club ; un numéro déjà pris est échangé) */
+function ficheNumeros(msg){
+  const c = moi(), L = c.effectif.map(id => M().joueurs[id]).filter(Boolean).sort((a, b) => (a.num ?? 999) - (b.num ?? 999));
+  feuille(`${teteF('Numéros de maillot', esc(c.nom))}
+    ${msg ? `<p class="petit" style="margin:0 0 8px;color:var(--accent);font-weight:600">${esc(msg)}</p>` : ''}
+    <p class="petit mut" style="margin:0 0 10px">De 1 à 99. Si le numéro est déjà porté, les deux joueurs l'échangent.</p>
+    <div class="liste num-l">${L.map(j => `<label class="el">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}</b><span>${j.age} ans</span></div><input type="number" inputmode="numeric" min="1" max="99" value="${j.num ?? ''}" data-chg="numero" data-j="${j.id}" aria-label="Numéro de ${esc(nomJ(j))}"></label>`).join('')}</div>
+    <button class="btn plein" style="margin-top:12px" data-act="fermer">Terminé</button>`, true);
+}
+ACT.effNumeros = () => ficheNumeros();
 ACT.effOrdre = d => { EFF.tri = d.t; EFF.sens = 1; garderEff(); rendre(); };
 ACT.effTri = d => { if (EFF.tri === d.t) EFF.sens = -EFF.sens; else { EFF.tri = d.t; EFF.sens = 1; } garderEff(); rendre(); };
 
@@ -662,6 +672,11 @@ document.addEventListener('change', e => { const t = e.target;
   if (t.dataset.chg === 'seance' && PROG){ PROG.p.jours[+t.dataset.i] = t.value; PROG.p.nom = 'Programme perso'; ficheProg(); }
   if (t.dataset.chg === 'atelier' && PROG){ PROG.p.ateliers[t.dataset.p] = t.value; ficheProg(); }
   if (t.dataset.chg === 'budgetRech'){ U.budgetRech = +t.value; rendre(); }
+  if (t.dataset.chg === 'numero'){ const c = moi(), j = M().joueurs[t.dataset.j], n = Math.round(+t.value);
+    if (!j || !(n >= 1 && n <= 99)){ ficheNumeros('Choisis un numéro entre 1 et 99.'); return; }
+    const autre = c.effectif.map(id => M().joueurs[id]).find(x => x && x !== j && x.num === n), ancien = j.num;
+    j.num = n; if (autre) autre.num = ancien ?? window.QMC.numLibre(M(), c);
+    sauver(); rendre(); ficheNumeros(autre ? `${nomJ(j)} prend le ${n} ; ${nomJ(autre)} récupère le ${autre.num}.` : `${nomJ(j)} portera le ${n}.`); }
 });
 
 /* ============================== v92 : menu de tous les écrans (barre à gauche sur grand écran, tiroir ☰ sur téléphone) ============================== */
