@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="c92db1f6">
+<meta name="mon-ecran-version" content="76fff9fa">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -498,6 +498,24 @@ table.cl tr.lien{cursor:pointer} table.cl tr.lien:hover td{background:var(--card
 .ts-c.on{font-weight:750}
 .ts-l.moi,.ts-l.moi .ts-r,.ts-l.moi .ts-n{background:linear-gradient(var(--or-doux), var(--or-doux)), var(--sheet-solid)}
 .ts-l.moi .ts-n b{font-weight:750}
+/* v103 : prix et palmarès */
+.seg.mini.st-vues button{white-space:normal;line-height:1.1;overflow:visible;min-height:32px}
+.pr-l .t span,.hof-l .t span{white-space:normal;overflow:visible}
+.pr-l .t span img.blz,.pr-l .t span .blason,.hof-c img.blz{width:16px;height:16px;vertical-align:-3px;display:inline-block}
+.pr-l .note-m,.hof-l .note-m{flex:none;font-weight:750;font-variant-numeric:tabular-nums;font-size:.9rem;min-width:30px;text-align:right}
+.pr-l.moi{background:var(--or-doux);border-radius:10px}
+.pr-l.or b::after{content:' ★';color:var(--or)}
+.pr-mois{padding-top:10px;padding-bottom:10px}
+.pr-mois summary{cursor:pointer;list-style:none}
+.pr-mois summary::-webkit-details-marker{display:none}
+.pr-mois .liste{margin-top:8px}
+.palm{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+.palm-i{display:flex;flex-direction:column;padding:5px 9px;border-radius:10px;background:var(--card-2);border:1px solid var(--line);font-size:.78rem;line-height:1.25}
+.palm-i small{color:var(--ink-soft);font-size:.68rem}
+.palm-i.ch,.palm-i.ja,.palm-i.sx{background:var(--or-doux);border-color:color-mix(in srgb, var(--or) 45%, transparent)}
+.hof-l .t span.petit{color:var(--ink-soft)}
+.hof-r{flex:none;width:20px;text-align:center;font-weight:750;color:var(--ink-faint);font-size:.8rem}
+.hof-l .t span.hof-c{display:flex;gap:4px;margin-top:3px}
 /* v93 : illustrations */
 img.blz{object-fit:contain;-webkit-user-drag:none;user-select:none}
 img.blz.g{width:62px;height:62px} img.blz.p{width:26px;height:26px}
@@ -882,6 +900,7 @@ html.desk .er{cursor:grab}
 <script src="qm27-presse.js"></script>
 <script src="qm27-tactique.js"></script>
 <script src="qm27-bureau.js"></script>
+<script src="qm27-prix.js"></script>
 <script src="qm27-visuel.js"></script>
 <script src="qm27-ui.js"></script>
 <script src="qm27-ecrans.js"></script>

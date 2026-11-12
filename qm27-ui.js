@@ -1,4 +1,4 @@
-// mon-ecran-version: 9fab33ee
+// mon-ecran-version: 4b06e014
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -413,7 +413,9 @@ function carriereHTML(j){
   const nomC = id => id ? (M.clubs[id] ? M.clubs[id].nom : id) : 'sans club', villeC = id => id && M.clubs[id] ? M.clubs[id].ville : 'sans club';
   const typeT = {transfert:'Transfert', libre:'Arrivée libre', libere:'Fin de contrat', pret:'Prêt', retour:'Retour de prêt'};
   const tot = L.reduce((a, x) => [a[0] + x[2], a[1] + x[ix]], [0, 0]);
-  return `<details class="carte fj-carriere"><summary><h2 style="display:inline">Carrière</h2> <span class="mut petit">${L.length} saison${L.length > 1 ? 's' : ''} · ${tot[0]} matchs · ${tot[1]} ${nomS}</span></summary>
+  const R_ = window.QMR, palm = R_ && j.prix && j.prix.length ? R_.palmaresHTML(j.prix, esc) : '';   // v103 : palmarès
+  return `<details class="carte fj-carriere"><summary><h2 style="display:inline">Carrière</h2> <span class="mut petit">${L.length} saison${L.length > 1 ? 's' : ''} · ${tot[0]} matchs · ${tot[1]} ${nomS}${j.sel ? ` · ${j.sel} sélection${j.sel > 1 ? 's' : ''}` : ''}${j.prix && j.prix.length ? ` · ${j.prix.length} distinction${j.prix.length > 1 ? 's' : ''}` : ''}</span></summary>
+    ${palm ? `<h4 class="sous-t">Palmarès et prix</h4>${palm}` : ''}
     <div class="tab-carr" role="table"><div class="tc-l tc-h" role="row"><span>Saison</span><span>Club</span><span>MJ</span><span>${nomS[0].toUpperCase() + nomS.slice(1)}</span><span>Moy.</span></div>
     ${L.map((x, i) => `<div class="tc-l" role="row"><span>${lab(x[0])}${i ? '' : ' <i class="mut">en cours</i>'}</span><span class="tc-c">${x[1] && M.clubs[x[1]] ? blason(x[1], 'p') : ''}${esc(villeC(x[1]))}</span><span>${x[2]}</span><span>${x[ix]}</span><span>${x[7] ? (x[7] / 10).toFixed(1).replace('.', ',') : '—'}</span></div>`).join('')}</div>
     ${k.t.length ? `<h4 class="sous-t">Mouvements</h4><div class="liste">${k.t.slice().reverse().map(t => `<div class="el"><div class="t"><b>${typeT[t[2]] || t[2]}${t[5] ? ' · ' + eur(t[5]) : ''}</b><span>${lab(t[0])} · ${esc(nomC(t[3]))} → ${esc(nomC(t[4]))}</span></div></div>`).join('')}</div>` : ''}

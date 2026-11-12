@@ -1,4 +1,4 @@
-// mon-ecran-version: 46254b6b
+// mon-ecran-version: 5bdc9251
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -590,6 +590,7 @@ function appliquerMatch(M, m, X){
       const n = notes[id];
       if (club){ j.saison.m++; j.saison.b += X.perf[id].b; j.saison.v += X.perf[id].vif; j.saison.cog += X.perf[id].cog; j.saison.arr += X.perf[id].arr; if (n) j.saison.notes += n;
         statsJoueur(j.saison, X.perf[id], X, id, notes); }
+      else { j.sel = (j.sel || 0) + 1; j.selS = j.selS && j.selS[0] === M.saison ? [M.saison, j.selS[1] + 1] : [M.saison, 1]; }   // v103 : sélections (carrière, saison)
       const effort = Math.max(0, (X.fat[id] ?? 0) - ((X.fat0 || {})[id] ?? 0));
       j.charge = Math.round(borne((j.charge || 0) + effort * chargeFacteur(j), 0, 100) * 10) / 10; j.jouS = 1;   // v96 : fatigue cumulée
       j.fat = Math.round(Math.min(100, X.fat[id] ?? j.fat)); j.joue = 1;

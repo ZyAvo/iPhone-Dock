@@ -1,11 +1,11 @@
-// mon-ecran-version: 3cba8db6
+// mon-ecran-version: 6c73f40c
 /* QM27 (v102) — statistiques de la saison : onglets « Équipes » et « Joueurs » dans Classements.
    Lit M.statsC (stats d'équipes du championnat, remplies par QM.statsEquipes) et j.saison (stats des joueurs, QM.statsJoueur).
    Chargé après qm27-ecrans.js, dont il reprend la boîte à outils (window.QMU) ; remplace VUES.classements par une version à trois vues. */
 (function(){
 'use strict';
 const Z = window.QMU; if (!Z) return;
-const {D, U, ACT, VUES, esc, club, blason, posteB, LS} = Z;
+const {D, U, ACT, VUES, esc, club, blason, posteB, LS, flag} = Z;
 const M = () => Z.M;
 const CS = Object.assign({vue:'classement', grp:'attaque', tri:null, sens:1, poste:'tous', regul:true, max:40}, LS.lire('qm27:stats', {}));
 const garder = () => LS.ecrire('qm27:stats', {vue:CS.vue, grp:CS.grp, poste:CS.poste, regul:CS.regul});
@@ -127,6 +127,50 @@ function vueJoueurs(l){
       : '<div class="carte"><p class="mut" style="margin:0">Personne ici pour l\'instant.</p></div>'}
     ${depuis()}<p class="petit mut">Championnat seulement, joueurs des clubs de cette ligue (un joueur transféré garde ses stats). Tes joueurs sont surlignés.</p>`;
 }
+/* ---------- Prix (v103) ---------- */
+const R = () => window.QMR;
+const lab = an => `${an}-${String(an + 1).slice(2)}`;
+const existe = id => !!M().joueurs[id];
+function ligneJ(f, extra, cls){   // f = [id, poste, note, club, prénom, nom] ou {id, p, n, club, poste, moy}
+  const o = Array.isArray(f) ? {id:f[0], poste:f[1], moy:f[2], club:f[3], p:f[4], n:f[5]} : f;
+  const c = o.club && M().clubs[o.club], moi = o.club === M().manager.club, ok = existe(o.id);
+  return `<${ok ? 'button' : 'div'} class="el pr-l${moi ? ' moi' : ''}${cls ? ' ' + cls : ''}" ${ok ? `data-act="joueur" data-j="${o.id}"` : ''}>${posteB(o.poste)}<div class="t"><b>${esc(o.p)} ${esc(o.n)}</b><span>${c ? blason(o.club, 'p') + ' ' + esc(c.nom) : 'a quitté le championnat'}${extra ? ' · ' + extra : ''}</span></div>${o.moy != null ? `<span class="note-m">${String(o.moy).replace('.', ',')}</span>` : ''}</${ok ? 'button' : 'div'}>`;
+}
+const ligneMgr = (g, txt) => g ? `<div class="el pr-l${g.club === M().manager.club ? ' moi' : ''}"><span class="blason nat p">🧙</span><div class="t"><b>${g.club === M().manager.club ? 'Toi' : esc(g.nom)}</b><span>${blason(g.club, 'p')} ${esc(club(g.club).nom)} · ${txt}</span></div></div>` : '';
+function vuePrix(l){
+  const pr = M().prix || {saisons:[], hist:[], hof:[]}, L = M().ligues[l];
+  const ans = [...new Set([M().saison, ...pr.saisons.map(x => x.saison), ...pr.hist.map(x => x.saison)])].sort((a, b) => b - a);
+  const an = ans.includes(CS.an) ? CS.an : ans[0];
+  const sa = pr.saisons.find(x => x.saison === an), r = sa && sa.ligues[l];
+  const mois = pr.hist.filter(h => h.saison === an && h.ligue === l).slice().reverse();
+  const carteSaison = r ? `<div class="carte"><h2>Prix de la saison ${lab(an)}</h2><div class="liste">
+      ${ligneJ(r.joueur, 'joueur de l\'année', 'or')}
+      ${ligneMgr(r.manager, `manager de l'année : ${r.manager.rang}${r.manager.rang === 1 ? 'er' : 'e'}, ${r.manager.attendu}e rang attendu`)}
+      ${['P', 'B', 'A', 'G'].map(p => r.postes[p] ? ligneJ(r.postes[p], 'meilleur ' + R().nomPoste(p)) : '').join('')}
+      ${r.buteur ? ligneJ(r.buteur, `meilleur buteur, ${r.buteur.b} buts`) : ''}
+      ${r.jeune ? ligneJ(r.jeune, 'meilleur jeune') : ''}
+      ${r.revelation ? ligneJ(r.revelation, `révélation, +${r.revelation.g} de note`) : ''}</div></div>
+    <div class="carte"><h2>Équipe de l'année</h2><div class="liste">${r.equipe.map(f => ligneJ(f)).join('')}</div></div>` : '';
+  const cartesMois = mois.map(h => `<details class="carte pr-mois"${h === mois[0] ? ' open' : ''}><summary><h2 style="display:inline">${esc(h.quand[0].toUpperCase() + h.quand.slice(1))}</h2> <span class="mut petit">joueur du mois : ${esc((h.equipe.find(f => f[0] === h.joueur) || [, , , , '', ''])[5])}</span></summary>
+      <div class="liste">${h.equipe.map(f => ligneJ(f, f[0] === h.joueur ? 'joueur du mois' : '', f[0] === h.joueur ? 'or' : '')).join('')}
+      ${ligneMgr(h.manager, h.manager ? `manager du mois : ${h.manager.pts} pts pris pour ${String(h.manager.exp).replace('.', ',')} attendus` : '')}</div></details>`).join('');
+  return `<div class="chips petites">${ans.map(a => `<button class="chip ${a === an ? 'on' : ''}" data-act="stAn" data-a="${a}">${lab(a)}</button>`).join('')}</div>
+    ${carteSaison}${cartesMois ? `<h4 class="sous-t">Mois par mois</h4>${cartesMois}` : ''}
+    ${!carteSaison && !cartesMois ? `<div class="carte"><p class="mut" style="margin:0">${an === M().saison ? 'Les premiers prix tombent à la fin du premier mois de championnat : équipe, joueur et manager du mois.' : 'Pas de prix enregistrés pour cette saison.'}</p></div>` : ''}
+    <button class="btn sec plein" data-act="hof" style="margin-top:10px">Hall of Fame${pr.hof && pr.hof.length ? ` (${pr.hof.length})` : ''}</button>
+    <p class="petit mut">Équipe-type : 3 poursuiveurs, 2 batteurs, 1 attrapeur, 1 gardien, à la note moyenne (au moins la moitié des matchs). Manager du mois : points pris comparés aux points attendus selon la réputation des adversaires. Manager de l'année : le plus beau dépassement du rang attendu.</p>`;
+}
+function ficheHof(){
+  const pr = M().prix || {hof:[]}, H = pr.hof || [];
+  Z.feuille(`${Z.teteF('Hall of Fame', 'Les légendes du Quidditch, entrées à leur retraite')}
+    ${H.length ? `<div class="liste">${H.map((h, i) => `<div class="el hof-l"><span class="hof-r">${i + 1}</span>${posteB(h.poste)}<div class="t"><b>${flag(h.nat)} ${esc(h.p)} ${esc(h.n)}</b>
+      <span>${R().nomPoste(h.poste)} · ${h.debut}–${h.fin} · ${h.m} matchs${h.poste === 'P' ? ` · ${h.b} buts` : h.poste === 'A' ? ` · ${h.v} vifs` : ''}${h.sel ? ` · ${h.sel} sélections` : ''}</span>
+      <span class="petit">${Object.entries(h.prix || {}).filter(([k]) => k !== 'em').map(([k, n]) => `${esc((R().PRIX[k] || [k])[0])}${n > 1 ? ' ×' + n : ''}`).join(' · ') || '—'}</span>
+      <span class="hof-c">${[...new Set(h.clubs || [])].filter(id => M().clubs[id]).map(id => blason(id, 'p')).join('')}</span></div><span class="note-m">${String(h.score).replace('.', ',')}</span></div>`).join('')}</div>`
+      : '<p class="mut">Personne pour l\'instant. Un joueur y entre à sa retraite si son score d\'héritage atteint ' + R().SEUIL_HOF + ' : prix et titres, matchs joués, sélections (et, pour les joueurs déjà en carrière au début de la partie, une estimation de leurs saisons d\'avant). Au plus ' + R().MAX_HOF + ' entrées par été.</p>'}
+    <p class="petit mut" style="margin-top:10px">Score d'héritage : joueur de l'année 5, meilleur à son poste 3, champion, équipe de l'année, meilleur buteur et Six Emblèmes 2, meilleur jeune et révélation 1, joueur du mois 0,5, équipe du mois 0,2 ; 1 point pour 60 matchs et pour 10 sélections.</p>
+    <button class="btn plein" data-act="fermer" style="margin-top:10px">Fermer</button>`);
+}
 const depuis = () => M().statsDepuis ? `<p class="petit mut">Statistiques suivies depuis la journée ${M().statsDepuis} (mise à jour v102) : les matchs d'avant ne sont pas comptés.</p>` : '';
 
 /* ---------- Classements : trois vues ---------- */
@@ -136,9 +180,9 @@ VUES.classements = function(){
   const mc = M().manager.club && club(M().manager.club), l = U.ligue || (mc ? mc.ligue : Object.keys(M().ligues)[0]);
   if (l === 'sixn' || !M().ligues[l]) return;
   const seg = Z.VUE.querySelector('.seg'); if (!seg) return;
-  seg.insertAdjacentHTML('afterend', `<div class="seg mini st-vues" role="tablist">${[['classement', 'Classement'], ['equipes', 'Stats équipes'], ['joueurs', 'Stats joueurs']].map(([k, n]) => `<button role="tab" data-act="stVue" data-v="${k}" class="${CS.vue === k ? 'on' : ''}" aria-selected="${CS.vue === k}">${n}</button>`).join('')}</div>`);
+  seg.insertAdjacentHTML('afterend', `<div class="seg mini st-vues" role="tablist">${[['classement', 'Classement'], ['equipes', 'Stats équipes'], ['joueurs', 'Stats joueurs'], ['prix', 'Prix']].map(([k, n]) => `<button role="tab" data-act="stVue" data-v="${k}" class="${CS.vue === k ? 'on' : ''}" aria-selected="${CS.vue === k}">${n}</button>`).join('')}</div>`);
   if (CS.vue === 'classement') return;
-  const zone = document.createElement('div'); zone.className = 'st-zone'; zone.innerHTML = CS.vue === 'equipes' ? vueEquipes(l) : vueJoueurs(l);
+  const zone = document.createElement('div'); zone.className = 'st-zone'; zone.innerHTML = CS.vue === 'equipes' ? vueEquipes(l) : CS.vue === 'prix' ? (window.QMR ? vuePrix(l) : '') : vueJoueurs(l);
   [...Z.VUE.querySelectorAll(':scope > .carte, :scope > p.petit')].forEach(e => e.remove());
   Z.VUE.querySelector('.st-vues').after(zone);
 };
@@ -147,6 +191,9 @@ ACT.stGrp = d => { CS.grp = d.g; CS.tri = null; CS.sens = 1; garder(); Z.rendre(
 ACT.stPoste = d => { CS.poste = d.p; CS.tri = null; CS.sens = 1; CS.max = 40; garder(); Z.rendre(); };
 ACT.stTri = d => { if (CS.tri === d.t) CS.sens = -CS.sens; else { CS.tri = d.t; CS.sens = 1; } Z.rendre(); };
 ACT.stPlus = () => { CS.max += 40; Z.rendre(); };
+ACT.stAn = d => { CS.an = +d.a; Z.rendre(); };
+ACT.hof = () => ficheHof();
+Z.ficheHof = ficheHof;
 document.addEventListener('change', e => { const t = e.target; if (t && t.dataset && t.dataset.chg === 'stRegul'){ CS.regul = t.checked; CS.max = 40; garder(); Z.rendre(); } });
 window.QMS = {GRP_EQ, COL_J, COLS_POSTE};
 })();

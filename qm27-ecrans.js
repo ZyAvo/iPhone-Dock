@@ -1,4 +1,4 @@
-// mon-ecran-version: 4aa6f2a1
+// mon-ecran-version: f4dc0110
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -202,6 +202,7 @@ function vueProfil(){
       <div class="stat" style="grid-template-columns:1fr auto"><span style="text-align:left;font-weight:400">Saisons terminées</span><b>${mg.saisons.length}</b>
       <span style="text-align:left;font-weight:400">Titres de champion</span><b>${titres}</b>
       <span style="text-align:left;font-weight:400">Clubs entraînés</span><b>${new Set((mg.postes || []).map(x => x.club)).size}</b></div>
+      ${window.QMR && mg.prix && mg.prix.length ? `<h4 class="sous-t">Prix</h4>${window.QMR.palmaresHTML(mg.prix, esc)}` : ''}
       <div class="sep"></div><div class="liste">${(mg.postes || []).slice().reverse().map(x => `<div class="el">${blason(x.club, 'p')}<div class="t"><b>${esc(club(x.club).nom)}</b><span>${lab(x.debut)}${x.fin != null ? ' → ' + lab(x.fin) : ' → aujourd\'hui'}</span></div></div>`).join('')}</div></div>
   </div></div>`;
 }
@@ -266,9 +267,9 @@ ACT.recLigue = d => { U.recLigue = d.l; rendre(); };
 ACT.palmares = () => { U.troph = 'palmares'; aller('trophees'); };
 
 /* ============================== Boîte de réception ============================== */
-const CAT = {pres:'Président', staff:'Staff', club:'Club', mercato:'Mercato', bless:'Infirmerie', sixn:'Tournoi', carriere:'Carrière', presse:'Presse', formation:'Formation', info:'Divers'};
-const ICO_MSG = {pres:'🏛️', staff:'🧙', club:'🏰', mercato:'🦉', bless:'✚', sixn:'🏆', carriere:'🧭', presse:'🗞️', formation:'🎓', info:'✉️'};
-const VUE_MSG = {pres:'direction', staff:'staff', club:'club', mercato:'mercato', sixn:'selection', carriere:'carriere', presse:'presse', formation:'formation', info:'boite'};   // v99 : icône illustrée par catégorie
+const CAT = {pres:'Président', staff:'Staff', club:'Club', mercato:'Mercato', bless:'Infirmerie', sixn:'Tournoi', carriere:'Carrière', presse:'Presse', formation:'Formation', prix:'Prix', info:'Divers'};
+const ICO_MSG = {pres:'🏛️', staff:'🧙', club:'🏰', mercato:'🦉', bless:'✚', sixn:'🏆', carriere:'🧭', presse:'🗞️', formation:'🎓', prix:'🏅', info:'✉️'};
+const VUE_MSG = {pres:'direction', staff:'staff', club:'club', mercato:'mercato', sixn:'selection', carriere:'carriere', presse:'presse', formation:'formation', prix:'trophees', info:'boite'};   // v99 : icône illustrée par catégorie
 const nonLus = () => (M() ? M().boite.filter(m => !m.lu).length : 0);
 Z.nonLus = nonLus;
 function vueBoite(){
