@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 6673389a
-"""QM27 (v99) — découpe la deuxième série de planches ChatGPT et produit les images du jeu (WebP).
+# mon-ecran-version: 486d40fc
+"""QM27 (v99, visages refaits en v100) — découpe la deuxième série de planches ChatGPT et produit les images du jeu (WebP).
 Usage : python3 outils/dev/qm27-decoupe2.py <dossier des planches> <couleurs.json>
 Planches attendues : visages-1.png et visages-2.png (4 × 4), visages-3.png à visages-5.png (5 × 5),
 emblemes-pieces.png (3 × 3), menu.png (7 × 4), modeles.png (4 × 3), fond-nuit.png.
@@ -62,19 +62,62 @@ def carre(im, cote, marge=0.06):
 def ecrire(im, chemin, q=82):
     os.makedirs(os.path.dirname(chemin), exist_ok=True); im.save(chemin, 'WEBP', quality=q, method=6)
 
-# ---------- visages : un carré tête et épaules par case ----------
-GROUPES = [('visages-1.png', 4, [('h1', 16)]), ('visages-2.png', 4, [('h2', 16)]), ('visages-3.png', 5, [('h3', 13), ('hs', 12)]),
-           ('visages-4.png', 5, [('f1', 25)]), ('visages-5.png', 5, [('f2', 13), ('fs', 12)])]
+# ---------- visages : chaque personnage isolé (composantes connexes), sans morceaux des voisins ----------
+# Les rangées des planches n'ont pas toutes la même hauteur et se touchent parfois : une grille régulière coupait
+# des têtes et laissait dépasser le haut de la rangée suivante. On repère chaque personnage, on efface le reste.
+import scipy.ndimage as nd
+def personnages(im, n):
+    a = np.asarray(im).astype(int)
+    ref = np.median(np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]]), 0)
+    m = np.abs(a - ref).sum(2) > 30
+    lab, N = nd.label(m); tailles = nd.sum(m, lab, range(1, N + 1)); boites = nd.find_objects(lab)
+    gros = [k for k in range(N) if tailles[k] > 9000]
+    hmed = np.median([boites[k][0].stop - boites[k][0].start for k in gros])
+    figs = []   # (masque, y0, x0)
+    for k in gros:
+        sy, sx = boites[k]; mk = lab == k + 1
+        h = sy.stop - sy.start
+        if h > hmed * 1.5:   # deux personnages collés l'un au-dessus de l'autre : on coupe à la ligne la plus fine
+            prof = mk[sy, sx].sum(1); lo, hi = int(h * 0.3), int(h * 0.7)
+            c = sy.start + lo + int(np.argmin(prof[lo:hi]))
+            haut = mk.copy(); haut[c:] = False; bas = mk.copy(); bas[:c] = False
+            figs += [haut, bas]
+        else: figs.append(mk)
+    assert len(figs) == n, (len(figs), n)
+    # petits morceaux détachés (mèches, reflets) : rattachés au personnage le plus proche
+    cent = [nd.center_of_mass(f) for f in figs]
+    for k in range(N):
+        if k in gros or tailles[k] < 4: continue
+        cy, cx = nd.center_of_mass(lab == k + 1)
+        d = [abs(cy - y) + abs(cx - x) for (y, x) in cent]; figs[int(np.argmin(d))] |= lab == k + 1
+    # ordre de lecture : par rangée (haut des têtes), puis de gauche à droite
+    info = []
+    for f in figs:
+        ys, xs = np.nonzero(f); info.append((ys.min(), xs.min(), f))
+    info.sort(key=lambda t: t[0]); rangs, cur = [], []
+    for t in info:
+        if cur and t[0] - cur[0][0] > hmed * 0.5: rangs.append(cur); cur = []
+        cur.append(t)
+    rangs.append(cur)
+    return ref, [f for r in rangs for (_, _, f) in sorted(r, key=lambda t: t[1])]
+def portrait(im, ref, f, cote=160):
+    a = np.asarray(im).copy()
+    garde = nd.binary_dilation(nd.binary_fill_holes(f), iterations=3)
+    a[~garde] = ref.astype(np.uint8)
+    ys, xs = np.nonzero(f); y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    s = int(max(y1 - y0, x1 - x0) * 0.9); cx, cy = (x0 + x1) // 2, y0 - int(s * 0.03) + s // 2   # cadré sur la tête, épaules rognées en bas
+    fond = Image.new('RGB', (s, s), tuple(int(v) for v in ref))
+    src = Image.fromarray(a); bx, by = cx - s // 2, cy - s // 2
+    fond.paste(src.crop((max(0, bx), max(0, by), min(im.width, bx + s), min(im.height, by + s))), (max(0, -bx), max(0, -by)))
+    return fond.resize((cote, cote), Image.LANCZOS)
+GROUPES = [('visages-1.png', 16, [('h1', 16)]), ('visages-2.png', 16, [('h2', 16)]), ('visages-3.png', 25, [('h3', 13), ('hs', 12)]),
+           ('visages-4.png', 25, [('f1', 25)]), ('visages-5.png', 25, [('f2', 13), ('fs', 12)])]
 compte = {}
-for f, n, groupes in GROUPES:
-    im = ouvrir(f); cases = grille(im, n, n); i = 0
+for fic, n, groupes in GROUPES:
+    im = ouvrir(fic); ref, figs = personnages(im, n); i = 0
     for g, k in groupes:
         for z in range(k):
-            x0, y0, x1, y1 = cases[i]; i += 1
-            w, h = x1 - x0, y1 - y0; s = min(w, h)
-            cx = (x0 + x1) // 2; top = y0 + max(0, (h - s) // 4)
-            c = im.crop((cx - s // 2, top, cx + s // 2, top + s)).resize((160, 160), Image.LANCZOS)
-            ecrire(c, f'{O}/visages/{g}-{z}.webp', 80)
+            ecrire(portrait(im, ref, figs[i]), f'{O}/visages/{g}-{z}.webp', 80); i += 1
         compte[g] = k
 print('visages', compte)
 

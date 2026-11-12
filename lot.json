@@ -1,6 +1,6 @@
 {
- "lot": "v99",
- "date": "2026-11-12T10:30:18+00:00",
+ "lot": "v100",
+ "date": "2026-11-12T10:42:56+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/appli-ios.yml": "71fe94d4",
@@ -48,7 +48,7 @@
   "outils/dev/empaqueter.py": "d9934bc2",
   "outils/dev/icones.py": "69297db2",
   "outils/dev/qm27-decoupe.py": "db2509e3",
-  "outils/dev/qm27-decoupe2.py": "6673389a",
+  "outils/dev/qm27-decoupe2.py": "486d40fc",
   "outils/dev/qm27-essai.mjs": "39e4efd3",
   "outils/dev/qm27-galerie.html": "a0ee99d4",
   "outils/etat.mjs": "e60d6f08",
