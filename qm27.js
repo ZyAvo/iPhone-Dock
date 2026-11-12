@@ -1,4 +1,4 @@
-// mon-ecran-version: 464e2846
+// mon-ecran-version: 46254b6b
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -222,6 +222,7 @@ function remettreClassements(M){
   M.tables = {};
   for (const L of Object.values(M.ligues)){ M.tables[L.id] = {}; for (const id of L.clubs) M.tables[L.id][id] = ligneVide(id); }
   M.tables.sixn = {}; for (const n of D.SIX_NATIONS) M.tables.sixn[n] = ligneVide(n);
+  M.statsC = {}; M.statsDepuis = 0;   // v102 : stats d'équipes de la saison (statsDepuis : journée où le suivi a commencé)
 }
 function compter(M, m){
   const T = M.tables[m.ligue], a = T[m.dom], b = T[m.ext], [sa, sb] = m.res.score;
@@ -270,7 +271,7 @@ function creerMatch(M, e0, e1, graine, opts = {}){
              vifVu:false, vifCache:0, vifDepuis:0, sonne:[0, 0], gSonne:[0, 0], tm:[2, 2], rempl:[3, 3], moral:[0, 0],
              perf:{}, fat:{}, bless:[], jour:[1 + r.gauss() * EQ.jour, 1 + r.gauss() * EQ.jour], domicile:opts.domicile !== false, avecTexte:opts.texte !== false, r, rt, M};
   X.e.forEach((e, k) => { if (e.cap) X.moral[k] = 0.5; if (e.moralDom && k === 0 && X.domicile) X.moral[k] += e.moralDom; if (e.moralBase) X.moral[k] = borne(X.moral[k] + e.moralBase, -3, 3); });
-  for (const e of X.e) for (const id of [...titulaires(e), ...(e.banc || [])]){ const j = M.joueurs[id]; X.fat[id] = j ? j.fat : 0; X.perf[id] = {eq:X.e.indexOf(e), b:0, t:0, arr:0, cog:0, enc:0, vif:0, rate:0, m:titulaires(e).includes(id) ? 1 : 0}; }
+  for (const e of X.e) for (const id of [...titulaires(e), ...(e.banc || [])]){ const j = M.joueurs[id]; X.fat[id] = j ? j.fat : 0; X.perf[id] = {eq:X.e.indexOf(e), b:0, t:0, arr:0, cog:0, enc:0, vif:0, rate:0, m:titulaires(e).includes(id) ? 1 : 0, tit:titulaires(e).includes(id) ? 1 : 0, in:0}; }   // v102 : titulaire, minute d'entrée
   X.fat0 = {...X.fat};   // v96 : fatigue au coup d'envoi (la charge se calcule sur l'effort du match)
   dire(X, 'debut', -1, {}, true);
   return X;
@@ -288,6 +289,7 @@ const nomJ = j => j ? `${j.p} ${j.n}` : '?';
 /* facteur de forme d'un joueur sur le terrain : fatigue, forme, moral de l'équipe */
 function f(X, eq, id){ const j = J(X, id); if (!j) return 1; return (1 - X.fat[id] / 300) * (0.96 + j.forme * 0.008) * (1 + X.moral[eq] * 0.01); }
 const moy = L => L.reduce((s, x) => s + x, 0) / (L.length || 1);
+const ajout = (o, k, v) => { if (o) o[k] = (o[k] || 0) + v; };   // v102 : compteur de stats sans tirage
 const role = (X, eq, id) => (X.e[eq].roles || {})[id];
 const nbRole = (X, eq, poste, r) => X.e[eq][poste].filter(id => role(X, eq, id) === r).length;
 function moyP(L, w){ let s = 0, n = 0; L.forEach((v, i) => { s += v * w[i]; n += w[i]; }); return n ? s / n : 0; }
@@ -363,7 +365,7 @@ function pas(X){
     /* blessure possible de la cible */
     const victime = cible === 'attrapeur' ? e[a].A[0] : cible === 'gardien' ? e[a].G[0] : r.choix(e[a].P);
     const vj = J(X, victime);
-    if (vj && r() < EQ.blessure * (vj.cache.frag / 10) * (1 + 0.3 * (Td.agressivite - 2)) * (met === 'orage' ? 1.3 : 1) * (1.4 - at(vj, 'res') / 25) * (1 + 0.2 * nbRole(X, d, 'B', 'chasseur')) * (aManie(J(X, bat), 'cogneur') ? 1.3 : 1) * (1 + (vj.charge || 0) / 110)) blesser(X, a, victime);
+    if (vj && r() < EQ.blessure * (vj.cache.frag / 10) * (1 + 0.3 * (Td.agressivite - 2)) * (met === 'orage' ? 1.3 : 1) * (1.4 - at(vj, 'res') / 25) * (1 + 0.2 * nbRole(X, d, 'B', 'chasseur')) * (aManie(J(X, bat), 'cogneur') ? 1.3 : 1) * (1 + (vj.charge || 0) / 110)){ ajout(X.perf[bat], 'bc', 1); X.stats[d].bc = (X.stats[d].bc || 0) + 1; blesser(X, a, victime); }   // v102 : blessures causées
     return finPas(X);
   }
   /* 2. faute */
@@ -374,8 +376,9 @@ function pas(X){
     const ti = e[a].pen && e[a].P.includes(e[a].pen) && J(X, e[a].pen) ? e[a].pen : tireur(X, a), T = qualiteTir(X, a, ti), G = Fd.G;   // v89 : tireur désigné
     X.stats[a].pen++; X.stats[a].tirs++; X.perf[ti].t++;
     const pPen = borne(EQ.penalty + 0.02 * (T - G), 0.4, 0.9); X.stats[a].xb = (X.stats[a].xb || 0) + pPen;
-    if (r() < pPen) marquer(X, a, ti, true);
-    else { X.stats[d].arrets++; if (e[d].G[0]) X.perf[e[d].G[0]].arr++; dire(X, 'penalty_rate', a, {j:nomJ(J(X, ti)), g:nomJ(J(X, e[d].G[0]))}, false); X.poss = d; }
+    ajout(X.perf[ti], 'pen', 1); ajout(X.perf[ti], 'xb', pPen); ajout(X.perf[e[d].G[0]], 'xbc', pPen);   // v102 : stats individuelles (aucun tirage en plus)
+    if (r() < pPen){ ajout(X.perf[ti], 'penB', 1); marquer(X, a, ti, true); }
+    else { X.stats[d].arrets++; if (e[d].G[0]){ X.perf[e[d].G[0]].arr++; ajout(X.perf[e[d].G[0]], 'penArr', 1); } dire(X, 'penalty_rate', a, {j:nomJ(J(X, ti)), g:nomJ(J(X, e[d].G[0]))}, false); X.poss = d; }
     return finPas(X);
   }
   /* 3. attaque */
@@ -384,6 +387,7 @@ function pas(X){
     const dBut = P.dBut;
     X.stats[a].tirs++; X.perf[ti].t++;
     const pBut = borne(EQ.baseBut + EQ.kBut * (T - G) + dBut, EQ.butMin, EQ.butMax); X.stats[a].xb = (X.stats[a].xb || 0) + pBut;   // v89 : buts attendus
+    ajout(X.perf[ti], 'xb', pBut); ajout(X.perf[e[d].G[0]], 'xbc', pBut);   // v102
     if (r() < pBut) marquer(X, a, ti, false);
     else {
       const gk = e[d].G[0];
@@ -424,6 +428,7 @@ function remplacer(X, eq, sort, entre, blessure){
   e.banc = e.banc.filter(x => x !== entre);
   (X.sortis = X.sortis || []).push(sort);
   X.perf[entre] = X.perf[entre] || {eq, b:0, t:0, arr:0, cog:0, enc:0, vif:0, rate:0, m:0}; X.perf[entre].m = 1;
+  X.perf[entre].in = X.t; if (X.perf[sort]) X.perf[sort].out = X.t;   // v102 : minutes jouées
   dire(X, 'remplacement', eq, {j:nomJ(J(X, entre)), k:nomJ(J(X, sort))}, false);
   return true;
 }
@@ -465,7 +470,8 @@ function vifDor(X){
 }
 function finir(X, k, force){
   X.score[k] += EQ.points.vif; X.vif = k; X.fini = true;
-  const sid = X.e[k].A[0]; if (X.perf[sid]) X.perf[sid].vif = 1;
+  const sid = X.e[k].A[0]; if (X.perf[sid]){ X.perf[sid].vif = 1; X.perf[sid].vifT = X.t; }
+  X.avantVif = X.score.slice(); X.avantVif[k] -= EQ.points.vif;   // v102 : score juste avant le vif (matchs gagnés ou perdus au vif)
   const perdu = X.score[k] < X.score[1 - k];
   dire(X, perdu ? 'fin_perdu' : 'vif_attrape', k, {j:nomJ(J(X, sid))}, true, {vif:'pris', fin:1});
 }
@@ -540,6 +546,34 @@ function simulerMatch(M, m){
   const [e0, e1] = equipesPour(M, m);
   return jusquAuBout(creerMatch(M, e0, e1, grainePour(M, m), {date:semaine(M).date, texte:false}));
 }
+/* v102 : statistiques de la saison (championnat seulement). Joueur : ajoutées à j.saison ; équipes : M.statsC[club], remis à zéro
+   avec les classements. Rien ici ne tire au hasard : les résultats restent identiques à graine égale. */
+function statsJoueur(s, p, X, id, notes){
+  const min = Math.max(0, ((p.out ?? X.t) - (p.in ?? 0)) / 60);
+  ajout(s, 'mn', Math.round(min)); ajout(s, 'tit', p.tit ? 1 : 0); ajout(s, 't', p.t || 0); ajout(s, 'f', p.f || 0); ajout(s, 'enc', p.enc || 0);
+  s.xb = Math.round(((s.xb || 0) + (p.xb || 0)) * 100) / 100; s.xbc = Math.round(((s.xbc || 0) + (p.xbc || 0)) * 100) / 100;
+  for (const k of ['pen', 'penB', 'penArr', 'bc']) if (p[k]) ajout(s, k, p[k]);
+  if (p.vifT) ajout(s, 'vifT', Math.round(p.vifT / 60));
+  const top = Object.entries(notes).sort((a, b) => b[1] - a[1])[0]; if (top && top[0] === id) ajout(s, 'mvp', 1);
+}
+const statsVides = () => ({j:0, bm:0, be:0, tirs:0, tirsC:0, xb:0, xbc:0, poss:0, pasT:0, fautes:0, pen:0, penC:0, arr:0, arrC:0, cog:0, cogS:0, bc:0, bl:0, blJ:0,
+  vifs:0, duree:0, vifSauve:0, vifPerdu:0, ptsDom:0, jDom:0, ptsExt:0, jExt:0, serie:0, serieMax:0});
+function statsEquipes(M, m, X){
+  if (!M.statsC){ M.statsC = {}; M.statsDepuis = (semaine(M) || {}).journee || 0; }   // partie commencée avant v102 : le suivi démarre maintenant
+  const S = M.statsC, st = X.stats;
+  for (const k of [0, 1]){
+    const id = k ? m.ext : m.dom, o = S[id] || (S[id] = statsVides()), a = st[k], b = st[1 - k];
+    o.j++; o.bm += a.buts; o.be += b.buts; o.tirs += a.tirs; o.tirsC += b.tirs; o.xb = Math.round((o.xb + (a.xb || 0)) * 100) / 100; o.xbc = Math.round((o.xbc + (b.xb || 0)) * 100) / 100;
+    o.poss += a.poss || 0; o.pasT += (a.poss || 0) + (b.poss || 0); o.fautes += a.fautes; o.pen += a.pen; o.penC += b.pen; o.arr += a.arrets; o.arrC += b.arrets;
+    o.cog += a.cog; o.cogS += b.cog; o.bc += a.bc || 0;
+    const bl = X.bless.filter(x => x.eq === k); o.bl += bl.length; o.blJ += bl.reduce((t, x) => t + (M.joueurs[x.id] && M.joueurs[x.id].bless ? M.joueurs[x.id].bless.jours : x.jours), 0);
+    o.duree += Math.round(X.t / 60); if (X.vif === k) o.vifs++;
+    const s1 = X.score[k], s2 = X.score[1 - k], pts = s1 > s2 ? EQ.points.victoire : s1 === s2 ? EQ.points.nul : 0;
+    if (X.avantVif && X.vif >= 0){ const av = X.avantVif; if (X.vif === k && av[k] <= av[1 - k] && s1 > s2) o.vifSauve++; if (X.vif !== k && av[k] > av[1 - k] && s1 <= s2) o.vifPerdu++; }
+    if (k === 0){ o.ptsDom += pts; o.jDom++; } else { o.ptsExt += pts; o.jExt++; }
+    o.serie = s1 > s2 ? Math.max(0, o.serie) + 1 : s1 < s2 ? Math.min(0, o.serie) - 1 : 0; o.serieMax = Math.max(o.serieMax, o.serie);
+  }
+}
 /* applique un match terminé : résultat, classement, stats, fatigue, blessures, forme */
 function appliquerMatch(M, m, X){
   const r = resume(X);
@@ -554,7 +588,8 @@ function appliquerMatch(M, m, X){
     for (const id of joues){
       const j = M.joueurs[id]; if (!j || !X.perf[id] || !X.perf[id].m) continue;
       const n = notes[id];
-      if (club){ j.saison.m++; j.saison.b += X.perf[id].b; j.saison.v += X.perf[id].vif; j.saison.cog += X.perf[id].cog; j.saison.arr += X.perf[id].arr; if (n) j.saison.notes += n; }
+      if (club){ j.saison.m++; j.saison.b += X.perf[id].b; j.saison.v += X.perf[id].vif; j.saison.cog += X.perf[id].cog; j.saison.arr += X.perf[id].arr; if (n) j.saison.notes += n;
+        statsJoueur(j.saison, X.perf[id], X, id, notes); }
       const effort = Math.max(0, (X.fat[id] ?? 0) - ((X.fat0 || {})[id] ?? 0));
       j.charge = Math.round(borne((j.charge || 0) + effort * chargeFacteur(j), 0, 100) * 10) / 10; j.jouS = 1;   // v96 : fatigue cumulée
       j.fat = Math.round(Math.min(100, X.fat[id] ?? j.fat)); j.joue = 1;
@@ -562,7 +597,8 @@ function appliquerMatch(M, m, X){
       const g = Math.sign(X.score[k] - X.score[1 - k]); j.moral = borne(j.moral + g * 6 + (n ? (n - 6) * 3 : 0), 5, 100);
     }
   }
-  for (const b of X.bless){ const j = M.joueurs[b.id]; if (j) j.bless = {nom:b.nom, jours:C() && j.club ? C().dureeBlessure(M, j.club, b.jours) : b.jours}; }
+  for (const b of X.bless){ const j = M.joueurs[b.id]; if (j){ j.bless = {nom:b.nom, jours:C() && j.club ? C().dureeBlessure(M, j.club, b.jours) : b.jours}; if (club && j.saison){ ajout(j.saison, 'bl', 1); ajout(j.saison, 'blJ', j.bless.jours); } } }
+  if (club) statsEquipes(M, m, X);
   if (club) for (const id of [m.dom, m.ext]) if (M.clubs[id]) M.clubs[id].usure = Math.max(0, Math.round(((M.clubs[id].usure ?? 100) - EQ.usure * (1 - (root.QMB ? root.QMB.bonus(M.clubs[id], 'usure') : 0))) * 10) / 10);   // v84 : balais
 }
 /* v96 : fatigue cumulée (j.charge, 0-100). Elle monte avec l'effort des matchs (et un peu l'entraînement intense), plus vite pour

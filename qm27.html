@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="69e86eae">
+<meta name="mon-ecran-version" content="c92db1f6">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -476,6 +476,28 @@ table.cl tr.lien{cursor:pointer} table.cl tr.lien:hover td{background:var(--card
 .tj-carte .tj-p{left:0} .tj-carte .tj-abs{left:40px} .tj-carte .tj-n{left:64px;min-width:120px}   /* v101 : colonne des absents figée avec le poste et le nom */
 .tj-carte .tj-h .th:nth-child(-n+3){position:sticky;background:var(--sheet-solid);z-index:2}
 .tj-carte .tj-h .th:first-child{left:0} .tj-carte .tj-h .th:nth-child(2){left:40px} .tj-carte .tj-h .th:nth-child(3){left:64px;min-width:120px}
+/* v102 : statistiques de la saison (Classements › Stats équipes / Stats joueurs) */
+.st-vues{margin-top:8px}
+.st-zone > .chips{margin:10px 0 6px}
+.st-regul{display:flex;gap:8px;align-items:center;margin:2px 2px 8px;color:var(--ink-soft)}
+.st-regul input{width:18px;height:18px;flex:none}
+.ts-carte{overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--sheet-solid);padding:6px 10px}
+.ts-h,.ts-l{display:flex;align-items:center;gap:4px;width:100%}
+.ts-h{border-bottom:1px solid var(--line);padding:2px 0}
+.ts-h .th{flex:none;font-size:.7rem;font-weight:700;color:var(--ink-soft);text-align:center;padding:6px 0;white-space:nowrap}
+.ts-h .th.on{color:var(--accent)}
+.ts-l{min-height:40px;border-bottom:1px solid var(--line);text-align:left;color:var(--ink);padding:0}
+.ts-l:last-child{border-bottom:0}
+.ts-r{flex:none;width:26px;align-self:stretch;display:grid;place-items:center;font-size:.72rem;color:var(--ink-faint);font-variant-numeric:tabular-nums;position:sticky;left:0;background:var(--sheet-solid);z-index:1}
+.ts-n{flex:1;min-width:150px;align-self:stretch;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;position:sticky;left:26px;background:var(--sheet-solid);z-index:1}
+.ts-n b{overflow:hidden;text-overflow:ellipsis;font-size:.84rem;font-weight:600;min-width:0}
+.ts-n .poste{transform:scale(.9);flex:none}
+.ts-n .blz,.ts-n .blason{flex:none}
+.ts-h .ts-n,.ts-h .ts-r{font-size:.7rem;font-weight:700;color:var(--ink-soft)}
+.ts-c{flex:none;text-align:center;font-variant-numeric:tabular-nums;font-size:.8rem}
+.ts-c.on{font-weight:750}
+.ts-l.moi,.ts-l.moi .ts-r,.ts-l.moi .ts-n{background:linear-gradient(var(--or-doux), var(--or-doux)), var(--sheet-solid)}
+.ts-l.moi .ts-n b{font-weight:750}
 /* v93 : illustrations */
 img.blz{object-fit:contain;-webkit-user-drag:none;user-select:none}
 img.blz.g{width:62px;height:62px} img.blz.p{width:26px;height:26px}
@@ -863,6 +885,7 @@ html.desk .er{cursor:grab}
 <script src="qm27-visuel.js"></script>
 <script src="qm27-ui.js"></script>
 <script src="qm27-ecrans.js"></script>
+<script src="qm27-stats.js"></script>
 <script src="commun.js"></script>
 </body>
 </html>
