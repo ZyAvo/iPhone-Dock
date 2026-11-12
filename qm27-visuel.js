@@ -1,4 +1,4 @@
-// mon-ecran-version: d9154d74
+// mon-ecran-version: c608cf94
 /* QM27 (v87) — graphismes dessinés par le code, sans image : blasons des clubs, maillots, avatars, radar du profil.
    Tout est déterministe : un club ou une personne a toujours le même dessin (graine = identifiant).
    window.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe}. Aucune dépendance (QMD seulement pour les prénoms). */
@@ -136,6 +136,7 @@ const CHEVEUX = ['#1e1b19', '#3b2a20', '#5b3c27', '#8a5a35', '#c9a161', '#e3c98f
 function feminin(p){
   if (p.f !== undefined) return !!p.f;
   const N = D() && D().NOMS[p.nat]; if (!N) return hash(p.p || p.id) % 2 === 0;
+  if (N.f) return N.f.includes(p.p);   // v105 : listes séparées (h, f)
   const i = N.p.indexOf(p.p); return i >= N.p.length / 2;
 }
 /* v99 : portraits illustrés (images/qm27/visages/) ; le dessin en code reste pour l'apparence personnalisée du manager */

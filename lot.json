@@ -1,6 +1,6 @@
 {
- "lot": "v104",
- "date": "2026-11-12T12:11:53+00:00",
+ "lot": "v105",
+ "date": "2026-11-12T12:32:08+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/appli-ios.yml": "71fe94d4",
@@ -68,7 +68,7 @@
   "qm27-carriere.js": "174bdfb1",
   "qm27-club.js": "59da93f4",
   "qm27-domaine.js": "e7d269b6",
-  "qm27-donnees.js": "eb1d1d52",
+  "qm27-donnees.js": "77f7e436",
   "qm27-ecrans.js": "115281bb",
   "qm27-europe.js": "9d5d9458",
   "qm27-presse.js": "38988926",
@@ -77,7 +77,7 @@
   "qm27-tactique.js": "c55fb853",
   "qm27-ui.js": "6dedc112",
   "qm27-vestiaire.js": "d6154226",
-  "qm27-visuel.js": "d9154d74",
+  "qm27-visuel.js": "c608cf94",
   "qm27.html": "6d244091",
   "qm27.js": "893cca40",
   "reglages.html": "7ce973d7",
