@@ -1,4 +1,4 @@
-// mon-ecran-version: 04212f18
+// mon-ecran-version: e4a916cd
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -147,6 +147,7 @@ function vueDirection(){
   const CL = window.QM.classement(M_, c.ligue), pos = CL.findIndex(r => r.id === c.id) + 1;
   const humeur = mg.confiance >= 70 ? 'Le président est ravi.' : mg.confiance >= 45 ? 'Le président est serein.' : mg.confiance >= 25 ? 'Le président s\'impatiente.' : 'Le président doute sérieusement de toi.';
   VUE.innerHTML = `<div><h1 class="grand">Bureau du président</h1><p class="sous">Tour du directeur · ${esc(c.nom)}</p></div>
+  ${reunionCarte(M_)}
   <div class="cols"><div>
     <div class="carte"><h2>Objectif de la saison</h2><p style="margin:0 0 6px"><b>${esc(o.txt)}</b></p><p class="petit mut" style="margin:0 0 10px">Aujourd'hui : ${pos}${pos === 1 ? 'er' : 'e'} de la ${esc(M_.ligues[c.ligue].nom)}${mg.bilan ? ` · ${mg.bilan.g} V · ${mg.bilan.n} N · ${mg.bilan.p} D` : ''}.</p>
       <div class="ligne"><span style="flex:1">Confiance</span><b>${Math.round(mg.confiance)} %</b></div>${jauge(mg.confiance, 'Confiance du président')}
@@ -156,7 +157,7 @@ function vueDirection(){
       <p class="petit mut" style="margin:8px 0 0">Les conférences d'après-match la font bouger ; une bonne relation amplifie ce que la presse rapporte de toi.</p></div>
     <div class="carte"><h2>Finances <button data-act="vue" data-v="finances">Détail</button></h2>
       <div class="stat" style="grid-template-columns:1fr auto"><span style="text-align:left;font-weight:400">Solde</span><b style="color:${c.budget < 0 ? 'var(--mauvais)' : 'inherit'}">${eur(c.budget)}</b>
-      <span style="text-align:left;font-weight:400">Masse salariale</span><b>${eur(C.masse(M_, c))} / ${eur(c.masseMax)} par sem.</b></div></div>
+      <span style="text-align:left;font-weight:400">Masse salariale</span><b>${eur(C.masse(M_, c))} / ${eur(c.masseMax)} par sem.</b>${c.enveloppe != null ? `<span style="text-align:left;font-weight:400">Enveloppe des transferts</span><b>${eur(c.enveloppe)}</b>` : ''}</div></div>
   </div><div>
     ${ct ? `<div class="carte"><h2>Ton contrat</h2><div class="stat" style="grid-template-columns:1fr auto">
       <span style="text-align:left;font-weight:400">Salaire</span><b>${eur(ct.sal)} / semaine</b>
@@ -449,6 +450,57 @@ function rapportsHTML(M_, Gm){
     return `<h4 class="stm-g" style="margin-top:12px">Dernier rapport · ${esc(P[0])}</h4><div class="liste">${r.ids.map(id => M_.joueurs[id]).filter(Boolean).map(j => { const c = j.club ? club(j.club) : null;
       return `<button class="el" data-act="joueur" data-j="${j.id}">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}</b><span>${j.age} ans · ${c ? esc(c.nom) + ' · valeur ' + eur(window.QMC.valeur(M_, j)) : 'agent libre, sans indemnité'}</span></div><span class="d mut">›</span></button>`; }).join('')}</div>`; }).join('');
 }
+/* ============================== v97 : réunion de début de saison ============================== */
+/* carte d'appel (accueil, bureau) : réunion à tenir, ou rappel de l'accord */
+function reunionCarte(M_){
+  const Gm = G(); if (!Gm || !M_.manager.club) return '';
+  const R = Gm.reunion(M_), mg = M_.manager;
+  if (R && !R.fin) return `<div class="carte reun-appel"><h2>Réunion de début de saison</h2><p style="margin:0 0 10px">Le président t'attend pour fixer l'objectif, la philosophie et les budgets.${R.tard ? '' : ' Sans réunion avant le premier match de championnat, il décidera seul.'}</p><button class="btn plein" data-act="vue" data-v="reunion">Entrer dans le bureau</button></div>`;
+  if (R && R.fin && R.accord && Z.U.vue === 'direction') return `<div class="carte"><h2>Plan de la saison ${R.accord.impose ? '<span class="mut petit">imposé</span>' : '<span class="mut petit">négocié</span>'}</h2>
+    <p style="margin:0 0 6px"><b>${esc(Gm.TXT_OBJ[R.accord.vise])}</b></p><p class="petit" style="margin:0 0 6px">Philosophie : ${R.accord.philo.map(k => `<b>${esc(Gm.PHILOS[k][0])}</b> <span class="mut">(${esc(Gm.PHILOS[k][1].toLowerCase())})</span>`).join(' · ')}</p>
+    <p class="petit mut" style="margin:0">Enveloppe des transferts : ${eur(moi().enveloppe ?? R.accord.env)} restants · masse salariale : ${eur(R.accord.masse)} par semaine au plus. Chaque engagement tenu en fin de saison : confiance +5, manqué : −5.</p></div>`;
+  return '';
+}
+const RN = {};   // brouillon de la proposition (remis à zéro à chaque nouvelle réunion)
+function vueReunion(){
+  const M_ = M(), Gm = G(), R = Gm && Gm.reunion(M_); if (!R) return aller('direction');
+  const c = moi(), o = R.offre, pref = Gm.prefPresident(M_, c);
+  if (RN.cle !== `${R.saison}-${R.club}`) Object.assign(RN, {cle:`${R.saison}-${R.club}`, vise:o.vise, philo:o.philo.slice(), rep:0, effort:0, msg:null});
+  const ch = Gm.chiffrer(M_, RN);
+  if (R.fin) { VUE.innerHTML = `<div><h1 class="grand">Réunion avec le président</h1><p class="sous">${esc(c.nom)} · saison ${lab(M_.saison)}</p></div>${RN.msg ? `<div class="carte reun-msg ok"><p style="margin:0">${esc(RN.msg)}</p></div>` : ''}
+    <div class="carte"><h2>Accord</h2><p style="margin:0 0 6px"><b>${esc(Gm.TXT_OBJ[R.accord.vise])}</b></p><p class="petit" style="margin:0 0 6px">Philosophie : ${R.accord.philo.map(k => esc(Gm.PHILOS[k][0])).join(' et ')}</p><p class="petit mut" style="margin:0 0 10px">Enveloppe des transferts : ${eur(R.accord.env)} · masse salariale : ${eur(R.accord.masse)} par semaine</p><button class="btn plein" data-act="vue" data-v="direction">Retour au bureau</button></div>`; return; }
+  const idx = Gm.PALIERS.indexOf(RN.vise);
+  VUE.innerHTML = `<div><h1 class="grand">Réunion avec le président</h1><p class="sous">${esc(c.nom)} · saison ${lab(M_.saison)} · ${3 - R.tours} proposition${3 - R.tours > 1 ? 's' : ''} possible${3 - R.tours > 1 ? 's' : ''}</p></div>
+  ${RN.msg ? `<div class="carte reun-msg"><p style="margin:0">${esc(RN.msg)}</p></div>` : ''}
+  <div class="carte"><h2>Son offre</h2><p style="margin:0 0 4px">« ${esc(Gm.TXT_OBJ[o.vise])}, avec ${esc(Gm.PHILOS[pref][0].toLowerCase())}. Je te donne ${eur(o.env)} pour les transferts et ${eur(o.masse)} par semaine de masse salariale. »</p>
+    <p class="petit mut" style="margin:0">Solde du club : ${eur(c.budget)}. Viser plus haut lui plaît et débloque plus d'argent, mais il te jugera dessus. Partager sa philosophie le rend plus conciliant.</p></div>
+  <div class="cols"><div>
+    <div class="carte"><h2>Objectif</h2><div class="ligne" style="gap:8px"><button class="btn sec mini" data-act="reunVise" data-d="-1" ${idx <= 0 ? 'disabled' : ''} aria-label="Plus ambitieux">▲</button><b style="flex:1;text-align:center">${esc(Gm.TXT_OBJ[RN.vise])}</b><button class="btn sec mini" data-act="reunVise" data-d="1" ${idx >= Gm.PALIERS.length - 1 ? 'disabled' : ''} aria-label="Moins ambitieux">▼</button></div>
+      <p class="petit mut" style="margin:6px 0 0">${ch.crans > 0 ? `${ch.crans} cran${ch.crans > 1 ? 's' : ''} plus ambitieux que lui : +${ch.crans * 10} % sur les budgets.` : ch.crans < 0 ? `${-ch.crans} cran${ch.crans < -1 ? 's' : ''} en dessous de son idée : budgets réduits, il sera plus difficile à convaincre.` : 'Son objectif.'}</p></div>
+    <div class="carte"><h2>Philosophie <span class="mut petit">une ou deux</span></h2><div class="liste compacte">${Object.entries(Gm.PHILOS).map(([k, P]) => { const on = RN.philo.includes(k);
+      return `<button class="el${on ? ' sel' : ''}" data-act="reunPhilo" data-k="${k}" aria-pressed="${on}"><span class="poste ${on ? 'A' : ''}" aria-hidden="true">${on ? '✓' : ''}</span><div class="t"><b>${esc(P[0])}${k === pref ? ' <span class="badge tit">son choix</span>' : ''}</b><span>${esc(P[1])}</span></div></button>`; }).join('')}</div></div>
+  </div><div>
+    <div class="carte"><h2>Budgets</h2>
+      <p class="petit" style="margin:0 0 6px">Répartition entre transferts et salaires</p>
+      <div class="ligne" style="gap:6px"><span class="petit mut">Transferts</span><div class="seg mini" style="flex:1">${[[-2, '◀◀', 'Beaucoup plus pour les transferts'], [-1, '◀', 'Un peu plus pour les transferts'], [0, '=', 'Équilibre proposé'], [1, '▶', 'Un peu plus pour les salaires'], [2, '▶▶', 'Beaucoup plus pour les salaires']].map(([v, l, t]) => `<button data-act="reunRep" data-v="${v}" class="${RN.rep === v ? 'on' : ''}" aria-label="${t}" title="${t}">${l}</button>`).join('')}</div><span class="petit mut">Salaires</span></div>
+      <p class="petit" style="margin:10px 0 6px">Effort demandé au président</p>
+      <div class="seg mini">${[[0, 'Aucun'], [0.1, '+10 %'], [0.2, '+20 %'], [0.3, '+30 %']].map(([v, l]) => `<button data-act="reunEffort" data-v="${v}" class="${RN.effort === v ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div class="prev-g" style="grid-template-columns:1fr 1fr;margin-top:10px"><div><b>${eur(ch.env)}</b><span>enveloppe des transferts</span></div><div><b>${eur(ch.masse)}</b><span>masse salariale par semaine</span></div></div>
+      <p class="petit mut" style="margin:6px 0 0">Masse actuelle : ${eur(C.masse(M_, c))} par semaine. La moitié de chaque vente revient dans l'enveloppe.</p></div>
+    <button class="btn plein" data-act="reunProposer" ${RN.philo.length ? '' : 'disabled'}>Proposer ce plan</button>
+    <div style="height:8px"></div><button class="btn sec plein" data-act="reunAccepter">Accepter son offre telle quelle</button>
+  </div></div>`;
+}
+VUES.reunion = vueReunion;
+ACT.reunVise = d => { const Gm = G(), i = Gm.PALIERS.indexOf(RN.vise) + (+d.d); if (i >= 0 && i < Gm.PALIERS.length) RN.vise = Gm.PALIERS[i]; rendre(); };
+ACT.reunPhilo = d => { const i = RN.philo.indexOf(d.k); if (i >= 0) RN.philo.splice(i, 1); else { RN.philo.push(d.k); if (RN.philo.length > 2) RN.philo.shift(); } rendre(); };
+ACT.reunRep = d => { RN.rep = +d.v; rendre(); };
+ACT.reunEffort = d => { RN.effort = +d.v; rendre(); };
+ACT.reunProposer = () => { const r = G().proposer(M(), {vise:RN.vise, philo:RN.philo.slice(), rep:RN.rep, effort:RN.effort}); RN.msg = r.txt; sauver(); rendre(); scrollTo({top:0, behavior:'smooth'}); };
+ACT.reunAccepter = () => { const Gm = G(), R = Gm.reunion(M()), o = R.offre; Object.assign(RN, {vise:o.vise, philo:o.philo.slice(), rep:0, effort:0});
+  const r = Gm.accepterOffre(M()); RN.msg = r.txt; sauver(); rendre(); scrollTo({top:0, behavior:'smooth'}); };
+Z.reunionCarte = reunionCarte;
+
 const FC = {vue:'scout', tri:'poste', sens:1};
 function vueClubFiche(){
   const M_ = M(), c = club(U.clubVu), Gm = G(); if (!c) return aller('clubs');

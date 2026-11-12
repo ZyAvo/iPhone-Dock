@@ -1,4 +1,4 @@
-// mon-ecran-version: 6ef919b5
+// mon-ecran-version: c3936149
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -314,7 +314,7 @@ function vueAccueil(){
   const deb = Math.max(0, Math.min(CL.length - 5, i - 2)), part = CL.slice(deb, deb + 5);
   const nonLus = M.boite.filter(m => !m.lu), boite = (nonLus.length ? nonLus : M.boite).slice(0, 4);
   const dernier = M.dernierMatch;
-  VUE.innerHTML = `<div class="cols"><div>
+  VUE.innerHTML = `${window.QMU && QMU.reunionCarte ? QMU.reunionCarte(M) : ''}<div class="cols"><div>
     ${prochain}
     ${dernier ? `<div class="carte"><h2>Dernier match</h2><button class="el" data-act="voirDernier">${blason(dernier.dom, 'p', dernier.sixn)}<div class="t"><b>${esc(nomEq(dernier.dom, dernier.sixn))} ${dernier.score[0]}–${dernier.score[1]} ${esc(nomEq(dernier.ext, dernier.sixn))}</b><span>${dernier.resume}</span></div>${blason(dernier.ext, 'p', dernier.sixn)}</button></div>` : ''}
     <div class="carte"><h2>Boîte de réception ${nonLus.length ? `<span class="badge neuf">${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''}</span>` : ''}<button data-act="boite">Tout voir</button></h2>${boite.length ? boite.map(msgHTML).join('') : '<p class="mut">Rien pour l\'instant.</p>'}</div>
@@ -774,7 +774,7 @@ function vueAide(){
     <p><b>Presse.</b> Après chaque match, jusqu'à trois questions de médias différents (réglage ci-dessus). Le ton de ta réponse agit sur le moral du groupe ou d'un joueur, le président, les supporters, ta réputation et ta relation avec la presse ; les effets s'affichent après chaque réponse.</p>
     <p><b>Vestiaire.</b> Club › Vestiaire : ambiance (le moral, surtout celui des leaders), clans, joueurs qui veulent jouer plus, et jusqu'à trois binômes de mentorat (un joueur de 26 ans ou plus guide un jeune de 22 ans ou moins). Causeries avant le match et aux temps morts, conférence de presse après (La Gazette du sorcier) ; tout se désactive ici.</p>
     <p><b>Recrutement.</b> Les attributs des joueurs des autres clubs s'affichent en fourchettes tant que ton recruteur ne les connaît pas bien : suis-les, affronte leur équipe. Les offres partent par hibou et la réponse arrive la semaine suivante (contre-offres dans Mercato › Offres ; un autre club peut doubler). Clauses : pourcentage à la revente, clause libératoire, prime au vif d'or. Prêts jusqu'à la fin de la saison, avec ou sans option d'achat.</p>
-    <p><b>Le président.</b> Il fixe un objectif de classement, juge chaque résultat selon la force de l'adversaire et fixe la limite de la masse salariale.</p>
+    <p><b>Le président.</b> En début de saison, une réunion fixe l'objectif, la philosophie (jeunes, joueurs du pays, spectacle, comptes, vedette), l'enveloppe des transferts et la limite de la masse salariale. Tu peux viser plus haut, déplacer de l'argent entre transferts et salaires et demander un effort : trois propositions refusées et il impose son plan. Il juge chaque résultat selon la force de l'adversaire, et chaque engagement en fin de saison (confiance +5 ou −5).</p>
     <p><b>Entraînement.</b> Club › Zone technique › Entraînement : cinq séances par semaine (physique, vol, balle, tactique, mise en place, récupération), une intensité et un atelier par poste. Ton adjoint prépare tout par défaut (foncier puis pré-saison en août, récupération quand les titulaires sont fatigués) ; tu peux reprendre la main sur une semaine ou fixer ta semaine type. Le travail physique rend bien plus en août. Après le pic d'âge, le physique décline.</p>
     <p><b>Le calendrier.</b> Préparation et mercato d'été en août, championnat de septembre à avril, trêve des fêtes, mercato d'hiver en janvier. Le ${D.TOURNOI.nom} se joue en février et mars <i>pendant</i> le championnat : les joueurs convoqués par leur sélection (✈︎) manquent le match de leur club ce week-end-là. Plus › Calendrier : vue par mois et vue de la saison.</p>
     <p><b>Ton profil.</b> Plus › Mon profil : apparence, âge, nationalité et huit attributs de manager (tactique, motivation, gestion humaine, jeunes, préparation physique, évaluation des talents, négociation, détermination). Répartis tes points avant ton premier match ; ensuite ils progressent en fin de saison selon ce que tu as fait. Le président te propose un contrat, prolongé si sa confiance tient.</p>

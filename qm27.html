@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="3c60a8d4">
+<meta name="mon-ecran-version" content="6a042da0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -44,7 +44,7 @@ body{margin:0;font-size:14px}
   color-scheme:dark;
 }
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0;font:14px/1.45 var(--f-ui);color:var(--ink);background-color:var(--base);-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;
+body{margin:0;padding-top:env(safe-area-inset-top, 0px);font:14px/1.45 var(--f-ui);color:var(--ink);background-color:var(--base);-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;
   font-variant-numeric:tabular-nums;overflow-x:hidden;padding-bottom:calc(var(--nav) + env(safe-area-inset-bottom, 0px))}
 body.sans-nav{padding-bottom:env(safe-area-inset-bottom, 0px)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--head);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px)}
@@ -560,6 +560,9 @@ i.fit.moyen{background:var(--moyen)}i.fit.faible{background:var(--mauvais)}
 .caus-g{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .caus-g button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;padding:7px 9px;border-radius:10px;border:1px solid var(--line);background:var(--card-2);color:var(--ink);min-height:44px}
 .caus-g button b{font-size:.82rem}.caus-g button span{font-size:.68rem;color:var(--ink-soft);line-height:1.2}
+.reun-appel{border-color:var(--or, #c9a227)}
+.reun-msg{border-color:var(--accent)}.reun-msg p{font-weight:600}
+.liste .el.sel{background:color-mix(in srgb, var(--accent) 9%, transparent)}
 /* v90 : vestiaire et mercato */
 .at.flou b{font-weight:700;font-size:.72rem}
 .note.flou{font-size:.66rem;min-width:46px}

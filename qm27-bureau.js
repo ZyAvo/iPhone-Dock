@@ -1,4 +1,4 @@
-// mon-ecran-version: d778fdbe
+// mon-ecran-version: 65bef905
 /* QM27 (v91, lot 8) — le bureau du manager, sans affichage. Expose window.QMG et complète window.QMC. Chargé après qm27-vestiaire.js.
    Entraînement programmable : programme de la semaine en 5 séances (lundi-vendredi), intensité, ateliers par poste, modèles,
    préparation physique d'avant-saison ; l'adjoint planifie tout seul si on le laisse faire.
@@ -302,12 +302,102 @@ function lignesCarriere(M){
   }
 }
 
+/* ================= v97 : réunion de début de saison avec le président =================
+   On y fixe ensemble l'objectif, la philosophie (une ou deux), l'enveloppe des transferts et la limite de la masse salariale.
+   Le président fait une offre ; le manager peut viser plus haut ou plus bas, choisir la philosophie, déplacer de l'argent entre
+   transferts et salaires, et demander un effort (+10 à +30 %). Trois propositions refusées : le président impose son plan.
+   Sans réunion avant le premier match de championnat, il fixe seul son plan. Les philosophies sont jugées en fin de saison. */
+const PALIERS = [1, 3, 6, 10, 13, 16];
+const TXT_OBJ = {1:'Gagner le championnat', 3:'Finir sur le podium', 6:'Finir dans les 6 premiers', 10:'Finir dans la première moitié', 13:'Finir 13e ou mieux', 16:'Progresser et lancer des jeunes'};
+const PHILOS = {
+  jeunes:['Faire jouer les jeunes', 'Au moins trois joueurs de 21 ans ou moins avec 8 matchs ou plus'],
+  nationaux:['Miser sur les joueurs du pays', 'La moitié des matchs joués par des joueurs de la nation du club'],
+  spectacle:['Un jeu spectaculaire', 'Une des 4 meilleures attaques du championnat'],
+  economie:['Des comptes à l\'équilibre', 'Finir la saison avec au moins le solde de départ'],
+  stars:['Attirer une vedette', 'Recruter un joueur de premier plan (note 72 ou plus)'],
+};
+const prefPresident = (M, c) => { const L = c.rep >= 78 ? ['stars', 'spectacle'] : c.rep <= 55 ? ['jeunes', 'economie'] : ['nationaux', 'spectacle', 'jeunes', 'economie']; return L[Math.abs(Q().melange(c.id, M.saison, 'philo')) % L.length]; };
+function offreInitiale(M){
+  const U = monClub(M), o = Q().objectif(M, U.id);
+  return {vise:o.vise, philo:[prefPresident(M, U)], env:Math.max(0, Math.round(U.budget * 0.4 / 5000) * 5000), masse:U.masseMax, rep:0, effort:0};
+}
+function reunion(M){
+  const U = monClub(M); if (!U) return null;
+  const g = G(M);
+  if (!g.reunion || g.reunion.club !== U.id || (g.reunion.saison !== M.saison && !g.reunion.fin)) g.reunion = {saison:M.saison, club:U.id, fin:false, tours:0, tard:!g.reunion || g.reunion.club !== U.id};
+  if (g.reunion.saison !== M.saison) return null;   // réunion d'une autre saison : rien à faire avant la prochaine
+  if (!g.reunion.offre) g.reunion.offre = offreInitiale(M);
+  return g.reunion;
+}
+const matchsJoues = (M, U) => { const T = M.tables[U.ligue] && M.tables[U.ligue][U.id]; return T ? (T.j ?? ((T.g || 0) + (T.n || 0) + (T.p || 0))) : 0; };
+/* une proposition → montants qui en découlent */
+function chiffrer(M, prop){
+  const R = reunion(M), o = R.offre, U = monClub(M);
+  const crans = PALIERS.indexOf(o.vise) - PALIERS.indexOf(prop.vise);   // > 0 : plus ambitieux que le président
+  const k = (1 + 0.1 * Math.max(-2, Math.min(2, crans))) * (1 + prop.effort);
+  const glisse = prop.rep * 0.12 * o.env;   // rep > 0 : de l'enveloppe des transferts vers les salaires
+  const env = Math.max(0, Math.round((o.env * k - glisse) / 5000) * 5000), masse = Math.round((o.masse * k + glisse / EQ.eco.semaines) / 500) * 500;
+  return {env, masse, crans};
+}
+function proposer(M, prop){
+  const R = reunion(M); if (!R || R.fin) return {ok:false, txt:'Pas de réunion en cours.'};
+  const U = monClub(M), mg = M.manager, o = R.offre, ch = chiffrer(M, prop);
+  const pref = prefPresident(M, U), aimePhilo = prop.philo.includes(pref);
+  let s = 0.68 + 0.07 * ch.crans + (aimePhilo ? 0.1 : -0.04) + (prop.philo.length === 2 ? 0.04 : 0) + (mg.confiance - 60) / 220 + ((mg.rep || 50) - 50) / 400
+    - prop.effort * 1.0 - Math.abs(prop.rep) * 0.03 - 0.03 * R.tours;
+  R.tours++;
+  const raisons = [];
+  if (prop.effort >= 0.2) raisons.push('tu demandes beaucoup d\'argent');
+  if (ch.crans < 0) raisons.push('l\'objectif lui paraît timide');
+  if (!aimePhilo) raisons.push(`il tient à « ${PHILOS[pref][0].toLowerCase()} »`);
+  if (s >= 0.5){ conclure(M, prop, ch, false); return {ok:true, accord:true, txt:`Marché conclu. Le président serre la main : « ${s >= 0.7 ? 'Voilà un plan qui me plaît.' : 'Va pour ça, mais je compte sur toi.'} »`}; }
+  if (R.tours >= 3){ conclure(M, {...o, rep:0, effort:0}, chiffrer(M, {...o, rep:0, effort:0}), true); mg.confiance = Math.max(0, mg.confiance - 3);
+    return {ok:true, accord:true, impose:true, txt:'Le président perd patience et impose son plan initial. Confiance −3.'}; }
+  return {ok:true, accord:false, txt:`Le président refuse${raisons.length ? ' : ' + raisons.join(', ') : ''}. Il te reste ${3 - R.tours} proposition${3 - R.tours > 1 ? 's' : ''}.`, humeur:s};
+}
+function conclure(M, prop, ch, impose){
+  const R = G(M).reunion, U = monClub(M), mg = M.manager;
+  R.fin = true; R.accord = {vise:prop.vise, philo:prop.philo.slice(), env:ch.env, masse:ch.masse, impose:!!impose}; R.budget0 = U.budget; R.star = false;
+  mg.objectif = {vise:prop.vise, txt:TXT_OBJ[prop.vise]}; mg.philo = prop.philo.slice();
+  U.enveloppe = ch.env; U.masseMax = ch.masse;
+  if (!impose && ch.crans > 0) mg.confiance = Math.min(100, mg.confiance + 2);
+  Q().message(M, impose ? 'Le président a fixé le plan de la saison' : 'Réunion avec le président : accord', `Objectif : ${TXT_OBJ[prop.vise].toLowerCase()}. Philosophie : ${prop.philo.map(k => PHILOS[k][0].toLowerCase()).join(' et ')}. Enveloppe des transferts : ${QMC.euros(ch.env)} (la moitié des ventes s'y ajoute). Masse salariale : ${QMC.euros(ch.masse)} par semaine au plus.`, 'pres');
+}
+function accepterOffre(M){ const R = reunion(M); if (!R || R.fin) return {ok:false, txt:'Pas de réunion en cours.'}; const o = {...R.offre, rep:0, effort:0}; conclure(M, o, chiffrer(M, o), false); return {ok:true, accord:true, txt:'Tu acceptes son plan. Le président hoche la tête : « Au travail. »'}; }
+function imposerSiTrop(M){
+  const g = G(M), R = g.reunion, U = monClub(M);
+  if (!U || !R || R.fin || R.tard || R.saison !== M.saison || R.club !== U.id) return;
+  if (matchsJoues(M, U) >= 1){ const o = R.offre || offreInitiale(M); R.offre = o; conclure(M, {...o, rep:0, effort:0}, chiffrer(M, {...o, rep:0, effort:0}), true); }
+}
+/* bilan des philosophies en fin de saison */
+function bilanPhilos(M){
+  const R = G(M).reunion, U = monClub(M), mg = M.manager; if (!R || !R.fin || !R.accord || R.saison !== M.saison || !U || R.club !== U.id) return;
+  const eff = U.effectif.map(id => M.joueurs[id]).filter(Boolean), res = [];
+  for (const k of R.accord.philo){
+    let ok = false;
+    if (k === 'jeunes') ok = eff.filter(j => j.age <= 21 && j.saison && j.saison.m >= 8).length >= 3;
+    if (k === 'nationaux'){ const t = eff.reduce((a, j) => a + (j.saison ? j.saison.m : 0), 0), n = eff.filter(j => j.nat === U.nat).reduce((a, j) => a + (j.saison ? j.saison.m : 0), 0); ok = t > 0 && n / t >= 0.5; }
+    if (k === 'spectacle'){ const L = M.ligues[U.ligue].clubs.map(id => [id, (M.tables[U.ligue][id] || {}).pm || 0]).sort((a, b) => b[1] - a[1]); ok = L.findIndex(x => x[0] === U.id) < 4; }
+    if (k === 'economie') ok = U.budget >= (R.budget0 || 0);
+    if (k === 'stars') ok = !!R.star;
+    mg.confiance = Math.max(0, Math.min(100, mg.confiance + (ok ? 5 : -5))); mg.rep = Math.max(1, Math.min(100, Math.round(((mg.rep || 50) + (ok ? 0.5 : 0)) * 10) / 10));
+    res.push(`${ok ? '✓' : '✗'} ${PHILOS[k][0]} (${PHILOS[k][1].toLowerCase()})`);
+  }
+  if (res.length) Q().message(M, 'Le président juge la philosophie de la saison', res.join('\n') + '\n\nChaque engagement tenu : confiance +5. Chaque engagement manqué : confiance −5.', 'pres');
+}
+/* achat d'une vedette : noté pour la philosophie « stars » */
+function noterAchat(M, j, montant){
+  const R = G(M).reunion, U = monClub(M); if (!R || !U || j.club !== U.id) return;
+  if (U.enveloppe != null && montant) U.enveloppe = Math.max(0, U.enveloppe - montant);
+  if (Q().note(j) >= 72) R.star = true;
+}
+
 /* ================= Branchements ================= */
 const base = {semaine:QMC.semaine, avantSaison:QMC.avantSaison, apresSaison:QMC.apresSaison, migrer:QMC.migrer, prixClub:QMC.prixClub, exigenceJoueur:QMC.exigenceJoueur, accepterPoste:QMC.accepterPoste};
 Object.assign(QMC, {
   semaine(M, S){
     base.semaine(M, S);
-    initRecords(M); recordsSemaine(M, S); missionsSemaine(M);
+    initRecords(M); recordsSemaine(M, S); missionsSemaine(M); imposerSiTrop(M);
     const U = monClub(M), p = M.manager ? profil(M) : null;
     if (U && p){
       if (!p.fige && S.matchs.some(m => m.res && m.ligue !== 'sixn' && (m.dom === U.id || m.ext === U.id))){ p.fige = true;
@@ -316,11 +406,13 @@ Object.assign(QMC, {
       const d = eff(M, 'det'); if (d > 0 && M.manager.confiance < 50) M.manager.confiance = Math.min(100, Math.round((M.manager.confiance + d * 0.15) * 10) / 10);
     }
   },
-  avantSaison(M, r){ initRecords(M); recordsSaison(M); evolutionManager(M, r); lignesCarriere(M);
+  avantSaison(M, r){ initRecords(M); recordsSaison(M); evolutionManager(M, r); lignesCarriere(M); bilanPhilos(M);
     const U = monClub(M); if (U && U.plan) U.plan.sem = {};
     base.avantSaison(M, r); },
   apresSaison(M, r){
     base.apresSaison(M, r);
+    { const U = monClub(M); if (U){ delete U.enveloppe; G(M).reunion = {saison:M.saison, club:U.id, fin:false, tours:0};
+      Q().message(M, 'Réunion de début de saison', 'Le président t\'attend dans son bureau pour fixer l\'objectif, la philosophie et les budgets de la saison. Sans réunion avant le premier match de championnat, il décidera seul.', 'pres'); } }
     const mg = M.manager, p = mg && mg.profil;
     if (p && p.contrat && mg.club && p.contrat.fin < M.saison){
       const c = club(M, mg.club);
@@ -331,17 +423,17 @@ Object.assign(QMC, {
     }
   },
   migrer(M){ const v = M.v || 1; base.migrer(M); initRecords(M); if (M.manager) profil(M);
-    if (M.manager && v < 9) Q().message(M, 'QM27 : nouveau taux des Gallions, recruteur et causeries', 'Le Gallion suit maintenant le canon (environ 5 livres) : 1 Gallion = 17 Mornilles = 493 Noises. Tes finances n\'ont pas changé, seul l\'affichage change : une place vaut 2 ou 3 Gallions, ton budget se compte en centaines de milliers de Gallions. Clubs et joueurs › Recherche par profil : le recruteur cherche un attrapeur, un batteur, des jeunes, des bonnes affaires… et t\'envoie un rapport chaque mois. Dix discours pour les causeries, vitesse ×0,5 et statistiques en direct pendant les matchs.', 'staff');
+    if (M.manager && v < 9) Q().message(M, 'QM27 : nouveau taux des Gallions, recruteur et causeries', 'Le Gallion suit maintenant le canon (environ 5 livres) : 1 Gallion = 17 Mornilles = 493 Noises. Tes finances n\'ont pas changé, seul l\'affichage change : une place vaut 2 ou 3 Gallions, ton budget se compte en centaines de milliers de Gallions. Clubs et joueurs › Recherche par profil : le recruteur cherche un attrapeur, un batteur, des jeunes, des bonnes affaires… et t\'envoie un rapport chaque mois. Dix discours pour les causeries, vitesse ×0,5 et statistiques en direct pendant les matchs. Nouveau : la réunion de début de saison avec le président (objectif, philosophie, enveloppe des transferts et masse salariale, à négocier) ; tu peux la tenir dès maintenant pour cette saison.', 'staff');
     if (M.manager && v < 8) Q().message(M, 'QM27 : Gallions, presse et carrières', 'La monnaie des sorciers arrive : Gallions (or), Mornilles (argent) et Noises (bronze). 1 Gallion = 17 Mornilles, 1 Mornille = 29 Noises. Les conférences de presse passent à trois questions, posées par plusieurs médias selon le match et la saison ; chaque réponse a un ton et des effets (groupe, joueur, président, supporters, réputation, relation avec la presse). Les notes ne gonflent plus de saison en saison : les potentiels trop généreux ont été ramenés à un niveau réaliste, et les salaires des stars montent moins vite au-dessus de 75. Les clubs gardent désormais leurs meilleurs joueurs en fin de contrat. Chaque fiche joueur a son historique de carrière (à partir de cette saison).', 'club');
     if (M.manager && v < 7) Q().message(M, 'Nouveautés de QM27 : le domaine et le bureau', 'Accueil Club : une carte du domaine à toucher (vestiaire, stade, tour du directeur, Gringotts, zone technique, Poudlard, salle des trophées). Calendrier par mois et par saison. Entraînement programmable avec ton adjoint. Ton profil de manager (avatar, attributs, contrat). Records du club et du championnat. Le Tournoi des Six Emblèmes se joue désormais pendant le championnat dès la saison prochaine : les internationaux manquent les matchs de leur club.', 'club');
     M.v = Q().VERSION; },
   prixClub(M, j){ const v = base.prixClub(M, j), U = monClub(M); return U && j.club !== U.id ? Math.round(v * (1 - eff(M, 'neg') * 0.008) / 5000) * 5000 : v; },
   exigenceJoueur(M, j, U){ const e = base.exigenceJoueur(M, j, U); if (e && e.sal && monClub(M) === U) e.sal = Math.round(e.sal * (1 - eff(M, 'neg') * 0.005) / 50) * 50; return e; },
-  accepterPoste(M, id){ const r = base.accepterPoste(M, id); if (r && r.ok) profil(M); return r; },
+  accepterPoste(M, id){ const r = base.accepterPoste(M, id); if (r && r.ok){ profil(M); const g = G(M); g.reunion = null; reunion(M); } return r; },
 });
 /* l'expérience du manager : causeries plus efficaces (motivation) ; les jeunes progressent plus vite via effets().jeunes */
 if (root.QMH){ const ca = root.QMH.causerie; root.QMH.causerie = (M, X, eq, ton, moment) => { const r = ca(M, X, eq, ton, moment); const p = M.manager && M.manager.profil; if (p){ p.xp.causeries = (p.xp.causeries || 0) + 1; if (r && typeof r.delta === 'number') r.delta = Math.round(r.delta * (1 + eff(M, 'mot') * 0.04) * 100) / 100; } return r; };
   const eh = root.QMH.envoyerHibou; root.QMH.envoyerHibou = (M, o) => { const r = eh(M, o); const p = M.manager && M.manager.profil; if (p && r && r.ok) p.xp.transferts = (p.xp.transferts || 0) + 1; return r; }; }
 root.QMG = {SEANCES, SEANCE, JOURS, ATELIERS, MODELES, plan, programmeDe, programmeAuto, definirSemaine, definirModele, modeAuto, effets, programme, apercu, fatigueTitulaires,
-  ATTR_MGR, profil, repartir, modifierProfil, att, eff, RECORDS, RECORD, records, initRecords, lancerMission, arreterMission, missions:M => G(M).missions, MAX_MISSIONS, PROFILS, candidats, rapports:M => G(M).rapports || {}};
+  ATTR_MGR, profil, repartir, modifierProfil, att, eff, RECORDS, RECORD, records, initRecords, reunion, proposer, accepterOffre, chiffrer, offreInitiale, prefPresident, PHILOS, PALIERS, TXT_OBJ, noterAchat, lancerMission, arreterMission, missions:M => G(M).missions, MAX_MISSIONS, PROFILS, candidats, rapports:M => G(M).rapports || {}};
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,4 +1,4 @@
-// mon-ecran-version: b4b1fce0
+// mon-ecran-version: d6154226
 /* QM27 (v90, lot 7) — vestiaire et mercato, sans affichage. Expose window.QMH et complète window.QMC. Chargé après qm27-domaine.js.
    Vestiaire : ambiance, leaders, clans, mentorat, causeries, presse (La Gazette du sorcier).
    Mercato : attributs connus selon le travail du recruteur, offres par hibou (réponse la semaine suivante, contre-offres, clubs qui doublent),
@@ -151,6 +151,7 @@ const repondrePresse = (M, X, k, rep) => { const P = root.QMP.repondre(M, X, +re
 function verifierPlace(M, U, sal, montant){
   if (U.effectif.length >= EQ.eco.effectifMax) return `Effectif complet (${EQ.eco.effectifMax} joueurs) : libère ou vends quelqu'un d'abord.`;
   if (montant > U.budget) return `Pas assez d'argent : le solde est de ${euros(U.budget)}.`;
+  if (U.enveloppe != null && montant > U.enveloppe) return `Le président refuse : il reste ${euros(U.enveloppe)} dans l'enveloppe des transferts.`;
   if (QMC.masse(M, U) + sal > U.masseMax) return `Le président refuse : la masse salariale passerait à ${euros(QMC.masse(M, U) + sal)} par semaine (limite ${euros(U.masseMax)}).`;
   return null;
 }

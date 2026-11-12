@@ -1,4 +1,4 @@
-// mon-ecran-version: d69b51b5
+// mon-ecran-version: 59da93f4
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -254,12 +254,13 @@ function reparerCompo(M, c){
 }
 function transfert(M, jid, versId, montant, sal, ans){
   const j = M.joueurs[jid], de = j.club ? club(M, j.club) : null, vers = club(M, versId), S = Q().semaine(M);
-  if (de){ retirerDe(M, de, jid); if (montant) compter(de, 'rec', 'ventes', montant); }
+  if (de){ retirerDe(M, de, jid); if (montant) compter(de, 'rec', 'ventes', montant); if (montant && de.enveloppe != null) de.enveloppe += Math.round(montant * 0.5); }   // v97 : la moitié d'une vente revient dans l'enveloppe
   else M.libres = M.libres.filter(x => x !== jid);
   noterCarriere(M, j, de ? (montant ? 'transfert' : 'libre') : 'libre', de ? de.id : null, versId, montant);
   vers.effectif.push(jid); j.club = versId; j.num = numLibre(M, vers);
   j.contrat = {fin:M.saison + ans, sal}; j.arrivee = M.saison * 100 + M.semaine; if (montant) compter(vers, 'dep', 'achats', montant);
   vers.cohesion = Math.max(30, vers.cohesion - 4);
+  if (estJoueur(M, versId) && root.QMG && root.QMG.noterAchat) root.QMG.noterAchat(M, j, montant);   // v97 : enveloppe des transferts, philosophie « vedette »
   M.offres = M.offres.filter(o => o.j !== jid);
   if (de) reparerCompo(M, de);
   reparerCompo(M, vers);
@@ -344,6 +345,7 @@ const refus = (msg, contre) => ({ok:false, msg, contre});
 function verifierPlace(M, U, sal, montant){
   if (U.effectif.length >= ECO.effectifMax) return refus(`Effectif complet (${ECO.effectifMax} joueurs) : libère ou vends quelqu'un d'abord.`);
   if (montant > U.budget) return refus(`Pas assez d'argent : le solde est de ${euros(U.budget)}.`);
+  if (U.enveloppe != null && montant > U.enveloppe) return refus(`Le président refuse : il reste ${euros(U.enveloppe)} dans l'enveloppe des transferts.`);
   const m = masse(M, U);
   if (m + sal > U.masseMax) return refus(`Le président refuse : la masse salariale passerait à ${euros(m + sal)} par semaine (limite ${euros(U.masseMax)}).`);
   return null;
