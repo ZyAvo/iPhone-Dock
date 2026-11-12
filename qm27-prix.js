@@ -1,4 +1,4 @@
-// mon-ecran-version: 705ed7f7
+// mon-ecran-version: c41744e8
 /* QM27 (v103) — récompenses : équipe, joueur et manager du mois, prix de fin de saison par ligue, palmarès des joueurs,
    Hall of Fame à la retraite. Sans affichage : expose window.QMR et se branche sur QMC.semaine / avantSaison / apresSaison.
    Chargé après qm27-bureau.js. Rien ici ne tire au hasard dans le moteur des matchs (les noms des managers de l'ordinateur
@@ -64,13 +64,13 @@ function semaine(M, S){
   const mo = pr.mois, mois = new Date(S.date).getUTCMonth();
   if (!mo.mois.includes(mois)) mo.mois.push(mois);
   mo.n++;
-  for (const m of S.matchs){ if (m.ligue === 'sixn' || !m.res) continue;
+  for (const m of S.matchs){ if (!M.ligues[m.ligue] || !m.res) continue;   // championnat seulement
     for (const [id, adv, dom, k] of [[m.dom, m.ext, true, 0], [m.ext, m.dom, false, 1]]){
       const c = mo.clubs[id] || (mo.clubs[id] = {pts:0, exp:0, j:0}), s1 = m.res.score[k], s2 = m.res.score[1 - k];
       c.j++; c.pts += s1 > s2 ? 3 : s1 === s2 ? 1 : 0; c.exp += attendu(M.clubs[id].rep, M.clubs[adv].rep, dom);
     } }
   const N = M.calendrier[M.semaine + 1];
-  const finSaison = !N || N.type === 'bilan', finMois = finSaison || new Date(N.date).getUTCMonth() !== mois;
+  const finSaison = !M.calendrier.slice(M.semaine + 1).some(s => s.type === 'ligue'), finMois = finSaison || new Date(N.date).getUTCMonth() !== mois;   // v104 : la finale européenne se joue après la dernière journée
   if (finMois && (mo.n >= 2 || finSaison)){ if (!mo.partiel) primerMois(M); nouveauMois(M, N && N.type === 'ligue' ? N : S); }
   if (finSaison) primerSaison(M);
 }
@@ -177,7 +177,7 @@ Object.assign(QMC, {
 /* palmarès lisible d'un joueur ou du manager : [{saison, code, nom, ligue, quand, n}] regroupés par prix */
 function palmares(L){
   const g = {}; for (const x of L || []){ const k = x[1] + (x[1] === 'pa' ? x[3] : ''); (g[k] = g[k] || {code:x[1], nom:x[1] === 'pa' ? `Meilleur ${nomPoste(x[3])}` : (PRIX[x[1]] || [x[1]])[0], fois:[]}).fois.push(x); }
-  const ordre = ['ch', 'sx', 'ja', 'pa', 'ma', 'ea', 'bu', 'je', 'rv', 'jm', 'mm', 'em'];
+  const ordre = ['ld', 'bo', 'ch', 'sx', 'ja', 'ee', 'pa', 'me', 'ma', 'ea', 'bu', 'je', 'rv', 'jm', 'mm', 'em'];
   return Object.values(g).sort((a, b) => ordre.indexOf(a.code) - ordre.indexOf(b.code));
 }
 /* « 2026-27 » pour un prix de saison, « novembre 2026 » pour un prix du mois (janvier à août : année suivante) */

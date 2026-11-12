@@ -1,4 +1,4 @@
-// mon-ecran-version: 5bdc9251
+// mon-ecran-version: 893cca40
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -225,7 +225,8 @@ function remettreClassements(M){
   M.statsC = {}; M.statsDepuis = 0;   // v102 : stats d'équipes de la saison (statsDepuis : journée où le suivi a commencé)
 }
 function compter(M, m){
-  const T = M.tables[m.ligue], a = T[m.dom], b = T[m.ext], [sa, sb] = m.res.score;
+  const T = M.tables[m.ligue]; if (!T){ if (root.QME) root.QME.resultat(M, m); return; }   // v104 : Ligue des Anneaux
+  const a = T[m.dom], b = T[m.ext], [sa, sb] = m.res.score;
   for (const [x, s1, s2, cote] of [[a, sa, sb, 0], [b, sb, sa, 1]]){
     x.j++; x.pm += s1; x.pe += s2; if (m.res.vif === cote) x.vifs++;
     const r = s1 > s2 ? 'g' : s1 < s2 ? 'p' : 'n'; x[r]++; x.pts += r === 'g' ? EQ.points.victoire : r === 'n' ? EQ.points.nul : 0;
@@ -502,7 +503,8 @@ const campPour = (M, m) => m.ligue === 'sixn' ? natJoueur(M) : clubJoueur(M);
 function matchsDuJoueur(M){
   const S = semaine(M); if (!S) return [];
   const n = natJoueur(M), c = clubJoueur(M);
-  return [n && S.matchs.find(m => m.ligue === 'sixn' && (m.dom === n || m.ext === n)), c && S.matchs.find(m => m.ligue !== 'sixn' && (m.dom === c || m.ext === c))].filter(Boolean);
+  return [n && S.matchs.find(m => m.ligue === 'sixn' && (m.dom === n || m.ext === n)), c && S.matchs.find(m => m.ligue === 'eu' && (m.dom === c || m.ext === c)),   // v104 : la Ligue des Anneaux (mercredi) avant le championnat (samedi)
+    c && S.matchs.find(m => m.ligue !== 'sixn' && m.ligue !== 'eu' && (m.dom === c || m.ext === c))].filter(Boolean);
 }
 function matchDuJoueur(M){ const L = matchsDuJoueur(M); return L.find(m => !m.res) || L[L.length - 1] || null; }
 /* v91 : convocations de la semaine — les joueurs retenus par leur sélection manquent le match de leur club */
@@ -537,14 +539,14 @@ function preparerMatch(M, m){
     faits = moi.changements || [];
     [e0, e1] = m.dom === camp ? [moi, autre] : [autre, moi];
   }
-  const X = creerMatch(M, e0, e1, grainePour(M, m), {date:semaine(M).date});
+  const X = creerMatch(M, e0, e1, grainePour(M, m), {date:semaine(M).date, domicile:!m.neutre});
   X.idMatch = m.id; X.joueur = m.dom === camp ? 0 : 1; X.changements = faits; X.sixn = m.ligue === 'sixn';
   return X;
 }
 function simulerMatch(M, m){
   if (m.ligue !== 'sixn') for (const id of [m.dom, m.ext]) M.clubs[id].compo = compoAuto(M, id);
   const [e0, e1] = equipesPour(M, m);
-  return jusquAuBout(creerMatch(M, e0, e1, grainePour(M, m), {date:semaine(M).date, texte:false}));
+  return jusquAuBout(creerMatch(M, e0, e1, grainePour(M, m), {date:semaine(M).date, texte:false, domicile:!m.neutre}));
 }
 /* v102 : statistiques de la saison (championnat seulement). Joueur : ajoutées à j.saison ; équipes : M.statsC[club], remis à zéro
    avec les classements. Rien ici ne tire au hasard : les résultats restent identiques à graine égale. */
@@ -581,16 +583,17 @@ function appliquerMatch(M, m, X){
   m.res = duJoueur ? r : {score:r.score, vif:r.vif, duree:r.duree};   // autres matchs : le score suffit (sauvegarde plus légère)
   compter(M, m);
   const notes = r.notes;
-  const club = m.ligue !== 'sixn';
+  const club = m.ligue !== 'sixn', enLigue = club && !!M.ligues[m.ligue];   // v104 : la Ligue des Anneaux est un match de club, hors des stats du championnat
   for (const k of [0, 1]){
     const e = X.e[k];
     const joues = new Set([...titulaires(e), ...(X.sortis || [])]);
     for (const id of joues){
       const j = M.joueurs[id]; if (!j || !X.perf[id] || !X.perf[id].m) continue;
       const n = notes[id];
-      if (club){ j.saison.m++; j.saison.b += X.perf[id].b; j.saison.v += X.perf[id].vif; j.saison.cog += X.perf[id].cog; j.saison.arr += X.perf[id].arr; if (n) j.saison.notes += n;
+      if (club && !enLigue && j.saison){ ajout(j.saison, 'em', 1); ajout(j.saison, 'eb', X.perf[id].b); if (n) j.saison.en = Math.round(((j.saison.en || 0) + n) * 10) / 10; }
+      if (enLigue){ j.saison.m++; j.saison.b += X.perf[id].b; j.saison.v += X.perf[id].vif; j.saison.cog += X.perf[id].cog; j.saison.arr += X.perf[id].arr; if (n) j.saison.notes += n;
         statsJoueur(j.saison, X.perf[id], X, id, notes); }
-      else { j.sel = (j.sel || 0) + 1; j.selS = j.selS && j.selS[0] === M.saison ? [M.saison, j.selS[1] + 1] : [M.saison, 1]; }   // v103 : sélections (carrière, saison)
+      else if (!club){ j.sel = (j.sel || 0) + 1; j.selS = j.selS && j.selS[0] === M.saison ? [M.saison, j.selS[1] + 1] : [M.saison, 1]; }   // v103 : sélections (carrière, saison)
       const effort = Math.max(0, (X.fat[id] ?? 0) - ((X.fat0 || {})[id] ?? 0));
       j.charge = Math.round(borne((j.charge || 0) + effort * chargeFacteur(j), 0, 100) * 10) / 10; j.jouS = 1;   // v96 : fatigue cumulée
       j.fat = Math.round(Math.min(100, X.fat[id] ?? j.fat)); j.joue = 1;
@@ -598,8 +601,8 @@ function appliquerMatch(M, m, X){
       const g = Math.sign(X.score[k] - X.score[1 - k]); j.moral = borne(j.moral + g * 6 + (n ? (n - 6) * 3 : 0), 5, 100);
     }
   }
-  for (const b of X.bless){ const j = M.joueurs[b.id]; if (j){ j.bless = {nom:b.nom, jours:C() && j.club ? C().dureeBlessure(M, j.club, b.jours) : b.jours}; if (club && j.saison){ ajout(j.saison, 'bl', 1); ajout(j.saison, 'blJ', j.bless.jours); } } }
-  if (club) statsEquipes(M, m, X);
+  for (const b of X.bless){ const j = M.joueurs[b.id]; if (j){ j.bless = {nom:b.nom, jours:C() && j.club ? C().dureeBlessure(M, j.club, b.jours) : b.jours}; if (enLigue && j.saison){ ajout(j.saison, 'bl', 1); ajout(j.saison, 'blJ', j.bless.jours); } } }
+  if (enLigue) statsEquipes(M, m, X);
   if (club) for (const id of [m.dom, m.ext]) if (M.clubs[id]) M.clubs[id].usure = Math.max(0, Math.round(((M.clubs[id].usure ?? 100) - EQ.usure * (1 - (root.QMB ? root.QMB.bonus(M.clubs[id], 'usure') : 0))) * 10) / 10);   // v84 : balais
 }
 /* v96 : fatigue cumulée (j.charge, 0-100). Elle monte avec l'effort des matchs (et un peu l'entraînement intense), plus vite pour

@@ -1,4 +1,4 @@
-// mon-ecran-version: 4b06e014
+// mon-ecran-version: 6dedc112
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -294,11 +294,12 @@ function vueAccueil(){
     const m = QM.matchDuJoueur(M);
     if (m){
       const sx = m.ligue === 'sixn', moiId = sx ? mg.selection.nat : mg.club;
-      const comp = sx ? `${D.TOURNOI.court} · tour ${S.tour} · avec ${nat(moiId).nom}` : `${M.ligues[m.ligue].court} · Journée ${S.journee}${S.tour ? ' · ' + D.TOURNOI.court + ', tour ' + S.tour : ''}`;
+      const eu = m.ligue === 'eu', QE = window.QME;   // v104 : Ligue des Anneaux
+      const comp = sx ? `${D.TOURNOI.court} · tour ${S.tour} · avec ${nat(moiId).nom}` : eu ? `${QE.NOM} · ${QE.nomTour(m)}${m.neutre ? ' · terrain neutre' : ''}` : `${M.ligues[m.ligue].court} · Journée ${S.journee}${S.tour ? ' · ' + D.TOURNOI.court + ', tour ' + S.tour : ''}`;
       const abs = !sx && S.tour ? QM.convoques(M, mg.club).map(id => M.joueurs[id]) : [], reste = QM.matchsDuJoueur(M).filter(x => !x.res).length;
-      const adv = m.dom === moiId ? m.ext : m.dom, T = M.tables[m.ligue], CL = QM.classement(M, m.ligue);
-      const rang = id => CL.findIndex(r => r.id === id) + 1, forme = id => (T[id].forme || []).map(f => `<span class="vnd ${f}">${f}</span>`).join('');
-      prochain = `<div class="carte"><h2>Prochain match <span class="mut">${fmtDate(S.date)}</span></h2>
+      const adv = m.dom === moiId ? m.ext : m.dom, lg = id => sx ? 'sixn' : club(id).ligue, T = {[m.dom]:M.tables[lg(m.dom)][m.dom], [m.ext]:M.tables[lg(m.ext)][m.ext]};
+      const rang = id => QM.classement(M, lg(id)).findIndex(r => r.id === id) + 1, forme = id => (T[id].forme || []).map(f => `<span class="vnd ${f}">${f}</span>`).join('');
+      prochain = `<div class="carte${eu ? ' eu' : ''}"><h2>Prochain match <span class="mut">${fmtDate(m.date || S.date)}</span></h2>
         <div class="petit mut" style="text-align:center">${esc(comp)}</div>
         <div class="affiche">
           <div class="eq">${blason(m.dom, 'g', sx)}<b>${esc(nomEq(m.dom, sx))}</b><span>${T[m.dom].j ? rang(m.dom) + 'e · ' : ''}${forme(m.dom) || 'à domicile'}</span></div>
@@ -310,10 +311,11 @@ function vueAccueil(){
         <div class="btns">${sx ? '<button class="btn sec" data-act="vue" data-v="selection">Convocations</button>' : ''}<button class="btn" data-act="preparer">Préparer le match</button></div>
         ${sx ? '' : `<p class="petit mut" style="margin:8px 0 0;text-align:center">Adversaire : ${etoiles(club(adv).rep)}${B.a(c, 'boule') ? ` · météo prévue : ${D.METEOS[QM.meteoPrevue(M, m, S)].ico} ${esc(D.METEOS[QM.meteoPrevue(M, m, S)].nom)}` : ''}</p>`}</div>`;
     } else {
-      const titre = S.type === 'sixn' ? `${D.TOURNOI.court} · tour ${S.tour}` : S.type === 'prepa' ? `Préparation · semaine ${S.semaine}` : 'Semaine sans match';
+      const titre = S.type === 'sixn' ? `${D.TOURNOI.court} · tour ${S.tour}` : S.type === 'prepa' ? `Préparation · semaine ${S.semaine}` : S.type === 'europe' && window.QME ? `Finale de la ${window.QME.NOM}` : 'Semaine sans match';
       prochain = `<div class="carte"><h2>${titre} <span class="mut">${fmtDate(S.date)}</span></h2>
         ${S.type === 'sixn' ? `<p class="sous" style="margin:0 0 8px">Les ligues font une pause. Sélections gérées par les fédérations.</p><div class="liste">${S.matchs.map(x => `<div class="el">${blason(x.dom, 'p', 1)}<div class="t"><b>${esc(nat(x.dom).nom)} – ${esc(nat(x.ext).nom)}</b></div>${blason(x.ext, 'p', 1)}</div>`).join('')}</div>` : ''}
         ${S.type === 'prepa' ? `<p class="sous" style="margin:0 0 4px">Pas de match : on s'entraîne et le mercato d'été est ouvert jusqu'à la première journée.</p>` : ''}
+        ${S.type === 'europe' ? `<p class="sous" style="margin:0 0 8px">Le championnat est fini. En terrain neutre :</p><div class="liste">${S.matchs.map(x => `<div class="el">${blason(x.dom, 'p')}<div class="t"><b>${esc(club(x.dom).nom)} – ${esc(club(x.ext).nom)}</b></div>${blason(x.ext, 'p')}</div>`).join('')}</div>` : ''}
         <div class="btns" style="margin-top:10px">${C.mercatoOuvert(S) ? '<button class="btn sec" data-act="vue" data-v="mercato">Mercato</button>' : ''}<button class="btn" data-act="continuer">Continuer</button></div></div>`;
     }
   }
@@ -758,11 +760,12 @@ function mettre(jid, p, i, banc){
 function ficheSemaine(k){
   const s = M.calendrier[k], mg = M.manager, l = mg.club ? club(mg.club).ligue : null;
   const ligne = (m, sixn) => `<div class="el">${blason(m.dom, 'p', sixn)}<div class="t"><b>${esc(nomEq(m.dom, sixn))} – ${esc(nomEq(m.ext, sixn))}</b><span>${m.res ? `${m.res.duree} min${m.res.vif >= 0 ? ' · vif d\'or : ' + esc(nomEq(m.res.vif ? m.ext : m.dom, sixn)) : ''}` : 'à venir'}</span></div><b>${m.res ? m.res.score.join('–') : ''}</b>${blason(m.ext, 'p', sixn)}</div>`;
-  const Ls = s.matchs.filter(m => m.ligue === 'sixn'), Lc = s.matchs.filter(m => m.ligue !== 'sixn' && (!l || m.ligue === l));
-  const titre = s.type === 'sixn' ? `${D.TOURNOI.court} · tour ${s.tour}` : `Journée ${s.journee}${s.tour ? ' · ' + D.TOURNOI.court + ' (tour ' + s.tour + ')' : ''}`;
+  const Ls = s.matchs.filter(m => m.ligue === 'sixn'), Lc = s.matchs.filter(m => m.ligue !== 'sixn' && m.ligue !== 'eu' && (!l || m.ligue === l)), Le = s.matchs.filter(m => m.ligue === 'eu'), QE = window.QME;
+  const titre = s.type === 'sixn' ? `${D.TOURNOI.court} · tour ${s.tour}` : s.type === 'europe' && QE ? `Finale de la ${QE.NOM}` : `Journée ${s.journee}${s.tour ? ' · ' + D.TOURNOI.court + ' (tour ' + s.tour + ')' : ''}`;
   feuille(`${teteF(titre, fmtDate(s.date, true))}
   ${Lc.length ? `${l ? `<h4 class="sous-t">${esc(M.ligues[l].nom)}</h4>` : ''}<div class="liste">${Lc.map(m => ligne(m, false)).join('')}</div>` : ''}
-  ${Ls.length ? `<h4 class="sous-t">${esc(D.TOURNOI.nom)}</h4><div class="liste">${Ls.map(m => ligne(m, true)).join('')}</div>` : ''}`);
+  ${Ls.length ? `<h4 class="sous-t">${esc(D.TOURNOI.nom)}</h4><div class="liste">${Ls.map(m => ligne(m, true)).join('')}</div>` : ''}
+  ${Le.length && QE ? `<h4 class="sous-t">${esc(QE.NOM)} · ${fmtDate(Le[0].date || s.date)}</h4><div class="liste">${Le.map(m => ligne(m, false).replace('<span>', `<span>${esc(QE.nomTour(m))} · `)).join('')}</div>` : ''}`);
 }
 
 /* ---------- Plus ---------- */
@@ -1593,7 +1596,7 @@ function finDuMatch(){
   M.dernierMatch = {dom:m.dom, ext:m.ext, score:m.res.score, sixn:m.ligue === 'sixn', resume:`${r > 0 ? 'Victoire' : r < 0 ? 'Défaite' : 'Nul'} · ${m.res.duree} min · vif d'or ${esc(X.e[X.vif].sigle)}`, id:m.id};
   X = null; U.live = null; U.vue = 'accueil';
   sauver(); rendre(); scrollTo(0, 0);
-  toast(fin.semaineFinie ? 'Journée terminée · résultats dans le calendrier' : 'Match de sélection terminé · place au match du club');
+  toast(fin.semaineFinie ? 'Journée terminée · résultats dans le calendrier' : m.ligue === 'eu' ? 'Match européen terminé · place au championnat' : 'Match de sélection terminé · place au match du club');
 }
 
 Object.assign(VUES, {vestiaire:vueVestiaire, domaine:vueDomaine, boutique:vueBoutique, partenaires:vuePartenaires, trophees:vueTrophees, carriere:vueCarriere, stade:vueStade, formation:vueFormation, selection:vueSelection, accueil:vueAccueil, tactique:vueTactique, classements:vueClassements, sauvegardes:vueSauvegardes, aide:vueAide, match:vueMatch,

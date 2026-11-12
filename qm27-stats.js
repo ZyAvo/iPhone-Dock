@@ -1,4 +1,4 @@
-// mon-ecran-version: 6c73f40c
+// mon-ecran-version: a7a4db6a
 /* QM27 (v102) — statistiques de la saison : onglets « Équipes » et « Joueurs » dans Classements.
    Lit M.statsC (stats d'équipes du championnat, remplies par QM.statsEquipes) et j.saison (stats des joueurs, QM.statsJoueur).
    Chargé après qm27-ecrans.js, dont il reprend la boîte à outils (window.QMU) ; remplace VUES.classements par une version à trois vues. */
@@ -151,12 +151,17 @@ function vuePrix(l){
       ${r.jeune ? ligneJ(r.jeune, 'meilleur jeune') : ''}
       ${r.revelation ? ligneJ(r.revelation, `révélation, +${r.revelation.g} de note`) : ''}</div></div>
     <div class="carte"><h2>Équipe de l'année</h2><div class="liste">${r.equipe.map(f => ligneJ(f)).join('')}</div></div>` : '';
+  const eu = sa && sa.europe, carteEu = eu && QE() ? `<div class="carte"><h2>Prix européens ${lab(an)}</h2><div class="liste">
+      <div class="el pr-l${eu.vainqueur === M().manager.club ? ' moi' : ''}">${blason(eu.vainqueur, 'p')}<div class="t"><b>${esc(club(eu.vainqueur).nom)}</b><span>vainqueur de la ${esc(QE().NOM)}${eu.finaliste ? ' · finaliste : ' + esc(club(eu.finaliste).nom) : ''}</span></div></div>
+      ${ligneJ(eu.balai, 'Balai d\'or', 'or')}
+      ${ligneMgr(eu.manager, 'manager européen de l\'année')}</div></div>
+    <div class="carte"><h2>Équipe européenne de l'année</h2><div class="liste">${eu.equipe.map(f => ligneJ(f)).join('')}</div></div>` : '';
   const cartesMois = mois.map(h => `<details class="carte pr-mois"${h === mois[0] ? ' open' : ''}><summary><h2 style="display:inline">${esc(h.quand[0].toUpperCase() + h.quand.slice(1))}</h2> <span class="mut petit">joueur du mois : ${esc((h.equipe.find(f => f[0] === h.joueur) || [, , , , '', ''])[5])}</span></summary>
       <div class="liste">${h.equipe.map(f => ligneJ(f, f[0] === h.joueur ? 'joueur du mois' : '', f[0] === h.joueur ? 'or' : '')).join('')}
       ${ligneMgr(h.manager, h.manager ? `manager du mois : ${h.manager.pts} pts pris pour ${String(h.manager.exp).replace('.', ',')} attendus` : '')}</div></details>`).join('');
   return `<div class="chips petites">${ans.map(a => `<button class="chip ${a === an ? 'on' : ''}" data-act="stAn" data-a="${a}">${lab(a)}</button>`).join('')}</div>
-    ${carteSaison}${cartesMois ? `<h4 class="sous-t">Mois par mois</h4>${cartesMois}` : ''}
-    ${!carteSaison && !cartesMois ? `<div class="carte"><p class="mut" style="margin:0">${an === M().saison ? 'Les premiers prix tombent à la fin du premier mois de championnat : équipe, joueur et manager du mois.' : 'Pas de prix enregistrés pour cette saison.'}</p></div>` : ''}
+    ${carteEu}${carteSaison}${cartesMois ? `<h4 class="sous-t">Mois par mois</h4>${cartesMois}` : ''}
+    ${!carteSaison && !cartesMois && !carteEu ? `<div class="carte"><p class="mut" style="margin:0">${an === M().saison ? 'Les premiers prix tombent à la fin du premier mois de championnat : équipe, joueur et manager du mois.' : 'Pas de prix enregistrés pour cette saison.'}</p></div>` : ''}
     <button class="btn sec plein" data-act="hof" style="margin-top:10px">Hall of Fame${pr.hof && pr.hof.length ? ` (${pr.hof.length})` : ''}</button>
     <p class="petit mut">Équipe-type : 3 poursuiveurs, 2 batteurs, 1 attrapeur, 1 gardien, à la note moyenne (au moins la moitié des matchs). Manager du mois : points pris comparés aux points attendus selon la réputation des adversaires. Manager de l'année : le plus beau dépassement du rang attendu.</p>`;
 }
@@ -173,10 +178,46 @@ function ficheHof(){
 }
 const depuis = () => M().statsDepuis ? `<p class="petit mut">Statistiques suivies depuis la journée ${M().statsDepuis} (mise à jour v102) : les matchs d'avant ne sont pas comptés.</p>` : '';
 
+/* ---------- v104 : Ligue des Anneaux ---------- */
+const QE = () => window.QME;
+function tableGroupe(M_, k, T){
+  const L = QE().trierTable(T), moi = M_.manager.club;
+  return `<div class="carte eu-g"><h2>Groupe ${k}</h2><table class="cl"><thead><tr><th>#</th><th>Club</th><th>J</th><th>Diff</th><th>Pts</th></tr></thead><tbody>
+    ${L.map((r, i) => `<tr class="${r.id === moi ? 'moi' : ''} lien${i < 2 && r.j >= 6 ? ' q' : ''}" data-act="ficheClub" data-c="${r.id}" tabindex="0"><td>${i + 1}</td><td class="club"><div>${blason(r.id, 'p')}<span>${esc(club(r.id).nom)}</span></div></td><td>${r.j}</td><td>${r.pm - r.pe > 0 ? '+' : ''}${r.pm - r.pe}</td><td class="pts">${r.pts}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function duel(M_, a, b, L, titre){
+  const ms = L.filter(m => (m.dom === a || m.ext === a) && (m.dom === b || m.ext === b)), moi = M_.manager.club;
+  const pts = id => ms.reduce((t, m) => t + (m.res ? (m.dom === id ? m.res.score[0] : m.res.score[1]) : 0), 0), fini = ms.length && ms.every(m => m.res);
+  const E = M_.europe, out = id => E.sortie[id] && E.sortie[id] !== 'v' && fini;
+  return `<div class="eu-duel${[a, b].includes(moi) ? ' moi' : ''}">${titre ? `<small class="mut">${titre}</small>` : ''}
+    ${[a, b].map(id => `<div class="eu-c${out(id) ? ' out' : ''}">${blason(id, 'p')}<b>${esc(club(id).nom)}</b>${ms.map(m => `<span class="eu-s">${m.res ? (m.dom === id ? m.res.score[0] : m.res.score[1]) : '–'}</span>`).join('')}${ms.length > 1 ? `<span class="eu-t">${ms.some(m => m.res) ? pts(id) : ''}</span>` : ''}</div>`).join('')}
+    <small class="mut">${ms.map(m => (m.res ? '' : Z.fmtDate(m.date) + ' · ') + (m.neutre ? 'terrain neutre' : 'à ' + esc(club(m.dom).ville))).join(' · ')}</small></div>`;
+}
+function vueEurope(){
+  const M_ = M(), E = M_.europe, Q_ = QE(); if (!E) return '<div class="carte"><p class="mut" style="margin:0">La Ligue des Anneaux commence la saison prochaine.</p></div>';
+  const L = M_.calendrier.flatMap(s => (s.matchs || []).filter(m => m.ligue === 'eu')), moi = M_.manager.club;
+  const phase = E.vainqueur ? `Vainqueur : ${esc(club(E.vainqueur).nom)}` : E.tours.f ? 'Finale à venir' : E.tours.sf ? 'Demi-finales' : E.tours.qf ? 'Quarts de finale' : 'Phase de groupes';
+  const ko = (cle, nom) => { if (!E.tours[cle]) return ''; const Lt = L.filter(m => String(m.tour).startsWith(cle));   // seulement les matchs de ce tour (deux clubs ont pu se croiser en poule)
+    return `<div class="carte"><h2>${nom}</h2>${cle === 'f' ? duel(M_, E.tours.f[0], E.tours.f[1], Lt) : E.tours[cle].map(([a, b]) => duel(M_, a, b, Lt)).join('')}</div>`; };
+  const H = (M_.europeHist || []).slice().reverse();
+  return `<div class="carte"><h2>${esc(Q_.NOM)} ${lab(E.saison)}</h2><p class="sous" style="margin:0">${phase} · ${E.qual.length} clubs${moi && E.qual.includes(moi) ? ' · ton club est qualifié' : ''}</p></div>
+    ${ko('f', 'Finale')}${ko('sf', 'Demi-finales')}${ko('qf', 'Quarts de finale')}
+    <div class="eu-grille">${Object.entries(E.tables).map(([k, T]) => tableGroupe(M_, k, T)).join('')}</div>
+    ${H.length ? `<div class="carte"><h2>Palmarès</h2><div class="liste">${H.map(h => `<div class="el">${blason(h.v, 'p')}<div class="t"><b>${esc(club(h.v).nom)}</b><span>${lab(h.saison)} · finale ${h.score.join('–')} contre ${esc(club(h.f).nom)}</span></div></div>`).join('')}</div></div>` : ''}
+    <p class="petit mut">16 clubs : 5 par championnat, 6 pour celui du tenant du titre. Groupes en aller-retour le mercredi (journées 3 à 13), quarts en janvier et demies fin mars en aller-retour (points cumulés, puis buts, puis vifs), finale sur un match en terrain neutre après la dernière journée. Primes : ${Z.eur ? Z.eur(Q_.PRIMES.participation) : Q_.PRIMES.participation} de participation, puis à chaque victoire et à chaque tour.</p>`;
+}
+
 /* ---------- Classements : trois vues ---------- */
 const orig = VUES.classements;
 VUES.classements = function(){
-  orig();
+  const Q_ = QE(), E = Q_ && Q_.assurer(M()), estEu = U.ligue === 'eu';
+  if (estEu){ U.ligue = null; orig(); U.ligue = 'eu'; } else orig();
+  const seg0 = Z.VUE.querySelector('.seg');
+  if (Q_ && (E || M().europe) && seg0){
+    if (estEu) seg0.querySelectorAll('button').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-selected', 'false'); });
+    seg0.lastElementChild.insertAdjacentHTML('beforebegin', `<button role="tab" data-act="ligue" data-l="eu" class="${estEu ? 'on' : ''}" aria-selected="${estEu}">${esc(Q_.COURT)}</button>`);
+  }
+  if (estEu){ [...Z.VUE.querySelectorAll(':scope > .carte, :scope > p.petit')].forEach(e => e.remove()); seg0.insertAdjacentHTML('afterend', `<div class="st-zone">${vueEurope()}</div>`); return; }
   const mc = M().manager.club && club(M().manager.club), l = U.ligue || (mc ? mc.ligue : Object.keys(M().ligues)[0]);
   if (l === 'sixn' || !M().ligues[l]) return;
   const seg = Z.VUE.querySelector('.seg'); if (!seg) return;

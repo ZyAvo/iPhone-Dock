@@ -1,4 +1,4 @@
-// mon-ecran-version: f4dc0110
+// mon-ecran-version: 115281bb
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -267,9 +267,9 @@ ACT.recLigue = d => { U.recLigue = d.l; rendre(); };
 ACT.palmares = () => { U.troph = 'palmares'; aller('trophees'); };
 
 /* ============================== Boîte de réception ============================== */
-const CAT = {pres:'Président', staff:'Staff', club:'Club', mercato:'Mercato', bless:'Infirmerie', sixn:'Tournoi', carriere:'Carrière', presse:'Presse', formation:'Formation', prix:'Prix', info:'Divers'};
-const ICO_MSG = {pres:'🏛️', staff:'🧙', club:'🏰', mercato:'🦉', bless:'✚', sixn:'🏆', carriere:'🧭', presse:'🗞️', formation:'🎓', prix:'🏅', info:'✉️'};
-const VUE_MSG = {pres:'direction', staff:'staff', club:'club', mercato:'mercato', sixn:'selection', carriere:'carriere', presse:'presse', formation:'formation', prix:'trophees', info:'boite'};   // v99 : icône illustrée par catégorie
+const CAT = {pres:'Président', staff:'Staff', club:'Club', mercato:'Mercato', bless:'Infirmerie', sixn:'Tournoi', carriere:'Carrière', presse:'Presse', formation:'Formation', prix:'Prix', europe:'Europe', info:'Divers'};
+const ICO_MSG = {pres:'🏛️', staff:'🧙', club:'🏰', mercato:'🦉', bless:'✚', sixn:'🏆', carriere:'🧭', presse:'🗞️', formation:'🎓', prix:'🏅', europe:'💍', info:'✉️'};
+const VUE_MSG = {pres:'direction', staff:'staff', club:'club', mercato:'mercato', sixn:'selection', carriere:'carriere', presse:'presse', formation:'formation', prix:'trophees', europe:'classements', info:'boite'};   // v99 : icône illustrée par catégorie
 const nonLus = () => (M() ? M().boite.filter(m => !m.lu).length : 0);
 Z.nonLus = nonLus;
 function vueBoite(){
@@ -557,7 +557,7 @@ function evenementsSaison(){
     if (S.type === 'bilan') return;
     for (let d = 6; d >= 0; d--){ const x = get(S.date - d * 864e5); if (C.mercatoOuvert(S)) x.bandes.add('mercato'); if (S.type === 'prepa') x.bandes.add('prepa'); if (S.tour) x.bandes.add('tournoi'); }
     const x = get(S.date); x.k = k; x.S = S;
-    for (const m of S.matchs) if ((cid && (m.dom === cid || m.ext === cid)) || (n && m.ligue === 'sixn' && (m.dom === n || m.ext === n))) x.matchs.push(m);
+    for (const m of S.matchs) if ((cid && (m.dom === cid || m.ext === cid)) || (n && m.ligue === 'sixn' && (m.dom === n || m.ext === n))){ const y = m.date ? get(m.date) : x; y.k = k; y.S = S; y.matchs.push(m); }   // v104 : les matchs européens le mercredi
     const nx = Cal[k + 1]; if (nx && nx.type !== 'bilan' && nx.date - S.date > 8 * 864e5) for (let t = S.date + 864e5; t < nx.date - 6 * 864e5; t += 864e5) get(t).bandes.add('treve');
   });
   return J;
@@ -598,7 +598,7 @@ function vueCalendrier(){
     corps = `<div class="carte"><div class="cal-nav"><button class="mini-b" data-act="calMois" data-d="-1" aria-label="Mois précédent" ${U.calMois ? '' : 'disabled'}>‹</button><h2 style="margin:0">${MOIS[mo]} ${an}</h2><button class="mini-b" data-act="calMois" data-d="1" aria-label="Mois suivant" ${U.calMois < moisListe.length - 1 ? '' : 'disabled'}>›</button></div>
       ${grilleMois(an, mo, J)}${legende}</div>
       <div class="carte"><h2>Ce mois-ci</h2><div class="liste">${evs.map(x => { const S_ = x.S, k = x.k;
-        const lignes = x.matchs.map(m => { const r = resMatch(m); return `<button class="el" data-act="semaine" data-s="${k}">${r.sx ? blason(r.adv, 'p', 1) : blason(r.adv, 'p')}<div class="t"><b>${r.sx ? esc(D.TOURNOI.court) + ' · tour ' + S_.tour : 'J' + S_.journee} · ${r.dom ? '' : '@ '}${esc(r.sx ? nat(r.adv).nom : club(r.adv).nom)}</b><span>${fmtDate(x.t)} · ${r.dom ? 'domicile' : 'extérieur'}${k === M_.semaine ? ' · cette semaine' : ''}${S_.tour && !r.sx && mg.club && k === M_.semaine && window.QM.convoques(M_, mg.club).length ? ` · ✈︎ ${plur(window.QM.convoques(M_, mg.club).length, 'absent')}` : ''}</span></div><span class="d">${r.txt ? `<b>${r.txt}</b> <span class="vnd ${r.v}">${r.v}</span>` : '<span class="mut">à venir</span>'}</span></button>`; }).join('');
+        const lignes = x.matchs.map(m => { const r = resMatch(m); return `<button class="el" data-act="semaine" data-s="${k}">${r.sx ? blason(r.adv, 'p', 1) : blason(r.adv, 'p')}<div class="t"><b>${r.sx ? esc(D.TOURNOI.court) + ' · tour ' + S_.tour : m.ligue === 'eu' && window.QME ? esc(window.QME.COURT + ' · ' + window.QME.nomTour(m)) : 'J' + S_.journee} · ${r.dom ? '' : '@ '}${esc(r.sx ? nat(r.adv).nom : club(r.adv).nom)}</b><span>${fmtDate(x.t)} · ${r.dom ? 'domicile' : 'extérieur'}${k === M_.semaine ? ' · cette semaine' : ''}${S_.tour && !r.sx && mg.club && k === M_.semaine && window.QM.convoques(M_, mg.club).length ? ` · ✈︎ ${plur(window.QM.convoques(M_, mg.club).length, 'absent')}` : ''}</span></div><span class="d">${r.txt ? `<b>${r.txt}</b> <span class="vnd ${r.v}">${r.v}</span>` : '<span class="mut">à venir</span>'}</span></button>`; }).join('');
         const info = S_.type === 'prepa' ? `<div class="el"><span class="blason nat p">🏋️</span><div class="t"><b>Préparation · semaine ${S_.semaine}</b><span>${fmtDate(x.t)} · mercato ouvert</span></div></div>` : '';
         return info + lignes; }).join('') || '<p class="mut" style="margin:0">Pas de match ce mois-ci.</p>'}</div></div>`;
   } else {
@@ -637,7 +637,7 @@ function vueEntrainement(){
   const atel = p => `<div class="ateliers">${['P', 'B', 'A', 'G'].map(po => { const a = Gm.ATELIERS[po].find(x => x[0] === (p.ateliers || {})[po]) || Gm.ATELIERS[po][0]; return `<span>${posteB(po)}${a[1]}</span>`; }).join('')}</div>`;
   const fat = Math.round(Gm.fatigueTitulaires(M_, c));
   const avenir = []; for (let k = k0; k < Math.min(M_.calendrier.length - 1, k0 + 8); k++) avenir.push(k);
-  const quoi = S => !S ? '' : S.type === 'prepa' ? `Préparation ${S.semaine}` : S.type === 'sixn' ? `${D.TOURNOI.court} · tour ${S.tour}` : `J${S.journee}${S.tour ? ' · ' + D.TOURNOI.court : ''}`;
+  const quoi = S => !S ? '' : S.type === 'prepa' ? `Préparation ${S.semaine}` : S.type === 'sixn' ? `${D.TOURNOI.court} · tour ${S.tour}` : S.type === 'europe' ? 'Finale des Anneaux' : `J${S.journee}${S.tour ? ' · ' + D.TOURNOI.court : ''}${(S.matchs || []).some(m => m.ligue === 'eu') ? ' · Anneaux' : ''}`;
   VUE.innerHTML = `<div><h1 class="grand">Entraînement</h1><p class="sous">Cinq séances par semaine. Les joueurs progressent vers leur potentiel ; la fatigue et les blessures suivent l'intensité.</p></div>
   <div class="carte"><h2>Qui prépare les séances ?</h2><div class="seg"><button data-act="planAuto" data-v="1" class="${P.auto ? 'on' : ''}">Mon adjoint</button><button data-act="planAuto" data-v="0" class="${P.auto ? '' : 'on'}">Moi</button></div>
     <p class="petit mut" style="margin:8px 0 0">${P.auto ? 'Ton adjoint adapte chaque semaine : foncier puis pré-saison en août, récupération quand les titulaires sont fatigués, collectif pendant le tournoi. Tu peux reprendre la main sur une semaine précise.' : 'Ta semaine type s\'applique à toutes les semaines, sauf celles que tu programmes à part.'}</p></div>
