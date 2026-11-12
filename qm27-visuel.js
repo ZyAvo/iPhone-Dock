@@ -1,4 +1,4 @@
-// mon-ecran-version: 90ad237a
+// mon-ecran-version: d9154d74
 /* QM27 (v87) — graphismes dessinés par le code, sans image : blasons des clubs, maillots, avatars, radar du profil.
    Tout est déterministe : un club ou une personne a toujours le même dessin (graine = identifiant).
    window.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe}. Aucune dépendance (QMD seulement pour les prénoms). */
@@ -109,7 +109,15 @@ const MOTIFS = {
   manches:(t) => `<path d="M0 0h10v40H0zM30 0h10v40H30z" fill="${t}"/>`,
   epaules:(t) => `<path d="M0 0h40v12C30 9 10 9 0 12z" fill="${t}"/>`,
 };
+/* v99 : maillots illustrés (images/qm27/maillots/<id>-d|e.webp, recolorés aux couleurs de chaque club et nation) */
+const aMaillot = id => !!(D() && id && (D().CLUBS.some(x => x[0] === id) || (D().SIX_NATIONS || []).includes(id)));
 function maillot(c, num, cls, sponsor){   // v88 : nom du sponsor sur la poitrine
+  if (c && aMaillot(c.id) && !c.dessin){
+    const sp = sponsor ? sponsor.split(' ')[0].toUpperCase().replace(/[<&>]/g, '') : '', aNum = num !== undefined && num !== null && num !== '';
+    return `<svg class="mt img ${cls || ''}" viewBox="0 0 40 40" aria-hidden="true"><image href="${IMAGES}maillots/${c.id}-${c.ext ? 'e' : 'd'}.webp" x="0" y="0" width="40" height="40" preserveAspectRatio="xMidYMid meet"/>
+      ${sp ? `<rect x="12.4" y="13.2" width="15.2" height="5" rx="1.1" fill="#ffffff" opacity=".93"/><text x="20" y="17" text-anchor="middle" font-size="${Math.min(3.4, 24 / Math.max(6, sp.length + 1))}" font-weight="800" font-family="system-ui,-apple-system,sans-serif" fill="#16202c">${sp}</text>` : ''}
+      ${aNum ? `<text x="20" y="${sp ? 28.4 : 26.4}" text-anchor="middle" font-size="${String(num).length > 1 ? 12 : 13}" font-weight="900" font-family="system-ui,-apple-system,sans-serif" fill="#ffffff" stroke="#14181f" stroke-width="2.6" stroke-linejoin="round" paint-order="stroke">${num}</text>` : ''}</svg>`;
+  }
   const r = rng('maillot' + c.id), [c1, c2] = c.couleurs || ['#445', '#ddd'];
   const motif = c.motif || pondere(r, [['uni', 2.2], ['rayures', 1.2], ['cerceaux', 1], ['chevron', 1.2], ['echarpe', 1], ['moitie', 0.7], ['manches', 1], ['epaules', 1]]);
   const t = contraste(c1, c2) >= 1.4 ? c2 : ton(c1, 0.35), id = uid();
@@ -130,8 +138,40 @@ function feminin(p){
   const N = D() && D().NOMS[p.nat]; if (!N) return hash(p.p || p.id) % 2 === 0;
   const i = N.p.indexOf(p.p); return i >= N.p.length / 2;
 }
+/* v99 : portraits illustrés (images/qm27/visages/) ; le dessin en code reste pour l'apparence personnalisée du manager */
+const VISAGES = {h1:16, h2:16, h3:13, hs:12, f1:25, f2:13, fs:12};
+function groupesVisage(p){
+  const f = feminin(p), age = p.age || 30;
+  if (!p.poste) return f ? ['fs', 'f2'] : ['hs', 'h3'];   // staff, président, manager : visages d'adultes
+  if (f) return [age <= 24 ? 'f1' : 'f2'];
+  return [age <= 22 ? 'h1' : age <= 30 ? 'h2' : 'h3'];
+}
+function visageDe(p){
+  const L = p.look || {};
+  if (L.visage) return L.visage;
+  if (L.mode === 'dessin' || (!L.mode && (L.peau || L.cheveux || L.coupe))) return null;
+  return candidatsVisage(p)[0];
+}
+/* chaque visage existe aussi en miroir (suffixe « m ») : deux fois plus de variété */
+function candidatsVisage(p){
+  const gs = groupesVisage(p), L = gs.flatMap(g => Array.from({length:VISAGES[g] * 2}, (_, i) => g + '-' + (i % VISAGES[g]) + (i >= VISAGES[g] ? 'm' : '')));
+  const k = hash('visage' + (p.id || '') + (p.p || '') + (p.n || '')) % L.length;
+  return Array.from({length:L.length}, (_, i) => L[(k + i) % L.length]);
+}
+/* pas deux joueurs du même effectif avec le même visage */
+function attribuerVisages(liste){
+  const pris = new Set(), res = {};
+  for (const p of liste.slice().sort((a, b) => String(a.id).localeCompare(String(b.id)))){
+    const L = p.look || {}; if (L.visage || L.mode === 'dessin'){ continue; }
+    const v = candidatsVisage(p).find(x => !pris.has(x.replace(/m$/, '')) ) || candidatsVisage(p)[0];
+    pris.add(v.replace(/m$/, '')); res[p.id] = v;
+  }
+  return res;
+}
 function avatar(p, cls, opt){
   opt = opt || {};
+  const vis = !opt.dessin && (opt.visage || visageDe(p));
+  if (vis) return `<img class="av ${cls || ''} av-img${vis.endsWith('m') ? ' av-mir' : ''}" src="${IMAGES}visages/${vis.replace(/m$/, '')}.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" draggable="false">`;
   const r = rng('avatar' + (p.id || '') + (p.p || '') + (p.n || '')), f = feminin(p), age = p.age || 30;
   let peau = pondere(r, PEAUX); const fonce = lum(peau) < 0.3;
   let ch = fonce ? choix(r, CHEVEUX.slice(0, 3)) : pondere(r, [[CHEVEUX[0], 3], [CHEVEUX[1], 4], [CHEVEUX[2], 4], [CHEVEUX[3], 3], [CHEVEUX[4], 2], [CHEVEUX[5], 1.2], [CHEVEUX[6], 1.2]]);
@@ -222,6 +262,7 @@ function anneauDe(L){
 }
 function embleme(n, cls){
   const e = EMBL[n]; if (!e) return '';
+  if (!(cls || '').includes('dessin')) return `<img class="emb img ${cls || ''}" src="${IMAGES}emblemes/${n}.webp" width="24" height="24" alt="${D().NATIONS[n] ? D().NATIONS[n].nom : n} (${e.nom})" decoding="async" draggable="false">`;   // v99 : emblème illustré
   return `<svg class="emb ${cls || ''}" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="${D().NATIONS[n] ? D().NATIONS[n].nom : n} (${e.nom})">
     <circle cx="12" cy="12" r="9" fill="#fbf8f0"/>${e.bas ? `<path d="M3 12.6a9 9 0 0 0 18 0z" fill="${e.bas}" opacity=".9"/>` : ''}${anneauDe(e.anneau)}
     <circle cx="12" cy="12" r="11.6" fill="none" stroke="rgba(0,0,0,.3)" stroke-width=".7"/><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(0,0,0,.14)" stroke-width=".5"/>${e.svg}</svg>`;
@@ -289,5 +330,5 @@ function trophee(k, titre){
     <rect x="18" y="22" width="4" height="10" fill="${or}"/><path d="M12 32h16l2 6H10z" fill="${melange(or, '#000000', 0.2)}"/><rect x="9" y="38" width="22" height="7" rx="1" fill="#4a3a2a"/><path d="M14 9c0 4 1 7 4 8" stroke="#fff" stroke-width="1.2" opacity=".55" fill="none"/></svg>`;
 }
 
-root.QMV = {IMAGES, blasonDessin, batimentDessin, embleme, EMBL, blason, maillot, avatar, radar, couleursNation, emblemeDe, feminin, EMB, EMBLEMES, lisible, melange, batiment, trophee};
+root.QMV = {IMAGES, VISAGES, visageDe, attribuerVisages, blasonDessin, batimentDessin, embleme, EMBL, blason, maillot, avatar, radar, couleursNation, emblemeDe, feminin, EMB, EMBLEMES, lisible, melange, batiment, trophee};
 })(typeof window !== 'undefined' ? window : globalThis);

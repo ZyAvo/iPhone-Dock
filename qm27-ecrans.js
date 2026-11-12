@@ -1,4 +1,4 @@
-// mon-ecran-version: 0e5d545d
+// mon-ecran-version: 66964c52
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -97,7 +97,7 @@ function carteIllustree(){
   const c = moi(), bdg = badgesLieux(), I = V.IMAGES, L = Object.entries(LIEUX);
   /* deux passes : les bâtiments, puis les plaques et pastilles par-dessus (jamais cachées par un voisin) */
   return `<svg class="carte-dom illus" viewBox="0 0 360 540" role="group" aria-label="Le domaine de ${esc(c.nom)}">
-    <image href="${I}fond-jour.webp" x="0" y="0" width="360" height="540" preserveAspectRatio="xMidYMid slice" class="fond-img"/><rect width="360" height="540" class="nuit-voile"/>
+    <image href="${I}fond-jour.webp" x="0" y="0" width="360" height="540" preserveAspectRatio="xMidYMid slice" class="fond-img"/><image href="${I}fond-nuit.webp" x="0" y="0" width="360" height="540" preserveAspectRatio="xMidYMid slice" class="fond-nuit"/><rect width="360" height="540" class="nuit-voile"/>
     ${L.map(([k, l]) => { const [x, y, w] = POS_IMG[k];
       return `<g class="lieu" data-act="lieu" data-l="${k}" role="button" tabindex="0" aria-label="${esc(l.nom)} : ${esc(l.sous)}" transform="translate(${x} ${y})">
         <rect x="${-w / 2}" y="${-w + 8}" width="${w}" height="${w + 12}" fill="transparent"/><image href="${I}lieux/${k}.webp" x="${-w / 2}" y="${-w + 6}" width="${w}" height="${w}" class="bat-img"/><title>${esc(l.nom)} : ${esc(l.sous)}</title></g>`; }).join('')}
@@ -209,27 +209,33 @@ ACT.pointMgr = d => { const p = G().profil(M()); if (p.fige) return; p.pool = p.
   if (+d.d < 0 && v > 1){ p.attrs[k]--; p.pool++; } else if (+d.d > 0 && p.pool > 0 && v < 20){ p.attrs[k]++; p.pool--; }
   sauver(); rendre(); };
 let EDIT = null;
+const PORTRAITS = () => ['hs', 'h3', 'h2', 'fs', 'f2'].flatMap(g => Array.from({length:V.VISAGES[g]}, (_, i) => g + '-' + i));   // v99 : portraits proposés au manager
 function ficheProfil(){
   const p = G().profil(M()), mg = M().manager, L = EDIT.look;
   const nuancier = (cle, liste) => `<div class="nuancier">${liste.map(x => `<button class="pastille-c ${L[cle] === x ? 'on' : ''}" style="background:${x}" data-act="lookMgr" data-k="${cle}" data-v="${x}" aria-label="${cle} ${x}"></button>`).join('')}</div>`;
   const choix = (cle, liste) => `<div class="chips">${liste.map(([v, n]) => `<button class="chip ${String(L[cle] ?? '') === String(v) ? 'on' : ''}" data-act="lookMgr" data-k="${cle}" data-v="${v}">${n}</button>`).join('')}</div>`;
-  const apercu = avatarDe({...persoMgr(), nat:EDIT.nat, age:EDIT.age, look:L}, 'g', mg.club || null);
+  const perso = {...persoMgr(), nat:EDIT.nat, age:EDIT.age, look:L}, apercu = avatarDe(perso, 'g', mg.club || null), vis = V.visageDe(perso), illus = !!vis;
   feuille(`${teteF('Mon profil', 'Nom, âge, nationalité, apparence')}
     <div class="ligne" style="gap:14px;align-items:center"><span class="avp g">${apercu}</span><div style="flex:1;min-width:0">
       <label class="petit mut" for="nomEdit">Nom</label><input class="champ" id="nomEdit" maxlength="30" value="${esc(EDIT.nom)}">
       <div class="ligne" style="margin-top:8px;gap:8px"><span class="petit mut">Âge</span><button class="mini-b" data-act="ageMgr" data-d="-1">−</button><b>${EDIT.age}</b><button class="mini-b" data-act="ageMgr" data-d="1">+</button></div></div></div>
     <h4 class="sous-t">Nationalité</h4><div class="chips">${D.SIX_NATIONS.map(n => `<button class="chip ${EDIT.nat === n ? 'on' : ''}" data-act="natMgr" data-n="${n}">${flag(n)} ${esc(nat(n).nom)}</button>`).join('')}</div>
+    <h4 class="sous-t">Portrait</h4><div class="chips"><button class="chip ${illus ? 'on' : ''}" data-act="lookMgr" data-k="mode" data-v="illus">Portrait illustré</button><button class="chip ${illus ? '' : 'on'}" data-act="lookMgr" data-k="mode" data-v="dessin">Dessin personnalisé</button><button class="chip" data-act="lookMgr" data-k="hasard" data-v="1">Au hasard</button></div>
+    ${illus ? `<div class="visages" role="group" aria-label="Choisir un portrait">${PORTRAITS().map(v => `<button class="${vis === v ? 'on' : ''}" data-act="lookMgr" data-k="visage" data-v="${v}" aria-label="Portrait ${v}"><img src="${V.IMAGES}visages/${v}.webp" alt="" loading="lazy" decoding="async"></button>`).join('')}</div>` : `
     <h4 class="sous-t">Peau</h4>${nuancier('peau', LOOK.peau)}
     <h4 class="sous-t">Cheveux</h4>${nuancier('cheveux', LOOK.cheveux)}${choix('coupe', LOOK.coupe)}
     <h4 class="sous-t">Barbe</h4>${choix('barbe', LOOK.barbe)}
     <h4 class="sous-t">Chapeau de sorcier</h4>${choix('chapeau', LOOK.chapeau)}
-    <h4 class="sous-t">Expression et lunettes</h4>${choix('sourire', LOOK.sourire)}<div class="chips"><button class="chip ${L.lunettes ? 'on' : ''}" data-act="lookMgr" data-k="lunettes" data-v="${L.lunettes ? '' : '1'}">Lunettes</button><button class="chip" data-act="lookMgr" data-k="hasard" data-v="1">Au hasard</button></div>
+    <h4 class="sous-t">Expression et lunettes</h4>${choix('sourire', LOOK.sourire)}<div class="chips"><button class="chip ${L.lunettes ? 'on' : ''}" data-act="lookMgr" data-k="lunettes" data-v="${L.lunettes ? '' : '1'}">Lunettes</button></div>`}
     <div class="btns" style="margin-top:14px"><button class="btn sec" data-act="fermer">Annuler</button><button class="btn" data-act="sauverProfil">Enregistrer</button></div>`);
   const n = document.getElementById('nomEdit'); if (n) n.addEventListener('input', e => { EDIT.nom = e.target.value; });
 }
 ACT.editerProfil = () => { const p = G().profil(M()), mg = M().manager; EDIT = {nom:mg.nom, age:p.age, nat:p.nat, look:{...(p.look || {})}}; ficheProfil(); };
 ACT.lookMgr = d => { const L = EDIT.look;
-  if (d.k === 'hasard'){ const r = Math.random; EDIT.look = {peau:LOOK.peau[r() * 6 | 0], cheveux:LOOK.cheveux[r() * 9 | 0], coupe:LOOK.coupe[r() * 10 | 0][0], barbe:LOOK.barbe[r() * 5 | 0][0], chapeau:r() < 0.4 ? LOOK.chapeau[1 + (r() * 4 | 0)][0] : '', sourire:LOOK.sourire[r() * 3 | 0][0], lunettes:r() < 0.3}; }
+  if (d.k === 'mode'){ if (d.v === 'dessin'){ L.mode = 'dessin'; delete L.visage; } else L.mode = 'illus'; ficheProfil(); return; }
+  if (d.k === 'visage'){ L.mode = 'illus'; L.visage = d.v; ficheProfil(); return; }
+  if (d.k === 'hasard' && V.visageDe({...persoMgr(), look:L})){ const P = PORTRAITS(); EDIT.look = {...L, mode:'illus', visage:P[Math.random() * P.length | 0]}; ficheProfil(); return; }
+  if (d.k === 'hasard'){ const r = Math.random; EDIT.look = {mode:'dessin', peau:LOOK.peau[r() * 6 | 0], cheveux:LOOK.cheveux[r() * 9 | 0], coupe:LOOK.coupe[r() * 10 | 0][0], barbe:LOOK.barbe[r() * 5 | 0][0], chapeau:r() < 0.4 ? LOOK.chapeau[1 + (r() * 4 | 0)][0] : '', sourire:LOOK.sourire[r() * 3 | 0][0], lunettes:r() < 0.3}; }
   else if (d.k === 'sourire') L.sourire = +d.v; else if (d.k === 'lunettes') L.lunettes = !!d.v; else L[d.k] = d.v;
   ficheProfil(); };
 ACT.ageMgr = d => { EDIT.age = Math.max(28, Math.min(75, EDIT.age + +d.d)); ficheProfil(); };
@@ -262,6 +268,7 @@ ACT.palmares = () => { U.troph = 'palmares'; aller('trophees'); };
 /* ============================== Boîte de réception ============================== */
 const CAT = {pres:'Président', staff:'Staff', club:'Club', mercato:'Mercato', bless:'Infirmerie', sixn:'Tournoi', carriere:'Carrière', presse:'Presse', formation:'Formation', info:'Divers'};
 const ICO_MSG = {pres:'🏛️', staff:'🧙', club:'🏰', mercato:'🦉', bless:'✚', sixn:'🏆', carriere:'🧭', presse:'🗞️', formation:'🎓', info:'✉️'};
+const VUE_MSG = {pres:'direction', staff:'staff', club:'club', mercato:'mercato', sixn:'selection', carriere:'carriere', presse:'presse', formation:'formation', info:'boite'};   // v99 : icône illustrée par catégorie
 const nonLus = () => (M() ? M().boite.filter(m => !m.lu).length : 0);
 Z.nonLus = nonLus;
 function vueBoite(){
@@ -271,7 +278,7 @@ function vueBoite(){
   VUE.innerHTML = `<div><h1 class="grand">Boîte de réception</h1><p class="sous">${plur(M_.boite.length, 'message')} · ${plur(nonLus(), 'non lu')}</p></div>
   <div class="chips filtres-boite">${[['tous', 'Tous'], ['nonlus', `Non lus${nonLus() ? ' (' + nonLus() + ')' : ''}`], ...types.map(t => [t, CAT[t] || t])].map(([k, n]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="boiteF" data-f="${k}">${n}</button>`).join('')}</div>
   <div class="btns" style="margin-bottom:10px"><button class="btn sec" data-act="toutLu" ${nonLus() ? '' : 'disabled'}>Tout marquer lu</button><button class="btn sec" data-act="supprLus" ${M_.boite.some(m => m.lu) ? '' : 'disabled'}>Supprimer les messages lus</button></div>
-  <div class="carte"><div class="liste">${L.map(m => `<div class="el msg-l ${m.lu ? '' : 'neuf'}"><button class="msg-b" data-act="lireMsg" data-id="${m.id}"><span class="ico-msg" aria-hidden="true">${ICO_MSG[m.type] || '✉️'}</span><div class="t"><b>${pieces(esc(m.titre))}</b><span>${m.date ? fmtDate(m.date) + ' · ' : ''}${pieces(esc(String(m.corps).slice(0, 110)))}${String(m.corps).length > 110 ? '…' : ''}</span></div></button>
+  <div class="carte"><div class="liste">${L.map(m => `<div class="el msg-l ${m.lu ? '' : 'neuf'}"><button class="msg-b" data-act="lireMsg" data-id="${m.id}"><span class="ico-msg" aria-hidden="true">${VUE_MSG[m.type || 'info'] ? icoVue(VUE_MSG[m.type || 'info'], ICO_MSG[m.type] || '✉️', 'ico-im') : (ICO_MSG[m.type] || '✉️')}</span><div class="t"><b>${pieces(esc(m.titre))}</b><span>${m.date ? fmtDate(m.date) + ' · ' : ''}${pieces(esc(String(m.corps).slice(0, 110)))}${String(m.corps).length > 110 ? '…' : ''}</span></div></button>
     <button class="mini-b corb" data-act="supprMsg" data-id="${m.id}" aria-label="Supprimer ce message">✕</button></div>`).join('') || '<p class="mut" style="margin:0">Rien ici.</p>'}</div></div>`;
 }
 const msgDe = id => M().boite.find(m => m.id === id);
@@ -290,7 +297,7 @@ ACT.supprLus = () => { if (!confirm('Supprimer tous les messages lus ?')) return
 /* ============================== Menu Plus ============================== */
 function vuePlus(){
   const M_ = M(), mg = M_.manager, n = nonLus();
-  const el = (act, v, ico, t, s) => `<button class="el" data-act="${act}" ${v ? `data-v="${v}"` : ''}><span class="blason nat p">${ico}</span><div class="t"><b>${t}</b><span>${s}</span></div><span class="d mut">›</span></button>`;
+  const el = (act, v, ico, t, s) => `<button class="el" data-act="${act}" ${v ? `data-v="${v}"` : ''}><span class="blason nat p">${String(ico)[0] !== '<' && ICONES.has(v || act) ? icoVue(v || act, ico) : ico}</span><div class="t"><b>${t}</b><span>${s}</span></div><span class="d mut">›</span></button>`;
   VUE.innerHTML = `<div><h1 class="grand">Plus</h1></div>
   <div class="carte"><div class="liste">
     ${el('vue', 'boite', '✉️', `Boîte de réception${n ? ` <span class="badge neuf">${n}</span>` : ''}`, plur(M_.boite.length, 'message'))}
@@ -693,10 +700,15 @@ function MENU(){
   ];
   return G_.map(([g, L]) => [g, L.filter(x => cl || !x[4])]).filter(([, L]) => L.length);
 }
+/* v99 : icônes illustrées (images/qm27/icones/<vue>.webp) ; l'emoji reste en secours si l'image manque */
+const ICONES = new Set(['accueil', 'boite', 'calendrier', 'effectif', 'tactique', 'entrainement', 'vestiaire', 'formation', 'selection', 'mercato', 'clubs', 'staff', 'club',
+  'direction', 'finances', 'stade', 'boutique', 'partenaires', 'domaine', 'trophees', 'classements', 'profil', 'carriere', 'sauvegardes', 'aide', 'quitterKiosk', 'presse', 'reunion']);
+const icoVue = (v, secours, cls) => ICONES.has(v) ? `<img class="${cls || ''}" src="${V.IMAGES}icones/${v}.webp" alt="" width="22" height="22" decoding="async" draggable="false" onerror="this.replaceWith(document.createTextNode('${secours}'))">` : secours;
+Z.icoVue = icoVue;
 const GROUPE_DE = {vestiaire:'effectif', clubFiche:'clubs', match:'accueil'};
 function menuHTML(){
   const act = GROUPE_DE[U.vue] && !MENU().some(([, L]) => L.some(x => x[0] === U.vue)) ? GROUPE_DE[U.vue] : U.vue;
-  return MENU().map(([g, L]) => `<div class="mg-g"><h3>${g}</h3>${L.map(([v, n, ico, b, , direct]) => `<button class="mg-l ${act === v ? 'on' : ''}" ${direct ? `data-act="${v}"` : `data-act="vue" data-v="${v}"`} ${act === v ? 'aria-current="page"' : ''}><span class="mg-i" aria-hidden="true">${ico}</span><span class="mg-n">${n}</span>${b ? `<i class="mg-b">${b}</i>` : ''}</button>`).join('')}</div>`).join('');
+  return MENU().map(([g, L]) => `<div class="mg-g"><h3>${g}</h3>${L.map(([v, n, ico, b, , direct]) => `<button class="mg-l ${act === v ? 'on' : ''}" ${direct ? `data-act="${v}"` : `data-act="vue" data-v="${v}"`} ${act === v ? 'aria-current="page"' : ''}><span class="mg-i" aria-hidden="true">${icoVue(v, ico)}</span><span class="mg-n">${n}</span>${b ? `<i class="mg-b">${b}</i>` : ''}</button>`).join('')}</div>`).join('');
 }
 function majMenu(){
   const enJeu = !!(M() && M().manager) && U.vue !== 'match';

@@ -1,4 +1,4 @@
-// mon-ecran-version: 607a4d55
+// mon-ecran-version: 0a71f05d
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -49,7 +49,18 @@ const club = id => M.clubs[id];
 const nat = id => D.NATIONS[id];
 const V = window.QMV;   // v87 : graphismes (qm27-visuel.js)
 /* avatar d'un joueur, d'un membre du staff ou du manager, aux couleurs de son club */
-const avatarDe = (p, cls, clubId) => { const c = clubId !== undefined ? (clubId ? M.clubs[clubId] : null) : (p.club ? M.clubs[p.club] : null); return V.avatar(p, cls, c ? {couleurs:c.couleurs} : {}); };
+/* v99 : visages répartis par effectif (jamais deux fois le même dans un club), recalculés quand l'effectif change */
+const CACHE_VIS = {};
+function visageClub(p, c){
+  if (!c || !p.id) return null;
+  let L, k;
+  if (p.poste){ if (!c.effectif || !c.effectif.includes(p.id)) return null; L = c.effectif.map(id => M.joueurs[id]).filter(Boolean); k = 'j' + c.id; }
+  else { L = Object.values(c.staff || {}).filter(Boolean); if (!L.includes(p)) return null; k = 's' + c.id; }
+  const cle = L.map(x => x.id).join(','), e = CACHE_VIS[k];
+  if (!e || e.cle !== cle) CACHE_VIS[k] = {cle, v:V.attribuerVisages(L)};
+  return CACHE_VIS[k].v[p.id] || null;
+}
+const avatarDe = (p, cls, clubId) => { const c = clubId !== undefined ? (clubId ? M.clubs[clubId] : null) : (p.club ? M.clubs[p.club] : null); const o = c ? {couleurs:c.couleurs} : {}, v = visageClub(p, c); if (v) o.visage = v; return V.avatar(p, cls, o); };
 const nomEq = (id, sixn) => sixn ? nat(id).nom : club(id).nom;
 function blason(id, taille, sixn){
   if (sixn || D.NATIONS[id]) return `<span class="blason nat emb-b ${taille || ''}" aria-hidden="true">${V.embleme(id)}</span>`;
@@ -1237,7 +1248,7 @@ function vueChomage(){
 }
 function vueCarriere(){
   const mg = M.manager, oc = C.offresCarriere(M), U = mg.club ? club(mg.club) : null;
-  VUE.innerHTML = `<div class="tete-mg"><span class="avp g">${avatarDe({id:'manager', p:(mg.nom || '').split(' ')[0], n:mg.nom, nat:U ? U.nat : 'FRA', age:40}, 'g', mg.club || null)}</span><div><h1 class="grand">Carrière</h1><p class="sous">${esc(mg.nom)}${U ? ' · ' + esc(U.nom) : ' · sans club'}</p></div></div>
+  VUE.innerHTML = `<div class="tete-mg"><span class="avp g">${window.QMU && window.QMU.avatarMgr ? window.QMU.avatarMgr('g') : avatarDe({id:'manager', p:(mg.nom || '').split(' ')[0], n:mg.nom, nat:U ? U.nat : 'FRA', age:40}, 'g', mg.club || null)}</span><div><h1 class="grand">Carrière</h1><p class="sous">${esc(mg.nom)}${U ? ' · ' + esc(U.nom) : ' · sans club'}</p></div></div>
   <div class="carte"><h2>Réputation</h2><div class="jauge"><i style="width:${mg.rep}%"></i></div><p class="petit mut" style="margin:8px 0 0">${Math.round(mg.rep)} / 100 · elle monte avec les résultats au-dessus des attentes, les objectifs atteints et les titres. À partir de ${E.carriere.repSelection}, les fédérations peuvent proposer le poste de sélectionneur.</p></div>
   ${oc.length ? `<div class="carte" style="border-color:var(--or)"><h2>Offres de clubs</h2>${oc.map(o => { const c = club(o.club);
     return `<div class="el">${blason(c.id)}<div class="t"><b>${esc(c.nom)}</b><span>${esc(M.ligues[c.ligue].court)} · réputation ${c.rep} · ${esc(QM.objectif(M, c.id).txt.toLowerCase())}</span></div></div>
