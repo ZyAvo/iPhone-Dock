@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="462c401a">
+<meta name="mon-ecran-version" content="69e86eae">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -224,10 +224,17 @@ html.desk .attrs{grid-template-columns:1fr 1fr 1fr 1fr}
 .v.n4{color:var(--bon)} .v.n3{color:var(--ink)} .v.n2{color:var(--moyen)} .v.n1{color:var(--mauvais)}
 .fam{grid-column:1/-1;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);font-weight:650;margin-top:8px}
 .npostes{display:grid;grid-template-columns:repeat(4, 1fr);gap:6px}
-.npostes div{background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:8px 4px;text-align:center}
+.npostes div,.npostes button{background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:8px 4px;text-align:center;color:var(--ink);font:inherit;position:relative}
 .npostes b{display:block;font-size:1.1rem}
 .npostes span{font-size:.68rem;color:var(--ink-soft)}
-.npostes .on{border-color:var(--accent)}
+.npostes .on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:color-mix(in srgb, var(--accent) 10%, var(--card-2))}
+.npostes .nat::after{content:'';position:absolute;top:5px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--accent)}   /* v101 : poste naturel */
+.fj-roles{margin:8px 0 0}
+.fj-roles .chips{flex-wrap:wrap}
+.fj-roles .chip small{margin-left:5px;font-weight:700;font-size:.68rem}
+.fj-roles .chip.on small{color:inherit;opacity:.85}
+.fj-roles p{margin:6px 2px 0}
+.fj-roles .lien{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
 
 /* Feuille (fenêtre du bas) */
 .fond{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.38);display:flex;align-items:flex-end;justify-content:center;animation:fondu .2s}
@@ -332,11 +339,15 @@ html.desk .grille{grid-template-columns:repeat(4, 1fr)}
 .tj-h,.tj-l{display:flex;align-items:center;gap:4px;width:100%}
 .tj-h{border-bottom:1px solid var(--line);padding:4px 0;position:sticky;top:calc(52px + env(safe-area-inset-top, 0px));background:var(--card);z-index:1}
 .tj-h .th{font-size:.7rem;font-weight:700;color:var(--ink-soft);text-align:center;padding:4px 0;white-space:nowrap}
-.tj-h .th:nth-child(2){flex:1;text-align:left}
+.tj-h .th:nth-child(3){flex:1;text-align:left}   /* v101 : la colonne des absents passe 2e */
+.tj-abs{display:grid;place-items:center}
+.tj-abs i{font-style:normal;line-height:1}
+.abs-b{color:#d93a3a;font-size:.95rem;font-weight:800}
+.abs-i{color:var(--moyen);font-size:.8rem}
 .tj-h .th.on{color:var(--accent)}
 .tj-l{min-height:42px;border-bottom:1px solid var(--line);text-align:left}
 .tj-l:last-child{border-bottom:0}
-.tj-l.indispo{opacity:.62}
+.tj-l.indispo > .tj-c:not(.tj-abs),.tj-l.indispo > .tj-p > *,.tj-l.indispo > .tj-n > *{opacity:.62}   /* v101 : la croix des blessés reste vive ; le fond des colonnes figées reste opaque */
 .tj-p{flex:none;display:flex;align-items:center;gap:3px}
 .tj-p .poste{transform:scale(.9)}
 .st{font-style:normal;font-size:.62rem;font-weight:800;min-width:18px;height:18px;border-radius:5px;display:grid;place-items:center;background:var(--card-2);border:1px solid var(--line);color:var(--ink-soft)}
@@ -418,7 +429,9 @@ table.cl tr.lien{cursor:pointer} table.cl tr.lien:hover td{background:var(--card
 .ateliers{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin:8px 0}
 .ateliers span{display:flex;align-items:center;gap:6px;font-size:.8rem;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .seance{min-width:0}
-.blason.nat.p .av{width:100%;height:100%}
+/* v101 : l'avatar remplit la case sans en déborder (la hauteur à 100 % ne se résolvait pas dans la grille : 26 × 34 px) */
+.blason.nat.p .av{width:100%;height:auto;aspect-ratio:1/1;max-height:100%;align-self:center;justify-self:center}
+.blason.nat.p:has(> .av){overflow:hidden}
 .cal-g .c.mercato{box-shadow:inset 0 3px 0 var(--or)}
 .cal-g .c.mercato.tournoi{box-shadow:inset 0 3px 0 var(--or),inset 0 -3px 0 #8b5cf6}
 .cal-leg .b.mercato{box-shadow:inset 0 3px 0 var(--or)}
@@ -459,10 +472,10 @@ table.cl tr.lien{cursor:pointer} table.cl tr.lien:hover td{background:var(--card
 .onglets-l .roue{margin-bottom:10px;font-size:1.05rem}
 .tj-carte{overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--sheet-solid)}
 .tj-carte .tj-h{position:static}
-.tj-carte .tj-p,.tj-carte .tj-n{position:sticky;background:var(--sheet-solid);z-index:1}
-.tj-carte .tj-p{left:0} .tj-carte .tj-n{left:40px;min-width:120px}
-.tj-carte .tj-h .th:first-child,.tj-carte .tj-h .th:nth-child(2){position:sticky;background:var(--sheet-solid);z-index:2}
-.tj-carte .tj-h .th:first-child{left:0} .tj-carte .tj-h .th:nth-child(2){left:40px;min-width:120px}
+.tj-carte .tj-p,.tj-carte .tj-abs,.tj-carte .tj-n{position:sticky;background:var(--sheet-solid);z-index:1}
+.tj-carte .tj-p{left:0} .tj-carte .tj-abs{left:40px} .tj-carte .tj-n{left:64px;min-width:120px}   /* v101 : colonne des absents figée avec le poste et le nom */
+.tj-carte .tj-h .th:nth-child(-n+3){position:sticky;background:var(--sheet-solid);z-index:2}
+.tj-carte .tj-h .th:first-child{left:0} .tj-carte .tj-h .th:nth-child(2){left:40px} .tj-carte .tj-h .th:nth-child(3){left:64px;min-width:120px}
 /* v93 : illustrations */
 img.blz{object-fit:contain;-webkit-user-drag:none;user-select:none}
 img.blz.g{width:62px;height:62px} img.blz.p{width:26px;height:26px}
@@ -718,6 +731,9 @@ html.desk .cols-at{columns:5 120px}
 .at{display:flex;justify-content:space-between;gap:6px;font-size:.76rem;line-height:1.55;border-bottom:1px dotted var(--line)}
 .at span{color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .at.c span{color:var(--ink);font-weight:700}
+.at.c{background:color-mix(in srgb, var(--accent) 13%, transparent);border-radius:5px;margin:0 -5px;padding:0 5px;border-bottom-color:transparent}   /* v101 : ligne des attributs cibles surlignée */
+.at.r{background:color-mix(in srgb, var(--or, #d4a017) 30%, transparent)}
+.at.r span{color:var(--ink)}
 .at b{font-weight:800;min-width:16px;text-align:right}
 .at b.n4{color:var(--bon)} .at b.n3{color:var(--ink)} .at b.n2{color:var(--moyen)} .at b.n1{color:var(--mauvais)}
 .tete-mg{display:flex;align-items:center;gap:14px}

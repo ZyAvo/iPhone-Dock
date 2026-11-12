@@ -1,4 +1,4 @@
-// mon-ecran-version: 66964c52
+// mon-ecran-version: 4aa6f2a1
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -355,8 +355,10 @@ function valeurCol(j, k, ctx){
 function tableJoueurs(L, ctx){
   const cles = (ctx.cols || (VUES_EFF[ctx.vue] || VUES_DEF[0]).cols).filter(k => COLS[k]), CC = cles.map(k => [k, COLS[k][0], COLS[k][1], COLS[k][2]]);
   const tri = ctx.tri || 'poste', sens = ctx.sens || 1;
-  const rows = L.map(j => ({j, v:Object.fromEntries(cles.map(k => [k, valeurCol(j, k, ctx)]))}));
-  const large = 40 + 34 + 150 + CC.reduce((t, c) => t + c[2] + 4, 0);
+  /* v101 : colonne fixe des absents (croix rouge = blessé, avion = en sélection), triable */
+  const absV = j => j.bless ? 1000 + (j.bless.jours || 0) : j.inter ? 1 : 0;
+  const rows = L.map(j => ({j, v:Object.assign(Object.fromEntries(cles.map(k => [k, valeurCol(j, k, ctx)])), {abs:[absV(j)]})}));
+  const large = 40 + 20 + 34 + 150 + CC.reduce((t, c) => t + c[2] + 4, 0);
   const ord = {P:0, B:1, A:2, G:3};
   /* v95 : tri par composition — titulaires (poursuiveurs, batteurs, attrapeur, gardien), remplaçants R1-R5, réserve, absents */
   const rangSel = j => { const K = ctx.K; if (!K) return 99; let k = 0; for (const p of ['P', 'B', 'A', 'G']){ const i = K[p].indexOf(j.id); if (i >= 0) return k + i; k += K[p].length; }
@@ -364,12 +366,13 @@ function tableJoueurs(L, ctx){
   rows.sort((a, b) => tri === 'sel' ? sens * (rangSel(a.j) - rangSel(b.j)) || (b.v.note ? b.v.note[0] - a.v.note[0] : window.QM.note(b.j) - window.QM.note(a.j)) : tri === 'poste' ? ord[a.j.poste] - ord[b.j.poste] || (b.v.note ? b.v.note[0] - a.v.note[0] : window.QM.note(b.j) - window.QM.note(a.j))
     : tri === 'nom' ? sens * a.j.n.localeCompare(b.j.n, 'fr') : tri === 'age' ? sens * (a.j.age - b.j.age) : tri === 'note' && !b.v.note ? sens * (window.QM.note(b.j) - window.QM.note(a.j)) : sens * ((b.v[tri] || [0])[0] - (a.v[tri] || [0])[0]));
   const th = (k, n, w, t) => `<button class="th ${tri === k ? 'on' : ''}" style="${w ? 'width:' + w + 'px' : ''}" data-act="${ctx.act || 'effTri'}" data-t="${k}"${t ? ` title="${esc(t)}"` : ''}>${n}${tri === k ? (sens > 0 ? ' ▾' : ' ▴') : ''}</button>`;
-  return `<div class="tj" role="table" style="min-width:${large}px"><div class="tj-h" role="row">${th('poste', 'Poste', 40)}${th('nom', 'Joueur')}${th('age', 'Âge', 34)}${CC.map(([k, n, w, t]) => th(k, n, w, t)).join('')}</div>
+  return `<div class="tj" role="table" style="min-width:${large}px"><div class="tj-h" role="row">${th('poste', 'Poste', 40)}${th('abs', '✚', 20, 'Absents : blessés et internationaux')}${th('nom', 'Joueur')}${th('age', 'Âge', 34)}${CC.map(([k, n, w, t]) => th(k, n, w, t)).join('')}</div>
     ${rows.map(({j, v}, i) => { const st = ctx.K ? statut(ctx.K, j.id) : null, U_ = moi();
       const grp = tri === 'sel' && ctx.K ? (r => r < 20 ? 'Titulaires' : r < 40 ? 'Remplaçants' : r < 60 ? 'Réserve' : 'Absents')(rangSel(j)) : null, grpAv = grp && i ? (r => r < 20 ? 'Titulaires' : r < 40 ? 'Remplaçants' : r < 60 ? 'Réserve' : 'Absents')(rangSel(rows[i - 1].j)) : null;
       return `${grp && grp !== grpAv ? `<div class="tj-grp" role="row">${grp}</div>` : ''}<button class="tj-l ${j.bless || j.inter ? 'indispo' : ''}" role="row" data-act="joueur" data-j="${j.id}">
         <span style="width:40px" class="tj-p">${posteB(j.poste)}${st ? `<i class="st ${st[1]}" title="${st[2]}">${st[0]}</i>` : ''}</span>
-        <span class="tj-n">${flag(j.nat)}<b>${j.num != null && ctx.K ? `<span class="num">${j.num}</span>` : ''}${esc(j.p[0])}. ${esc(j.n)}</b>${j.pret ? '<i class="tag">prêt</i>' : ''}${U_ && U_.aVendre.includes(j.id) ? '<i class="tag">vente</i>' : ''}${!ctx.K && U_ && U_.suivi.includes(j.id) ? '<i class="tag or">suivi</i>' : ''}${j.inter ? '<i class="tag">✈︎ sél.</i>' : ''}</span>
+        <span style="width:20px" class="tj-c tj-abs">${j.bless ? `<i class="abs-b" title="Blessé : ${esc(j.bless.nom)}, ${j.bless.jours} j" aria-label="Blessé ${j.bless.jours} jours">✚</i>` : j.inter ? '<i class="abs-i" title="En sélection" aria-label="En sélection">✈︎</i>' : ''}</span>
+        <span class="tj-n">${flag(j.nat)}<b>${j.num != null && ctx.K ? `<span class="num">${j.num}</span>` : ''}${esc(j.p[0])}. ${esc(j.n)}</b>${j.pret ? '<i class="tag">prêt</i>' : ''}${U_ && U_.aVendre.includes(j.id) ? '<i class="tag">vente</i>' : ''}${!ctx.K && U_ && U_.suivi.includes(j.id) ? '<i class="tag or">suivi</i>' : ''}</span>
         <span style="width:34px" class="tj-c">${j.age}</span>
         ${CC.map(([k, , w]) => `<span class="tj-c" style="width:${w}px">${v[k][1]}</span>`).join('')}</button>`; }).join('') || '<p class="mut" style="padding:10px">Personne ici.</p>'}</div>`;
 }
@@ -386,10 +389,10 @@ function vueEffectif(){
   <div class="chips petites">${[['tous', 'Tous'], ['P', 'Pours.'], ['B', 'Batteurs'], ['A', 'Attrap.'], ['G', 'Gardiens'], ['bless', 'Absents']].map(([k, n]) => `<button class="chip ${EFF.poste === k ? 'on' : ''}" data-act="effPoste" data-p="${k}">${n}</button>`).join('')}</div>
   <div class="chips petites tri-eff"><span class="mut petit">Ordre</span>${[['poste', 'Par poste'], ['sel', 'Composition'], ['note', 'Note']].map(([k, n]) => `<button class="chip ${EFF.tri === k ? 'on' : ''}" data-act="effOrdre" data-t="${k}" aria-pressed="${EFF.tri === k}">${n}</button>`).join('')}</div>
   <div class="carte tj-carte">${tableJoueurs(L, {cols:vueEff(EFF.vue).cols, tri:EFF.tri, sens:EFF.sens, K})}</div>
-  <p class="petit mut">T titulaire · R1-R5 remplaçants · – réserve · ✈︎ en sélection. « Composition » range les titulaires, puis les remplaçants, la réserve et les absents. Touche un en-tête pour trier, un joueur pour sa fiche.</p>`;
+  <p class="petit mut">T titulaire · R1-R5 remplaçants · – réserve · <span style="color:var(--mauvais)">✚</span> blessé · ✈︎ en sélection. « Composition » range les titulaires, puis les remplaçants, la réserve et les absents. Touche un en-tête pour trier, un joueur pour sa fiche.</p>`;
 }
 const garderEff = () => LS.ecrire('qm27:effectif', {vue:EFF.vue, tri:EFF.tri, sens:EFF.sens});
-ACT.effVue = d => { EFF.vue = d.v; if (!['poste', 'nom', 'age', 'sel', 'note'].includes(EFF.tri) && !vueEff(d.v).cols.includes(EFF.tri)) EFF.tri = 'poste'; garderEff(); rendre(); };
+ACT.effVue = d => { EFF.vue = d.v; if (!['poste', 'abs', 'nom', 'age', 'sel', 'note'].includes(EFF.tri) && !vueEff(d.v).cols.includes(EFF.tri)) EFF.tri = 'poste'; garderEff(); rendre(); };
 /* roue ⚙︎ : choisir, créer, modifier, ordonner et supprimer ses vues */
 const ecrireVues = L => LS.ecrire('qm27:vuesEff', L);
 function ficheVues(){
