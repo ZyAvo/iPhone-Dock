@@ -1,4 +1,4 @@
-// mon-ecran-version: 65bd9f1c
+// mon-ecran-version: d778fdbe
 /* QM27 (v91, lot 8) — le bureau du manager, sans affichage. Expose window.QMG et complète window.QMC. Chargé après qm27-vestiaire.js.
    Entraînement programmable : programme de la semaine en 5 séances (lundi-vendredi), intensité, ateliers par poste, modèles,
    préparation physique d'avant-saison ; l'adjoint planifie tout seul si on le laisse faire.
@@ -234,14 +234,42 @@ function recordsSaison(M){
 const records = M => { initRecords(M); return G(M).rec; };
 
 /* ================= Missions du recruteur ================= */
-const MAX_MISSIONS = 2;
-function cibles(M, mi){ return mi.type === 'club' ? (club(M, mi.cible) ? club(M, mi.cible).effectif : []) : mi.type === 'ligue' ? M.ligues[mi.cible].clubs.flatMap(id => club(M, id).effectif) : M.libres || []; }
-function lancerMission(M, type, cible){
+const MAX_MISSIONS = 3;
+/* v97 : recherche par profil, sans fin, avec un rapport tous les mois. [nom, filtre, score (sur l'estimation du recruteur)] */
+const est = (M, j) => { const v = Q().note(j), f = root.QMH ? root.QMH.fourchette(M, j, v, 'note', 5) : [v, v]; return (f[0] + f[1]) / 2; };
+const PROFILS = {
+  attrapeur:['Un attrapeur', j => j.poste === 'A', (M, j) => est(M, j)],
+  batteur:['Un batteur de premier plan', j => j.poste === 'B', (M, j) => est(M, j)],
+  buteur:['Un poursuiveur buteur', j => j.poste === 'P', (M, j) => est(M, j) * 0.6 + (Q().at(j, 'tir') + Q().at(j, 'pre')) * 2],
+  gardien:['Un gardien', j => j.poste === 'G', (M, j) => est(M, j)],
+  jeunes:['Les jeunes à fort potentiel', j => j.age <= 20, (M, j) => QMC.potentielEstime(M, j) * 12 + est(M, j) * 0.4],
+  affaires:['Les bonnes affaires', j => j.age <= 31, (M, j) => est(M, j) - 9 * Math.log10(1 + QMC.valeur(M, j) / 40000)],
+  experience:['Un joueur d\'expérience', j => j.age >= 29, (M, j) => est(M, j) + Q().at(j, 'det') * 0.5],
+  contrats:['Les fins de contrat', null, (M, j) => est(M, j)],
+};
+function candidats(M, mi){
+  const U = monClub(M), P = PROFILS[mi.cible]; if (!P) return [];
+  const tous = [...Object.values(M.clubs).filter(c => !U || c.id !== U.id).flatMap(c => c.effectif), ...(M.libres || [])].map(id => M.joueurs[id]).filter(Boolean);
+  return tous.filter(j => (P[1] ? P[1](j) : !j.club || (j.contrat && j.contrat.fin <= M.saison)) && (!mi.budget || QMC.valeur(M, j) <= mi.budget))
+    .map(j => [j, P[2](M, j)]).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+}
+function rapportProfil(M, mi, g){
+  const L = candidats(M, mi).slice(0, 6), P = PROFILS[mi.cible];
+  g.rapports = g.rapports || {}; g.rapports[mi.cible] = {t:tic(M), ids:L.map(j => j.id), budget:mi.budget || 0};
+  const ligne = (j, i) => { const f = root.QMH ? root.QMH.fourchette(M, j, Q().note(j), 'note', 5) : [Q().note(j), Q().note(j)], c = j.club ? club(M, j.club) : null;
+    return `${i + 1}. ${nomJ(j)} — ${D.POSTES[j.poste].nom.toLowerCase()}, ${j.age} ans, ${c ? c.nom : 'libre'} · note ${f[0] === f[1] ? f[0] : f[0] + ' à ' + f[1]} · ${'★'.repeat(QMC.potentielEstime(M, j))} · ${c ? 'valeur ' + QMC.euros(QMC.valeur(M, j)) : 'sans indemnité'}${j.contrat && c ? ` · ${QMC.euros(j.contrat.sal)} / sem. jusqu'en ${j.contrat.fin}` : ''}`; };
+  Q().message(M, `Rapport mensuel du recruteur : ${P[0].toLowerCase()}`, L.length ? `${mi.budget ? `Valeur maximale : ${QMC.euros(mi.budget)}.\n` : ''}${L.map(ligne).join('\n')}\n\nLa liste complète, avec les fiches, est dans Clubs et joueurs › Missions du recruteur.` : 'Personne ne correspond pour l\'instant. Le recruteur continue de chercher.', 'mercato');
+}
+function cibles(M, mi){ return mi.type === 'profil' ? candidats(M, mi).slice(0, 20) : mi.type === 'club' ? (club(M, mi.cible) ? club(M, mi.cible).effectif : []) : mi.type === 'ligue' ? M.ligues[mi.cible].clubs.flatMap(id => club(M, id).effectif) : M.libres || []; }
+function lancerMission(M, type, cible, budget){
   const U = monClub(M); if (!U) return {ok:false, msg:'Il te faut un club.'};
   const g = G(M);
   if (g.missions.some(x => x.type === type && x.cible === cible)) return {ok:false, msg:'Le recruteur y est déjà.'};
   if (g.missions.length >= MAX_MISSIONS) return {ok:false, msg:`Ton recruteur mène déjà ${MAX_MISSIONS} missions : arrêtes-en une.`};
   if (type === 'club' && cible === U.id) return {ok:false, msg:'C\'est ton club.'};
+  if (type === 'profil'){ if (!PROFILS[cible]) return {ok:false, msg:'Profil inconnu.'};
+    g.missions.push({type, cible, debut:tic(M), duree:0, budget:+budget || 0, dernier:tic(M)});
+    return {ok:true, msg:`Le recruteur cherche : ${PROFILS[cible][0].toLowerCase()}. Premier rapport dans 4 semaines.`}; }
   g.missions.push({type, cible, debut:tic(M), duree:type === 'club' ? 4 : 8});
   return {ok:true, msg:type === 'club' ? `Le recruteur part observer ${club(M, cible).nom} pendant 4 semaines.` : type === 'ligue' ? `Le recruteur sillonne la ${M.ligues[cible].nom} pendant 8 semaines.` : 'Le recruteur passe les agents libres au crible.'};
 }
@@ -250,8 +278,9 @@ function missionsSemaine(M){
   const U = monClub(M), g = G(M), H = root.QMH; if (!U || !H) return;
   const rec = (U.staff.recruteur || {note:10}).note, j = eff(M, 'jug');
   for (const mi of g.missions.slice()){
-    const gain = (mi.type === 'club' ? 14 : mi.type === 'ligue' ? 4 : 10) * (0.5 + rec / 20) * (1 + j * 0.04);
-    for (const id of cibles(M, mi)) H.connaitre(M, id, gain);
+    const gain = (mi.type === 'club' ? 14 : mi.type === 'ligue' ? 4 : mi.type === 'profil' ? 9 : 10) * (0.5 + rec / 20) * (1 + j * 0.04);
+    for (const x of cibles(M, mi)) H.connaitre(M, x.id || x, gain);
+    if (mi.type === 'profil'){ if (tic(M) - (mi.dernier ?? mi.debut) >= 4){ mi.dernier = tic(M); rapportProfil(M, mi, g); } continue; }
     if (tic(M) - mi.debut >= mi.duree){
       g.missions.splice(g.missions.indexOf(mi), 1);
       const L = cibles(M, mi).map(id => M.joueurs[id]).filter(x => x && x.club !== U.id).sort((a, b) => (QMC.potentielEstime(M, b) - QMC.potentielEstime(M, a)) || (Q().note(b) - Q().note(a))).slice(0, 5);
@@ -302,6 +331,7 @@ Object.assign(QMC, {
     }
   },
   migrer(M){ const v = M.v || 1; base.migrer(M); initRecords(M); if (M.manager) profil(M);
+    if (M.manager && v < 9) Q().message(M, 'QM27 : nouveau taux des Gallions, recruteur et causeries', 'Le Gallion suit maintenant le canon (environ 5 livres) : 1 Gallion = 17 Mornilles = 493 Noises. Tes finances n\'ont pas changé, seul l\'affichage change : une place vaut 2 ou 3 Gallions, ton budget se compte en centaines de milliers de Gallions. Clubs et joueurs › Recherche par profil : le recruteur cherche un attrapeur, un batteur, des jeunes, des bonnes affaires… et t\'envoie un rapport chaque mois. Dix discours pour les causeries, vitesse ×0,5 et statistiques en direct pendant les matchs.', 'staff');
     if (M.manager && v < 8) Q().message(M, 'QM27 : Gallions, presse et carrières', 'La monnaie des sorciers arrive : Gallions (or), Mornilles (argent) et Noises (bronze). 1 Gallion = 17 Mornilles, 1 Mornille = 29 Noises. Les conférences de presse passent à trois questions, posées par plusieurs médias selon le match et la saison ; chaque réponse a un ton et des effets (groupe, joueur, président, supporters, réputation, relation avec la presse). Les notes ne gonflent plus de saison en saison : les potentiels trop généreux ont été ramenés à un niveau réaliste, et les salaires des stars montent moins vite au-dessus de 75. Les clubs gardent désormais leurs meilleurs joueurs en fin de contrat. Chaque fiche joueur a son historique de carrière (à partir de cette saison).', 'club');
     if (M.manager && v < 7) Q().message(M, 'Nouveautés de QM27 : le domaine et le bureau', 'Accueil Club : une carte du domaine à toucher (vestiaire, stade, tour du directeur, Gringotts, zone technique, Poudlard, salle des trophées). Calendrier par mois et par saison. Entraînement programmable avec ton adjoint. Ton profil de manager (avatar, attributs, contrat). Records du club et du championnat. Le Tournoi des Six Emblèmes se joue désormais pendant le championnat dès la saison prochaine : les internationaux manquent les matchs de leur club.', 'club');
     M.v = Q().VERSION; },
@@ -313,5 +343,5 @@ Object.assign(QMC, {
 if (root.QMH){ const ca = root.QMH.causerie; root.QMH.causerie = (M, X, eq, ton, moment) => { const r = ca(M, X, eq, ton, moment); const p = M.manager && M.manager.profil; if (p){ p.xp.causeries = (p.xp.causeries || 0) + 1; if (r && typeof r.delta === 'number') r.delta = Math.round(r.delta * (1 + eff(M, 'mot') * 0.04) * 100) / 100; } return r; };
   const eh = root.QMH.envoyerHibou; root.QMH.envoyerHibou = (M, o) => { const r = eh(M, o); const p = M.manager && M.manager.profil; if (p && r && r.ok) p.xp.transferts = (p.xp.transferts || 0) + 1; return r; }; }
 root.QMG = {SEANCES, SEANCE, JOURS, ATELIERS, MODELES, plan, programmeDe, programmeAuto, definirSemaine, definirModele, modeAuto, effets, programme, apercu, fatigueTitulaires,
-  ATTR_MGR, profil, repartir, modifierProfil, att, eff, RECORDS, RECORD, records, initRecords, lancerMission, arreterMission, missions:M => G(M).missions, MAX_MISSIONS};
+  ATTR_MGR, profil, repartir, modifierProfil, att, eff, RECORDS, RECORD, records, initRecords, lancerMission, arreterMission, missions:M => G(M).missions, MAX_MISSIONS, PROFILS, candidats, rapports:M => G(M).rapports || {}};
 })(typeof window !== 'undefined' ? window : globalThis);

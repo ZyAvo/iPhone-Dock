@@ -1,4 +1,4 @@
-// mon-ecran-version: e0ade7ea
+// mon-ecran-version: 6ef919b5
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -71,7 +71,10 @@ const ICO = {
   club:'<path d="M12 3 4.5 6v5.5c0 4.4 3.1 8.1 7.5 9.5 4.4-1.4 7.5-5.1 7.5-9.5V6z"/><path d="M8.5 12.5h7M12 9v7"/>',
 };
 function toast(t){ const o = document.querySelector('.toast-qm'); if (o) o.remove(); const d = document.createElement('div'); d.className = 'toast-qm'; d.setAttribute('role', 'status'); d.innerHTML = pieces(esc(t)); document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
-function feuille(html){
+function feuille(html, garder){
+  /* v97 : une feuille redessinée (temps mort, consigne…) garde sa position de défilement au lieu de remonter en haut */
+  const ancien = garder && document.querySelector('.fond .feuille');
+  if (ancien){ const y = ancien.scrollTop; ancien.innerHTML = html; ancien.scrollTop = y; return; }
   retirerFeuille();
   const f = document.createElement('div'); f.className = 'fond'; f.innerHTML = `<div class="feuille" role="dialog" aria-modal="true">${html}</div>`;
   f.addEventListener('click', e => { if (e.target === f) fermerFeuille(); });
@@ -177,6 +180,17 @@ function barre(){
 /* v91 : écrans enregistrés (qm27-ecrans.js en ajoute et en remplace) */
 const VUES = {};
 function rendre(){
+  /* v97 : redessiner le même écran (une consigne, un rôle…) ne doit pas faire remonter la page : on garde la position,
+     et la hauteur le temps que les images se recalent (Safari ramenait la page en haut) */
+  const memeVue = U.vue === rendre.vue, y = scrollY, hMin = memeVue && VUE ? VUE.offsetHeight : 0;
+  if (hMin) VUE.style.minHeight = hMin + 'px';
+  try { rendreVue(); } finally {
+    rendre.vue = U.vue;
+    if (memeVue && U.vue === rendre.vue){ scrollTo(0, y); requestAnimationFrame(() => { scrollTo(0, y); setTimeout(() => { if (VUE) VUE.style.minHeight = ''; }, 120); }); }
+    else if (VUE) VUE.style.minHeight = '';
+  }
+}
+function rendreVue(){
   entete(); barre();
   if (!M || !M.manager) return vueDemarrage();
   const besoinClub = ['vestiaire', 'effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier', 'domaine', 'boutique', 'partenaires', 'trophees', 'direction'];
@@ -753,10 +767,10 @@ function vueAide(){
     <p><b>Points.</b> Un but de poursuiveur vaut ${E.points.but} points, le vif d'or ${E.points.vif} et termine le match. Victoire ${E.points.victoire} points au classement, nul ${E.points.nul}.</p>
     <p><b>Le vif d'or.</b> Il apparaît entre la ${E.vifApparitionMin}e et la ${E.vifApparitionMax}e minute, peut se cacher puis revenir. Plus le temps passe, plus il est facile à attraper. Attention : le prendre quand on est mené de plus de 150 points fait perdre le match. La consigne « Si ça fait gagner » demande à l'attrapeur de le laisser filer dans ce cas.</p>
     <p><b>Dispositions.</b> Dans Tactique, deux phases : avec le souafle (poursuiveurs en triangle, en ligne ou en pointe ; batteurs en escorte ou devant ; zone d'attaque à toucher sur le terrain) et sans le souafle (pressing, zone ou repli ; batteurs en protection ou en harcèlement). Chaque défense craint une zone : le pressing craint l'axe, la zone craint les couloirs, le repli craint les tirs de loin. Désigne aussi ton tireur de penalty (touche un poursuiveur).</p>
-    <p><b>Le match.</b> Une minute de jeu défile en une seconde à vitesse ×1. Deux temps morts par équipe pour changer les consignes et faire entrer des remplaçants : 3 changements libres, plus ceux qui suivent une blessure. Pendant le direct : le match vu du dessus, les autres scores à la radio, les conseils de l'adjoint et, si tu le veux, l'ambiance du stade.</p>
+    <p><b>Le match.</b> Une minute de jeu défile en une seconde à vitesse ×1 (deux secondes à ×0,5). La carte Statistiques suit le match en direct : équipes, tes joueurs (note, actions, fatigue, rendement, moral, charge) et ceux d'en face. Deux temps morts par équipe pour changer les consignes et faire entrer des remplaçants : 3 changements libres, plus ceux qui suivent une blessure. Pendant le direct : le match vu du dessus, les autres scores à la radio, les conseils de l'adjoint et, si tu le veux, l'ambiance du stade.</p>
     <p><b>Les joueurs.</b> 31 attributs de 1 à 20, plus 5 pour les gardiens. La note sur 100 dépend du poste : les attributs cibles (●) comptent triple. La forme, la fatigue et le moral changent chaque semaine.</p>
     <p><b>La composition.</b> 7 titulaires sur le terrain et ${NB_BANC()} remplaçants sur le banc (Tactique). Glisse un joueur du banc sur un titulaire pour les échanger, ou choisis la place de chacun avec le menu du panneau Effectif (titulaire, remplaçant ou réserve). Une place laissée libre est complétée au coup d'envoi.</p>
-    <p><b>Monnaie.</b> Gallions (pièce d'or), Mornilles (argent) et Noises (bronze) : 1 Gallion = 17 Mornilles = 493 Noises. Les gros montants s'affichent en Gallions, les petits en Mornilles et Noises.</p>
+    <p><b>Monnaie.</b> Gallions (pièce d'or), Mornilles (argent) et Noises (bronze) : 1 Gallion = 17 Mornilles, 1 Mornille = 29 Noises, soit 1 Gallion = 493 Noises. Les prix suivent le canon (un Gallion vaut environ 5 livres) : une place coûte 2 ou 3 Gallions, un bon joueur gagne des milliers de Gallions par semaine. Les gros montants s'affichent en Gallions, les petits en Mornilles et Noises.</p>
     <p><b>Presse.</b> Après chaque match, jusqu'à trois questions de médias différents (réglage ci-dessus). Le ton de ta réponse agit sur le moral du groupe ou d'un joueur, le président, les supporters, ta réputation et ta relation avec la presse ; les effets s'affichent après chaque réponse.</p>
     <p><b>Vestiaire.</b> Club › Vestiaire : ambiance (le moral, surtout celui des leaders), clans, joueurs qui veulent jouer plus, et jusqu'à trois binômes de mentorat (un joueur de 26 ans ou plus guide un jeune de 22 ans ou moins). Causeries avant le match et aux temps morts, conférence de presse après (La Gazette du sorcier) ; tout se désactive ici.</p>
     <p><b>Recrutement.</b> Les attributs des joueurs des autres clubs s'affichent en fourchettes tant que ton recruteur ne les connaît pas bien : suis-les, affronte leur équipe. Les offres partent par hibou et la réponse arrive la semaine suivante (contre-offres dans Mercato › Offres ; un autre club peut doubler). Clauses : pourcentage à la revente, clause libératoire, prime au vif d'or. Prêts jusqu'à la fin de la saison, avec ou sans option d'achat.</p>
@@ -1181,8 +1195,8 @@ function causerieHTML(moment){
   if (!X || REG.causeries === false || !HH()) return '';
   const fait = moment === 'avant' ? X.causerieAvant : X.causerieTM === X.tm[X.joueur];
   if (fait) return `<div class="carte caus"><h2>Causerie</h2><p style="margin:0">${esc(fait.txt || X.causerieTxt || '')}</p></div>`;
-  return `<div class="carte caus"><h2>Causerie ${moment === 'avant' ? 'd\'avant-match' : 'du temps mort'}</h2><p class="petit mut" style="margin:0 0 8px">Quel ton prendre avec les joueurs ? Un favori aime le calme, un outsider a besoin d'être encouragé, un groupe solide supporte l'exigence.</p>
-    <div class="seg">${HH().TONS.map(([k, n]) => `<button data-act="causerie" data-m="${moment}" data-t="${k}">${n}</button>`).join('')}</div></div>`;
+  return `<div class="carte caus"><h2>Causerie ${moment === 'avant' ? 'd\'avant-match' : 'du temps mort'}</h2><p class="petit mut" style="margin:0 0 8px">Quel discours ? Ça dépend du rapport de forces, du score et du caractère du groupe.</p>
+    <div class="caus-g">${HH().TONS.map(([k, n, ind]) => `<button data-act="causerie" data-m="${moment}" data-t="${k}"><b>${esc(n)}</b>${ind ? `<span>${esc(ind)}</span>` : ''}</button>`).join('')}</div></div>`;
 }
 function parisHTML(){
   if (!X || X.sixn || !HH() || !HH().etat(M).triche) return '';
@@ -1274,7 +1288,7 @@ function vueMatch(){
     <div class="mini"><span class="vifb ${vifEtat}" id="vifb"><i></i>${vifTxt}</span><span>${D.METEOS[X.meteo].ico} ${D.METEOS[X.meteo].nom}</span></div>
     ${!avant && !fini ? `<div class="ctrl">
       <button data-act="lecture" aria-label="${L.pause ? 'Reprendre' : 'Pause'}">${L.pause ? '▶︎' : '❚❚'}</button>
-      ${[1, 2, 4].map(v => `<button data-act="vitesse" data-v="${v}" class="${REG.vitesse === v ? 'on' : ''}">×${v}</button>`).join('')}
+      ${[0.5, 1, 2, 4].map(v => `<button data-act="vitesse" data-v="${v}" class="${REG.vitesse === v ? 'on' : ''}" aria-label="Vitesse ${String(v).replace('.', ',')}">×${String(v).replace('.', ',')}</button>`).join('')}
       <button data-act="tempsMort" aria-label="Temps mort, ${X.tm[moi]} restant${X.tm[moi] > 1 ? 's' : ''}" ${X.tm[moi] <= 0 ? 'disabled style="opacity:.4"' : ''}>TM ${X.tm[moi]}</button>
       <button data-act="son" aria-label="${REG.son ? 'Couper le son' : 'Activer le son'}" aria-pressed="${!!REG.son}">${REG.son ? '🔊' : '🔈'}</button>
       <button data-act="direct" aria-label="Aller à la fin du match">Fin ⏭</button>
@@ -1283,7 +1297,8 @@ function vueMatch(){
   ${avant ? avantMatchHTML() : ''}
   ${fini ? apresMatchHTML() : ''}
   ${!avant ? `<div class="cols live-cols"><div>${!fini && REG.synthese !== false ? `<div class="carte synth"><h2>Vue du dessus <button data-act="synthese" aria-label="Masquer la vue du dessus">Masquer</button></h2>${terrainLive()}<p class="stl" id="stl">${statsLive()}</p></div>` : !fini ? '<button class="btn sec plein" data-act="synthese" style="margin-bottom:12px">Afficher la vue du dessus</button>' : ''}
-    ${!fini ? '<div class="carte adj" id="adj" hidden></div>' : ''}</div>
+    ${!fini ? '<div class="carte adj" id="adj" hidden></div>' : ''}
+    <div class="carte stm"><h2>Statistiques ${fini ? '' : '<span class="mut petit">en direct</span>'}</h2><div class="seg mini" role="tablist">${[['eq', 'Équipes'], ['moi', 'Mes joueurs'], ['adv', 'Adversaires']].map(([k, n]) => `<button role="tab" data-act="ongletStats" data-o="${k}" class="${(U.ongStats || 'eq') === k ? 'on' : ''}" aria-selected="${(U.ongStats || 'eq') === k}">${n}</button>`).join('')}</div><div id="stm">${statsMatchHTML()}</div></div></div>
     <div>${L.radio && L.radio.length ? `<div class="carte radio"><h2>Radio Sorcière FM <span class="mut petit">${fini ? 'scores à la fin de ton match' : 'les autres matchs'}</span></h2><div class="radio-g" id="radio">${radioHTML()}</div></div>` : ''}</div></div>
   <div class="carte"><h2>${fini ? 'Tout le match' : 'En direct'} ${!fini ? '<span class="badge" id="enjeu"></span>' : ''}</h2><div class="fil" id="fil">${(fini ? X.ev : X.ev.filter(montrer)).slice().reverse().map(evHTML).join('')}</div></div>` : ''}`;
   if (!avant && !fini){ majTerrain([]); majAdjoint(); majEnjeu(); }
@@ -1337,6 +1352,41 @@ function majTerrain(evs){
   const vif = svg.querySelector('#lj-vif');
   if (vif){ if (X.vif >= 0){ const sid = X.e[X.vif].A[0], p = P[sid] || [100, 56]; vif.style.opacity = 1; vif.style.transform = `translate(${p[0]}px,${p[1] - 4}px)`; }
     else if (vifVisible){ vif.style.opacity = 1; vif.style.transform = `translate(${L.vp[0].toFixed(1)}px,${L.vp[1].toFixed(1)}px)`; } else vif.style.opacity = 0; }
+}
+/* v97 : statistiques du match (équipes, nos joueurs avec leur physique, joueurs adverses), mises à jour en direct */
+const ORD_P = {P:0, B:1, A:2, G:3};
+function statsMatchHTML(){
+  if (!X) return '';
+  const o = U.ongStats || 'eq', S = X.stats, moi = X.joueur, adv = 1 - moi, N = QM.notesMatch(X);
+  if (o === 'eq'){
+    const pc = (a, b) => a + b ? [Math.round(a / (a + b) * 100), Math.round(b / (a + b) * 100)] : [50, 50];
+    const prec = k => S[k].tirs ? Math.round(S[k].buts / S[k].tirs * 100) : 0;
+    const fatM = k => { const L = QM.titulaires(X.e[k]); return Math.round(L.reduce((t, id) => t + (X.fat[id] || 0), 0) / (L.length || 1)); };
+    const noteM = k => { const L = Object.entries(N).filter(([id]) => X.perf[id] && X.perf[id].eq === k).map(x => x[1]); return L.length ? L.reduce((a, b) => a + b, 0) / L.length : 0; };
+    const ps = pc(S[0].poss || 0, S[1].poss || 0);
+    /* [libellé, valeur gauche, valeur droite, texte gauche, texte droit, plus haut = mieux ?] */
+    const L = [['Possession', ps[0], ps[1], ps[0] + ' %', ps[1] + ' %', true], ['Tirs', S[0].tirs, S[1].tirs, , , true], ['Buts', S[0].buts, S[1].buts, , , true],
+      ['Précision', prec(0), prec(1), prec(0) + ' %', prec(1) + ' %', true], ['Buts attendus', S[0].xb || 0, S[1].xb || 0, virg(S[0].xb), virg(S[1].xb), true],
+      ['Arrêts', S[0].arrets, S[1].arrets, , , true], ['Cognards réussis', S[0].cog, S[1].cog, , , true], ['Fautes', S[0].fautes, S[1].fautes, , , false],
+      ['Penalties obtenus', S[0].pen, S[1].pen, , , true], ['Note moyenne', noteM(0), noteM(1), virg(noteM(0)), virg(noteM(1)), true],
+      ['Fatigue moyenne', fatM(0), fatM(1), fatM(0) + ' %', fatM(1) + ' %', false], ['Moral', X.moral[0], X.moral[1], nb1(X.moral[0]), nb1(X.moral[1]), true],
+      ['Temps morts', X.tm[0], X.tm[1], , , true], ['Changements', X.rempl[0], X.rempl[1], , , true]];
+    return `<div class="stm-t"><b>${esc(X.e[0].sigle || X.e[0].nom)}</b><span></span><b>${esc(X.e[1].sigle || X.e[1].nom)}</b></div>${L.map(([l, a, b, ta, tb, haut]) => { const t = Math.abs(a) + Math.abs(b) || 1, wa = Math.abs(a) / t * 100, mieux = a === b ? -1 : (a > b) === haut ? 0 : 1;
+      return `<div class="stm-l"><span class="${mieux === 0 ? 'f' : ''}">${ta ?? a}</span><div><em>${l}</em><div class="stm-b"><i style="width:${wa}%" class="${mieux === 0 ? 'f' : ''}"></i><i style="width:${100 - wa}%" class="${mieux === 1 ? 'f' : ''}"></i></div></div><span class="${mieux === 1 ? 'f' : ''}">${tb ?? b}</span></div>`; }).join('')}`;
+  }
+  const k = o === 'moi' ? moi : adv, e = X.e[k], tit = QM.titulaires(e), banc = e.banc || [];
+  const poste = id => ['P', 'B', 'A', 'G'].find(p => e[p].includes(id));
+  const bl = new Set(X.bless.filter(b => b.eq === k).map(b => b.id));
+  const jeu = (id, p) => { const q = X.perf[id] || {}; return p === 'P' ? `${q.b || 0} but${(q.b || 0) > 1 ? 's' : ''} / ${q.t || 0} tir${(q.t || 0) > 1 ? 's' : ''}` : p === 'B' ? `${q.cog || 0} cognard${(q.cog || 0) > 1 ? 's' : ''}` : p === 'G' ? `${q.arr || 0} arrêt${(q.arr || 0) > 1 ? 's' : ''} · ${q.enc || 0} enc.` : (q.vif ? 'vif d\'or !' : X.sonne[k] > 0 ? 'sonné' : '—'); };
+  const ligne = (id, p, surBanc) => { const j = M.joueurs[id]; if (!j) return ''; const q = X.perf[id] || {}, fat = Math.round(X.fat[id] || 0), rend = Math.round(QM.rendement(X, k, id) * 100);
+    const det = o === 'moi' ? `${!surBanc ? `rendement ${rend} % · ` : ''}moral ${j.moral} · forme ${virg(j.forme)} · charge ${Math.round(j.charge || 0)}${q.f ? ` · ${q.f} faute${q.f > 1 ? 's' : ''}` : ''}` : `${!surBanc ? `rendement ${rend} %` : 'remplaçant'}${q.f ? ` · ${q.f} faute${q.f > 1 ? 's' : ''}` : ''}`;
+    return `<div class="stm-j${bl.has(id) ? ' bless' : ''}">${posteB(p)}<div class="t"><b>${esc(court(j))}${bl.has(id) ? ' <span class="badge" style="color:var(--mauvais)">blessé</span>' : ''}</b><span>${det}</span></div>
+      <div class="stm-n">${surBanc || N[id] == null ? '—' : virg(N[id])}</div><div class="stm-a">${surBanc ? '' : jeu(id, p)}</div>
+      <div class="stm-f" title="Fatigue ${fat} %"><div class="barre fat"><i style="width:${fat}%"></i></div><small class="${fat >= 70 ? 'mauvais' : fat >= 50 ? 'moyen' : ''}">${fat} %</small></div></div>`; };
+  const tri = L => L.slice().sort((a, b) => ORD_P[poste(a) || M.joueurs[a].poste] - ORD_P[poste(b) || M.joueurs[b].poste]);
+  return `<div class="stm-h"><span></span><span>Joueur</span><span>Note</span><span>Match</span><span>Fatigue</span></div>${tri(tit).map(id => ligne(id, poste(id), false)).join('')}
+    ${banc.length ? `<h4 class="stm-g">Banc</h4>${banc.map(id => ligne(id, M.joueurs[id] ? M.joueurs[id].poste : 'P', true)).join('')}` : ''}
+    <p class="petit mut" style="margin:8px 0 0">Rendement : ce que le joueur donne en ce moment (fatigue, forme, moral). ${o === 'moi' ? 'Charge : fatigue cumulée des dernières semaines.' : 'Leur moral et leur charge ne se voient pas depuis le banc.'}</p>`;
 }
 function statsLive(){ const S = X.stats; return `Tirs <b>${S[0].tirs}–${S[1].tirs}</b> · Buts attendus <b>${virg(S[0].xb)}–${virg(S[1].xb)}</b> · Cognards <b>${S[0].cog}–${S[1].cog}</b>`; }
 /* radio : les autres matchs de la semaine, simulés d'avance (même graine que plus tard) et dévoilés minute par minute */
@@ -1457,6 +1507,7 @@ function tic(){
   for (const ev of evs){ if (ev.but) Son.clameur(ev.e === X.joueur ? 1 : 0.45); if (ev.k === 'vif_apercu' && ev.vif === 'vu') Son.carillon(); if (/^penalty|^faute_grave/.test(ev.k)) Son.sifflet(false); }
   majTableau(); majTerrain(evs);
   const st = $('#stl'); if (st) st.innerHTML = statsLive();
+  const sm = $('#stm'), now = Date.now(); if (sm && now - (U.live.stmT || 0) > 900){ U.live.stmT = now; sm.innerHTML = statsMatchHTML(); }
   if (X.pas % 4 === 0){ const rd = $('#radio'); if (rd) rd.innerHTML = radioHTML(); majEnjeu(); }
   if (X.pas % 12 === 0) majAdjoint();
   if (X.fini){ clearInterval(U.live.timer); Son.sifflet(true); Son.clameur(X.vif === X.joueur ? 1 : 0.3); setTimeout(() => Son.arreter(), 2500); setTimeout(() => { rendre(); scrollTo({top:0, behavior:'smooth'}); }, 1100); return; }
@@ -1501,7 +1552,7 @@ function rendreTempsMort(){
       : tit.map(([p, id]) => { const j = M.joueurs[id]; return `<button class="el" data-act="sort" data-j="${id}" ${X.rempl[moi] <= 0 ? 'disabled style="opacity:.5"' : ''}>${posteB(p)}<div class="t"><b>${esc(nomJ(j))}</b><span>Fatigue ${Math.round(X.fat[id])} %</span></div></button>`; }).join('')}
     </div></div>
     ${causerieHTML('tm')}
-    <button class="btn plein" style="margin-top:12px" data-act="fermer">Reprendre le match</button>`);
+    <button class="btn plein" style="margin-top:12px" data-act="fermer">Reprendre le match</button>`, true);
 }
 function reprendreApresTM(){ U.live.tm = false; U.live.sortant = null; reprendre(); }
 function finDuMatch(){
@@ -1552,7 +1603,7 @@ const ACT = {
   ligue:d => { U.ligue = d.l; rendre(); },
   semaine:d => ficheSemaine(+d.s),
   jeton:d => ficheJeton(d.slot),
-  causerie:d => { const r = HH().causerie(M, X, X.joueur, d.t, d.m); X.moral[X.joueur] = Math.max(-3, Math.min(3, X.moral[X.joueur] + r.delta)); r.txt = `${({calme:'Calme', exigeant:'Exigeant', encourageant:'Encourageant'})[d.t]} : ${r.txt}`;
+  causerie:d => { const r = HH().causerie(M, X, X.joueur, d.t, d.m); X.moral[X.joueur] = Math.max(-3, Math.min(3, X.moral[X.joueur] + r.delta)); r.txt = `${(HH().TONS.find(t => t[0] === d.t) || [, d.t])[1]} : ${r.txt}`;
     if (d.m === 'avant') X.causerieAvant = r; else { X.causerieTM = X.tm[X.joueur]; X.causerieTxt = r.txt; }
     toast(r.avis === 'bon' ? 'Message reçu 👍' : r.avis === 'mauvais' ? 'Message mal passé 👎' : 'Message entendu');
     if (d.m === 'avant') rendre(); else rendreTempsMort(); },
@@ -1583,9 +1634,10 @@ const ACT = {
   lancer:() => demarrerDirect(),
   lecture:() => { if (!U.live) return; if (U.live.pause) reprendre(); else { U.live.pause = true; clearInterval(U.live.timer); rendreCtrl(); } },
   reprendre,
+  ongletStats:d => { U.ongStats = d.o; document.querySelectorAll('.stm [data-act="ongletStats"]').forEach(b => { b.classList.toggle('on', b.dataset.o === d.o); b.setAttribute('aria-selected', b.dataset.o === d.o); }); const sm = $('#stm'); if (sm) sm.innerHTML = statsMatchHTML(); },
   vitesse:d => { REG.vitesse = +d.v; regler(); document.querySelectorAll('.ctrl [data-act="vitesse"]').forEach(b => b.classList.toggle('on', +b.dataset.v === REG.vitesse)); boucle(); },
   tempsMort:ouvrirTempsMort,
-  direct:() => { if (U.live) clearInterval(U.live.timer); const p = document.querySelector('.pause'); if (p) p.remove(); U.live = Object.assign(U.live || {}, {parti:true, pause:true}); QM.jusquAuBout(X); rendre(); scrollTo(0, 0); },
+  direct:() => { const tq = document.querySelector('.toast-qm'); if (tq) tq.remove(); if (U.live) clearInterval(U.live.timer); const p = document.querySelector('.pause'); if (p) p.remove(); U.live = Object.assign(U.live || {}, {parti:true, pause:true}); QM.jusquAuBout(X); rendre(); scrollTo(0, 0); },
   finMatch:finDuMatch,
   voirDernier:() => { const d = M.dernierMatch; if (!d) return; const s = M.calendrier.findIndex(x => x.matchs.some(m => m.id === d.id)); if (s >= 0) ficheSemaine(s); },
   role:d => ficheRole(d.j, d.p),
@@ -1625,7 +1677,7 @@ const ACT = {
   accepterOffre:d => { const r = C.accepterOffre(M, d.o); toast(r.msg); sauver(); rendre(); },
   refuserOffre:d => { C.refuserOffre(M, d.o); sauver(); rendre(); },
   ent:d => { const E = club(M.manager.club).entrainement; E[d.g][d.k] = d.k === 'i' ? +d.v : d.v; sauver(); rendre(); },
-  prix:d => { const c = club(M.manager.club); C.reglerPrix(M, c.prix + (+d.d) * 1000 / 493); sauver(); rendre(); },
+  prix:d => { const c = club(M.manager.club), mo = C.UNITES_GALLION / 17; C.reglerPrix(M, c.prix + (+d.d) * 3 * mo); sauver(); rendre(); },   // v97 : ±3 Mornilles
   balais:d => { const b = D.BALAIS.find(x => x.id === d.b); if (!confirm(`Acheter un jeu de ${b.nom} pour ${eurT(b.prix * 1000)} ?`)) return; const r = C.acheterBalais(M, d.b); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
   ficheStaff:d => ficheStaff(d.r),
   embaucher:d => { const r = C.embaucher(M, d.s); toast(r.msg); if (r.ok){ retirerFeuille(); sauver(); rendre(); } },

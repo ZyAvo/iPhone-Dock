@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="663dfc3b">
+<meta name="mon-ecran-version" content="3c60a8d4">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -259,7 +259,7 @@ nav.qm-nav button.on{color:var(--accent)}
 .emp{display:flex;align-items:center;gap:12px}
 .champ{width:100%;min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--card-2);padding:0 12px;font-size:1rem}
 .etoiles{color:var(--or);letter-spacing:1px;font-size:.78rem}
-.toast-qm{position:fixed;left:50%;top:calc(env(safe-area-inset-top, 0px) + 62px);transform:translateX(-50%);z-index:40;background:var(--accent);color:var(--on-accent);
+.toast-qm{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom, 0px) + 92px);transform:translateX(-50%);z-index:40;background:var(--accent);color:var(--on-accent);
   padding:9px 16px;border-radius:999px;font-weight:650;font-size:.85rem;box-shadow:0 10px 26px -10px rgba(0,0,0,.5);animation:fondu .2s;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
 .aide p{margin:0 0 8px}
 .aide h3{margin:12px 0 4px;font-size:.95rem}
@@ -543,6 +543,23 @@ i.fit.moyen{background:var(--moyen)}i.fit.faible{background:var(--mauvais)}
 .an li{font-size:.84rem;padding-left:20px;position:relative}
 .an li::before{position:absolute;left:0;top:0;font-weight:700}
 .an li.bon::before{content:'✓';color:var(--bon)}.an li.mauvais::before{content:'✗';color:var(--mauvais)}.an li.info::before{content:'·';color:var(--ink-soft)}
+/* v97 : statistiques du match */
+.stm .seg.mini{margin-bottom:8px}
+.stm-t{display:grid;grid-template-columns:1fr auto 1fr;font-size:.76rem;margin-bottom:4px}.stm-t b:last-child{text-align:right}
+.stm-l{display:grid;grid-template-columns:44px 1fr 44px;gap:8px;align-items:center;padding:3px 0;font-size:.8rem;font-variant-numeric:tabular-nums}
+.stm-l>span:last-child{text-align:right}.stm-l>span.f{font-weight:700}
+.stm-l em{display:block;font-style:normal;text-align:center;font-size:.7rem;color:var(--ink-soft);margin-bottom:2px}
+.stm-b{display:flex;gap:2px;height:5px}.stm-b i{display:block;height:100%;border-radius:3px;background:rgba(127,127,127,.28)}.stm-b i.f{background:var(--accent)}
+.stm-h,.stm-j{display:grid;grid-template-columns:24px minmax(0,1fr) 30px 74px 58px;gap:6px;align-items:center}
+.stm-h{font-size:.64rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);padding:0 0 4px;border-bottom:1px solid var(--line)}
+.stm-j{padding:5px 0;border-bottom:1px solid var(--line);font-size:.8rem}.stm-j.bless{opacity:.6}
+.stm-j .t{min-width:0}.stm-j .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.82rem}.stm-j .t span{display:block;font-size:.68rem;line-height:1.25;color:var(--ink-soft)}
+.stm-n{font-weight:700;text-align:center;font-variant-numeric:tabular-nums}.stm-a{font-size:.7rem;color:var(--ink-soft);line-height:1.2}
+.stm-f .barre{height:5px}.stm-f small{font-size:.66rem;font-variant-numeric:tabular-nums}
+.stm-g{margin:10px 0 2px;font-size:.66rem;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint)}
+.caus-g{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.caus-g button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;padding:7px 9px;border-radius:10px;border:1px solid var(--line);background:var(--card-2);color:var(--ink);min-height:44px}
+.caus-g button b{font-size:.82rem}.caus-g button span{font-size:.68rem;color:var(--ink-soft);line-height:1.2}
 /* v90 : vestiaire et mercato */
 .at.flou b{font-weight:700;font-size:.72rem}
 .note.flou{font-size:.66rem;min-width:46px}

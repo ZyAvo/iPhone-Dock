@@ -1,4 +1,4 @@
-// mon-ecran-version: b777efac
+// mon-ecran-version: 464e2846
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -7,7 +7,7 @@
 'use strict';
 const D = root.QMD;
 const EQ = D.EQ;
-const VERSION = 8;   // v94 : potentiels plafonnés (fin de l'inflation des notes), historique de carrière (j.carr) ; v7   // v91 : tournoi pendant le championnat (j.inter), programme d'entraînement, profil du manager, records (qm27-bureau.js) ; v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty ; v90 : vestiaire et mercato (qm27-vestiaire.js)   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
+const VERSION = 9;   // v94 : potentiels plafonnés (fin de l'inflation des notes), historique de carrière (j.carr) ; v7   // v91 : tournoi pendant le championnat (j.inter), programme d'entraînement, profil du manager, records (qm27-bureau.js) ; v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty ; v90 : vestiaire et mercato (qm27-vestiaire.js)   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
 const C = () => root.QMC;   // gestion du club (qm27-club.js), facultative pour le moteur
 
 /* ---------- Hasard à graine (mulberry32) ---------- */
@@ -344,6 +344,7 @@ function pas(X){
   if (X.fini) return [];
   X.evNouv = [];
   const r = X.r, a = X.poss, d = 1 - a, Fa = forces(X, a), Fd = forces(X, d), Ta = Fa.T, Td = Fd.T, met = X.meteo;
+  X.stats[a].poss = (X.stats[a].poss || 0) + 1;   // v97 : possession (pas joués avec le souafle)
   const e = X.e;
   X.t += EQ.pas; X.pas++;
   for (const k of [0, 1]){ if (X.sonne[k] > 0) X.sonne[k]--; if (X.gSonne[k] > 0) X.gSonne[k]--; }
@@ -367,7 +368,7 @@ function pas(X){
   }
   /* 2. faute */
   if (r() < P.pFaute){
-    const fautif = r.choix([...e[d].P, ...e[d].B]); X.stats[d].fautes++;
+    const fautif = r.choix([...e[d].P, ...e[d].B]); X.stats[d].fautes++; if (X.perf[fautif]) X.perf[fautif].f = (X.perf[fautif].f || 0) + 1;   // v97 : fautes par joueur
     const grave = r() < EQ.fauteGrave;
     dire(X, grave ? 'faute_grave' : 'faute', d, {j:nomJ(J(X, fautif))}, grave);
     const ti = e[a].pen && e[a].P.includes(e[a].pen) && J(X, e[a].pen) ? e[a].pen : tireur(X, a), T = qualiteTir(X, a, ti), G = Fd.G;   // v89 : tireur désigné
@@ -747,6 +748,6 @@ root.QM = {chargeFacteur, plancherFatigue, matchsDuJoueur, convoquer, convoques,
            semaine, matchDuJoueur, preparerMatch, simulerMatch, creerMatch, equipeClub, selection, pas, jusquAuBout, tempsMort, remplacer, resume, notesMatch,
            terminerSemaine, saisonSuivante, classement, objectif, serialiser, charger, nomJ, message, attente,
            manies, aManie, maniesPour, sansDe, CONTRE, completerTactique,
-           forces, equipesPour, grainePour, campPour, meteoPour, probas, multFatigue, poidsTireurs, qualiteTir, nbRole, role:(X, eq, id) => role(X, eq, id),   // v96 : analyse tactique (qm27-tactique.js)
+           rendement:(X, eq, id) => f(X, eq, id), forces, equipesPour, grainePour, campPour, meteoPour, probas, multFatigue, poidsTireurs, qualiteTir, nbRole, role:(X, eq, id) => role(X, eq, id),   // v96 : analyse tactique (qm27-tactique.js)
            meteoPrevue:(M, m, S) => meteoPour(hasard(grainePour(M, m)), S.date)};   // v88 : boule de cristal
 })(typeof window !== 'undefined' ? window : globalThis);

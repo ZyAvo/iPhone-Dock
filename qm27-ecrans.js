@@ -1,4 +1,4 @@
-// mon-ecran-version: 9c92542d
+// mon-ecran-version: 04212f18
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -425,11 +425,29 @@ function vueClubs(){
   const M_ = M(), l = U.clubsL || (M_.manager.club ? moi().ligue : 'bi'), L = M_.ligues[l], CL = window.QM.classement(M_, l), Gm = G();
   const mis = Gm ? Gm.missions(M_) : [];
   VUE.innerHTML = `<div><h1 class="grand">Clubs et joueurs</h1><p class="sous">48 clubs · tous les effectifs. Les notes des autres clubs sont des estimations tant que ton recruteur ne connaît pas bien les joueurs.</p></div>
-  ${mis.length ? `<div class="carte"><h2>Missions du recruteur <span class="mut">${mis.length} / ${Gm.MAX_MISSIONS}</span></h2><div class="liste">${mis.map((m, i) => `<div class="el">${m.type === 'club' ? blason(m.cible, 'p') : '<span class="blason nat p">🔭</span>'}<div class="t"><b>${m.type === 'club' ? esc(club(m.cible).nom) : m.type === 'ligue' ? esc(M_.ligues[m.cible].nom) : 'Agents libres'}</b><span>encore ${plur(Math.max(0, m.duree - ((M_.tic || 0) - m.debut)), 'semaine')} · rapport à la fin</span></div><button class="btn sec" data-act="finMission" data-i="${i}">Arrêter</button></div>`).join('')}</div></div>` : ''}
+  ${mis.length ? `<div class="carte"><h2>Missions du recruteur <span class="mut">${mis.length} / ${Gm.MAX_MISSIONS}</span></h2><div class="liste">${mis.map((m, i) => { const pro = m.type === 'profil', P = pro && Gm.PROFILS[m.cible];
+    return `<div class="el">${m.type === 'club' ? blason(m.cible, 'p') : `<span class="blason nat p">${pro ? '🎯' : '🔭'}</span>`}<div class="t"><b>${m.type === 'club' ? esc(club(m.cible).nom) : m.type === 'ligue' ? esc(M_.ligues[m.cible].nom) : pro ? esc(P ? P[0] : m.cible) : 'Agents libres'}</b><span>${pro ? `rapport tous les mois, prochain dans ${plur(Math.max(1, 4 - ((M_.tic || 0) - (m.dernier ?? m.debut))), 'semaine')}${m.budget ? ' · valeur ≤ ' + eur(m.budget) : ''}` : `encore ${plur(Math.max(0, m.duree - ((M_.tic || 0) - m.debut)), 'semaine')} · rapport à la fin`}</span></div><button class="btn sec" data-act="finMission" data-i="${i}">Arrêter</button></div>`; }).join('')}</div>
+    ${rapportsHTML(M_, Gm)}</div>` : ''}
+  ${M_.manager.club && Gm ? rechercheHTML(M_, Gm) : ''}
   <div class="seg">${Object.values(M_.ligues).map(x => `<button data-act="clubsL" data-l="${x.id}" class="${x.id === l ? 'on' : ''}">${esc(x.court)}</button>`).join('')}</div>
   <div class="carte"><div class="liste">${CL.map((r, i) => { const c = club(r.id);
     return `<button class="el" data-act="ficheClub" data-c="${c.id}">${blason(c.id)}<div class="t"><b>${i + 1}. ${esc(c.nom)}${c.id === M_.manager.club ? ' <span class="badge tit">toi</span>' : ''}</b><span>${flag(c.nat)} ${esc(c.ville)} · ${r.pts} pts · ${plur(c.effectif.length, 'joueur')}</span></div><div class="d">${etoiles(c.rep)}</div></button>`; }).join('')}</div></div>
   ${M_.manager.club ? `<button class="btn sec plein" data-act="mission" data-t="ligue" data-c="${l}">Envoyer le recruteur sur la ${esc(L.court)} (8 semaines)</button><div style="height:8px"></div><button class="btn sec plein" data-act="mission" data-t="libres" data-c="libres">Passer les agents libres au crible (8 semaines)</button>` : ''}`;
+}
+/* v97 : recherche par profil (mission sans fin, rapport mensuel) */
+function rechercheHTML(M_, Gm){
+  const Pk = U.profilRech || 'attrapeur', bud = U.budgetRech || 0;
+  return `<div class="carte"><h2>Recherche par profil <span class="mut petit">rapport chaque mois</span></h2>
+    <div class="chips petites" style="flex-wrap:wrap;overflow:visible">${Object.entries(Gm.PROFILS).map(([k, P]) => `<button class="chip ${Pk === k ? 'on' : ''}" data-act="profilRech" data-p="${k}" aria-pressed="${Pk === k}">${esc(P[0])}</button>`).join('')}</div>
+    <label class="ligne" style="gap:8px;margin:8px 0"><span class="petit" style="flex:1">Valeur maximale</span><select data-chg="budgetRech" aria-label="Valeur maximale">${[0, 50000, 150000, 400000, 1000000, 2500000].map(v => `<option value="${v}" ${bud === v ? 'selected' : ''}>${v ? eurT(v) : 'Sans limite'}</option>`).join('')}</select></label>
+    <button class="btn plein" data-act="mission" data-t="profil" data-c="${Pk}" data-b="${bud}">Lancer la recherche</button>
+    <p class="petit mut" style="margin:8px 0 0">Le recruteur fouille les 48 clubs et les agents libres, affine ce qu'il sait des meilleurs candidats chaque semaine et t'envoie les six premiers tous les mois. Plus il est bon, plus ses notes sont justes.</p></div>`;
+}
+function rapportsHTML(M_, Gm){
+  const R = Gm.rapports(M_), cles = Object.keys(R).filter(k => Gm.missions(M_).some(m => m.type === 'profil' && m.cible === k)); if (!cles.length) return '';
+  return cles.map(k => { const r = R[k], P = Gm.PROFILS[k];
+    return `<h4 class="stm-g" style="margin-top:12px">Dernier rapport · ${esc(P[0])}</h4><div class="liste">${r.ids.map(id => M_.joueurs[id]).filter(Boolean).map(j => { const c = j.club ? club(j.club) : null;
+      return `<button class="el" data-act="joueur" data-j="${j.id}">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}</b><span>${j.age} ans · ${c ? esc(c.nom) + ' · valeur ' + eur(window.QMC.valeur(M_, j)) : 'agent libre, sans indemnité'}</span></div><span class="d mut">›</span></button>`; }).join('')}</div>`; }).join('');
 }
 const FC = {vue:'scout', tri:'poste', sens:1};
 function vueClubFiche(){
@@ -449,7 +467,8 @@ ACT.ficheClub = d => { U.clubVu = d.c; retirerFeuille(); if (Z.U.vue === 'clubFi
 ACT.clubsL = d => { U.clubsL = d.l; rendre(); };
 ACT.fcVue = d => { FC.vue = d.v; if (!['poste', 'nom', 'age'].includes(FC.tri)) FC.tri = 'poste'; rendre(); };
 ACT.fcTri = d => { if (FC.tri === d.t) FC.sens = -FC.sens; else { FC.tri = d.t; FC.sens = 1; } rendre(); };
-ACT.mission = d => { const r = G().lancerMission(M(), d.t, d.c); toast(r.msg); if (r.ok){ sauver(); rendre(); } };
+ACT.profilRech = d => { U.profilRech = d.p; rendre(); };
+ACT.mission = d => { const r = G().lancerMission(M(), d.t, d.c, d.b); toast(r.msg); if (r.ok){ sauver(); rendre(); } };
 ACT.finMission = d => { G().arreterMission(M(), +d.i); sauver(); rendre(); };
 ACT.suivreClub = d => { const U_ = moi(), c = club(d.c); let n = 0; for (const id of c.effectif) if (!U_.suivi.includes(id)){ U_.suivi.push(id); n++; } sauver(); toast(n ? `${plur(n, 'joueur')} ajouté${n > 1 ? 's' : ''} à ta liste de suivi` : 'Déjà tous suivis'); rendre(); };
 
@@ -590,6 +609,7 @@ ACT.planAuto = d => { G().modeAuto(M(), d.v === '1'); sauver(); rendre(); };
 document.addEventListener('change', e => { const t = e.target;
   if (t.dataset.chg === 'seance' && PROG){ PROG.p.jours[+t.dataset.i] = t.value; PROG.p.nom = 'Programme perso'; ficheProg(); }
   if (t.dataset.chg === 'atelier' && PROG){ PROG.p.ateliers[t.dataset.p] = t.value; ficheProg(); }
+  if (t.dataset.chg === 'budgetRech'){ U.budgetRech = +t.value; rendre(); }
 });
 
 /* ============================== v92 : menu de tous les écrans (barre à gauche sur grand écran, tiroir ☰ sur téléphone) ============================== */

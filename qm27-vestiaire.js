@@ -1,4 +1,4 @@
-// mon-ecran-version: 43915239
+// mon-ecran-version: b4b1fce0
 /* QM27 (v90, lot 7) — vestiaire et mercato, sans affichage. Expose window.QMH et complète window.QMC. Chargé après qm27-domaine.js.
    Vestiaire : ambiance, leaders, clans, mentorat, causeries, presse (La Gazette du sorcier).
    Mercato : attributs connus selon le travail du recruteur, offres par hibou (réponse la semaine suivante, contre-offres, clubs qui doublent),
@@ -99,7 +99,12 @@ function vestiaireSemaine(M, S, r){
 }
 
 /* ---------- Causeries ---------- */
-const TONS = [['calme', 'Calme'], ['exigeant', 'Exigeant'], ['encourageant', 'Encourageant']];
+/* v97 : dix discours. [clé, nom, quand ça marche (indice affiché)] */
+const TONS = [['calme', 'Calme', 'Rassure un favori, tient un score'], ['encourageant', 'Encourageant', 'Porte un outsider, une équipe menée de peu'],
+  ['exigeant', 'Exigeant', 'Pour un groupe de caractère'], ['defi', 'Défi', 'Favori qui doit écraser, avance à creuser'],
+  ['respect', 'Respect de l\'adversaire', 'Évite l\'excès de confiance d\'un favori'], ['consignes', 'Rappel des consignes', 'Sans risque, effet modeste'],
+  ['supporters', 'Pour les supporters', 'Surtout à domicile'], ['humour', 'Humour', 'Détend un groupe sous pression'],
+  ['colere', 'Coup de gueule', 'Quitte ou double quand on est largement mené'], ['silence', 'Ne rien dire', 'Aucun effet']];
 const REACTIONS = {bon:['Les joueurs hochent la tête, concentrés.', 'Un murmure d\'approbation parcourt le vestiaire.', 'Les regards s\'allument : le message est passé.'],
   neutre:['Les joueurs écoutent poliment.', 'Quelques hochements de tête, sans plus.'],
   mauvais:['Silence gêné. Le message est mal passé.', 'Certains lèvent les yeux au ciel.', 'Le capitaine fronce les sourcils : trop, c\'est trop.']};
@@ -110,15 +115,29 @@ function causerie(M, X, eq, ton, moment){
   const F = [0, 1].map(k => { const t = Q().titulaires(X.e[k]).map(id => M.joueurs[id]).filter(Boolean); return t.reduce((s, j) => s + n20(j), 0) / (t.length || 1); });
   const favori = F[eq] - F[1 - eq], d = X.score[eq] - X.score[1 - eq];
   let v = 0;
+  const dom = X.domicile !== false && eq === 0;
   if (moment === 'avant'){
     if (ton === 'calme') v = favori > 0.4 ? 0.6 : 0.15;
     if (ton === 'encourageant') v = favori < -0.4 ? 0.7 : 0.25;
     if (ton === 'exigeant') v = caractere >= 11 ? (favori > 0.4 ? 0.45 : 0.3) : -0.4;
+    if (ton === 'defi') v = favori > 0.4 ? (caractere >= 11 ? 0.6 : 0.3) : favori < -0.4 ? -0.3 : 0.1;
+    if (ton === 'respect') v = favori > 0.8 ? 0.5 : favori > 0.4 ? 0.35 : 0.1;
+    if (ton === 'consignes') v = 0.25;
+    if (ton === 'supporters') v = dom ? 0.45 : 0.1;
+    if (ton === 'humour') v = favori < -0.8 ? 0.4 : caractere >= 14 ? 0.05 : 0.15;
+    if (ton === 'colere') v = -0.5;
   } else {
     if (ton === 'calme') v = d > 60 ? 0.5 : d < -100 ? -0.2 : 0.2;
     if (ton === 'encourageant') v = d < 0 && d > -150 ? 0.6 : 0.2;
     if (ton === 'exigeant') v = d < -60 ? (caractere >= 11 ? 0.7 : -0.3) : d > 60 ? -0.4 : 0.2;
+    if (ton === 'defi') v = d > 0 && d < 80 ? 0.5 : d < -150 ? -0.3 : 0.15;
+    if (ton === 'respect') v = d > 150 ? 0.45 : 0.05;
+    if (ton === 'consignes') v = 0.3;
+    if (ton === 'supporters') v = dom ? (d < 0 ? 0.5 : 0.3) : 0.1;
+    if (ton === 'humour') v = d < -150 ? 0.35 : d > 100 ? 0.3 : 0.1;
+    if (ton === 'colere') v = d < -100 ? (caractere >= 12 ? 0.9 : -0.6) : -0.7;
   }
+  if (ton === 'silence') return {delta:0, avis:'neutre', txt:'Tu laisses les joueurs à leurs pensées.'};
   const U = club(M, e.id); if (U && root.QMB && root.QMB.a(U, 'tableau')) v *= 1.15;   // tableau noir enchanté
   const avis = v >= 0.4 ? 'bon' : v <= 0 ? 'mauvais' : 'neutre', R = REACTIONS[avis];
   return {delta:Math.round(v * 100) / 100, avis, txt:R[Math.abs(Q().melange(X.t, ton, eq)) % R.length]};

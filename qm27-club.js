@@ -1,4 +1,4 @@
-// mon-ecran-version: f34095f4
+// mon-ecran-version: d69b51b5
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -11,13 +11,15 @@ const borne = (x, a, b) => Math.max(a, Math.min(b, x));
 const arrondi = (x, pas) => Math.round(x / pas) * pas;
 const n20 = j => Q().note20(j, j.poste);
 const nomJ = j => j ? `${j.p} ${j.n}` : '?';
-/* v94 : monnaie des sorciers. Les montants internes ne changent pas ; à l'affichage, 1 Gallion (G) = 1 000 unités internes,
-   1 Gallion = 17 Mornilles (M), 1 Mornille = 29 Noises (N). Deux pièces au plus : « 4 510 G », « 14 G 4 M », « 11 M 6 N », « 6 N ». L'interface remplace les lettres par des pièces. */
-const GAL = 17 * 29, milliers = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
+/* Monnaie des sorciers (v94, taux revu en v97). Les montants internes restent ceux du moteur (budgets, salaires, prix…),
+   convertis au taux du canon (un Gallion vaut environ 5 livres) : 1 Gallion = UNITES_GALLION = 5 unités internes.
+   1 Gallion = 17 Mornilles (M), 1 Mornille = 29 Noises (N), soit 1 Gallion = 493 Noises.
+   Affichage : deux pièces au plus (« 2 G 6 M », « 11 M 6 N ») ; à partir de 100 Gallions, Gallions seuls (« 900 000 G »). L'interface remplace les lettres par des pièces. */
+const UNITES_GALLION = 5, GAL = 17 * 29, milliers = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
 const euros = x => {
   const s = x < 0 ? '−' : '', a = Math.abs(x);
-  if (a >= 100000) return `${s}${milliers(Math.round(a / 1000))} G`;
-  const n = Math.round(a * GAL / 1000), g = Math.floor(n / GAL), m = Math.floor(n % GAL / 29), no = n % 29;
+  if (a >= 100 * UNITES_GALLION) return `${s}${milliers(Math.round(a / UNITES_GALLION))} G`;
+  const n = Math.round(a * GAL / UNITES_GALLION), g = Math.floor(n / GAL), m = Math.floor(n % GAL / 29), no = n % 29;
   if (g) return `${s}${g} G${m ? ' ' + m + ' M' : ''}`;
   if (m) return `${s}${m} M${no ? ' ' + no + ' N' : ''}`;
   return `${s}${no} N`;
@@ -424,7 +426,7 @@ function acheterBalais(M, bid){
   compter(U, 'dep', 'balais', cout); U.balai = b.id; U.usure = 100;
   return {ok:true, msg:`Nouveaux balais : ${b.nom}`};
 }
-function reglerPrix(M, prix){ const U = club(M, M.manager.club); U.prix = borne(Math.round(prix * GAL / 1000), 2, 29) * 1000 / GAL; /* v94 : le prix se règle à la Noise près (2 à 29 Noises) */ return U.prix; }
+function reglerPrix(M, prix){ const U = club(M, M.manager.club), mo = UNITES_GALLION / 17; U.prix = borne(Math.round(prix / mo), Math.ceil(4 / mo), Math.floor(60 / mo)) * mo; /* v97 : à la Mornille près, de 4 à 60 unités (14 Mornilles à 12 Gallions) */ return U.prix; }
 
 /* ---------- Semaine et saison ---------- */
 function semaine(M, S){
@@ -511,5 +513,5 @@ function potentielEstime(M, j){
 
 root.QMC = {noterCarriere, niv, multInst, entretienInst, compter, finVide, creerStaff, numLibre, transfert, libererJoueur, reparerCompo, progression, completerClub, besoin, initMonde, migrer, semaine, avantSaison, apresSaison, nouveauJoueur, dureeBlessure, salaireDemande, valeur, masse, masseMax, prixRef, remplissage, euros,
             mercatoOuvert, prochaineFenetre, proposerTransfert, accepterOffre, refuserOffre, mettreEnVente, suivre, liberer, coutLiberation, prolonger, embaucher,
-            acheterBalais, reglerPrix, potentielEstime, prixClub, exigenceJoueur, NOMS_REC, NOMS_DEP, ENT_DEFAUT, revenusSaison};
+            UNITES_GALLION, acheterBalais, reglerPrix, potentielEstime, prixClub, exigenceJoueur, NOMS_REC, NOMS_DEP, ENT_DEFAUT, revenusSaison};
 })(typeof window !== 'undefined' ? window : globalThis);

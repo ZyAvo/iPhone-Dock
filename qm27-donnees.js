@@ -1,4 +1,4 @@
-// mon-ecran-version: 2232189f
+// mon-ecran-version: 6a639959
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -235,7 +235,7 @@ const BATIMENTS = [
     [['brumes', 'Vents et brumes artificiels', 'La météo gêne deux fois moins ton équipe.'], ['vifs', 'Volière à vifs d\'or d\'exercice', 'Attrapeurs : +20 % de progression.']]],
   ['hangar', 'Hangar à balais', 'hangar', 'Balais mieux entretenus : vitesse et maniabilité (+0,3 par niveau au-dessus de 2).', 'balais',
     [['etabli', 'Établi d\'artisan', 'Balais neufs 25 % moins chers.'], ['vernis', 'Vernis anti-usure', 'Les balais s\'usent deux fois moins vite.']],
-    [['fabricant', 'Contrat avec un fabricant', '80 Gallions de sponsoring par saison.'], ['prototype', 'Prototype maison', 'Un balai unique : +1 partout.']]],
+    [['fabricant', 'Contrat avec un fabricant', '16 000 Gallions de sponsoring par saison.'], ['prototype', 'Prototype maison', 'Un balai unique : +1 partout.']]],
   ['salle', 'Salle commune', 'salle', 'Vestiaires : la cohésion monte plus vite (+0,25 par semaine et par niveau au-dessus de 2).', 'tactique',
     [['cheminee', 'Cheminée et fauteuils', 'Le moral baisse moins après une défaite.'], ['tableau', 'Tableau noir enchanté', 'Cohésion +0,5 par semaine.']],
     [['portraits', 'Portraits des légendes du club', 'Moral de l\'équipe en hausse à domicile.'], ['jeunes', 'Coin des jeunes', 'Les moins de 22 ans progressent 10 % plus vite.']]],
@@ -265,7 +265,7 @@ const MANIES = [
   ['relance', 'Relance vite', 'G', 'Après un arrêt, son équipe garde mieux le souafle.', ['vis', 'pas']],
   ['tete', 'Tête brûlée', 'PBAG', 'Commet plus de fautes en défense, mais ne lâche rien.', ['agr', 'cou']],
 ];
-/* v88 : produits du Bazar : [clé, nom, attrait, prix unitaire de base (unités internes : 1 000 = 1 Gallion), amélioration qui le débloque] */
+/* v88 : produits du Bazar : [clé, nom, attrait, prix unitaire de base (unités internes : 5 = 1 Gallion), amélioration qui le débloque] */
 const PRODUITS = [
   ['echarpe', 'Écharpes aux couleurs du club', 1, 15, null], ['maillot', 'Maillots officiels', 1.3, 60, null], ['peluche', 'Vifs d\'or en peluche', 0.9, 18, null],
   ['balai', 'Balais miniatures', 0.8, 25, null], ['chapeau', 'Chapeaux pointus', 0.7, 20, null], ['fanion', 'Fanions et drapeaux', 0.6, 8, null],
