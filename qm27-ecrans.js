@@ -1,4 +1,4 @@
-// mon-ecran-version: 4863207f
+// mon-ecran-version: add461f9
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -147,30 +147,34 @@ document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === 
    Chaque objet ouvre un sous-menu ; au survol (souris) ou au toucher, il s'anime (CSS : .sc-<anim>) avant d'ouvrir.
    Tant que l'image de fond n'est pas déposée, l'écran garde ses cartes (SC_OK[lieu] = false) : rien ne casse.
    Objet : {id, img, x, y, w (centre et largeur en % du fond), anim, nom, act, calques:[[img, classe]], si:(M, c) => bool} */
-/* positions calées sur bureau-fond (1024 × 1536) ; calques en % de l'objet (cachet : pointe du rabat de l'enveloppe ; demi-cachets : même
-   centre, cadre plus large car la planche les montre écartés) */
+/* v119 : le bureau du président, méthode des retouches (images A à D de ChatGPT) ; zones en pixels de A (1024 × 1536) */
+const LETTRE = [190, 800, 448, 902], reunionDe = M_ => G() && G().reunion(M_);
 const SCENES = {
-  direction:{fond:'scenes/bureau-fond', ratio:1536 / 1024, objets:[
-    {id:'choixpeau', img:'scenes/bureau-choixpeau', calques:[['scenes/bureau-choixpeau-ouvert', 'bouche']], x:15.5, y:7.9, w:21, plaque:'g', anim:'parle', nom:'Confiance du président', act:'scConfiance'},
-    {id:'portrait', portrait:true, cadre:'scenes/bureau-cadre', x:69.8, y:16, w:17, anim:'respire', nom:'Mon contrat, mon profil', act:'scPortrait'},
-    {id:'echarpe', img:'scenes/bureau-echarpe', x:91.8, y:40, w:15, plaque:'d', anim:'ondule', nom:'Supporters', act:'scSupporters', club:true},
-    {id:'gazette', img:'scenes/bureau-gazette', calques:[['scenes/bureau-page', 'page', 'left:48%;top:-28%;width:52%']], x:68.4, y:60.9, w:22, anim:'feuillette', nom:'Presse', act:'scPresse'},
-    {id:'lettre', img:'scenes/bureau-lettre', calques:[['scenes/bureau-cachet', 'cachet entier', 'left:36.5%;top:26%;width:25%'], ['scenes/bureau-cachet-g', 'cachet g', 'left:30.8%;top:26.6%;width:36.4%'], ['scenes/bureau-cachet-d', 'cachet d', 'left:30.8%;top:26.6%;width:36.4%']],
-      x:39, y:61.8, w:16, anim:'cachet', nom:'Réunion de début de saison', act:'scReunion', si:M_ => { const R = G() && G().reunion(M_); return !!(R && !R.fin); }},
-    {id:'lettreOuverte', img:'scenes/bureau-lettre-ouverte', x:39, y:60.5, w:15, anim:'souleve', nom:'Plan de la saison', act:'scReunion',
-      si:M_ => { const R = G() && G().reunion(M_); return !!(R && R.fin && R.accord); }},
-    {id:'bourse', img:'scenes/bureau-bourse', calques:[['scenes/bureau-piece', 'piece p1'], ['scenes/bureau-piece', 'piece p2'], ['scenes/bureau-piece', 'piece p3']], x:12.7, y:69.4, w:15, plaque:'g', anim:'pieces', nom:'Finances', act:'scFinances'},
+  direction:{fond:'scenes/bureau-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
+    {id:'chapeau', zone:[40, 100, 285, 300], calques:[['scenes/bureau-chapeau-B', 'b']], plaque:'g', anim:'parle', nom:'Confiance du président', act:'scConfiance'},
+    /* le portrait : le cadre ovale vide de l'image A (ovale intérieur mesuré : centre 849 × 253, 133 × 204, penché de 4,6°), le visage du manager dedans */
+    {id:'portrait', zone:[782.6, 151.4, 915.6, 355.4], portrait:{angle:4.6}, anim:'respire', nom:'Mon contrat, mon profil', act:'scPortrait'},
+    /* l'écharpe : la découpe seule (rayures) est recoloriée aux couleurs du club, posée sur l'écharpe de l'image A, et celle de B au survol */
+    {id:'echarpe', zone:[780, 420, 1024, 830], club:true, calques:[['scenes/bureau-echarpe-A-seule', 'fixe'], ['scenes/bureau-echarpe-B', 'b'], ['scenes/bureau-echarpe-B-seule', 'b']], plaque:'d', anim:'bascule', nom:'Supporters', act:'scSupporters'},
+    {id:'gazette', zone:[548, 760, 870, 905], calques:[['scenes/bureau-gazette-B', 'b']], anim:'bascule', nom:'Presse', act:'scPresse'},
+    {id:'lettre', zone:LETTRE, calques:[['scenes/bureau-lettre-B', 'b']], anim:'bascule', nom:'Réunion de début de saison', act:'scReunion',
+      si:M_ => { const R = reunionDe(M_); return !!(R && !R.fin); }},
+    {id:'lettreOuverte', zone:LETTRE, calques:[['scenes/bureau-lettre-D', 'fixe']], anim:'fixe', nom:'Plan de la saison', act:'scReunion',
+      si:M_ => { const R = reunionDe(M_); return !!(R && R.fin && R.accord); }},
+    {id:'lettreVide', zone:LETTRE, decor:true, calques:[['scenes/bureau-lettre-C', 'fixe']],   // pas de réunion : le bureau est vide à cet endroit
+      si:M_ => { const R = reunionDe(M_); return !(R && !R.fin) && !(R && R.fin && R.accord); }},
+    {id:'bourse', zone:[10, 1050, 330, 1380], calques:[['scenes/bureau-bourse-B', 'b']], plaque:'g', anim:'bascule', nom:'Finances', act:'scFinances'},
   ]},
   /* v118 : la banque des Gobelins (finances), méthode des retouches : le fond est l'image A de ChatGPT, objets compris ; chaque objet est une
      zone [x0, y0, x1, y1] (pixels de A) où se superposent les rectangles découpés dans les retouches B et C (qm27-scenes.py, RETOUCHES).
      Le coffre s'ouvre (A → B → C), le plan se remplit jusqu'à l'affluence prévue (C), le gobelin lève la tête et son monocle (B). */
   finances:{fond:'scenes/banque-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
-    {id:'plaque', zone:[826, 374, 962, 460], anim:'fixe', muet:true, nom:'Solde', act:'scCoffre', textes:[[(M_, c) => eurT(c.budget), 'left:9%;top:20%;width:82%;height:60%', 'sc-grave', [2.4, 23]]]},
+    {id:'plaque', zone:[826, 374, 962, 460], anim:'fixe', muet:true, nom:'Solde', act:'scCoffre', textes:[[(M_, c) => eurT(c.budget), 'left:18.4%;top:37.4%;width:62.5%;height:52%;transform:skewY(-17deg)', 'sc-grave', [2.2, 20]]]},
     {id:'coffre', zone:[770, 488, 1016, 798], calques:[['scenes/banque-coffre-B', 'f2'], ['scenes/banque-coffre-C', 'f3']], plaque:'d', anim:'porte', nom:'Le coffre', act:'scCoffre'},
     {id:'plan', zone:[95, 405, 422, 642], calques:[['scenes/banque-plan-C', 'plein']], plaque:'g', anim:'remplit', nom:'Billetterie', act:'scBillet',
       vars:(M_, c) => ({'--r':Math.round(18 + 60 * Math.min(1, C.remplissage(M_, c, {rep:60}))) + '%'})},
-    {id:'etiquette', zone:[343, 612, 417, 668], anim:'fixe', muet:true, nom:'Prix des places', act:'scBillet', textes:[[(M_, c) => eurT(c.prix), 'left:6%;top:18%;width:88%;height:64%', 'sc-encre', [1.9, 12]]]},
-    {id:'gobelin', zone:[388, 632, 676, 850], calques:[['scenes/banque-gobelin-B', 'monocle']], anim:'gobelin', nom:'Banque des Gobelins', act:'scGobelin'},
+    {id:'etiquette', zone:[343, 612, 417, 668], anim:'fixe', muet:true, nom:'Prix des places', act:'scBillet', textes:[[(M_, c) => eurT(c.prix), 'left:6%;top:18%;width:88%;height:64%;transform:rotate(-1deg)', 'sc-encre', [1.9, 12]]]},
+    {id:'gobelin', zone:[388, 632, 676, 850], calques:[['scenes/banque-gobelin-B', 'b']], anim:'bascule', nom:'Banque des Gobelins', act:'scGobelin'},
   ]},
 };
 const SC_OK = {};
@@ -182,14 +186,15 @@ function sceneDispo(l){
 function sceneHTML(l){
   const S = SCENES[l], M_ = M(), c = moi(), src = k => `${V.IMAGES}${k}.webp`;
   const obj = o => {
-    const corps = o.portrait ? `<span class="sc-toile">${avatarMgr('sc-av')}</span><img class="sc-cadre" src="${src(o.cadre)}" alt="" draggable="false">`
-      : `${o.img ? `<img class="sc-base"${o.club ? ' data-prod="scene"' : ''} src="${src(o.img)}" alt="" draggable="false">` : ''}${(o.calques || []).map(([k, cl, st]) => `<img class="sc-c ${cl}" src="${src(k)}" alt="" draggable="false"${st ? ` style="${st}"` : ''}>`).join('')}`;
+    const corps = o.portrait ? `<span class="sc-toile" style="transform:rotate(${o.portrait.angle || 0}deg)">${avatarMgr('sc-av')}</span>`
+      : `${o.img ? `<img class="sc-base"${o.club ? ' data-prod="scene"' : ''} src="${src(o.img)}" alt="" draggable="false">` : ''}${(o.calques || []).map(([k, cl, st]) => `<img class="sc-c ${cl}"${o.club && /-seule$/.test(k) ? ` data-prod="scene:${k}"` : ''} src="${src(k)}" alt="" draggable="false"${st ? ` style="${st}"` : ''}>`).join('')}`;
     const vars = o.vars ? Object.entries(o.vars(M_, c)).map(([k, v]) => `;${k}:${v}`).join('') : '';
     /* taille = [corps max, largeur en cqw × caractères] : le texte rétrécit pour tenir */
     const textes = (o.textes || []).map(([fn, st, cl, taille]) => { const t = String(fn(M_, c)), fs = taille ? `;font-size:${Math.min(taille[0], taille[1] / Math.max(1, t.length)).toFixed(2)}cqw` : '';
       return `<span class="sc-txt ${cl || ''}" style="${st}${fs}">${esc(t)}</span>`; }).join('');
     const pos = o.zone ? `left:${o.zone[0] / S.l * 100}%;top:${o.zone[1] / S.h * 100}%;width:${(o.zone[2] - o.zone[0]) / S.l * 100}%;height:${(o.zone[3] - o.zone[1]) / S.h * 100}%`
       : `left:${o.x}%;top:${o.y}%;width:${o.w}%`;
+    if (o.decor) return `<div class="sc-obj sc-zone sc-decor" style="${pos}" aria-hidden="true">${corps}</div>`;
     return `<button class="sc-obj sc-${o.anim}${o.zone ? ' sc-zone' : ''}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="${pos}${vars}" aria-label="${esc(o.nom)}">${corps}${textes}${o.muet ? '' : `<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(o.nom)}</span>`}</button>`;
   };
   return `<div class="scene" style="aspect-ratio:${1 / S.ratio}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}</div>
@@ -199,7 +204,7 @@ function sceneHTML(l){
 ACT.scObjet = (d, b) => {
   const o = (SCENES[d.l] || {objets:[]}).objets.find(x => x.id === d.o); if (!o) return;
   const el = b || document.querySelector(`.sc-obj[data-o="${d.o}"]`), calme = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (el && !calme){ el.classList.remove('joue'); void el.offsetWidth; el.classList.add('joue'); }
+  if (el && !calme){ el.classList.remove('joue'); void el.offsetWidth; el.classList.add('joue'); clearTimeout(el._joue); el._joue = setTimeout(() => el.classList.remove('joue'), 1700); }   // v119 : l'objet revient au repos (le coffre se referme)
   setTimeout(() => ACT[o.act] && ACT[o.act](d), calme ? 0 : 520);
 };
 const humeurPresident = mg => mg.confiance >= 70 ? 'Le président est ravi.' : mg.confiance >= 45 ? 'Le président est serein.' : mg.confiance >= 25 ? 'Le président s\'impatiente.' : 'Le président doute sérieusement de toi.';
