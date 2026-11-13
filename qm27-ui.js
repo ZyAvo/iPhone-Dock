@@ -1,4 +1,4 @@
-// mon-ecran-version: 70315f86
+// mon-ecran-version: 5d7d021f
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -1082,7 +1082,32 @@ function batPlan(c, k){
     <text x="${x}" y="${y + 14}" text-anchor="middle" class="dlab">${esc(nomBat(k).replace('Pensionnat des jeunes ailes', 'Pensionnat').replace('Cabinet de divination', 'Divination').replace('Résidence des joueurs', 'Résidence').replace('Salle des trophées', 'Trophées').replace('Bureau du président', 'Président').replace('Volière à hiboux', 'Volière').replace('Hangar à balais', 'Hangar').replace('Taverne du stade', 'Taverne').replace('Bazar du club', 'Bazar'))}</text>
     ${n ? `<g transform="translate(${x - 14} ${y + 18})">${[0, 1, 2, 3, 4].map(i => `<rect x="${i * 6}" y="0" width="4.4" height="3" rx="1" fill="${i < n ? 'var(--or)' : 'var(--line)'}"/>`).join('')}</g>` : ''}</g>`;
 }
+/* v111 : la carte illustrée du domaine (images/qm27/domaine/), 12 clairières de 3 × 4 ; le château est le bureau du président.
+   Repère de l'image (1024 × 1536) : [x0, x1, y0, y1] de chaque clairière */
+const CLAIRIERES = {voliere:[126, 346, 509, 619], salle:[399, 618, 508, 618], divination:[670, 889, 509, 618],
+  infirmerie:[101, 340, 660, 793], tribunes:[397, 628, 661, 793], aire:[683, 914, 660, 792],
+  formation:[76, 333, 839, 984], buvettes:[394, 637, 839, 983], boutique:[696, 945, 838, 984],
+  residence:[52, 328, 1034, 1211], hangar:[390, 644, 1033, 1208], trophees:[706, 972, 1034, 1208]};
+const COURT_BAT = {formation:'Pensionnat', divination:'Divination', residence:'Résidence', trophees:'Trophées', tribunes:'Stade', buvettes:'Taverne', boutique:'Bazar', infirmerie:'Infirmerie', aire:'Aire d\'envol', hangar:'Hangar', salle:'Salle', voliere:'Volière'};
+function planIllustre(c){
+  /* deux passes : les bâtiments (rangée du haut d'abord), puis toutes les plaques par-dessus, jamais cachées par un voisin */
+  const I = V.IMAGES, L = [['bureau', 595, 292, 300, 'Bureau du président', 0, null, false],
+    ...Object.entries(CLAIRIERES).map(([k, [x0, x1, y0, y1]]) => [k, (x0 + x1) / 2, y1 - 8, Math.min(230, (x1 - x0) * 0.86), COURT_BAT[k] || nomBat(k), C.niv(c, k), c.travaux.find(t => t.type === k || (k === 'tribunes' && t.type === 'stade')), B.amelEnAttente(c, k)])];
+  const aria = (k, n, tr, att) => `${esc(nomBat(k))}${n ? ', niveau ' + n : ''}${tr ? ', travaux en cours' : ''}${att ? ', amélioration à choisir' : ''}`;
+  const bats = L.map(([k, x, y, w, nom, n, tr, att]) => `<g class="dbat d2" data-act="batiment" data-b="${k}" role="button" tabindex="0" aria-label="${aria(k, n, tr, att)}">
+      <rect x="${x - w / 2}" y="${y - w}" width="${w}" height="${w + 10}" fill="transparent"/>
+      ${k !== 'bureau' ? `<image href="${I}${V.BAT_IMG[k]}.webp" x="${x - w / 2}" y="${y - w}" width="${w}" height="${w}" preserveAspectRatio="xMidYMax meet" class="bat-img"/>` : ''}
+      ${tr ? `<text x="${x + w * 0.38}" y="${y - w * 0.6}" text-anchor="middle" class="d2-chantier">🔨</text>` : ''}</g>`).join('');
+  const plaques = L.map(([k, x, y, w, nom, n, tr, att]) => { const lg = nom.length * 9.6 + (n ? 36 : 0) + 22;
+    return `<g class="dbat" data-act="batiment" data-b="${k}" aria-hidden="true" transform="translate(${x} ${y + 4})"><rect x="${-lg}" y="-25" width="${2 * lg}" height="48" rx="24" class="plaque"/>
+      <text y="11" text-anchor="middle" class="d2-t">${esc(nom)}${n ? ` <tspan class="d2-n">${n}</tspan>` : ''}</text>
+      ${att ? `<g transform="translate(${lg - 4} -22)"><circle r="19" class="pastille"/><text y="9" text-anchor="middle" class="d2-p">!</text></g>` : ''}</g>`; }).join('');
+  return `<svg class="plan plan2" viewBox="0 0 1024 1536" role="group" aria-label="Plan du domaine de ${esc(c.nom)}">
+    <image href="${I}domaine/carte-jour.webp" x="0" y="0" width="1024" height="1536" class="fond-img"/><image href="${I}domaine/carte-nuit.webp" x="0" y="0" width="1024" height="1536" class="fond-nuit"/>
+    ${bats}${plaques}</svg>`;
+}
 function planDomaine(c){
+  if (V.BAT_IMG && V.IMAGES) return planIllustre(c);   // v111
   return `<svg class="plan" viewBox="0 0 420 320" role="group" aria-label="Plan du domaine">
     <rect x="0" y="0" width="420" height="320" rx="18" class="dsol"/>
     <path d="M0 26C60 6 120 16 170 8s120-4 170 10 80 6 80 6V0H0z" class="dcolline"/>
@@ -1171,10 +1196,11 @@ function vueBoutique(){
   VUE.innerHTML = `<div><h1 class="grand">Bazar du club</h1><p class="sous">Niveau ${C.niv(c, 'boutique')} · ${actifs} / ${B.placesRayon(c)} produits en rayon · environ ${eur(B.recettesBazar(c))} par semaine</p></div>
   <div class="carte"><div class="liste">${D.PRODUITS.map(p => { const ok = !p[4] || B.a(c, p[4]), st = d.produits[p[0]] || {actif:false, prix:'normal'};
     if (!ok) return `<div class="el" style="opacity:.55"><div class="t"><b>🔒 ${esc(p[1])}</b><span>Débloqué par ${esc(B.AMEL[p[4]].nom)} (${esc(nomBat(B.AMEL[p[4]].bat))}, niveau ${B.AMEL[p[4]].niv})</span></div></div>`;
-    return `<div class="el prod"><label class="interr"><input type="checkbox" data-chg="produit" data-p="${p[0]}" ${st.actif ? 'checked' : ''}><span></span></label>
+    return `<div class="el prod">${V.produitImg(p[0])}<label class="interr"><input type="checkbox" data-chg="produit" data-p="${p[0]}" ${st.actif ? 'checked' : ''}><span></span></label>
       <div class="t"><b>${esc(p[1])}</b><span>${'★'.repeat(Math.round(p[2] * 3))} · ${eur(p[3] * B.PRIX[st.prix].p)} · ${st.actif ? '≈ ' + eur(B.recetteProduit(c, p, st)) + ' / sem.' : 'pas en rayon'}</span></div>
       <div class="seg mini">${['bas', 'normal', 'haut'].map(v => `<button data-act="prixProduit" data-p="${p[0]}" data-v="${v}" class="${st.prix === v ? 'on' : ''}">${lib[v]}</button>`).join('')}</div></div>`; }).join('')}</div>
-    <p class="petit mut" style="margin:8px 0 0">Prix bas : un peu moins de recettes, des supporters ravis. Prix haut : plus de recettes, des supporters qui râlent. Chaque niveau du Bazar ajoute une place en rayon.</p></div>`;
+    <p class="petit mut" style="margin:8px 0 0">Les produits portent les couleurs du club. Prix bas : un peu moins de recettes, des supporters ravis. Prix haut : plus de recettes, des supporters qui râlent. Chaque niveau du Bazar ajoute une place en rayon.</p></div>`;
+  V.colorierProduits(VUE, c);   // v111
 }
 function vuePartenaires(){
   const c = B.assurer(M), d = c.dom, sp = d.sponsor, pl = B.placesPanneaux(c);
@@ -1193,7 +1219,7 @@ function vuePartenaires(){
 function vueTrophees(){
   const c = B.assurer(M), T = B.titres(M, c);
   VUE.innerHTML = `<div><h1 class="grand">Salle des trophées</h1><p class="sous">${esc(c.nom)} · niveau ${C.niv(c, 'trophees')} · visites ${eur(B.visites(M, c))} par semaine</p></div>
-  <div class="carte">${T.length ? `<div class="trophees">${T.map((x, i) => `<div class="tr ${x.ancien ? 'ancien' : ''}">${V.trophee(x.titre, x.saison)}<b>${esc(x.saison)}</b><span>${esc(x.titre)}</span></div>`).join('')}</div>` : '<p class="mut" style="margin:0">La vitrine est vide. À toi de la remplir.</p>'}
+  <div class="carte">${T.length ? `<div class="trophees">${T.map((x, i) => `<div class="tr ${x.ancien ? 'ancien' : ''}">${(V.coupeImg && V.coupeImg(x.cle)) || V.trophee(x.titre, x.saison)}<b>${esc(x.saison)}</b><span>${esc(x.titre)}</span></div>`).join('')}</div>` : '<p class="mut" style="margin:0">La vitrine est vide. À toi de la remplir.</p>'}
     <p class="petit mut" style="margin:10px 0 0">Les titres d'avant ton arrivée sont un peu passés. Chaque titre attire plus de visiteurs.</p></div>`;
 }
 function banqueHTML(c){

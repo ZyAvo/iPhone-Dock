@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="151cdb51">
+<meta name="mon-ecran-version" content="ae0e9868">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -674,6 +674,19 @@ img.emb{object-fit:contain;background:none}
 /* v109 : emblème + code à 3 lettres du pays */
 .drap{display:inline-flex;align-items:center;gap:2px;vertical-align:middle;white-space:nowrap}
 .drap .nat-c{font-size:.6rem;font-weight:800;letter-spacing:.02em;color:var(--ink-soft);line-height:1}
+/* v111 : carte illustrée du domaine, trophées, récompenses et produits du Bazar */
+.plan2{border-radius:14px}
+.plan2 .fond-nuit{display:none}
+.plan2 .plaque{fill:rgba(255,255,255,.88);stroke:rgba(0,0,0,.18);stroke-width:1.5}
+.plan2 .d2-t{font-size:31px;font-weight:750;fill:#1d2a1f}.plan2 .d2-n{font-size:28px;font-weight:800;fill:#946200}.plan2 .d2-p{font-size:26px;font-weight:900;fill:#16202c}.plan2 .d2-chantier{font-size:44px}
+.plan2 .pastille{fill:var(--or);stroke:#fff;stroke-width:3}
+.plan2 .dbat:hover .bat-img,.plan2 .dbat:focus-visible .bat-img{filter:drop-shadow(0 0 10px rgba(255,214,90,.95))}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .plan2 .fond-nuit{display:inline} :root:not([data-theme="light"]) .plan2 .bat-img{filter:brightness(.82) saturate(.9)} :root:not([data-theme="light"]) .plan2 .plaque{fill:rgba(18,26,40,.88);stroke:rgba(255,255,255,.2)} :root:not([data-theme="light"]) .plan2 .d2-t{fill:#eef3ea} :root:not([data-theme="light"]) .plan2 .d2-n{fill:#f5c84a}}
+:root[data-theme="dark"] .plan2 .fond-nuit{display:inline} :root[data-theme="dark"] .plan2 .bat-img{filter:brightness(.82) saturate(.9)} :root[data-theme="dark"] .plan2 .plaque{fill:rgba(18,26,40,.88);stroke:rgba(255,255,255,.2)} :root[data-theme="dark"] .plan2 .d2-t{fill:#eef3ea} :root[data-theme="dark"] .plan2 .d2-n{fill:#f5c84a}
+img.tro{width:64px;height:64px;object-fit:contain}
+.trophees .tr.ancien img.tro{filter:grayscale(.55) brightness(.9);opacity:.85}
+.palm-i:has(.pr-ico){display:grid;grid-template-columns:32px auto;column-gap:7px;align-items:center}.palm-i .pr-ico{width:32px;height:32px;object-fit:contain;grid-row:1 / span 2}
+.el.prod .prod-img{width:46px;height:46px;object-fit:contain;flex:none}
 /* v90 : vestiaire et mercato */
 .at.flou b{font-weight:700;font-size:.72rem}
 .note.flou{font-size:.66rem;min-width:46px}

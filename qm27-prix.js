@@ -1,4 +1,4 @@
-// mon-ecran-version: c1edba56
+// mon-ecran-version: 2df8e974
 /* QM27 (v103) — récompenses : équipe, joueur et manager du mois, prix de fin de saison par ligue, palmarès des joueurs,
    Hall of Fame à la retraite. Sans affichage : expose window.QMR et se branche sur QMC.semaine / avantSaison / apresSaison.
    Chargé après qm27-bureau.js. Rien ici ne tire au hasard dans le moteur des matchs (les noms des managers de l'ordinateur
@@ -184,6 +184,6 @@ function palmares(L){
 /* « 2026-27 » pour un prix de saison, « novembre 2026 » pour un prix du mois (janvier à août : année suivante) */
 const quandTxt = x => { if (x[1] === 'pa' || !x[3]) return `${x[0]}-${String(x[0] + 1).slice(2)}`; const k = MOIS.indexOf(String(x[3]).split('-').pop()); return `${x[3]} ${k >= 0 && k < 8 ? x[0] + 1 : x[0]}`; };
 /* HTML commun : palmarès en pastilles (fiche joueur, profil du manager, Hall of Fame) */
-function palmaresHTML(L, esc){ const G = palmares(L); return G.length ? `<div class="palm">${G.map(g => `<span class="palm-i ${g.code}"><b>${esc(g.nom)}${g.fois.length > 1 ? ' ×' + g.fois.length : ''}</b><small>${g.fois.slice(-6).map(quandTxt).map(esc).join(' · ')}${g.fois.length > 6 ? ' …' : ''}</small></span>`).join('')}</div>` : ''; }
+function palmaresHTML(L, esc){ const G = palmares(L), V = root.QMV; return G.length ? `<div class="palm">${G.map(g => `<span class="palm-i ${g.code}">${V && V.prixImg ? V.prixImg(g.fois[g.fois.length - 1]) : ''}<b>${esc(g.nom)}${g.fois.length > 1 ? ' ×' + g.fois.length : ''}</b><small>${g.fois.slice(-6).map(quandTxt).map(esc).join(' · ')}${g.fois.length > 6 ? ' …' : ''}</small></span>`).join('')}</div>` : ''; }
 root.QMR = {donner, quandTxt, palmaresHTML, PRIX, MOIS, SEUIL_HOF, MAX_HOF, managerDe, palmares, scoreHeritage, resumeCarriere, primerMois, primerSaison, attendu, nomPoste};
 })(typeof window !== 'undefined' ? window : globalThis);
