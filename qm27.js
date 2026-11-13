@@ -1,4 +1,4 @@
-// mon-ecran-version: 953f0bf0
+// mon-ecran-version: 921dfdb6
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -79,6 +79,7 @@ function nouveauMonde(graine){
   for (const def of D.CLUBS) if (M.ligues[def[4]]) creerClub(M, r, def);   // v106 : les clubs de réserve (future D2) restent hors du jeu
   M.calendrier = calendrierSaison(M, r);
   remettreClassements(M);
+  nommer(M);   // v114 : avant initMonde, qui peut citer les clubs
   if (C()) C().initMonde(M, r);
   return M;
 }
@@ -797,8 +798,9 @@ function basculer(M, r){
   if (M.offres) M.offres = M.offres.filter(o => okJ(o.j) && (!o.de || ok(o.de)) && (!o.club || ok(o.club)));
   if (M.libres) M.libres = M.libres.filter(okJ);
   for (const c of Object.values(M.clubs)){ c.effectif = c.effectif.filter(okJ); if (c.suivi) c.suivi = c.suivi.filter(okJ); if (c.aVendre) c.aVendre = c.aVendre.filter(okJ); }
+  nommer(M);   // v114
   if (C() && C().apresBascule) C().apresBascule(M, sortis);
-  if (M.manager) M.annonceBascule = ['Quatre championnats', `La fédération européenne réorganise le Quidditch : ${D.LIGUES.map(L => L.nom).join(', ')}, 16 clubs chacun. ${Object.values(M.reserve).filter(c => sortis.has(c.id)).map(c => c.nom).join(', ')} quittent l'élite (une deuxième division les attend). La Ligue des Anneaux prend les 4 premiers de chaque championnat. Le Tournoi des Six Emblèmes laisse la place à trois trêves internationales (matchs amicaux tirés au sort) et, un été sur deux, à la Ligue des nations : 19 sélections, des groupes puis l'élimination directe.`, ];   // publié après les messages de la nouvelle saison (en tête de la boîte)
+  if (M.manager) M.annonceBascule = ['Quatre championnats', `La fédération européenne réorganise le Quidditch : ${D.LIGUES.map(L => M.ligues[L.id].nom).join(', ')}, 16 clubs chacun. ${Object.values(M.reserve).filter(c => sortis.has(c.id)).map(c => c.nom).join(', ')} quittent l'élite (une deuxième division les attend). La Ligue des Anneaux prend les 4 premiers de chaque championnat. Le Tournoi des Six Emblèmes laisse la place à trois trêves internationales (matchs amicaux tirés au sort) et, un été sur deux, à la Ligue des nations : 19 sélections, des groupes puis l'élimination directe.`, ];   // publié après les messages de la nouvelle saison (en tête de la boîte)
   return true;
 }
 function progresser(j, r){
@@ -837,12 +839,29 @@ function charger(txt){
   M.v = VERSION;
   if (M.ligues.fr && M.manager && !M.avisV106){ M.avisV106 = 1; message(M, 'À la fin de cette saison : quatre championnats', `Cette saison se termine comme prévu (Ligue de France, Ligue d'Italie, Tournoi des Six Emblèmes). À l'intersaison, le Quidditch européen passe à quatre championnats de 16 clubs : ${D.LIGUES.map(L => L.nom).join(', ')}. Vingt clubs français et italiens quittent l'élite${M.manager.club && D.RESERVE.includes(M.manager.club) ? ' (ton club reste : un autre club de ton pays sort à sa place)' : ''}, les Six Emblèmes laissent la place aux trêves internationales et à la ${D.LDN.nom}.`, 'club'); }   // v106
   if (!Object.values(M.joueurs).some(j => j.inter)) convoquer(M);   // v91 : convocations de la semaine en cours
-  return M;
+  return nommer(M);
 }
 
+/* v114 : noms des clubs et des ligues dans la langue choisie (réglage de l'appareil, posé par l'écran : QM.langueNoms). Appliqué à la création
+   d'un monde, au chargement d'une partie et après la réorganisation des ligues ; les anciens messages gardent leurs noms d'origine. */
+let LANGUE_NOMS = 'local';
+function nommer(M, mode){
+  mode = mode || LANGUE_NOMS; if (!M) return M;
+  const k = mode === 'en' ? 0 : mode === 'fr' ? 1 : -1;
+  for (const c of [...Object.values(M.clubs || {}), ...Object.values(M.reserve || {})]){
+    const def = D.CLUBS.find(x => x[0] === c.id); if (!def) continue;
+    c.nom = k >= 0 && D.NOMS_CLUBS[c.id] ? D.NOMS_CLUBS[c.id][k] : def[1];
+    c.ville = k >= 0 && D.VILLES_LANGUES[c.id] && D.VILLES_LANGUES[c.id][k] || def[2];
+  }
+  const nomL = (L, cible) => { const n = L.noms && L.noms[mode] || L.noms && L.noms.local; if (n){ cible.nom = n[0]; cible.court = n[1]; } };
+  for (const L of D.LIGUES) if (M.ligues && M.ligues[L.id]) nomL(L, M.ligues[L.id]);
+  for (const L of Object.values(D.LIGUES_ANCIENNES)) nomL(L, L);
+  return M;
+}
+function langueNoms(mode){ LANGUE_NOMS = ['local', 'en', 'fr'].includes(mode) ? mode : 'local'; nommer({}, LANGUE_NOMS); return LANGUE_NOMS; }
 /* v106 : une ligue du palmarès, même disparue (Ligue de France, Ligue d'Italie) */
 const ligueDe = (M, id) => M.ligues[id] || D.LIGUES_ANCIENNES[id] || {id, nom:String(id), court:String(id), clubs:[]};
-root.QM = {AGE_JEUNE, ligueDe, roundRobin, creerClub, basculer, chargeFacteur, plancherFatigue, matchsDuJoueur, convoquer, convoques, finirMatchDuJoueur, natJoueur, VERSION, clubJoueur, campJoueur, tactiqueIA, apresMatchManager, finDeSaison, hasard, melange, note, note20, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
+root.QM = {nommer, langueNoms, AGE_JEUNE, ligueDe, roundRobin, creerClub, basculer, chargeFacteur, plancherFatigue, matchsDuJoueur, convoquer, convoques, finirMatchDuJoueur, natJoueur, VERSION, clubJoueur, campJoueur, tactiqueIA, apresMatchManager, finDeSaison, hasard, melange, note, note20, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
            semaine, matchDuJoueur, preparerMatch, simulerMatch, creerMatch, equipeClub, selection, pas, jusquAuBout, tempsMort, remplacer, resume, notesMatch,
            terminerSemaine, saisonSuivante, classement, objectif, serialiser, charger, nomJ, message, attente,
            manies, aManie, maniesPour, sansDe, CONTRE, completerTactique,

@@ -1,4 +1,4 @@
-// mon-ecran-version: 450eeba4
+// mon-ecran-version: 71d9514e
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -34,12 +34,15 @@ const LDN = {nom:'Ligue des nations', court:'Ligue des nations', mini:'LDN'};   
 const AMICAUX = {nom:'Matchs amicaux', court:'Amical', fenetres:'Trêve internationale'};   // v106 : trois ou quatre trêves par saison, adversaires tirés au sort
 
 const LIGUES = [   // v106 : quatre championnats de 16 clubs (avant : B&I, France, Italie)
-  {id:'bi', nom:'Ligue britannique et irlandaise', court:'Ligue B&I'},
-  {id:'la', nom:'Ligue latine', court:'Ligue latine'},
-  {id:'sc', nom:'Ligue scandinave', court:'Ligue scandinave'},
-  {id:'ce', nom:"Ligue d'Europe centrale", court:'Ligue centrale'},
+  /* v114 : noms sorciers et régionaux, dans trois langues (local / en / fr) : l'île d'Avalon (Merlin, Morgane), Circé l'enchanteresse
+     de la Méditerranée (mont Circé en Italie), l'arbre-monde Yggdrasil, la nuit de Walpurgis (sabbat du Brocken) */
+  {id:'bi', nom:'Avalon League', court:'Avalon', noms:{local:['Avalon League', 'Avalon'], en:['Avalon League', 'Avalon'], fr:["Ligue d'Avalon", 'Avalon']}},
+  {id:'la', nom:'Lega di Circe', court:'Circe', noms:{local:['Lega di Circe', 'Circe'], en:['Circe League', 'Circe'], fr:['Ligue de Circé', 'Circé']}},
+  {id:'sc', nom:'Yggdrasilligaen', court:'Yggdrasil', noms:{local:['Yggdrasilligaen', 'Yggdrasil'], en:['Yggdrasil League', 'Yggdrasil'], fr:["Ligue d'Yggdrasil", 'Yggdrasil']}},
+  {id:'ce', nom:'Walpurgisliga', court:'Walpurgis', noms:{local:['Walpurgisliga', 'Walpurgis'], en:['Walpurgis League', 'Walpurgis'], fr:['Ligue de Walpurgis', 'Walpurgis']}},
 ];
-const LIGUES_ANCIENNES = {fr:{id:'fr', nom:'Ligue de France', court:'Ligue FR'}, it:{id:'it', nom:"Ligue d'Italie", court:'Ligue IT'}};   // palmarès d'avant v106
+const LIGUES_ANCIENNES = {fr:{id:'fr', nom:'Ligue de France', court:'Ligue FR', noms:{local:['Ligue de France', 'Ligue FR'], en:['League of France', 'France'], fr:['Ligue de France', 'Ligue FR']}},
+  it:{id:'it', nom:"Lega d'Italia", court:'Lega IT', noms:{local:["Lega d'Italia", 'Lega IT'], en:['League of Italy', 'Italy'], fr:["Ligue d'Italie", 'Ligue IT']}}};   // palmarès d'avant v106
 /* v106 : clubs mis de côté (future deuxième division) ; une partie d'avant v106 les sort du jeu à la fin de sa saison */
 const RESERVE = ['nantes', 'lille', 'strasbourg', 'montpellier', 'grenoble', 'poitiers', 'brest', 'reims', 'carcassonne', 'besancon',
   'bologna', 'genova', 'palermo', 'verona', 'bari', 'trieste', 'perugia', 'bergamo', 'benevento', 'arezzo'];
@@ -134,6 +137,51 @@ const CLUBS = [
   ['brno', 'Draci Brno', 'Brno', 'CZE', 'ce', 55, '#38b000', '#081c15', 10500],
   ['luxembourg', 'Melusina Lëtzebuerg', 'Luxembourg', 'LUX', 'ce', 50, '#00a1de', '#ef3340', 8000],
 ];
+
+/* v114 : noms des clubs et des ligues au choix (Règles et réglages › Noms) : « local » = la langue du pays (CLUBS[1], ville CLUBS[2]),
+   « en » = tout en anglais, « fr » = tout en français. NOMS_CLUBS[id] = [anglais, français] ; VILLES_LANGUES[id] = [ville en anglais, en français]
+   quand elle diffère de la ville locale. Les ligues portent leurs trois noms dans LIGUES[i].noms (nom long, nom court). */
+const NOMS_CLUBS = {
+  bath:['Bath Basilisks', 'Basilics de Bath'], york:['York Wyverns', 'Vouivres d\'York'], canterbury:['Canterbury Conjurers', 'Conjurateurs de Cantorbéry'],
+  glastonbury:['Glastonbury Grimoires', 'Grimoires de Glastonbury'], whitby:['Whitby Warlocks', 'Sorciers de Whitby'], norwich:['Norwich Nightshades', 'Belladones de Norwich'],
+  oxford:['Oxford Oracles', 'Oracles d\'Oxford'], inverness:['Inverness Kelpies', 'Kelpies d\'Inverness'], aberdeen:['Aberdeen Alchemists', 'Alchimistes d\'Aberdeen'],
+  stirling:['Stirling Selkies', 'Selkies de Stirling'], conwy:['Conwy Cauldrons', 'Chaudrons de Conwy'], swansea:['Swansea Sorcerers', 'Ensorceleurs de Swansea'],
+  aberystwyth:['Aberystwyth Augurs', 'Augures d\'Aberystwyth'], galway:['Galway Banshees', 'Banshees de Galway'], cork:['Cork Cloakwings', 'Capes volantes de Cork'],
+  dublin:['Dublin Druids', 'Druides de Dublin'],
+  rennes:['Rennes Enchanters', 'Enchanteurs de Rennes'], paris:['Paris Gargoyles', 'Gargouilles de Paris'], lyon:['Lyon Mages', 'Mages de Lyon'],
+  carcassonne:['Carcassonne Witches', 'Sorcières de Carcassonne'], nantes:['Nantes Falcons', 'Faucons de Nantes'], strasbourg:['Strasbourg Owls', 'Hiboux de Strasbourg'],
+  besancon:['Besançon Wyverns', 'Vouivres de Besançon'], brest:['Brest Korrigans', 'Korrigans de Brest'], toulouse:['Toulouse Sprites', 'Farfadets de Toulouse'],
+  bordeaux:['Bordeaux Spectres', 'Spectres de Bordeaux'], marseille:['Marseille Sirens', 'Sirènes de Marseille'], poitiers:['Poitiers Melusines', 'Mélusines de Poitiers'],
+  lille:['Lille Comets', 'Comètes de Lille'], montpellier:['Montpellier Mandrakes', 'Mandragores de Montpellier'], reims:['Reims Unicorns', 'Licornes de Reims'],
+  grenoble:['Grenoble Spells', 'Sortilèges de Grenoble'],
+  benevento:['Benevento Witches', 'Sorcières de Bénévent'], perugia:['Perugia Griffins', 'Griffons de Pérouse'], venezia:['Venice Phoenixes', 'Phénix de Venise'],
+  milano:['Milan Serpents', 'Guivres de Milan'], torino:['Turin Talismans', 'Talismans de Turin'], arezzo:['Arezzo Chimeras', 'Chimères d\'Arezzo'],
+  napoli:['Naples Sibyls', 'Sibylles de Naples'], roma:['Rome Haruspices', 'Haruspices de Rome'], firenze:['Florence Astrologers', 'Astrologues de Florence'],
+  palermo:['Palermo Gorgons', 'Gorgones de Palerme'], bologna:['Bologna Imps', 'Follets de Bologne'], genova:['Genoa Lanterns', 'Lanternes de Gênes'],
+  verona:['Verona Charmers', 'Charmeurs de Vérone'], trieste:['Trieste Spirits', 'Esprits de Trieste'], bari:['Bari Dragons', 'Dragons de Bari'],
+  bergamo:['Bergamo Befanas', 'Befanas de Bergame'],
+  madrid:['Madrid Griffins', 'Griffons de Madrid'], barcelona:['Barcelona Drakes', 'Dracs de Barcelone'], sevilla:['Seville Salamanders', 'Salamandres de Séville'],
+  toledo:['Toledo Necromancers', 'Nécromanciens de Tolède'],
+  stockholm:['Stockholm Wizards', 'Magiciens de Stockholm'], goteborg:['Gothenburg Nymphs', 'Nymphes de Göteborg'], uppsala:['Uppsala Seeresses', 'Voyantes d\'Uppsala'],
+  malmo:['Malmö Wraiths', 'Revenants de Malmö'], oslo:['Oslo Draugr', 'Draugr d\'Oslo'], bergen:['Bergen Hulders', 'Huldres de Bergen'],
+  trondheim:['Trondheim Nixies', 'Nixes de Trondheim'], tromso:['Tromsø Auroras', 'Aurores de Tromsø'], kobenhavn:['Copenhagen Lindorms', 'Lindorms de Copenhague'],
+  aarhus:['Aarhus Elfkin', 'Elfes d\'Aarhus'], odense:['Odense Nisses', 'Nisses d\'Odense'], helsinki:['Helsinki Shamans', 'Chamanes d\'Helsinki'],
+  turku:['Turku Sages', 'Sages de Turku'], tampere:['Tampere Gnomes', 'Gnomes de Tampere'], reykjavik:['Reykjavík Hidden Folk', 'Peuple caché de Reykjavík'],
+  akureyri:['Akureyri Trolls', 'Trolls d\'Akureyri'],
+  berlin:['Berlin Hexers', 'Envoûteurs de Berlin'], munchen:['Munich Lindwurms', 'Lindwurms de Munich'], hamburg:['Hamburg Kobolds', 'Kobolds de Hambourg'],
+  koln:['Cologne Heinzelmen', 'Lutins de Cologne'], krakow:['Kraków Dragons', 'Dragons de Cracovie'], warszawa:['Warsaw Mermaids', 'Ondines de Varsovie'],
+  gdansk:['Gdańsk Gryphons', 'Gryphons de Gdańsk'], amsterdam:['Amsterdam Witches', 'Sorcières d\'Amsterdam'], utrecht:['Utrecht White Ladies', 'Dames blanches d\'Utrecht'],
+  bruxelles:['Brussels Spellbinders', 'Sorciers de Bruxelles'], antwerpen:['Antwerp Giants', 'Géants d\'Anvers'], wien:['Vienna Basilisks', 'Basilics de Vienne'],
+  salzburg:['Salzburg Perchten', 'Perchten de Salzbourg'], praha:['Prague Golems', 'Golems de Prague'], brno:['Brno Wyrms', 'Wyrms de Brno'],
+  luxembourg:['Luxembourg Melusines', 'Mélusines de Luxembourg'],
+};
+const VILLES_LANGUES = {canterbury:[null, 'Cantorbéry'], benevento:[null, 'Bénévent'], perugia:[null, 'Pérouse'], venezia:['Venice', 'Venise'], milano:['Milan', 'Milan'],
+  torino:['Turin', 'Turin'], napoli:['Naples', 'Naples'], roma:['Rome', 'Rome'], firenze:['Florence', 'Florence'], palermo:[null, 'Palerme'], bologna:[null, 'Bologne'],
+  genova:['Genoa', 'Gênes'], verona:[null, 'Vérone'], bergamo:[null, 'Bergame'], barcelona:[null, 'Barcelone'], sevilla:['Seville', 'Séville'], toledo:[null, 'Tolède'],
+  goteborg:['Gothenburg', null], kobenhavn:['Copenhagen', 'Copenhague'], munchen:['Munich', 'Munich'], hamburg:[null, 'Hambourg'], koln:['Cologne', 'Cologne'],
+  krakow:[null, 'Cracovie'], warszawa:['Warsaw', 'Varsovie'], bruxelles:['Brussels', null], antwerpen:['Antwerp', 'Anvers'], wien:['Vienna', 'Vienne'],
+  salzburg:[null, 'Salzbourg'], praha:['Prague', 'Prague']};
+const LANGUES_NOMS = [['local', 'Langue du pays', 'Gargouilles de Paris, Golemové Praha'], ['en', 'Tout en anglais', 'Paris Gargoyles, Prague Golems'], ['fr', 'Tout en français', 'Oracles d\'Oxford, Golems de Prague']];
 
 /* Origine des joueurs d'un club selon sa nation : [nation, poids] */
 const ORIGINES = {   // v106 : les nouveaux joueurs d'un club viennent surtout de son pays, un peu des voisins
@@ -420,5 +468,5 @@ const ROLES = {
 const FOCUS = [['technique', 'Technique', ['Vol', 'Balle', 'Gardien']], ['physique', 'Physique', ['Physique']], ['tactique', 'Tactique', ['Mental']], ['repos', 'Repos', []]];
 const INTENSITES = [[1, 'Légère'], [2, 'Normale'], [3, 'Intense']];
 
-root.QMD = {TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
+root.QMD = {NOMS_CLUBS, VILLES_LANGUES, LANGUES_NOMS, TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
 })(typeof window !== 'undefined' ? window : globalThis);
