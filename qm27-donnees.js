@@ -1,4 +1,4 @@
-// mon-ecran-version: 25c77f0c
+// mon-ecran-version: 450eeba4
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -306,7 +306,8 @@ const EQ = {
   refus:0.8,                    // attrapeur « seulement si ça fait gagner » : refuse la prise perdante (+ décisions)
   /* v84 : économie (Gallions fictifs). Salaire hebdomadaire = base × facteur^(note sur 20 − pivot) × (0,85 + réputation du club / 250) */
   eco:{semaines:44, salaireBase:2500, salaireFacteur:1.6, salairePivot:9, valeurAns:2.4,
-       tv:1.3e6, tvRep:15e3, sponsors:0.2e6, sponsorsRep:3.0e6, merch:1.8e6, repasBase:3, entretien:1.2, deplacement:12e3, prime:25e3,
+       tv:2.4e6, tvRep:20e3,   /* v113 : 1,3e6 et 15e3 avant : les petits clubs démarraient à 85-90 % du plafond, sans marge pour recruter */
+       sponsors:0.2e6, sponsorsRep:3.0e6, merch:1.8e6, repasBase:3, entretien:1.2, deplacement:12e3, prime:25e3,
        masse:0.9, staffBase:600, staffFacteur:1.25, effectifMax:22, effectifMin:14, libresMax:60},
   /* v84 : entraînement (progression par semaine) et cohésion */
   ent:{semaines:35, focus:1.7, horsFocus:0.55, cible:1.3, autre:0.6, joue:0.3, intensite:[0.7, 1, 1.3], fatigue:[0, 4, 9], blessure:0.001, cohesion:70},

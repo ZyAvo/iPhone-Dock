@@ -1,4 +1,4 @@
-// mon-ecran-version: 8d7ea84b
+// mon-ecran-version: 12a5910e
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -102,10 +102,18 @@ function completerClub(M, r, c){
   c.masseMax = masseMax(c);
   if (c.compo && !c.compo.roles) Q().rolesAuto(M, c.compo, true);
 }
-function nouveauClub(M, r, c){ completerClub(M, r, c); }   // v106 : club ajouté à une partie en cours
+function nouveauClub(M, r, c){ completerClub(M, r, c); margeDepart(M, c); }   // v106 : club ajouté à une partie en cours
+/* v113 : en début de partie, chaque club garde une vraie marge sous son plafond (la masse salariale des joueurs et du staff
+   ne dépasse pas 68 % du plafond ; avant, les petits clubs démarraient à 85-90 %, sans rien pouvoir recruter) */
+function margeDepart(M, c){
+  const m = masse(M, c), cible = c.masseMax * 0.68, staff = Object.values(c.staff || {}).reduce((s, x) => s + x.sal, 0);
+  if (m <= cible || m <= staff) return;
+  const k = Math.max(0.6, (cible - staff) / (m - staff));
+  for (const id of c.effectif){ const j = M.joueurs[id]; if (j && j.contrat) j.contrat.sal = arrondi(j.contrat.sal * k, 50); }
+}
 function initMonde(M, r){
   M.libres = M.libres || []; M.offres = M.offres || []; M.transferts = M.transferts || [];
-  for (const c of Object.values(M.clubs)) completerClub(M, r, c);
+  for (const c of Object.values(M.clubs)){ completerClub(M, r, c); margeDepart(M, c); }
   for (let k = 0; k < 28; k++) creerLibre(M, r);
   M.staffLibres = marcheStaff(M, r);
 }
@@ -133,7 +141,7 @@ function progression(M, j, f, i, coach, prepa, r, suivi, mult = 1, boost = null)
   const G = j.age < p1 ? gap * (0.35 + 0.04 * (p1 - j.age)) : j.age <= p2 ? gap * 0.2 : 0;
   const q = 0.55 + coach / 22, qPhys = 0.55 + (coach + prepa) / 44, inten = ENT.intensite[i - 1], pro = 0.6 + j.cache.pro / 25, jeu = 1 + (j.joue ? ENT.joue : 0);
   const fams = typeof f === 'string' ? FAM_FOCUS[f] || [] : [], w = Q().POIDS[j.poste];
-  const declin = j.age > p2 ? (0.25 + 0.18 * (j.age - p2)) / ENT.semaines * (1.2 - prepa / 40) : 0;
+  const declin = j.age > p2 ? (0.6 + 0.4 * (j.age - p2)) / ENT.semaines * (1.2 - prepa / 40) : 0;   // v113 : déclin plus net après le pic (avant 0,25 + 0,18 par an : le niveau moyen montait sans fin)
   let plus = 0, moins = 0;
   const essai = (L, idx, fam, poids, bo) => {
     const fm = typeof f === 'object' && f ? (f[fam] ?? ENT.horsFocus) : f === 'repos' ? 0 : fams.includes(fam) ? ENT.focus : ENT.horsFocus;
@@ -180,7 +188,7 @@ function entrainement(M, S, r){
     }
     c.cohesion = borne(c.cohesion + 1 + (P ? P.coh : moi ? tactique * 0.5 : 0.5) + (QB() ? QB().bonus(c, 'cohesion') : 0), 30, 100);
   }
-  for (const id of M.libres){ const j = M.joueurs[id]; if (j) progression(M, j, FOCUS_IA[M.semaine % 3], 1, 8, 8, r, null); }
+  for (const id of M.libres){ const j = M.joueurs[id]; if (j){ progression(M, j, FOCUS_IA[M.semaine % 3], 1, 8, 8, r, null); } }
 }
 function rapportEntrainement(M){
   const c = club(M, M.manager.club), L = Object.entries(c.progres).filter(([id]) => M.joueurs[id] && M.joueurs[id].club === c.id).sort((a, b) => b[1] - a[1]);
@@ -287,8 +295,8 @@ function completerEffectif(M, c, r){
     const b = besoin(M, c);
     const libre = M.libres.map(id => M.joueurs[id]).filter(j => j && j.poste === b.poste).sort((x, y) => n20(y) - n20(x))[0];
     if (libre && salaireDemande(libre, c) < c.masseMax * 0.12){ transfert(M, libre.id, c.id, 0, salaireDemande(libre, c), r.ent(1, 2)); continue; }
-    const lvl = EQ.niveauMin + (c.rep - 40) / 45 * (EQ.niveauMax - EQ.niveauMin) - 1.8 + r.gauss() * 0.8;
-    const j = Q().creerJoueur(r, r.pondere(D.ORIGINES[c.nat]), b.poste, lvl, r.ent(17, 19), 'j' + (M.prochainId++));
+    const lvl = EQ.niveauMin + (c.rep - 40) / 45 * (EQ.niveauMax - EQ.niveauMin) - 2.8 + 0.3 * (niv(c, 'formation') - 2) + r.gauss() * 0.8;   // v113 : −2,8 (avant −1,8), mieux avec un bon centre de formation
+    const j = Q().creerJoueur(r, r.pondere(D.ORIGINES[c.nat]), b.poste, lvl, Q().AGE_JEUNE(r), 'j' + (M.prochainId++));
     j.club = c.id; j.num = numLibre(M, c); M.joueurs[j.id] = j; c.effectif.push(j.id); nouveauJoueur(M, j, c);
     reparerCompo(M, c);
   }
@@ -305,7 +313,7 @@ function mercatoIA(M, S, r){
         if (riche) transfert(M, cher.id, riche.id, valeur(M, cher), salaireDemande(cher, riche), r.ent(1, 3)); else libererJoueur(M, cher); faits++; }
     }
     if (c.effectif.length > 21){ const pire = c.effectif.map(id => M.joueurs[id]).filter(j => !j.pret && !Q().titulaires(c.compo).includes(j.id)).sort((a, b) => (n20(a) - a.age / 20) - (n20(b) - b.age / 20))[0]; if (pire) libererJoueur(M, pire); }
-    if (r() > (c.effectif.length < 16 ? 0.7 : 0.22)) continue;
+    if (r() > (c.effectif.length < 16 ? 0.7 : masse(M, c) < c.masseMax * 0.75 ? 0.4 : 0.22)) continue;   // v113 : un club qui a de la marge sous son plafond cherche plus souvent
     const b = besoin(M, c), budget = c.budget * 0.6, place = c.masseMax * 1.05 - masse(M, c);
     if (budget <= 0 || place <= 0) continue;
     const vus = [];
@@ -318,7 +326,9 @@ function mercatoIA(M, S, r){
       const nv = Q().note20(j, b.poste); if (nv < b.seuil + 0.8) continue;
       const prix = j.club ? valeur(M, j) * (Q().titulaires(club(M, j.club).compo).includes(j.id) ? 1.2 : 0.95) : 0, sal = salaireDemande(j, c);
       if (prix > budget || sal > place) continue;
-      const v = (nv - b.seuil) / (1 + prix / 1e6 + sal / 2e4) - Math.max(0, j.age - 30) * 0.2;
+      /* v113 : le prix et le salaire pèsent selon les moyens du club (avant : en absolu, si bien que les grands clubs prenaient des renforts
+         bon marché, n'utilisaient que 57 % de leur plafond et laissaient la hiérarchie se tasser en vingt saisons) */
+      const v = (nv - b.seuil) / (1 + prix / Math.max(1e6, budget) + sal / Math.max(2e4, place)) - Math.max(0, j.age - 30) * 0.2;
       if (v > bestV){ best = {j, prix:arrondi(prix, 5000), sal}; bestV = v; }
     }
     if (best){ transfert(M, best.j.id, c.id, best.prix, best.sal, r.ent(1, 3)); faits++; }
@@ -471,7 +481,7 @@ function avantSaison(M, r){
       const j = M.joueurs[id]; if (!j || j.contrat.fin > M.saison) continue;
       const rg = rang.get(id) ?? 99, prometteur = j.age <= 23 && j.cache.pot - n20(j) >= 1.2;
       const garde = j.age >= 34 ? 0.15 : rg < 9 || prometteur ? 0.94 : rg < 13 ? 0.7 : 0.4;
-      if (!estJoueur(M, c.id) && r() < garde){ j.contrat = {fin:M.saison + 1 + r.ent(0, 2), sal:Math.max(j.contrat.sal, salaireDemande(j, c))}; continue; }
+      if (!estJoueur(M, c.id) && r() < garde){ j.contrat = {fin:M.saison + 1 + r.ent(0, 2), sal:Math.max(Math.round(j.contrat.sal * 0.8), salaireDemande(j, c))}; continue; }   // v113 : un joueur qui décline accepte de gagner moins (avant : jamais de baisse)
       if (estJoueur(M, c.id)) partis.push(nomJ(j));
       libererJoueur(M, j);
     }
@@ -485,9 +495,35 @@ function avantSaison(M, r){
   }
   M.offres = [];
 }
+/* v113 : un club de l'ordinateur qui a plus d'une saison de recettes en caisse investit le surplus dans ses installations
+   (avant, la trésorerie gonflait sans fin : ×6 en 25 saisons). Un niveau à la fois, le moins cher d'abord, tant qu'il garde 80 % d'une saison de recettes. */
+function investirIA(M, c){
+  const res = revenusSaison(c), cfgs = {...EQ.inst, ...(EQ.bat || {})}, cible = borne(Math.floor(1 + (c.rep - 40) / 12) + (c.budget > res * 2.5 ? 1 : 0), 1, 5);   // un club vise les installations de son rang (52 → niveau 2, 64 → 3, 76 → 4, 88 → 5), un cran de plus s'il roule sur l'or
+  for (let k = 0; k < 6 && c.budget > res; k++){
+    const L = Object.keys(cfgs).filter(t => niv(c, t) < cible).map(t => [t, cfgs[t].base * niv(c, t)]).sort((a, b) => a[1] - b[1]);
+    if (!L.length || c.budget - L[0][1] < res * 0.8) break;
+    c.inst = c.inst || {}; c.inst[L[0][0]] = niv(c, L[0][0]) + 1; compter(c, 'dep', 'travaux', L[0][1]);
+  }
+}
+/* v113 : usure des installations. À la fin de chaque saison, chaque installation ou bâtiment peut perdre un niveau, d'autant plus
+   souvent qu'il est haut : 2 % au niveau 2, 5 % au 3, 9 % au 4, 14 % au 5 (rien au niveau 1, ni pendant des travaux sur ce bâtiment).
+   Les gros clubs doivent réinvestir chaque saison ; un petit club, aux bâtiments modestes, s'use très peu. */
+const USURE = [0, 0, 0.02, 0.053, 0.093, 0.139];
+function user(M, c, r){
+  const cfgs = {...EQ.inst, ...(EQ.bat || {})}, perdus = [];
+  for (const k of Object.keys(cfgs)){
+    const n = niv(c, k); if (n <= 1 || (c.travaux || []).some(t => t.type === k)) continue;
+    if (r() < USURE[n]){ c.inst = c.inst || {}; c.inst[k] = n - 1; perdus.push([k, n - 1]); }
+  }
+  if (perdus.length && estJoueur(M, c.id)){
+    const nom = k => ((D.BATIMENTS || []).find(x => x[0] === k) || D.INSTALLATIONS.find(x => x[0] === k) || [k, k])[1];
+    Q().message(M, perdus.length > 1 ? 'Installations usées' : `Usure : ${nom(perdus[0][0])}`, `Une saison de plus a laissé des traces : ${perdus.map(([k, n]) => `${nom(k)} redescend au niveau ${n}`).join(', ')}. Les bâtiments de haut niveau s'usent plus vite (14 % de risque par saison au niveau 5) : à rénover dans Club › Domaine.`, 'club');
+  }
+}
 function apresSaison(M, r){
   for (const c of Object.values(M.clubs)){
-    if (!estJoueur(M, c.id)) completerEffectif(M, c, r);
+    user(M, c, r);
+    if (!estJoueur(M, c.id)){ completerEffectif(M, c, r); investirIA(M, c); }
     c.masseMax = masseMax(c); c.cohesion = Math.max(50, c.cohesion - 10);
   }
   if (aClub(M)){ const U = club(M, M.manager.club), jeunes = [];
@@ -514,7 +550,7 @@ function potentielEstime(M, j){
   return Math.round(borne(vrai + bruit, 1, 5));
 }
 
-root.QMC = {nouveauClub, noterCarriere, niv, multInst, entretienInst, compter, finVide, creerStaff, numLibre, transfert, libererJoueur, reparerCompo, progression, completerClub, besoin, initMonde, migrer, semaine, avantSaison, apresSaison, nouveauJoueur, dureeBlessure, salaireDemande, valeur, masse, masseMax, prixRef, remplissage, euros,
+root.QMC = {nouveauClub, usure:user, noterCarriere, niv, multInst, entretienInst, compter, finVide, creerStaff, numLibre, transfert, libererJoueur, reparerCompo, progression, completerClub, besoin, initMonde, migrer, semaine, avantSaison, apresSaison, nouveauJoueur, dureeBlessure, salaireDemande, valeur, masse, masseMax, prixRef, remplissage, euros,
             mercatoOuvert, prochaineFenetre, proposerTransfert, accepterOffre, refuserOffre, mettreEnVente, suivre, liberer, coutLiberation, prolonger, embaucher,
             UNITES_GALLION, acheterBalais, reglerPrix, potentielEstime, prixClub, exigenceJoueur, NOMS_REC, NOMS_DEP, ENT_DEFAUT, revenusSaison};
 })(typeof window !== 'undefined' ? window : globalThis);

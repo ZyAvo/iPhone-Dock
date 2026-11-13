@@ -1,4 +1,4 @@
-// mon-ecran-version: fb959305
+// mon-ecran-version: f6a54b5d
 /* QM27 (v88, lot 5) — le domaine du club : bâtiments sorciers (niveaux 1 à 5 et améliorations au choix aux niveaux 3 et 5),
    stade en quatre tribunes, Bazar (produits et prix), sponsor maillot et panneaux à négocier, supporters, emprunt à la Banque des Gobelins,
    salle des trophées et palmarès, petits événements. Sans affichage : expose window.QMB (bonus lus par le moteur) et complète window.QMC.
@@ -18,7 +18,7 @@ const BAT = Object.fromEntries(D.BATIMENTS.map(b => [b[0], b]));
 const AMEL = {}; for (const b of D.BATIMENTS) for (const n of [3, 5]) for (const a of b[n === 3 ? 5 : 6]) AMEL[a[0]] = {bat:b[0], niv:n, nom:a[1], effet:a[2]};
 const cfg = k => EQ.inst[k] || EQ.bat[k];
 const niv = (c, k) => QMC.niv(c, k);
-const a = (c, x) => !!(c && c.amel && c.amel.includes(x));
+const a = (c, x) => !!(c && c.amel && c.amel.includes(x) && (!AMEL[x] || niv(c, AMEL[x].bat) >= AMEL[x].niv));   // v113 : un bâtiment usé sous le niveau d'une amélioration la met en sommeil jusqu'à sa rénovation
 const SEM = () => EQ.eco.semaines;
 
 /* ---------- Bonus des bâtiments (lus par le moteur) ---------- */

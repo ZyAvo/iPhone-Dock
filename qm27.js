@@ -1,4 +1,4 @@
-// mon-ecran-version: 40d19ed6
+// mon-ecran-version: 953f0bf0
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -7,7 +7,7 @@
 'use strict';
 const D = root.QMD;
 const EQ = D.EQ;
-const VERSION = 9;   // v94 : potentiels plafonnés (fin de l'inflation des notes), historique de carrière (j.carr) ; v7   // v91 : tournoi pendant le championnat (j.inter), programme d'entraînement, profil du manager, records (qm27-bureau.js) ; v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty ; v90 : vestiaire et mercato (qm27-vestiaire.js)   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
+const VERSION = 10;   // v113 : droits TV relevés, plafonds de masse salariale recalculés ;   // v94 : potentiels plafonnés (fin de l'inflation des notes), historique de carrière (j.carr) ; v7   // v91 : tournoi pendant le championnat (j.inter), programme d'entraînement, profil du manager, records (qm27-bureau.js) ; v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty ; v90 : vestiaire et mercato (qm27-vestiaire.js)   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
 const C = () => root.QMC;   // gestion du club (qm27-club.js), facultative pour le moteur
 
 /* ---------- Hasard à graine (mulberry32) ---------- */
@@ -63,7 +63,11 @@ function creerJoueur(r, nat, poste, niveau, age, id){
           forme:6, fat:0, moral:60, bless:null, club:null, num:0,
           saison:{m:0, b:0, v:0, cog:0, arr:0, notes:0}};
 }
-const AGE = r => borne(Math.round(26 + r.gauss() * 4), 17, 36);
+/* v113 : âges de départ proches de l'équilibre (entrées à 17-21 ans, retraites étalées de 31 à 37 ans) : sans la vague de retraites puis de jeunes vers la 8e saison */
+const AGES_DEPART = [[17, 2], [18, 4], [19, 5], [20, 6], [21, 7], [22, 7], [23, 7], [24, 7], [25, 7], [26, 7], [27, 7], [28, 7], [29, 6], [30, 6], [31, 5], [32, 4], [33, 3], [34, 2], [35, 1]];
+const AGE = r => r.pondere(AGES_DEPART);
+const AGE_JEUNE = r => r.pondere([[17, 3], [18, 4], [19, 4], [20, 3], [21, 2]]);
+const RETRAITE = {31:0.03, 32:0.07, 33:0.15, 34:0.3, 35:0.5, 36:0.8};   // probabilité par été ; 37 ans et plus : toujours
 const EFFECTIF = ['P', 'P', 'P', 'B', 'B', 'A', 'G', 'P', 'P', 'P', 'B', 'B', 'A', 'G', 'P', 'B'];   // 16 joueurs : 7 titulaires + 9
 
 function nouveauMonde(graine){
@@ -738,11 +742,11 @@ function saisonSuivante(M){
       const j = M.joueurs[id];
       if (!C()) progresser(j, r);
       j.age++;
-      const part = j.age >= 36 || (j.age >= 34 && r() < 0.35) || (j.age >= 32 && r() < 0.08);
+      const part = j.age >= 37 || r() < (RETRAITE[j.age] || 0);   // v113 : retraites étalées (avant : 8 % dès 32 ans, 35 % dès 34, tous à 36)
       if (part){
         club.effectif = club.effectif.filter(x => x !== id); delete M.joueurs[id];
         const lvl = EQ.niveauMin + (club.rep - 40) / 45 * (EQ.niveauMax - EQ.niveauMin) + r.gauss() * 0.9;
-        const n = creerJoueur(r, r.pondere(D.ORIGINES[club.nat]), j.poste, lvl - 1.5, r.ent(17, 19), 'j' + (M.prochainId++));
+        const n = creerJoueur(r, r.pondere(D.ORIGINES[club.nat]), j.poste, lvl - 2.8 + 0.3 * (C() ? C().niv(club, 'formation') - 2 : 0), AGE_JEUNE(r), 'j' + (M.prochainId++));   // v113 : −2,8 (avant −1,5 : avec sa marge de potentiel, chaque génération dépassait la précédente)
         n.club = club.id; n.num = j.num; M.joueurs[n.id] = n; club.effectif.push(n.id); if (C()) C().nouveauJoueur(M, n, club);
         if (clubJoueur(M) === club.id) message(M, `${nomJ(j)} prend sa retraite`, `${j.age} ans. Le centre de formation fait monter ${nomJ(n)} (${n.age} ans, ${D.POSTES[n.poste].nom.toLowerCase()}).`, 'staff');
       }
@@ -838,7 +842,7 @@ function charger(txt){
 
 /* v106 : une ligue du palmarès, même disparue (Ligue de France, Ligue d'Italie) */
 const ligueDe = (M, id) => M.ligues[id] || D.LIGUES_ANCIENNES[id] || {id, nom:String(id), court:String(id), clubs:[]};
-root.QM = {ligueDe, roundRobin, creerClub, basculer, chargeFacteur, plancherFatigue, matchsDuJoueur, convoquer, convoques, finirMatchDuJoueur, natJoueur, VERSION, clubJoueur, campJoueur, tactiqueIA, apresMatchManager, finDeSaison, hasard, melange, note, note20, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
+root.QM = {AGE_JEUNE, ligueDe, roundRobin, creerClub, basculer, chargeFacteur, plancherFatigue, matchsDuJoueur, convoquer, convoques, finirMatchDuJoueur, natJoueur, VERSION, clubJoueur, campJoueur, tactiqueIA, apresMatchManager, finDeSaison, hasard, melange, note, note20, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
            semaine, matchDuJoueur, preparerMatch, simulerMatch, creerMatch, equipeClub, selection, pas, jusquAuBout, tempsMort, remplacer, resume, notesMatch,
            terminerSemaine, saisonSuivante, classement, objectif, serialiser, charger, nomJ, message, attente,
            manies, aManie, maniesPour, sansDe, CONTRE, completerTactique,

@@ -1,4 +1,4 @@
-// mon-ecran-version: f298277b
+// mon-ecran-version: b3e5b3c9
 /* QM27 (v85, lot 3) — stade et installations, centre de formation, réputation des clubs, carrière du manager
    (offres d'autres clubs, démission, licenciement, sans club) et double poste de sélectionneur pour le Tournoi des Six Emblèmes.
    Sans affichage : complète window.QMC (qm27-club.js) et s'insère dans ses rendez-vous de la semaine et de la saison. */
@@ -109,7 +109,15 @@ function reputations(M){
     const attendu = L.clubs.slice().sort((a, b) => club(M, b).rep - club(M, a).rep);
     Q().classement(M, L.id).forEach((row, k) => {
       const c = club(M, row.id), e = attendu.indexOf(row.id) + 1, avant = c.rep;
-      c.rep = Math.round(borne(c.rep + borne((e - (k + 1)) * 0.45, -4, 4) + (k === 0 ? 2 : 0), 30, 95));
+      /* v113 : stature du club. Chaque club a un socle (sa réputation de départ) vers lequel la réputation revient doucement (15 % de l'écart
+         par saison) : sans lui, les surprises des petits clubs tassaient toute la hiérarchie vers le haut en vingt saisons. Le socle ne bouge
+         pas pour les hauts et bas ordinaires (±8) ; au-delà, il suit la réputation (10 % de l'excédent par saison) : un club relevé
+         durablement par un manager change de statut et le garde, un géant qui s'effondre plusieurs saisons perd le sien. */
+      if (c.socle == null) c.socle = c.rep;
+      const x = c.rep + borne((e - (k + 1)) * 0.5, -4, 6) + (k === 0 ? 2 : 0);   // une belle surprise rapporte jusqu'à +6
+      c.rep = Math.round(borne(x + (c.socle - x) * 0.15, 30, 95));
+      const ecart = c.rep - c.socle;
+      if (Math.abs(ecart) > 8) c.socle = Math.round((c.socle + (ecart - Math.sign(ecart) * 8) * 0.1) * 10) / 10;
       if (M.manager && M.manager.club === c.id && c.rep !== avant) Q().message(M, 'Réputation du club', `${c.nom} passe de ${avant} à ${c.rep} : ${c.rep > avant ? 'le club attire davantage (affluence, sponsors, joueurs)' : 'le club attire un peu moins'}.`, 'pres');
     });
   }
