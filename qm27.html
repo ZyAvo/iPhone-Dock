@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="223acc5d">
+<meta name="mon-ecran-version" content="edb6d6fb">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -720,7 +720,11 @@ html.desk .scene{max-width:min(560px, calc((100vh - 170px) * .667))}
 .sc-obj .sc-toile{position:absolute;left:18%;top:17%;width:64%;height:66%;border-radius:50%;overflow:hidden;background:#3a2a1c}.sc-toile .av{width:100%;height:100%;object-fit:cover;filter:sepia(.3) saturate(.9) contrast(1.05)}
 .sc-obj .sc-cadre{position:relative;display:block;width:100%;height:auto;pointer-events:none}
 .sc-aide{text-align:center;margin:6px 0 0}
-.scene{container-type:inline-size}.sc-txt{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;white-space:nowrap;pointer-events:none;line-height:1}
+.scene{container-type:inline-size}
+.sc-obj.sc-zone{transform:none}.sc-zone .sc-c{width:100%;height:100%}
+.sc-zone::after{content:'';position:absolute;inset:0;border-radius:38%;background:radial-gradient(closest-side,rgba(255,226,140,.28),transparent);opacity:0;transition:opacity .2s;pointer-events:none;mix-blend-mode:screen}
+.sc-zone:hover::after,.sc-zone:focus-visible::after,.sc-zone.joue::after{opacity:1}.sc-zone.sc-fixe::after{display:none}
+.sc-zone .sc-plaque{top:auto;bottom:-2px;transform:translate(-50%,100%)}.sc-zone .sc-plaque.g{transform:translate(0,100%)}.sc-zone .sc-plaque.d{transform:translate(0,100%)}.sc-txt{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;white-space:nowrap;pointer-events:none;line-height:1}
 .sc-grave{font-size:3cqw;font-weight:850;letter-spacing:-.02em;color:#4a2c08;text-shadow:0 1px 0 rgba(255,236,170,.75)}
 .sc-encre{font-size:2.3cqw;font-weight:800;color:#3a2a1a;transform:rotate(-3deg)}
 .sc-obj .sc-c.fixe{opacity:1}
@@ -745,7 +749,7 @@ html.desk .scene{max-width:min(560px, calc((100vh - 170px) * .667))}
   .sc-porte:hover > .sc-base,.sc-porte.joue > .sc-base{filter:drop-shadow(0 0 16px rgba(255,200,60,.9))}
   .sc-remplit .plein{transition:clip-path 1.3s ease-out}.sc-remplit:hover .plein,.sc-remplit.joue .plein,.sc-remplit:focus-visible .plein{clip-path:ellipse(var(--r) var(--r) at 50% 56%)}
   .sc-gobelin:hover > .sc-base,.sc-gobelin.joue > .sc-base{transform-origin:50% 100%;animation:sc-souffle 1.6s ease-in-out}
-  .sc-gobelin:hover .monocle,.sc-gobelin.joue .monocle{animation:sc-mono 1.6s linear}
+  .sc-gobelin:hover .monocle{opacity:1;transition:opacity .1s .15s}.sc-gobelin.joue .monocle{animation:sc-mono 1.6s linear}
   .sc-parle:hover > .sc-base,.sc-parle.joue > .sc-base{transform-origin:50% 90%;animation:sc-parle 1.1s ease-in-out}
   .sc-parle:hover .bouche,.sc-parle.joue .bouche{transform-origin:50% 90%;animation:sc-bouche 1.1s steps(1) , sc-parle 1.1s ease-in-out}
   .sc-ondule:hover > .sc-base,.sc-ondule.joue > .sc-base{transform-origin:50% 0;animation:sc-ondule 1.4s ease-in-out}

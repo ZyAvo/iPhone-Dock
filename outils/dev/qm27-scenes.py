@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 6318f3f1
+# mon-ecran-version: 84c07ee3
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
   (pas de carré : l'écran place chaque objet par son centre et sa largeur). Une case peut donner deux pièces (« g » et « d ») :
   ses composantes sont partagées par le milieu, chaque moitié gardant le cadre de la case entière (pour se superposer exactement).
 Trous fermés de vrai fond (intérieur du cadre doré) : transparents.
+v118 — méthode des RETOUCHES (bien meilleure) : ChatGPT peint la pièce complète, objets en place (image A = le fond), puis la
+retouche dans la même conversation (images B, C… : seuls les objets changent). Chaque retouche est recalée sur A (ORB + similitude), puis
+on découpe autour de chaque objet un rectangle aux bords fondus, avec son vrai décor : <lieu>-<objet>-<image>.webp, posé à sa place exacte.
+RETOUCHES[lieu] = {'zones': {objet: [x0, y0, x1, y1] dans A (1024 × 1536)}, 'pieces': [(objet, image)]}.
 Usage : python3 outils/dev/qm27-scenes.py <dossier des planches> [dossier de sortie, défaut images/qm27/scenes]"""
 import sys, os, json
 import numpy as np
@@ -16,12 +20,11 @@ A = sys.argv[1]; O = sys.argv[2] if len(sys.argv) > 2 else 'images/qm27/scenes'
 LIEUX = {
     'bureau': (4, 3, ['choixpeau', 'choixpeau-ouvert', 'echarpe', 'gazette', 'page', 'lettre', 'cachet', ('cachet-g', 'cachet-d'),
                       'lettre-ouverte', 'bourse', 'piece', 'cadre']),
-    'banque': (3, 3, ['coffre-1', 'coffre-2', 'coffre-3', 'plan-vide', 'plan-plein', 'gobelin', 'gobelin-monocle', 'plaque', 'etiquette']),   # v117
 }
 LARG = 420
 # v117 : les images d'une même animation, recalées sur la première (ORB + similitude RANSAC : les parties fixes, l'arche du coffre ou le cadre
 # du plan, se superposent au pixel près, seule la partie animée change)
-ALIGNER = {'banque-coffre-2':'banque-coffre-1', 'banque-coffre-3':'banque-coffre-1', 'banque-plan-plein':'banque-plan-vide'}
+ALIGNER = {}   # v117 : {'<lieu>-<objet 2>': '<lieu>-<objet 1>'} (méthode des planches, abandonnée en v118)
 
 def retoucher_banque(img):
     """Le fond de la banque est arrivé avec un cadre vide au mur de gauche : on le recouvre d'un pan de marbre pris au mur de droite
@@ -40,7 +43,7 @@ def retoucher_banque(img):
     hsv = cv2.cvtColor(out, cv2.COLOR_BGR2HSV); z = np.zeros(m.shape, np.uint8); z[312:342, 180:300] = 255
     out = cv2.inpaint(out, cv2.dilate(cv2.bitwise_and(z, ((hsv[..., 1] > 120) & (hsv[..., 2] < 235)).astype(np.uint8) * 255), np.ones((5, 5), np.uint8)), 6, cv2.INPAINT_TELEA)
     return Image.fromarray(cv2.cvtColor(out, cv2.COLOR_BGR2RGB))
-RETOUCHE = {'banque':retoucher_banque}
+RETOUCHE = {}   # v117 : {'banque':retoucher_banque} pour l'ancien fond de la banque
 
 def aligner(nom, base):
     import cv2
@@ -94,4 +97,28 @@ for lieu, (cols, rows, noms) in LIEUX.items():
     print(lieu, 'objets ok', len(noms))
     for nom, base in ALIGNER.items():
         if nom.startswith(lieu + '-'): aligner(nom, base)
+RETOUCHES = {
+    'banque': {'zones':{'coffre':[770, 488, 1016, 798], 'plan':[95, 405, 422, 642], 'gobelin':[388, 632, 676, 850]},
+               'pieces':[('coffre', 'B'), ('coffre', 'C'), ('plan', 'C'), ('gobelin', 'B')]},
+}
+FONDU = 14
+for lieu, R in RETOUCHES.items():
+    fA = os.path.join(A, f'{lieu}-A.png')
+    if not os.path.exists(fA): continue
+    import cv2
+    a = cv2.imread(fA); a = cv2.resize(a, (1024, 1536), interpolation=cv2.INTER_AREA)
+    cv2.imwrite(os.path.join(O, f'{lieu}-fond.webp'), a, [cv2.IMWRITE_WEBP_QUALITY, 82]); print(lieu, 'fond (image A) ok')
+    orb = cv2.ORB_create(6000); ka, da = orb.detectAndCompute(cv2.cvtColor(a, cv2.COLOR_BGR2GRAY), None); regs = {}
+    for obj, im in R['pieces']:
+        if im not in regs:
+            b = cv2.resize(cv2.imread(os.path.join(A, f'{lieu}-{im}.png')), (1024, 1536), interpolation=cv2.INTER_AREA)
+            kb, db = orb.detectAndCompute(cv2.cvtColor(b, cv2.COLOR_BGR2GRAY), None)
+            mt = sorted(cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).match(db, da), key=lambda x: x.distance)[:1500]
+            T, inl = cv2.estimateAffinePartial2D(np.float32([kb[m.queryIdx].pt for m in mt]), np.float32([ka[m.trainIdx].pt for m in mt]), method=cv2.RANSAC, ransacReprojThreshold=2)
+            regs[im] = cv2.warpAffine(b, T, (1024, 1536), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE); print(f'  image {im} recalée ({int(inl.sum())} points)')
+        x0, y0, x1, y1 = R['zones'][obj]; p = regs[im][y0:y1, x0:x1]
+        al = np.zeros(p.shape[:2], np.float32); al[FONDU:-FONDU, FONDU:-FONDU] = 1; al = cv2.GaussianBlur(al, (0, 0), FONDU / 2.2)
+        rgba = np.dstack([cv2.cvtColor(p, cv2.COLOR_BGR2RGB), (al * 255).astype(np.uint8)])
+        Image.fromarray(rgba, 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-{im}.webp'), 'WEBP', quality=86, method=6)
+        tailles[f'{lieu}-{obj}-{im}'] = [x0, y0, x1, y1]
 print(json.dumps(tailles))

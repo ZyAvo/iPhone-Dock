@@ -1,4 +1,4 @@
-// mon-ecran-version: a6c2c797
+// mon-ecran-version: 4863207f
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -161,15 +161,16 @@ const SCENES = {
       si:M_ => { const R = G() && G().reunion(M_); return !!(R && R.fin && R.accord); }},
     {id:'bourse', img:'scenes/bureau-bourse', calques:[['scenes/bureau-piece', 'piece p1'], ['scenes/bureau-piece', 'piece p2'], ['scenes/bureau-piece', 'piece p3']], x:12.7, y:69.4, w:15, plaque:'g', anim:'pieces', nom:'Finances', act:'scFinances'},
   ]},
-  /* v117 : la banque des Gobelins (finances) ; le coffre s'ouvre en trois images, le plan du stade se remplit jusqu'à l'affluence prévue */
-  finances:{fond:'scenes/banque-fond', ratio:1536 / 1024, objets:[
-    {id:'plaque', img:'scenes/banque-plaque', x:84.2, y:29.2, w:21, anim:'fixe', muet:true, nom:'Solde', act:'scCoffre',
-      textes:[[(M_, c) => eurT(c.budget), 'left:8%;top:22%;width:84%;height:56%', 'sc-grave']]},
-    {id:'coffre', img:'scenes/banque-coffre-1', calques:[['scenes/banque-coffre-2', 'f2'], ['scenes/banque-coffre-3', 'f3']], x:84.2, y:39.6, w:26, plaque:'d', anim:'porte', nom:'Le coffre', act:'scCoffre'},
-    {id:'plan', img:'scenes/banque-plan-vide', calques:[['scenes/banque-plan-plein', 'plein'], ['scenes/banque-etiquette', 'fixe', 'left:63%;top:58%;width:33%']], x:17.9, y:30.2, w:27, plaque:'g', anim:'remplit', nom:'Billetterie', act:'scBillet',
-      textes:[[(M_, c) => eurT(c.prix), 'left:65%;top:66%;width:29%;height:14%', 'sc-encre']],
+  /* v118 : la banque des Gobelins (finances), méthode des retouches : le fond est l'image A de ChatGPT, objets compris ; chaque objet est une
+     zone [x0, y0, x1, y1] (pixels de A) où se superposent les rectangles découpés dans les retouches B et C (qm27-scenes.py, RETOUCHES).
+     Le coffre s'ouvre (A → B → C), le plan se remplit jusqu'à l'affluence prévue (C), le gobelin lève la tête et son monocle (B). */
+  finances:{fond:'scenes/banque-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
+    {id:'plaque', zone:[826, 374, 962, 460], anim:'fixe', muet:true, nom:'Solde', act:'scCoffre', textes:[[(M_, c) => eurT(c.budget), 'left:9%;top:20%;width:82%;height:60%', 'sc-grave', [2.4, 23]]]},
+    {id:'coffre', zone:[770, 488, 1016, 798], calques:[['scenes/banque-coffre-B', 'f2'], ['scenes/banque-coffre-C', 'f3']], plaque:'d', anim:'porte', nom:'Le coffre', act:'scCoffre'},
+    {id:'plan', zone:[95, 405, 422, 642], calques:[['scenes/banque-plan-C', 'plein']], plaque:'g', anim:'remplit', nom:'Billetterie', act:'scBillet',
       vars:(M_, c) => ({'--r':Math.round(18 + 60 * Math.min(1, C.remplissage(M_, c, {rep:60}))) + '%'})},
-    {id:'gobelin', img:'scenes/banque-gobelin', calques:[['scenes/banque-gobelin-monocle', 'monocle', 'top:auto;bottom:0']], x:51, y:45.1, w:34, anim:'gobelin', nom:'Banque des Gobelins', act:'scGobelin'},
+    {id:'etiquette', zone:[343, 612, 417, 668], anim:'fixe', muet:true, nom:'Prix des places', act:'scBillet', textes:[[(M_, c) => eurT(c.prix), 'left:6%;top:18%;width:88%;height:64%', 'sc-encre', [1.9, 12]]]},
+    {id:'gobelin', zone:[388, 632, 676, 850], calques:[['scenes/banque-gobelin-B', 'monocle']], anim:'gobelin', nom:'Banque des Gobelins', act:'scGobelin'},
   ]},
 };
 const SC_OK = {};
@@ -182,10 +183,14 @@ function sceneHTML(l){
   const S = SCENES[l], M_ = M(), c = moi(), src = k => `${V.IMAGES}${k}.webp`;
   const obj = o => {
     const corps = o.portrait ? `<span class="sc-toile">${avatarMgr('sc-av')}</span><img class="sc-cadre" src="${src(o.cadre)}" alt="" draggable="false">`
-      : `<img class="sc-base"${o.club ? ' data-prod="scene"' : ''} src="${src(o.img)}" alt="" draggable="false">${(o.calques || []).map(([k, cl, st]) => `<img class="sc-c ${cl}" src="${src(k)}" alt="" draggable="false"${st ? ` style="${st}"` : ''}>`).join('')}`;
+      : `${o.img ? `<img class="sc-base"${o.club ? ' data-prod="scene"' : ''} src="${src(o.img)}" alt="" draggable="false">` : ''}${(o.calques || []).map(([k, cl, st]) => `<img class="sc-c ${cl}" src="${src(k)}" alt="" draggable="false"${st ? ` style="${st}"` : ''}>`).join('')}`;
     const vars = o.vars ? Object.entries(o.vars(M_, c)).map(([k, v]) => `;${k}:${v}`).join('') : '';
-    const textes = (o.textes || []).map(([fn, st, cl]) => `<span class="sc-txt ${cl || ''}" style="${st}">${esc(fn(M_, c))}</span>`).join('');
-    return `<button class="sc-obj sc-${o.anim}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="left:${o.x}%;top:${o.y}%;width:${o.w}%${vars}" aria-label="${esc(o.nom)}">${corps}${textes}${o.muet ? '' : `<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(o.nom)}</span>`}</button>`;
+    /* taille = [corps max, largeur en cqw × caractères] : le texte rétrécit pour tenir */
+    const textes = (o.textes || []).map(([fn, st, cl, taille]) => { const t = String(fn(M_, c)), fs = taille ? `;font-size:${Math.min(taille[0], taille[1] / Math.max(1, t.length)).toFixed(2)}cqw` : '';
+      return `<span class="sc-txt ${cl || ''}" style="${st}${fs}">${esc(t)}</span>`; }).join('');
+    const pos = o.zone ? `left:${o.zone[0] / S.l * 100}%;top:${o.zone[1] / S.h * 100}%;width:${(o.zone[2] - o.zone[0]) / S.l * 100}%;height:${(o.zone[3] - o.zone[1]) / S.h * 100}%`
+      : `left:${o.x}%;top:${o.y}%;width:${o.w}%`;
+    return `<button class="sc-obj sc-${o.anim}${o.zone ? ' sc-zone' : ''}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="${pos}${vars}" aria-label="${esc(o.nom)}">${corps}${textes}${o.muet ? '' : `<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(o.nom)}</span>`}</button>`;
   };
   return `<div class="scene" style="aspect-ratio:${1 / S.ratio}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}</div>
     <p class="petit mut sc-aide">Touche un objet de la pièce.</p>`;
