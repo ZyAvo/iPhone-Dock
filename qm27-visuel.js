@@ -1,4 +1,4 @@
-// mon-ecran-version: 19cc5f1c
+// mon-ecran-version: 55c0411f
 /* QM27 (v87) — graphismes dessinés par le code, sans image : blasons des clubs, maillots, avatars, radar du profil.
    Tout est déterministe : un club ou une personne a toujours le même dessin (graine = identifiant).
    window.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe}. Aucune dépendance (QMD seulement pour les prénoms). */
@@ -86,8 +86,8 @@ const PARTITIONS = {
 };
 /* v93 : illustrations (images/qm27/ : blasons, lieux et bâtiments du domaine, fond de carte) ; les dessins en code restent pour la galerie et en secours */
 const IMAGES = 'images/qm27/';
-/* v106 : seuls les 48 clubs d'origine ont un blason illustré ; les autres gardent le blason dessiné en attendant leurs images */
-const BLASONS_ILLUSTRES = new Set(['aberdeen', 'aberystwyth', 'arezzo', 'bari', 'bath', 'benevento', 'bergamo', 'besancon', 'bologna', 'bordeaux', 'brest', 'canterbury', 'carcassonne', 'conwy', 'cork', 'dublin', 'firenze', 'galway', 'genova', 'glastonbury', 'grenoble', 'inverness', 'lille', 'lyon', 'marseille', 'milano', 'montpellier', 'nantes', 'napoli', 'norwich', 'oxford', 'palermo', 'paris', 'perugia', 'poitiers', 'reims', 'rennes', 'roma', 'stirling', 'strasbourg', 'swansea', 'torino', 'toulouse', 'trieste', 'venezia', 'verona', 'whitby', 'york']);
+/* v106 : les clubs qui ont un blason illustré (v110 : les 84, dont les 20 de réserve) ; sinon le blason dessiné */
+const BLASONS_ILLUSTRES = new Set(['aarhus', 'aberdeen', 'aberystwyth', 'akureyri', 'amsterdam', 'antwerpen', 'arezzo', 'barcelona', 'bari', 'bath', 'benevento', 'bergamo', 'bergen', 'berlin', 'besancon', 'bologna', 'bordeaux', 'brest', 'brno', 'bruxelles', 'canterbury', 'carcassonne', 'conwy', 'cork', 'dublin', 'firenze', 'galway', 'gdansk', 'genova', 'glastonbury', 'goteborg', 'grenoble', 'hamburg', 'helsinki', 'inverness', 'kobenhavn', 'koln', 'krakow', 'lille', 'luxembourg', 'lyon', 'madrid', 'malmo', 'marseille', 'milano', 'montpellier', 'munchen', 'nantes', 'napoli', 'norwich', 'odense', 'oslo', 'oxford', 'palermo', 'paris', 'perugia', 'poitiers', 'praha', 'reims', 'rennes', 'reykjavik', 'roma', 'salzburg', 'sevilla', 'stirling', 'stockholm', 'strasbourg', 'swansea', 'tampere', 'toledo', 'torino', 'toulouse', 'trieste', 'tromso', 'trondheim', 'turku', 'uppsala', 'utrecht', 'venezia', 'verona', 'warszawa', 'whitby', 'wien', 'york']);
 const aImage = id => BLASONS_ILLUSTRES.has(id);
 function blason(c, cls){
   if (c && aImage(c.id)) return `<img class="blz img ${cls || ''}" src="${IMAGES}blasons/${c.id}.webp" alt="" aria-hidden="true" decoding="async" draggable="false">`;
@@ -266,7 +266,7 @@ const EMBL = {
   ITA:{anneau:['#008c45', '#ffffff', '#cd212a'], nom:'la couronne de laurier', svg:`<g transform="translate(12 12) scale(.8) translate(-12 -12)"><g fill="#008c45">${lauriers()}</g><path d="M10.2 19.6l1.8-1.4 1.8 1.4M10.6 20.6l1.4-1.2 1.4 1.2" stroke="#cd212a" stroke-width="1.2" fill="none" stroke-linecap="round"/>
     <path d="M12 7.4l.9 1.9 2 .2-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.2z" fill="#e8b83c"/></g>`},
 };
-/* v106 : nouvelles nations, un symbole du jeu dans l'anneau aux couleurs du drapeau (en attendant des emblèmes illustrés) */
+/* v106 : nouvelles nations, un symbole du jeu dans l'anneau aux couleurs du drapeau (v109 : remplacé par les emblèmes illustrés ; gardé pour embleme(n, 'dessin')) */
 const symb = (k, C) => `<g transform="translate(12 12) scale(.62) translate(-12 -12)">${EMB[k](C)}</g>`;
 Object.assign(EMBL, {
   ESP:{anneau:['#c60b1e', '#ffc400', '#c60b1e'], nom:'la flamme', svg:symb('flamme', '#c60b1e')},
@@ -289,7 +289,7 @@ function anneauDe(L){
 }
 function embleme(n, cls){
   const e = EMBL[n]; if (!e) return '';
-  if (!(cls || '').includes('dessin') && D().SIX_NATIONS.includes(n)) return `<img class="emb img ${cls || ''}" src="${IMAGES}emblemes/${n}.webp" width="24" height="24" alt="${D().NATIONS[n] ? D().NATIONS[n].nom : n} (${e.nom})" decoding="async" draggable="false">`;   // v99 : emblème illustré
+  if (!(cls || '').includes('dessin') && D().NATIONS[n]) return `<img class="emb img ${cls || ''}" src="${IMAGES}emblemes/${n}.webp" width="24" height="24" alt="${D().NATIONS[n] ? D().NATIONS[n].nom : n} (${e.nom})" decoding="async" draggable="false">`;   // v99 : emblème illustré
   return `<svg class="emb ${cls || ''}" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="${D().NATIONS[n] ? D().NATIONS[n].nom : n} (${e.nom})">
     <circle cx="12" cy="12" r="9" fill="#fbf8f0"/>${e.bas ? `<path d="M3 12.6a9 9 0 0 0 18 0z" fill="${e.bas}" opacity=".9"/>` : ''}${anneauDe(e.anneau)}
     <circle cx="12" cy="12" r="11.6" fill="none" stroke="rgba(0,0,0,.3)" stroke-width=".7"/><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(0,0,0,.14)" stroke-width=".5"/>${e.svg}</svg>`;

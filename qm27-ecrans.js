@@ -1,11 +1,11 @@
-// mon-ecran-version: e098d264
+// mon-ecran-version: 9043a206
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
 (() => {
 'use strict';
 const Z = window.QMU; if (!Z) return;
-const {pieces, eurT, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, flag, posteB, etoiles, nomJ, classeNote, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, connu, HH, roleDe, VUES, ACT, VUE, U, LS} = Z;
+const {flagSeul, pieces, eurT, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, flag, posteB, etoiles, nomJ, classeNote, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, connu, HH, roleDe, VUES, ACT, VUE, U, LS} = Z;
 const G = () => window.QMG;
 const M = () => Z.M;
 const moi = () => club(M().manager.club);
@@ -220,7 +220,7 @@ function ficheProfil(){
     <div class="ligne" style="gap:14px;align-items:center"><span class="avp g">${apercu}</span><div style="flex:1;min-width:0">
       <label class="petit mut" for="nomEdit">Nom</label><input class="champ" id="nomEdit" maxlength="30" value="${esc(EDIT.nom)}">
       <div class="ligne" style="margin-top:8px;gap:8px"><span class="petit mut">Âge</span><button class="mini-b" data-act="ageMgr" data-d="-1">−</button><b>${EDIT.age}</b><button class="mini-b" data-act="ageMgr" data-d="1">+</button></div></div></div>
-    <h4 class="sous-t">Nationalité</h4><div class="chips">${D.SELECTIONS.map(n => `<button class="chip ${EDIT.nat === n ? 'on' : ''}" data-act="natMgr" data-n="${n}">${flag(n)} ${esc(nat(n).nom)}</button>`).join('')}</div>
+    <h4 class="sous-t">Nationalité</h4><div class="chips">${D.SELECTIONS.map(n => `<button class="chip ${EDIT.nat === n ? 'on' : ''}" data-act="natMgr" data-n="${n}">${flagSeul(n)} ${esc(nat(n).nom)}</button>`).join('')}</div>
     <h4 class="sous-t">Portrait</h4><div class="chips"><button class="chip ${illus ? 'on' : ''}" data-act="lookMgr" data-k="mode" data-v="illus">Portrait illustré</button><button class="chip ${illus ? '' : 'on'}" data-act="lookMgr" data-k="mode" data-v="dessin">Dessin personnalisé</button><button class="chip" data-act="lookMgr" data-k="hasard" data-v="1">Au hasard</button></div>
     ${illus ? `<div class="visages" role="group" aria-label="Choisir un portrait">${PORTRAITS().map(v => `<button class="${vis === v ? 'on' : ''}" data-act="lookMgr" data-k="visage" data-v="${v}" aria-label="Portrait ${v}"><img src="${V.IMAGES}visages/${v}.webp" alt="" loading="lazy" decoding="async"></button>`).join('')}</div>` : `
     <h4 class="sous-t">Peau</h4>${nuancier('peau', LOOK.peau)}
@@ -259,7 +259,7 @@ function vueTrophees(){
   else if (o === 'ligue'){ const l = U.recLigue || c.ligue;
     corps = `<div class="seg">${Object.values(M_.ligues).map(L => `<button data-act="recLigue" data-l="${L.id}" class="${l === L.id ? 'on' : ''}">${esc(L.court)}</button>`).join('')}</div><div class="carte">${lignesRecords(R.ligues[l])}</div>`; }
   else { const H = M_.histo.slice().reverse();
-    corps = `<div class="carte">${H.length ? `<div class="liste">${H.map(h => `<div class="el"><div class="t"><b>${esc(h.saison)}</b><span>${Object.values(h.champions || {}).map(id => esc(club(id).nom)).join(' · ')}${h.sixn ? ` · ${esc(D.TOURNOI.court)} : ${flag(h.sixn)} ${esc(nat(h.sixn).nom)}` : ''}${h.ldn ? ` · ${esc(D.LDN.nom)} : ${flag(h.ldn)} ${esc(nat(h.ldn).nom)}` : ''}${h.manager ? ` · toi : ${h.manager.pos}e avec ${esc(club(h.manager.club).nom)}` : ''}</span></div></div>`).join('')}</div>` : '<p class="mut" style="margin:0">Aucune saison terminée pour l\'instant.</p>'}</div>`; }
+    corps = `<div class="carte">${H.length ? `<div class="liste">${H.map(h => `<div class="el"><div class="t"><b>${esc(h.saison)}</b><span>${Object.values(h.champions || {}).map(id => esc(club(id).nom)).join(' · ')}${h.sixn ? ` · ${esc(D.TOURNOI.court)} : ${flagSeul(h.sixn)} ${esc(nat(h.sixn).nom)}` : ''}${h.ldn ? ` · ${esc(D.LDN.nom)} : ${flagSeul(h.ldn)} ${esc(nat(h.ldn).nom)}` : ''}${h.manager ? ` · toi : ${h.manager.pos}e avec ${esc(club(h.manager.club).nom)}` : ''}</span></div></div>`).join('')}</div>` : '<p class="mut" style="margin:0">Aucune saison terminée pour l\'instant.</p>'}</div>`; }
   VUE.innerHTML = `<div><h1 class="grand">Salle des trophées</h1><p class="sous">${esc(c.nom)}</p></div>${tabs}${corps}`;
 }
 ACT.troph = d => { U.troph = d.o; rendre(); };
@@ -577,7 +577,7 @@ function grilleMois(an, mo, J, petit){
     const cls = ['c', ...b, t === auj ? 'auj' : '', m && m.length ? 'match' : ''].join(' ');
     if (petit){ const r = m && m.length ? resMatch(m[m.length - 1]) : null; h += `<span class="${cls}" title="${i} ${MOIS[mo]}">${r ? `<i class="pt ${r.v || 'av'}"></i>` : ''}</span>`; continue; }
     h += `<${x && x.k != null && m && m.length ? `button data-act="semaine" data-s="${x.k}"` : 'span'} class="${cls}"><em>${i}</em>${m && m.length ? m.map(mm => { const r = resMatch(mm);
-      return `<span class="mm ${r.v}">${r.sx ? flag(r.adv) : blason(r.adv, 'p')}<small>${r.txt || (r.dom ? 'dom.' : 'ext.')}</small></span>`; }).join('') : ''}${x && x.S && x.S.tour && !(m || []).some(mm => mm.ligue === 'sixn') ? `<span class="tn" title="${esc(D.TOURNOI.nom)}">🏆</span>` : ''}</${x && x.k != null && m && m.length ? 'button' : 'span'}>`;
+      return `<span class="mm ${r.v}">${r.sx ? flagSeul(r.adv) : blason(r.adv, 'p')}<small>${r.txt || (r.dom ? 'dom.' : 'ext.')}</small></span>`; }).join('') : ''}${x && x.S && x.S.tour && !(m || []).some(mm => mm.ligue === 'sixn') ? `<span class="tn" title="${esc(D.TOURNOI.nom)}">🏆</span>` : ''}</${x && x.k != null && m && m.length ? 'button' : 'span'}>`;
   }
   return h + '</div>';
 }

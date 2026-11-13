@@ -1,4 +1,4 @@
-// mon-ecran-version: 2fb4d600
+// mon-ecran-version: 70315f86
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -72,7 +72,8 @@ const posteB = p => `<span class="poste ${p}" title="${D.POSTES[p].nom}">${p}</s
 const etoiles = rep => { const n = Math.max(1, Math.min(5, Math.round((rep - 30) / 11))); return `<span class="etoiles" aria-label="${n} étoiles sur 5">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</span>`; };
 const nomJ = j => j ? `${j.p} ${j.n}` : '—';
 const court = j => j ? `${j.p[0]}. ${j.n}` : '—';
-const flag = n => V.embleme(n);   // v91 : emblèmes dessinés (rose, coq, trèfle, chardon, dragon, laurier)
+const flag = n => n ? `<span class="drap">${V.embleme(n)}<b class="nat-c">${esc(n)}</b></span>` : '';   // v91 : emblèmes ; v109 : avec le code à 3 lettres (FRA, ITA…) pour reconnaître le pays
+const flagSeul = n => V.embleme(n);   // quand le nom du pays est écrit juste à côté
 const ICO = {
   accueil:'<path d="M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4.5v-5.5h-5V21H5a1 1 0 0 1-1-1z"/>',
   effectif:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.6c2.3-.3 4.4 1.1 5 4"/>',
@@ -288,7 +289,7 @@ function vueAccueil(){
     prochain = `<div class="carte" style="border-color:var(--or)"><h2>Fin de la saison ${lab(M.saison)}</h2>
       <p style="margin:0 0 6px"><b>${esc(c.nom)} termine ${pos}${pos === 1 ? 'er' : 'e'}</b> (objectif : ${esc(mg.objectif.txt.toLowerCase())}).</p>
       <p class="sous" style="margin:0 0 4px">Champions : ${Object.values(h.champions || {}).map(id => esc(club(id).nom)).join(' · ')}</p>
-      ${h.sixn ? `<p class="sous" style="margin:0 0 12px">Six Emblèmes : ${flag(h.sixn)} ${esc(nat(h.sixn).nom)}</p>` : ''}${h.ldn ? `<p class="sous" style="margin:0 0 12px">${esc(D.LDN.nom)} : ${flag(h.ldn)} ${esc(nat(h.ldn).nom)}</p>` : ''}
+      ${h.sixn ? `<p class="sous" style="margin:0 0 12px">Six Emblèmes : ${flagSeul(h.sixn)} ${esc(nat(h.sixn).nom)}</p>` : ''}${h.ldn ? `<p class="sous" style="margin:0 0 12px">${esc(D.LDN.nom)} : ${flagSeul(h.ldn)} ${esc(nat(h.ldn).nom)}</p>` : ''}
       <button class="btn or plein" data-act="saisonSuivante">Lancer la saison ${lab(M.saison + 1)}</button></div>`;
   } else {
     const m = QM.matchDuJoueur(M);
@@ -440,7 +441,7 @@ function ficheJoueur(id, garder){
   const s = j.saison, est = C.potentielEstime(M, j), rec = mon ? club(M.manager.club).staff.recruteur : null;
   const kc = connu(j), ligne = (k, nom, v, c) => { const x = valVue(j, v, k); return `<div class="at${c ? ' c' : ''}${c === 2 ? ' r' : ''}${x.exact ? '' : ' flou'}" title="${esc(nom)}${c === 2 ? ' · attribut du rôle' : c ? ' · cible du poste' : ''}"><span>${esc(COURT_ATTR[k] || nom)}</span><b class="${classeAttr(x.mid)}">${x.txt}</b></div>`; };
   const fam = f => `<div class="fa"><h4>${f}</h4>${D.ATTRS.map((a, i) => a[2] !== f ? '' : ligne(a[0], a[1], j.a[i], cible[a[0]])).join('')}</div>`;
-  feuille(`${teteF(`${esc(nomJ(j))}`, `${flag(j.nat)} ${esc(nat(j.nat).nom)} · ${j.age} ans · ${D.POSTES[j.poste].nom}${cl ? ' · ' + (mon ? 'n° ' + j.num : esc(cl.nom)) : ' · agent libre'}`, `<span class="avp g">${avatarDe(j, 'g')}${cl ? `<span class="blp">${V.blason(cl, 'p')}</span>` : ''}</span>`)}
+  feuille(`${teteF(`${esc(nomJ(j))}`, `${flagSeul(j.nat)} ${esc(nat(j.nat).nom)} · ${j.age} ans · ${D.POSTES[j.poste].nom}${cl ? ' · ' + (mon ? 'n° ' + j.num : esc(cl.nom)) : ' · agent libre'}`, `<span class="avp g">${avatarDe(j, 'g')}${cl ? `<span class="blp">${V.blason(cl, 'p')}</span>` : ''}</span>`)}
     <div class="fj-haut"><div class="fj-radar">${V.radar(axesRadar(j).map(([l, v]) => [l, kc >= 100 ? v : valVue(j, Math.round(v), 'ax' + l).mid]), COULEUR_POSTE[j.poste])}${kc < 100 ? `<p class="petit mut" style="margin:0;text-align:center">Estimation · connu à ${Math.round(kc)} %</p>` : ''}</div>
       <div class="fj-etat">
         <div><span>Forme</span><b>${j.forme}<small>/10</small></b><div class="barre"><i style="width:${j.forme * 10}%"></i></div></div>
@@ -1308,7 +1309,7 @@ function vueCarriere(){
 function vueSelection(){
   const sel = M.manager.selection, n = sel.nat, T = M.sel.tactique, ctx = ctxCompo();
   U.fitMap = TT() ? TT().adequationCompo(M, ctx.K, QM.completerTactique({...T})) : null;
-  avecPanneau(() => { VUE.innerHTML = `<div><h1 class="grand">${flag(n)} ${esc(nat(n).nom)}</h1><p class="sous">Sélection · ${M.calendrier.some(s => s.tour) ? `objectif : top ${sel.objectif} du Tournoi des Six Emblèmes` : `${esc(D.LDN.nom)} : ${esc(({2:'atteindre la finale', 4:'atteindre les demi-finales', 8:'sortir des groupes', 19:'faire bonne figure'})[sel.vise] || 'faire bonne figure')}`}${M.sel.perso ? '' : ' · convocation automatique'}</p></div>
+  avecPanneau(() => { VUE.innerHTML = `<div><h1 class="grand">${flagSeul(n)} ${esc(nat(n).nom)}</h1><p class="sous">Sélection · ${M.calendrier.some(s => s.tour) ? `objectif : top ${sel.objectif} du Tournoi des Six Emblèmes` : `${esc(D.LDN.nom)} : ${esc(({2:'atteindre la finale', 4:'atteindre les demi-finales', 8:'sortir des groupes', 19:'faire bonne figure'})[sel.vise] || 'faire bonne figure')}`}${M.sel.perso ? '' : ' · convocation automatique'}</p></div>
   ${compoHTML(ctx)}
   <div class="carte"><h2>Consignes</h2>${consignesHTML(T, 'consigneSel')}</div>`; });
 }
@@ -1810,6 +1811,6 @@ $('#fichier').addEventListener('change', async e => {
 window.QM27 = {partie:() => M, sauver, rendre};
 /* v91 : boîte à outils de l'interface pour qm27-ecrans.js (écrans du lot 8) */
 ACT.infoTac = d => { U.infoTac = d.k; LS.ecrire('qm27:infoTac', d.k); rendre(); };   // v107
-window.QMU = {pieces, eurT, get M(){ return M; }, get X(){ return X; }, get EMP(){ return EMP; }, U, REG, regler, VUES, ACT, VUE, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, nomEq, flag, posteB, etoiles, nomJ, court,
+window.QMU = {flagSeul, pieces, eurT, get M(){ return M; }, get X(){ return X; }, get EMP(){ return EMP; }, U, REG, regler, VUES, ACT, VUE, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, nomEq, flag, posteB, etoiles, nomJ, court,
   classeNote, classeAttr, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, valVue, connu, HH, roleDe, ficheSemaine, msgHTML, tableHTML, ICO, MERC, ligneMercato, IDX, COURT_ATTR, LS, nomBat};
 })();

@@ -1,4 +1,4 @@
-// mon-ecran-version: 9bcbc2e4
+// mon-ecran-version: 044932c6
 /* QM27 (v102) — statistiques de la saison : onglets « Équipes » et « Joueurs » dans Classements.
    Lit M.statsC (stats d'équipes du championnat, remplies par QM.statsEquipes) et j.saison (stats des joueurs, QM.statsJoueur).
    Chargé après qm27-ecrans.js, dont il reprend la boîte à outils (window.QMU) ; remplace VUES.classements par une version à trois vues. */
@@ -245,7 +245,7 @@ function vueJoueursNations(){
   const choix = [['toutes', 'Toutes'], ...(moiN ? [[moiN, natNom(moiN)]] : []), ...(mc && club(mc).nat !== moiN ? [[club(mc).nat, natNom(club(mc).nat)]] : [])];
   const rows = L.map(j => ({id:j.id, o:j}));
   const t = rows.length ? tableau(rows, COL_N, tri, CS.natS || 1, 'natT', 'Joueur', (r, i) => `<button class="ts-l${r.o.club && r.o.club === mc ? ' moi' : ''}" role="row" data-act="joueur" data-j="${r.id}"><span class="ts-r">${i + 1}</span><span class="ts-n">${posteB(r.o.poste)}<b>${esc(r.o.p[0])}. ${esc(r.o.n)}</b>${flag(r.o.nat)}</span>`, 60) : '';
-  return `<div class="chips petites">${choix.map(([k, n]) => `<button class="chip ${filtre === k ? 'on' : ''}" data-act="natF" data-v="${k}">${k === 'toutes' ? '' : flag(k) + ' '}${esc(n)}</button>`).join('')}</div>
+  return `<div class="chips petites">${choix.map(([k, n]) => `<button class="chip ${filtre === k ? 'on' : ''}" data-act="natF" data-v="${k}">${k === 'toutes' ? '' : Z.flagSeul(k) + ' '}${esc(n)}</button>`).join('')}</div>
     ${t ? `<div class="carte ts-carte">${t}</div>` : '<div class="carte"><p class="mut" style="margin:0">Aucun match de sélection joué cette saison.</p></div>'}
     <p class="petit mut">Matchs de sélection de la saison (amicaux et ${esc(D.LDN.nom)}) ; « Carr. » et « Buts c. » : depuis le début de la partie. Tes joueurs sont surlignés.</p>`;
 }
