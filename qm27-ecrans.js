@@ -1,4 +1,4 @@
-// mon-ecran-version: 7ac4ad18
+// mon-ecran-version: fd5f983e
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -142,11 +142,79 @@ ACT.lieu = d => {
 document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('g.lieu')){ e.preventDefault(); ACT.lieu(e.target.dataset); } });
 
 /* ============================== Bureau du président ============================== */
+/* ============================== Lieux illustrés façon FM98 (v116) ==============================
+   Une pièce illustrée (images/qm27/scenes/<lieu>-fond.webp) et des objets découpés posés dessus (repère = taille du fond, en %).
+   Chaque objet ouvre un sous-menu ; au survol (souris) ou au toucher, il s'anime (CSS : .sc-<anim>) avant d'ouvrir.
+   Tant que l'image de fond n'est pas déposée, l'écran garde ses cartes (SC_OK[lieu] = false) : rien ne casse.
+   Objet : {id, img, x, y, w (centre et largeur en % du fond), anim, nom, act, calques:[[img, classe]], si:(M, c) => bool} */
+/* positions calées sur bureau-fond (1024 × 1536) ; calques en % de l'objet (cachet : pointe du rabat de l'enveloppe ; demi-cachets : même
+   centre, cadre plus large car la planche les montre écartés) */
+const SCENES = {
+  direction:{fond:'scenes/bureau-fond', ratio:1536 / 1024, objets:[
+    {id:'choixpeau', img:'scenes/bureau-choixpeau', calques:[['scenes/bureau-choixpeau-ouvert', 'bouche']], x:15.5, y:7.9, w:21, plaque:'g', anim:'parle', nom:'Confiance du président', act:'scConfiance'},
+    {id:'portrait', portrait:true, cadre:'scenes/bureau-cadre', x:69.8, y:16, w:17, anim:'respire', nom:'Mon contrat, mon profil', act:'scPortrait'},
+    {id:'echarpe', img:'scenes/bureau-echarpe', x:91.8, y:40, w:15, plaque:'d', anim:'ondule', nom:'Supporters', act:'scSupporters', club:true},
+    {id:'gazette', img:'scenes/bureau-gazette', calques:[['scenes/bureau-page', 'page', 'left:48%;top:-28%;width:52%']], x:68.4, y:60.9, w:22, anim:'feuillette', nom:'Presse', act:'scPresse'},
+    {id:'lettre', img:'scenes/bureau-lettre', calques:[['scenes/bureau-cachet', 'cachet entier', 'left:36.5%;top:26%;width:25%'], ['scenes/bureau-cachet-g', 'cachet g', 'left:30.8%;top:26.6%;width:36.4%'], ['scenes/bureau-cachet-d', 'cachet d', 'left:30.8%;top:26.6%;width:36.4%']],
+      x:39, y:61.8, w:16, anim:'cachet', nom:'Réunion de début de saison', act:'scReunion', si:M_ => { const R = G() && G().reunion(M_); return !!(R && !R.fin); }},
+    {id:'lettreOuverte', img:'scenes/bureau-lettre-ouverte', x:39, y:60.5, w:15, anim:'souleve', nom:'Plan de la saison', act:'scReunion',
+      si:M_ => { const R = G() && G().reunion(M_); return !!(R && R.fin && R.accord); }},
+    {id:'bourse', img:'scenes/bureau-bourse', calques:[['scenes/bureau-piece', 'piece p1'], ['scenes/bureau-piece', 'piece p2'], ['scenes/bureau-piece', 'piece p3']], x:12.7, y:69.4, w:15, plaque:'g', anim:'pieces', nom:'Finances', act:'scFinances'},
+  ]},
+};
+const SC_OK = {};
+function sceneDispo(l){
+  if (!SCENES[l]) return false;
+  if (SC_OK[l] === undefined){ SC_OK[l] = false; const im = new Image(); im.onload = () => { SC_OK[l] = true; if (U.vue === l) rendre(); }; im.src = V.IMAGES + SCENES[l].fond + '.webp'; }
+  return SC_OK[l];
+}
+function sceneHTML(l){
+  const S = SCENES[l], M_ = M(), c = moi(), src = k => `${V.IMAGES}${k}.webp`;
+  const obj = o => {
+    const corps = o.portrait ? `<span class="sc-toile">${avatarMgr('sc-av')}</span><img class="sc-cadre" src="${src(o.cadre)}" alt="" draggable="false">`
+      : `<img class="sc-base"${o.club ? ' data-prod="scene"' : ''} src="${src(o.img)}" alt="" draggable="false">${(o.calques || []).map(([k, cl, st]) => `<img class="sc-c ${cl}" src="${src(k)}" alt="" draggable="false"${st ? ` style="${st}"` : ''}>`).join('')}`;
+    return `<button class="sc-obj sc-${o.anim}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="left:${o.x}%;top:${o.y}%;width:${o.w}%" aria-label="${esc(o.nom)}">${corps}<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(o.nom)}</span></button>`;
+  };
+  return `<div class="scene" style="aspect-ratio:${1 / S.ratio}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}</div>
+    <p class="petit mut sc-aide">Touche un objet de la pièce.</p>`;
+}
+/* au toucher : l'animation joue une fois, puis le sous-menu s'ouvre */
+ACT.scObjet = (d, b) => {
+  const o = (SCENES[d.l] || {objets:[]}).objets.find(x => x.id === d.o); if (!o) return;
+  const el = b || document.querySelector(`.sc-obj[data-o="${d.o}"]`), calme = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (el && !calme){ el.classList.remove('joue'); void el.offsetWidth; el.classList.add('joue'); }
+  setTimeout(() => ACT[o.act] && ACT[o.act](d), calme ? 0 : 520);
+};
+const humeurPresident = mg => mg.confiance >= 70 ? 'Le président est ravi.' : mg.confiance >= 45 ? 'Le président est serein.' : mg.confiance >= 25 ? 'Le président s\'impatiente.' : 'Le président doute sérieusement de toi.';
+ACT.scConfiance = () => { const M_ = M(), mg = M_.manager, c = moi(), o = mg.objectif, CL = window.QM.classement(M_, c.ligue), pos = CL.findIndex(r => r.id === c.id) + 1;
+  feuille(`${teteF('Confiance du président', esc(c.nom))}<p style="margin:0 0 6px"><b>${esc(o.txt)}</b></p><p class="petit mut" style="margin:0 0 10px">Aujourd'hui : ${pos}${pos === 1 ? 'er' : 'e'} de la ${esc(M_.ligues[c.ligue].nom)}.</p>
+    <div class="ligne"><span style="flex:1">Confiance</span><b>${Math.round(mg.confiance)} %</b></div>${jauge(mg.confiance, 'Confiance du président')}
+    <p class="petit mut" style="margin:8px 0 0">${humeurPresident(mg)} Il juge chaque résultat selon la force de l'adversaire.</p>`); };
+ACT.scSupporters = () => { const c = moi(), s = c.dom ? Math.round(c.dom.supp) : 60;
+  feuille(`${teteF('Supporters', esc(c.nom))}<div class="ligne"><span style="flex:1">Humeur des supporters</span><b>${s} / 100</b></div>${jauge(s, 'Humeur des supporters')}
+    <p class="petit mut" style="margin:8px 0 12px">Les supporters suivent les résultats, le prix des places et les bonnes affaires du Bazar.</p>
+    <div class="btns"><button class="btn sec" data-act="vue" data-v="stade">Stade et prix des places</button><button class="btn sec" data-act="vue" data-v="boutique">Le Bazar</button></div>`); };
+ACT.scPresse = () => { const mg = M().manager, r = mg.presse ?? 50;
+  feuille(`${teteF('Presse', 'La Gazette du sorcier')}<div class="ligne"><span style="flex:1">Relation avec la presse</span><b>${r} / 100</b></div>${jauge(r, 'Relation avec la presse')}
+    <p class="petit mut" style="margin:8px 0 12px">Les conférences d'après-match la font bouger ; une bonne relation amplifie ce que la presse rapporte de toi.</p>
+    <button class="btn sec plein" data-act="scArticles">Lire les articles</button>`); };
+ACT.scArticles = () => { U.boiteF = 'presse'; fermerFeuille(); aller('boite'); };
+ACT.scPortrait = () => { const M_ = M(), mg = M_.manager, p = G() ? G().profil(M_) : null, ct = p && p.contrat;
+  feuille(`${teteF(esc(mg.nom), `Réputation ${Math.round(mg.rep)} / 100`, avatarMgr(''))}
+    ${ct ? `<div class="stat" style="grid-template-columns:1fr auto"><span style="text-align:left;font-weight:400">Salaire</span><b>${eur(ct.sal)} / semaine</b><span style="text-align:left;font-weight:400">Fin du contrat</span><b>${lab(ct.fin)}</b><span style="text-align:left;font-weight:400">Arrivé en</span><b>${lab(ct.debut)}</b></div>` : ''}
+    <div class="btns" style="margin-top:12px"><button class="btn sec" data-act="vue" data-v="profil">Mon profil</button><button class="btn sec" data-act="vue" data-v="carriere">Carrière</button></div>`); };
+ACT.scReunion = () => { const M_ = M(), R = G() && G().reunion(M_);
+  if (R && !R.fin){ fermerFeuille(); aller('reunion'); return; }
+  feuille(`${teteF('Plan de la saison', esc(moi().nom))}${reunionCarte(M_, true) || '<p class="mut">Pas de réunion cette saison.</p>'}`); };
+ACT.scFinances = () => { fermerFeuille(); aller('finances'); };
+
 function vueDirection(){
   const M_ = M(), mg = M_.manager, c = moi(), o = mg.objectif, p = G() ? G().profil(M_) : null, ct = p && p.contrat;
   const CL = window.QM.classement(M_, c.ligue), pos = CL.findIndex(r => r.id === c.id) + 1;
   const humeur = mg.confiance >= 70 ? 'Le président est ravi.' : mg.confiance >= 45 ? 'Le président est serein.' : mg.confiance >= 25 ? 'Le président s\'impatiente.' : 'Le président doute sérieusement de toi.';
+  const scene = sceneDispo('direction');   // v116 : le bureau illustré, les cartes passent dessous (« Tout le bureau en détail »)
   VUE.innerHTML = `<div><h1 class="grand">Bureau du président</h1><p class="sous">Tour du directeur · ${esc(c.nom)}</p></div>
+  ${scene ? sceneHTML('direction') + '<details class="sc-detail"><summary>Tout le bureau en détail</summary>' : ''}
   ${reunionCarte(M_)}
   <div class="cols"><div>
     <div class="carte"><h2>Objectif de la saison</h2><p style="margin:0 0 6px"><b>${esc(o.txt)}</b></p><p class="petit mut" style="margin:0 0 10px">Aujourd'hui : ${pos}${pos === 1 ? 'er' : 'e'} de la ${esc(M_.ligues[c.ligue].nom)}${mg.bilan ? ` · ${mg.bilan.g} V · ${mg.bilan.n} N · ${mg.bilan.p} D` : ''}.</p>
@@ -166,7 +234,8 @@ function vueDirection(){
       <p class="petit mut" style="margin:8px 0 0">En fin de contrat, le président prolonge si sa confiance tient (35 % au moins).</p></div>` : ''}
     <div class="carte"><h2>Réputation</h2><div class="ligne"><span style="flex:1">${esc(mg.nom)}</span><b>${Math.round(mg.rep)} / 100</b></div>${jauge(mg.rep, 'Réputation')}</div>
     <div class="liste carte">${[['profil', 'Mon profil', 'Avatar, attributs, parcours'], ['carriere', 'Carrière', 'Offres de clubs et de fédérations'], ['partenaires', 'Partenaires', 'Sponsor maillot et panneaux']].map(([v, n, s]) => `<button class="el" data-act="vue" data-v="${v}"><div class="t"><b>${n}</b><span>${s}</span></div><span class="d mut">›</span></button>`).join('')}</div>
-  </div></div>`;
+  </div></div>${scene ? '</details>' : ''}`;
+  if (scene) V.colorierProduits(VUE, c);   // l'écharpe aux couleurs du club (dessinée en rouge, bleu et jaune)
 }
 
 /* ============================== Profil du manager ============================== */
@@ -473,11 +542,11 @@ function rapportsHTML(M_, Gm){
 }
 /* ============================== v97 : réunion de début de saison ============================== */
 /* carte d'appel (accueil, bureau) : réunion à tenir, ou rappel de l'accord */
-function reunionCarte(M_){
+function reunionCarte(M_, feuilleScene){
   const Gm = G(); if (!Gm || !M_.manager.club) return '';
   const R = Gm.reunion(M_), mg = M_.manager;
   if (R && !R.fin) return `<div class="carte reun-appel"><h2>Réunion de début de saison</h2><p style="margin:0 0 10px">Le président t'attend pour fixer l'objectif, la philosophie et les budgets.${R.tard ? '' : ' Sans réunion avant le premier match de championnat, il décidera seul.'}</p><button class="btn plein" data-act="vue" data-v="reunion">Entrer dans le bureau</button></div>`;
-  if (R && R.fin && R.accord && Z.U.vue === 'direction') return `<div class="carte"><h2>Plan de la saison ${R.accord.impose ? '<span class="mut petit">imposé</span>' : '<span class="mut petit">négocié</span>'}</h2>
+  if (R && R.fin && R.accord && (Z.U.vue === 'direction' || feuilleScene)) return `<div class="carte"><h2>Plan de la saison ${R.accord.impose ? '<span class="mut petit">imposé</span>' : '<span class="mut petit">négocié</span>'}</h2>
     <p style="margin:0 0 6px"><b>${esc(Gm.TXT_OBJ[R.accord.vise])}</b></p><p class="petit" style="margin:0 0 6px">Philosophie : ${R.accord.philo.map(k => `<b>${esc(Gm.PHILOS[k][0])}</b> <span class="mut">(${esc(Gm.PHILOS[k][1].toLowerCase())})</span>`).join(' · ')}</p>
     <p class="petit mut" style="margin:0">Enveloppe des transferts : ${eur(moi().enveloppe ?? R.accord.env)} restants · masse salariale : ${eur(R.accord.masse)} par semaine au plus. Chaque engagement tenu en fin de saison : confiance +5, manqué : −5.</p></div>`;
   return '';
