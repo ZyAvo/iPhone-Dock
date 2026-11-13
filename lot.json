@@ -1,6 +1,6 @@
 {
- "lot": "v119",
- "date": "2026-11-13T20:06:49+00:00",
+ "lot": "v120",
+ "date": "2026-11-13T20:21:43+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/appli-ios.yml": "71fe94d4",
@@ -85,7 +85,7 @@
   "qm27-ui.js": "a185c915",
   "qm27-vestiaire.js": "878680d2",
   "qm27-visuel.js": "9e33fc50",
-  "qm27.html": "7d986595",
+  "qm27.html": "359f2c13",
   "qm27.js": "921dfdb6",
   "reglages.html": "7ce973d7",
   "sport.html": "01a1235f",
