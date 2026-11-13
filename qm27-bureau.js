@@ -1,4 +1,4 @@
-// mon-ecran-version: 65bef905
+// mon-ecran-version: f4b92124
 /* QM27 (v91, lot 8) — le bureau du manager, sans affichage. Expose window.QMG et complète window.QMC. Chargé après qm27-vestiaire.js.
    Entraînement programmable : programme de la semaine en 5 séances (lundi-vendredi), intensité, ateliers par poste, modèles,
    préparation physique d'avant-saison ; l'adjoint planifie tout seul si on le laisse faire.
@@ -10,7 +10,7 @@
 const D = root.QMD, EQ = D.EQ, ENT = EQ.ent, QMC = root.QMC;
 const Q = () => root.QM;
 const borne = (x, a, b) => Math.max(a, Math.min(b, x));
-const club = (M, id) => M.clubs[id];
+const club = (M, id) => M.clubs[id] || (M.reserve && M.reserve[id]);   // v106 : club sorti du jeu (palmarès)
 const rng = (M, ...cle) => Q().hasard(Q().melange(M.graine, ...cle));
 const tic = M => M.tic || 0;
 const nomJ = j => Q().nomJ(j);
@@ -395,6 +395,7 @@ function noterAchat(M, j, montant){
 /* ================= Branchements ================= */
 const base = {semaine:QMC.semaine, avantSaison:QMC.avantSaison, apresSaison:QMC.apresSaison, migrer:QMC.migrer, prixClub:QMC.prixClub, exigenceJoueur:QMC.exigenceJoueur, accepterPoste:QMC.accepterPoste};
 Object.assign(QMC, {
+  apresBascule(M){ const g = G(M); g.missions = g.missions.filter(x => (x.type !== 'club' || M.clubs[x.cible]) && (x.type !== 'ligue' || M.ligues[x.cible])); },   // v106 : missions vers un club sorti ou une ancienne ligue
   semaine(M, S){
     base.semaine(M, S);
     initRecords(M); recordsSemaine(M, S); missionsSemaine(M); imposerSiTrop(M);

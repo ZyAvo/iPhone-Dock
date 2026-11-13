@@ -1,4 +1,4 @@
-// mon-ecran-version: 893cca40
+// mon-ecran-version: 40d19ed6
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -72,24 +72,33 @@ function nouveauMonde(graine){
   const M = {v:VERSION, graine, saison:2026, semaine:0, joueurs:{}, clubs:{}, ligues:{}, calendrier:[], sixn:{tab:{}, matchs:[]},
              manager:null, boite:[], histo:[], prochainId:1, dernierMatch:null, emplacement:null};
   for (const L of D.LIGUES) M.ligues[L.id] = {id:L.id, nom:L.nom, court:L.court, clubs:[]};
-  for (const [id, nom, ville, nat, ligue, rep, c1, c2, stade] of D.CLUBS){
-    const club = {id, nom, ville, nat, ligue, rep, couleurs:[c1, c2], stade, effectif:[], compo:null, tactique:tactiqueIA(r), balai:balaiPour(rep),
-                  sigle:sigle(nom, ville), budget:Math.round(rep * rep * 900 / 1000) * 1000};
-    M.clubs[id] = club; M.ligues[ligue].clubs.push(id);
-    const niveau = EQ.niveauMin + (rep - 40) / 45 * (EQ.niveauMax - EQ.niveauMin);
-    EFFECTIF.forEach((poste, i) => {
-      const nat2 = r.pondere(D.ORIGINES[nat]);
-      const titulaire = i < 7;
-      const lvl = niveau + (titulaire ? 0.6 : -0.9) + r.gauss() * 0.9;
-      const j = creerJoueur(r, nat2, poste, lvl, AGE(r), 'j' + (M.prochainId++));
-      j.club = id; j.num = i + 1; M.joueurs[j.id] = j; club.effectif.push(j.id);
-    });
-    club.compo = compoAuto(M, id);
-  }
+  for (const def of D.CLUBS) if (M.ligues[def[4]]) creerClub(M, r, def);   // v106 : les clubs de réserve (future D2) restent hors du jeu
   M.calendrier = calendrierSaison(M, r);
   remettreClassements(M);
   if (C()) C().initMonde(M, r);
   return M;
+}
+/* un club et son effectif de 16 joueurs (v106 : aussi pour les nouveaux clubs d'une partie en cours) */
+function creerClub(M, r, [id, nom, ville, nat, ligue, rep, c1, c2, stade]){
+  const club = {id, nom, ville, nat, ligue, rep, couleurs:[c1, c2], stade, effectif:[], compo:null, tactique:tactiqueIA(r), balai:balaiPour(rep),
+                sigle:sigleLibre(M, nom, ville), budget:Math.round(rep * rep * 900 / 1000) * 1000};
+  M.clubs[id] = club; M.ligues[ligue].clubs.push(id);
+  const niveau = EQ.niveauMin + (rep - 40) / 45 * (EQ.niveauMax - EQ.niveauMin);
+  EFFECTIF.forEach((poste, i) => {
+    const nat2 = r.pondere(D.ORIGINES[nat]);
+    const titulaire = i < 7;
+    const lvl = niveau + (titulaire ? 0.6 : -0.9) + r.gauss() * 0.9;
+    const j = creerJoueur(r, nat2, poste, lvl, AGE(r), 'j' + (M.prochainId++));
+    j.club = id; j.num = i + 1; M.joueurs[j.id] = j; club.effectif.push(j.id);
+  });
+  club.compo = compoAuto(M, id);
+  return club;
+}
+/* v106 : Berlin et Bergen, Bari et Barcelona… deux clubs ne partagent pas le même sigle */
+function sigleLibre(M, nom, ville){
+  const pris = new Set(Object.values(M.clubs).map(c => c.sigle)), v = ville.normalize('NFD').replace(/[^\w]/g, '').toUpperCase();
+  for (const s of [v.slice(0, 3), v.slice(0, 2) + v.slice(-1), v[0] + v.slice(2, 4), v[0] + v[1] + v[3]]) if (s.length === 3 && !pris.has(s)) return s;
+  return v.slice(0, 3);
 }
 function sigle(nom, ville){ const v = ville.normalize('NFD').replace(/[^\w]/g, '').toUpperCase(); return v.slice(0, 3); }
 function balaiPour(rep){ return rep >= 80 ? 'aquilon' : rep >= 70 ? 'strix' : rep >= 60 ? 'sirocco' : rep >= 52 ? 'mistral' : rep >= 46 ? 'albatros' : 'zephyr'; }
@@ -201,17 +210,16 @@ function calendrierSaison(M, r){
   let jl = 0;
   const ligue = () => { const m = []; for (const L of Object.values(M.ligues)) for (const [a, b] of tours[L.id][jl]) m.push({id:`${an}-${L.id}-${jl + 1}-${a}`, ligue:L.id, dom:a, ext:b, res:null});
     S.push({date:d.getTime(), type:'ligue', journee:jl + 1, matchs:m}); jl++; plus(1); };
-  for (let i = 0; i < 15; i++) ligue();
+  /* v106 : plus de Tournoi des Six Emblèmes pendant le championnat. Trois trêves internationales (après les journées 4, 9 et 23 :
+     octobre, novembre, mars) où chaque sélection joue un amical ; l'été, une saison sur deux, la Ligue des nations (8 semaines),
+     sinon une quatrième trêve en juin. La finale des Anneaux a sa semaine juste après la 30e journée. */
+  const N = root.QMN, treve = k => { if (!N) return; S.push({date:d.getTime(), type:'sixn', comp:'ami', fen:k, matchs:N.amicaux(M, an, k)}); plus(1); };
+  for (let i = 0; i < 15; i++){ ligue(); if (jl === 4) treve(1); if (jl === 9) treve(2); }
   plus(2);                                      // trêve des fêtes
-  for (let i = 0; i < 5; i++) ligue();
-  const nat = D.SIX_NATIONS.slice(), sixTours = roundRobin(nat, hasard(melange(M.graine, an, 'sixn'))).slice(0, 5);
-  for (let i = 0; i < 6; i++){
-    const t = i < 2 ? i : i - 1;                // i = 2 : semaine de repos du tournoi, le championnat joue quand même
-    if (i !== 2){ const L = S.length; ligue(); const s = S[L]; s.tour = t + 1;
-      s.matchs.push(...sixTours[t].map(([a, b]) => { const [x, y] = an % 2 ? [b, a] : [a, b]; return {id:`${an}-sixn-${t + 1}-${x}`, ligue:'sixn', dom:x, ext:y, res:null}; })); }
-    else ligue();
-  }
-  for (let i = 0; i < 4; i++) ligue();
+  for (let i = 0; i < 15; i++){ ligue(); if (jl === 23) treve(3); }
+  S.push({date:d.getTime(), type:'europe', matchs:[]}); plus(1);   // finale de la Ligue des Anneaux (qm27-europe.js)
+  if (N && N.aLdn(an)){ plus(1); for (const x of N.semainesLdn(M, an)){ S.push({date:d.getTime(), type:'sixn', comp:'ldn', etape:x.etape, matchs:x.matchs}); plus(1); } }
+  else { plus(3); treve(4); }
   S.push({date:d.getTime(), type:'bilan', matchs:[]});
   return S;
 }
@@ -221,7 +229,7 @@ const ligneVide = id => ({id, j:0, g:0, n:0, p:0, pm:0, pe:0, vifs:0, pts:0, for
 function remettreClassements(M){
   M.tables = {};
   for (const L of Object.values(M.ligues)){ M.tables[L.id] = {}; for (const id of L.clubs) M.tables[L.id][id] = ligneVide(id); }
-  M.tables.sixn = {}; for (const n of D.SIX_NATIONS) M.tables.sixn[n] = ligneVide(n);
+  M.tables.sixn = {}; for (const n of (M.calendrier.some(s => s.tour) ? D.SIX_NATIONS : D.SELECTIONS)) M.tables.sixn[n] = ligneVide(n);   // v106 : bilan de toutes les sélections
   M.statsC = {}; M.statsDepuis = 0;   // v102 : stats d'équipes de la saison (statsDepuis : journée où le suivi a commencé)
 }
 function compter(M, m){
@@ -512,7 +520,7 @@ function convoquer(M){
   for (const j of Object.values(M.joueurs)) if (j.inter) delete j.inter;
   const S = semaine(M); if (!S || !S.matchs.some(m => m.ligue === 'sixn') || !S.matchs.some(m => m.ligue !== 'sixn')) return;
   const moi = natJoueur(M);
-  for (const n of D.SIX_NATIONS){
+  for (const n of D.SELECTIONS.filter(x => S.matchs.some(m => m.ligue === 'sixn' && (m.dom === x || m.ext === x)))){
     const e = n === moi && C() ? C().convocation(M).compo : selection(M, n);
     for (const id of [...titulaires(e), ...(e.banc || [])]) if (M.joueurs[id]) M.joueurs[id].inter = n;
   }
@@ -586,14 +594,17 @@ function appliquerMatch(M, m, X){
   const club = m.ligue !== 'sixn', enLigue = club && !!M.ligues[m.ligue];   // v104 : la Ligue des Anneaux est un match de club, hors des stats du championnat
   for (const k of [0, 1]){
     const e = X.e[k];
-    const joues = new Set([...titulaires(e), ...(X.sortis || [])]);
+    const joues = new Set([...titulaires(e), ...(X.sortis || []).filter(id => X.perf[id] && X.perf[id].eq === k)]);   // v106 : un remplacé ne compte que pour son équipe (il comptait deux fois)
     for (const id of joues){
       const j = M.joueurs[id]; if (!j || !X.perf[id] || !X.perf[id].m) continue;
       const n = notes[id];
       if (club && !enLigue && j.saison){ ajout(j.saison, 'em', 1); ajout(j.saison, 'eb', X.perf[id].b); if (n) j.saison.en = Math.round(((j.saison.en || 0) + n) * 10) / 10; }
       if (enLigue){ j.saison.m++; j.saison.b += X.perf[id].b; j.saison.v += X.perf[id].vif; j.saison.cog += X.perf[id].cog; j.saison.arr += X.perf[id].arr; if (n) j.saison.notes += n;
         statsJoueur(j.saison, X.perf[id], X, id, notes); }
-      else if (!club){ j.sel = (j.sel || 0) + 1; j.selS = j.selS && j.selS[0] === M.saison ? [M.saison, j.selS[1] + 1] : [M.saison, 1]; }   // v103 : sélections (carrière, saison)
+      else if (!club){ j.sel = (j.sel || 0) + 1; j.selS = j.selS && j.selS[0] === M.saison ? [M.saison, j.selS[1] + 1] : [M.saison, 1];   // v103 : sélections (carrière, saison)
+        const p = X.perf[id]; j.selB = (j.selB || 0) + p.b; j.selV = (j.selV || 0) + p.vif;   // v106 : stats des matchs de sélection (carrière, puis saison dans j.nS)
+        if (!j.nS || j.nS.s !== M.saison) j.nS = {s:M.saison, m:0, b:0, v:0, cog:0, arr:0, notes:0, ldn:0};
+        const x = j.nS; x.m++; x.b += p.b; x.v += p.vif; x.cog += p.cog; x.arr += p.arr; if (n){ x.notes = Math.round((x.notes + n) * 10) / 10; x.nn = (x.nn || 0) + 1; } if (m.comp === 'ldn') x.ldn++; }
       const effort = Math.max(0, (X.fat[id] ?? 0) - ((X.fat0 || {})[id] ?? 0));
       j.charge = Math.round(borne((j.charge || 0) + effort * chargeFacteur(j), 0, 100) * 10) / 10; j.jouS = 1;   // v96 : fatigue cumulée
       j.fat = Math.round(Math.min(100, X.fat[id] ?? j.fat)); j.joue = 1;
@@ -648,7 +659,8 @@ function terminerSemaine(M, X){
       message(M, `${D.TOURNOI.nom}, tour ${S.tour}`, L, 'sixn');
     }
   }
-  if (C()) C().semaine(M, S);                         // v84 : entraînement, finances, mercato, contrats
+  if (C() && !(S.type === 'sixn' && S.comp)) C().semaine(M, S);   // v84 : entraînement, finances, mercato, contrats ; v106 : pas pendant une trêve internationale
+  if (root.QMN) root.QMN.apresSemaine(M, S);          // v106 : amicaux, Ligue des nations (tableau final)
   const prochaine = M.calendrier[M.semaine + 1];
   const jours = prochaine ? Math.round((prochaine.date - S.date) / 864e5) : 7;
   recuperer(M, jours);
@@ -703,8 +715,8 @@ function choisirClub(M, clubId, nom){
 function finDeSaison(M){
   const lab = `${M.saison}-${String(M.saison + 1).slice(2)}`;
   const champs = {}; for (const L of Object.values(M.ligues)) champs[L.id] = classement(M, L.id)[0].id;
-  const sixn = classement(M, 'sixn')[0].id;
-  const h = {saison:lab, champions:champs, sixn};
+  const ancien = M.calendrier.some(s => s.tour), sixn = ancien ? classement(M, 'sixn')[0].id : null, ldn = M.ldn && M.ldn.saison === M.saison ? M.ldn.vainqueur : null;
+  const h = {saison:lab, champions:champs, sixn, ldn};   // v106 : vainqueur de la Ligue des nations (l'été de la saison), Six Emblèmes pour une saison d'avant
   if (clubJoueur(M)){
     const C = classement(M, M.clubs[M.manager.club].ligue), pos = C.findIndex(x => x.id === M.manager.club) + 1, o = M.manager.objectif;
     h.manager = {club:M.manager.club, pos, objectif:o.vise};
@@ -712,7 +724,7 @@ function finDeSaison(M){
     M.manager.rep = Math.round(borne(M.manager.rep + ecart * 1.2 + (pos === 1 ? 8 : 0), 1, 100) * 10) / 10;
     M.manager.confiance = Math.round(borne(M.manager.confiance + ecart * 4, 0, 100));
     M.manager.saisons.push({saison:lab, club:M.manager.club, pos});
-    message(M, `Bilan de la saison ${lab}`, `${M.clubs[M.manager.club].nom} termine ${pos}${pos === 1 ? 'er' : 'e'} (objectif : ${o.vise === 1 ? 'titre' : 'top ' + o.vise}). Champions : ${Object.values(M.ligues).map(L => M.clubs[champs[L.id]].nom).join(', ')}. ${D.TOURNOI.court} : ${D.NATIONS[sixn].nom}.`, 'pres');
+    message(M, `Bilan de la saison ${lab}`, `${M.clubs[M.manager.club].nom} termine ${pos}${pos === 1 ? 'er' : 'e'} (objectif : ${o.vise === 1 ? 'titre' : 'top ' + o.vise}). Champions : ${Object.values(M.ligues).map(L => M.clubs[champs[L.id]].nom).join(', ')}.${sixn ? ` ${D.TOURNOI.court} : ${D.NATIONS[sixn].nom}.` : ''}${ldn ? ` ${D.LDN.nom} : ${D.NATIONS[ldn].nom}.` : ''}`, 'pres');
   }
   M.histo.push(h);
 }
@@ -740,11 +752,50 @@ function saisonSuivante(M){
     else verifierCompo(M, club.id);
   }
   M.saison++; M.semaine = 0;
+  basculer(M, r);                                     // v106 : une partie d'avant v106 passe à 4 championnats
   M.calendrier = calendrierSaison(M, r);
   remettreClassements(M);
   if (C()) C().apresSaison(M, r);
+  if (M.annonceBascule){ message(M, ...M.annonceBascule, 'club'); delete M.annonceBascule; }   // v106
   if (clubJoueur(M)){ M.manager.objectif = objectif(M, M.manager.club); M.manager.bilan = {g:0, n:0, p:0};
     message(M, `Saison ${M.saison}-${String(M.saison + 1).slice(2)}`, `Nouvel objectif du président : ${M.manager.objectif.txt.toLowerCase()}.`, 'pres'); }
+}
+/* v106 : partie à 3 championnats (B&I, France, Italie) → 4 championnats de 16 (britannique, latin, scandinave, d'Europe centrale).
+   Les 20 clubs de D.RESERVE sortent du jeu (sauf le club du joueur, remplacé par le club gardé le plus faible de sa nation) ;
+   leurs meilleurs joueurs de 30 ans au plus deviennent agents libres, les autres quittent le jeu. Les clubs sortis restent
+   lisibles dans M.reserve (nom, couleurs) pour le palmarès. Les 36 nouveaux clubs arrivent avec leur effectif. */
+function basculer(M, r){
+  if (!M.ligues.fr && !M.ligues.it) return false;
+  const moiC = clubJoueur(M), sortis = new Set(D.RESERVE.filter(id => M.clubs[id]));
+  if (moiC && sortis.has(moiC)){
+    const nat = M.clubs[moiC].nat, rempl = Object.values(M.clubs).filter(c => c.nat === nat && !sortis.has(c.id) && c.id !== moiC).sort((a, b) => a.rep - b.rep)[0];
+    sortis.delete(moiC); if (rempl) sortis.add(rempl.id);
+  }
+  delete M.ligues.fr; delete M.ligues.it;
+  for (const L of D.LIGUES) if (!M.ligues[L.id]) M.ligues[L.id] = {id:L.id, nom:L.nom, court:L.court, clubs:[]};
+  M.reserve = M.reserve || {};
+  const libres = [];
+  for (const id of sortis){
+    const c = M.clubs[id];
+    M.reserve[id] = {id, nom:c.nom, ville:c.ville, nat:c.nat, rep:c.rep, couleurs:c.couleurs, sigle:c.sigle, stade:c.stade, ligue:null, effectif:[], reserve:true};
+    const L = c.effectif.map(x => M.joueurs[x]).filter(Boolean).sort((a, b) => note20(b, b.poste) - note20(a, a.poste));
+    L.forEach((j, k) => { if (k < 3 && j.age <= 30){ j.club = null; j.contrat = null; delete j.pret; libres.push(j.id); } else delete M.joueurs[j.id]; });
+    delete M.clubs[id];
+  }
+  for (const c of Object.values(M.clubs)) if (c.ligue === 'fr' || c.ligue === 'it') c.ligue = 'la';
+  const nouveaux = [];
+  for (const def of D.CLUBS) if (!M.clubs[def[0]] && !M.reserve[def[0]] && M.ligues[def[4]]) nouveaux.push(creerClub(M, r, def));
+  for (const L of Object.values(M.ligues)) L.clubs = Object.values(M.clubs).filter(c => c.ligue === L.id).map(c => c.id);
+  for (const c of nouveaux){ if (C()) C().nouveauClub(M, r, c); for (const id of c.effectif) if (C()) C().nouveauJoueur(M, M.joueurs[id], c); }
+  if (M.libres) M.libres.push(...libres);
+  /* références vers les clubs sortis et les joueurs partis */
+  const ok = id => !!M.clubs[id], okJ = id => !!M.joueurs[id];
+  if (M.offres) M.offres = M.offres.filter(o => okJ(o.j) && (!o.de || ok(o.de)) && (!o.club || ok(o.club)));
+  if (M.libres) M.libres = M.libres.filter(okJ);
+  for (const c of Object.values(M.clubs)){ c.effectif = c.effectif.filter(okJ); if (c.suivi) c.suivi = c.suivi.filter(okJ); if (c.aVendre) c.aVendre = c.aVendre.filter(okJ); }
+  if (C() && C().apresBascule) C().apresBascule(M, sortis);
+  if (M.manager) M.annonceBascule = ['Quatre championnats', `La fédération européenne réorganise le Quidditch : ${D.LIGUES.map(L => L.nom).join(', ')}, 16 clubs chacun. ${Object.values(M.reserve).filter(c => sortis.has(c.id)).map(c => c.nom).join(', ')} quittent l'élite (une deuxième division les attend). La Ligue des Anneaux prend les 4 premiers de chaque championnat. Le Tournoi des Six Emblèmes laisse la place à trois trêves internationales (matchs amicaux tirés au sort) et, un été sur deux, à la Ligue des nations : 19 sélections, des groupes puis l'élimination directe.`, ];   // publié après les messages de la nouvelle saison (en tête de la boîte)
+  return true;
 }
 function progresser(j, r){
   const [p1, p2] = D.PICS[j.poste], ca = note20(j, j.poste), pot = j.cache.pot, pro = j.cache.pro / 10;
@@ -780,11 +831,14 @@ function charger(txt){
   if (v0 < 5 && M.manager) message(M, 'Nouveautés de QM27 : match et tactique', 'Tactique : deux dispositions, avec et sans le souafle, et une zone d\'attaque à choisir sur le terrain (chaque défense craint une zone). Tireur de penalty désigné, manies des joueurs (fiche joueur), buts attendus. En direct : le terrain vu du dessus, les autres scores à la radio, les conseils de l\'adjoint, des résumés qui suivent l\'enjeu et une ambiance sonore (Réglages).', 'club');
   if (v0 < 8) for (const j of Object.values(M.joueurs)){ if (!j.cache) continue; const ca = note20(j, j.poste); j.cache.pot = Math.round(Math.max(ca, Math.min(j.cache.pot, ca + margeMax(j.age))) * 10) / 10; }   // v94
   M.v = VERSION;
+  if (M.ligues.fr && M.manager && !M.avisV106){ M.avisV106 = 1; message(M, 'À la fin de cette saison : quatre championnats', `Cette saison se termine comme prévu (Ligue de France, Ligue d'Italie, Tournoi des Six Emblèmes). À l'intersaison, le Quidditch européen passe à quatre championnats de 16 clubs : ${D.LIGUES.map(L => L.nom).join(', ')}. Vingt clubs français et italiens quittent l'élite${M.manager.club && D.RESERVE.includes(M.manager.club) ? ' (ton club reste : un autre club de ton pays sort à sa place)' : ''}, les Six Emblèmes laissent la place aux trêves internationales et à la ${D.LDN.nom}.`, 'club'); }   // v106
   if (!Object.values(M.joueurs).some(j => j.inter)) convoquer(M);   // v91 : convocations de la semaine en cours
   return M;
 }
 
-root.QM = {chargeFacteur, plancherFatigue, matchsDuJoueur, convoquer, convoques, finirMatchDuJoueur, natJoueur, VERSION, clubJoueur, campJoueur, tactiqueIA, apresMatchManager, finDeSaison, hasard, melange, note, note20, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
+/* v106 : une ligue du palmarès, même disparue (Ligue de France, Ligue d'Italie) */
+const ligueDe = (M, id) => M.ligues[id] || D.LIGUES_ANCIENNES[id] || {id, nom:String(id), court:String(id), clubs:[]};
+root.QM = {ligueDe, roundRobin, creerClub, basculer, chargeFacteur, plancherFatigue, matchsDuJoueur, convoquer, convoques, finirMatchDuJoueur, natJoueur, VERSION, clubJoueur, campJoueur, tactiqueIA, apresMatchManager, finDeSaison, hasard, melange, note, note20, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
            semaine, matchDuJoueur, preparerMatch, simulerMatch, creerMatch, equipeClub, selection, pas, jusquAuBout, tempsMort, remplacer, resume, notesMatch,
            terminerSemaine, saisonSuivante, classement, objectif, serialiser, charger, nomJ, message, attente,
            manies, aManie, maniesPour, sansDe, CONTRE, completerTactique,

@@ -1,4 +1,4 @@
-// mon-ecran-version: d6154226
+// mon-ecran-version: 878680d2
 /* QM27 (v90, lot 7) — vestiaire et mercato, sans affichage. Expose window.QMH et complète window.QMC. Chargé après qm27-domaine.js.
    Vestiaire : ambiance, leaders, clans, mentorat, causeries, presse (La Gazette du sorcier).
    Mercato : attributs connus selon le travail du recruteur, offres par hibou (réponse la semaine suivante, contre-offres, clubs qui doublent),
@@ -11,7 +11,7 @@ const Q = () => root.QM;
 const borne = (x, a, b) => Math.max(a, Math.min(b, x));
 const arrondi = (x, pas) => Math.round(x / pas) * pas;
 const euros = x => QMC.euros(x);
-const club = (M, id) => M.clubs[id];
+const club = (M, id) => M.clubs[id] || (M.reserve && M.reserve[id]);   // v106 : club sorti du jeu (palmarès)
 const rng = (M, ...cle) => Q().hasard(Q().melange(M.graine, ...cle));
 const tic = M => M.tic || 0;
 const nomJ = j => Q().nomJ(j);

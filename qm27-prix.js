@@ -1,4 +1,4 @@
-// mon-ecran-version: c41744e8
+// mon-ecran-version: c1edba56
 /* QM27 (v103) — récompenses : équipe, joueur et manager du mois, prix de fin de saison par ligue, palmarès des joueurs,
    Hall of Fame à la retraite. Sans affichage : expose window.QMR et se branche sur QMC.semaine / avantSaison / apresSaison.
    Chargé après qm27-bureau.js. Rien ici ne tire au hasard dans le moteur des matchs (les noms des managers de l'ordinateur
@@ -13,7 +13,7 @@ const ORDRE = [['P', 3], ['B', 2], ['A', 1], ['G', 1]];   // une équipe-type = 
 const PRIX = {
   em:['Équipe du mois', 0.2], jm:['Joueur du mois', 0.5], mm:['Manager du mois', 0],
   ea:['Équipe de l\'année', 2], ja:['Joueur de l\'année', 5], pa:['Meilleur à son poste', 3], bu:['Meilleur buteur', 2], je:['Meilleur jeune', 1], rv:['Révélation de l\'année', 1], ma:['Manager de l\'année', 0],
-  ch:['Champion', 2], sx:['Vainqueur du Six Emblèmes', 2],
+  ch:['Champion', 2], sx:['Vainqueur du Six Emblèmes', 2], ln:['Vainqueur de la Ligue des nations', 3],
 };
 const SEUIL_HOF = 30, MAX_HOF = 3;   // au plus 3 entrées par été, les meilleurs scores
 const P = M => M.prix || (M.prix = {debut:M.saison, mois:null, saisons:[], hist:[], mgr:{}, ndeb:null, hof:[], candidats:null});
@@ -127,7 +127,8 @@ function primerSaison(M){
     for (const id of M.clubs[champion].effectif){ const j = M.joueurs[id]; if (j && sj(j, 'm')) donner(M, j, 'ch', L.id); }
     rec.ligues[L.id] = r;
   }
-  const sx = Q().classement(M, 'sixn')[0]; if (sx){ rec.sixn = sx.id; for (const j of Object.values(M.joueurs)) if (j.nat === sx.id && j.selS && j.selS[0] === M.saison) donner(M, j, 'sx', 'sixn'); }
+  const sx = M.calendrier.some(s => s.tour) && Q().classement(M, 'sixn')[0]; if (sx){   // v106 : seulement pour une saison d'avant v106 (Six Emblèmes)
+    rec.sixn = sx.id; for (const j of Object.values(M.joueurs)) if (j.nat === sx.id && j.selS && j.selS[0] === M.saison) donner(M, j, 'sx', 'sixn'); }
   pr.saisons.push(rec);
   if (moi && Q().message){
     const L = M.clubs[moi].ligue, r = rec.ligues[L]; if (r){
@@ -177,12 +178,12 @@ Object.assign(QMC, {
 /* palmarès lisible d'un joueur ou du manager : [{saison, code, nom, ligue, quand, n}] regroupés par prix */
 function palmares(L){
   const g = {}; for (const x of L || []){ const k = x[1] + (x[1] === 'pa' ? x[3] : ''); (g[k] = g[k] || {code:x[1], nom:x[1] === 'pa' ? `Meilleur ${nomPoste(x[3])}` : (PRIX[x[1]] || [x[1]])[0], fois:[]}).fois.push(x); }
-  const ordre = ['ld', 'bo', 'ch', 'sx', 'ja', 'ee', 'pa', 'me', 'ma', 'ea', 'bu', 'je', 'rv', 'jm', 'mm', 'em'];
+  const ordre = ['ld', 'bo', 'ch', 'ln', 'sx', 'ja', 'ee', 'pa', 'me', 'ma', 'ea', 'bu', 'je', 'rv', 'jm', 'mm', 'em'];
   return Object.values(g).sort((a, b) => ordre.indexOf(a.code) - ordre.indexOf(b.code));
 }
 /* « 2026-27 » pour un prix de saison, « novembre 2026 » pour un prix du mois (janvier à août : année suivante) */
 const quandTxt = x => { if (x[1] === 'pa' || !x[3]) return `${x[0]}-${String(x[0] + 1).slice(2)}`; const k = MOIS.indexOf(String(x[3]).split('-').pop()); return `${x[3]} ${k >= 0 && k < 8 ? x[0] + 1 : x[0]}`; };
 /* HTML commun : palmarès en pastilles (fiche joueur, profil du manager, Hall of Fame) */
 function palmaresHTML(L, esc){ const G = palmares(L); return G.length ? `<div class="palm">${G.map(g => `<span class="palm-i ${g.code}"><b>${esc(g.nom)}${g.fois.length > 1 ? ' ×' + g.fois.length : ''}</b><small>${g.fois.slice(-6).map(quandTxt).map(esc).join(' · ')}${g.fois.length > 6 ? ' …' : ''}</small></span>`).join('')}</div>` : ''; }
-root.QMR = {quandTxt, palmaresHTML, PRIX, MOIS, SEUIL_HOF, MAX_HOF, managerDe, palmares, scoreHeritage, resumeCarriere, primerMois, primerSaison, attendu, nomPoste};
+root.QMR = {donner, quandTxt, palmaresHTML, PRIX, MOIS, SEUIL_HOF, MAX_HOF, managerDe, palmares, scoreHeritage, resumeCarriere, primerMois, primerSaison, attendu, nomPoste};
 })(typeof window !== 'undefined' ? window : globalThis);

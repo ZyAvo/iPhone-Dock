@@ -1,4 +1,4 @@
-// mon-ecran-version: a7a4db6a
+// mon-ecran-version: 9bcbc2e4
 /* QM27 (v102) — statistiques de la saison : onglets « Équipes » et « Joueurs » dans Classements.
    Lit M.statsC (stats d'équipes du championnat, remplies par QM.statsEquipes) et j.saison (stats des joueurs, QM.statsJoueur).
    Chargé après qm27-ecrans.js, dont il reprend la boîte à outils (window.QMU) ; remplace VUES.classements par une version à trois vues. */
@@ -204,8 +204,61 @@ function vueEurope(){
     ${ko('f', 'Finale')}${ko('sf', 'Demi-finales')}${ko('qf', 'Quarts de finale')}
     <div class="eu-grille">${Object.entries(E.tables).map(([k, T]) => tableGroupe(M_, k, T)).join('')}</div>
     ${H.length ? `<div class="carte"><h2>Palmarès</h2><div class="liste">${H.map(h => `<div class="el">${blason(h.v, 'p')}<div class="t"><b>${esc(club(h.v).nom)}</b><span>${lab(h.saison)} · finale ${h.score.join('–')} contre ${esc(club(h.f).nom)}</span></div></div>`).join('')}</div></div>` : ''}
-    <p class="petit mut">16 clubs : 5 par championnat, 6 pour celui du tenant du titre. Groupes en aller-retour le mercredi (journées 3 à 13), quarts en janvier et demies fin mars en aller-retour (points cumulés, puis buts, puis vifs), finale sur un match en terrain neutre après la dernière journée. Primes : ${Z.eur ? Z.eur(Q_.PRIMES.participation) : Q_.PRIMES.participation} de participation, puis à chaque victoire et à chaque tour.</p>`;
+    <p class="petit mut">16 clubs : les 4 premiers de chaque championnat ; le tenant du titre qui finit plus bas prend la 4e place de sa ligue. Groupes en aller-retour le mercredi (journées 3 à 13), quarts en janvier et demies fin mars en aller-retour (points cumulés, puis buts, puis vifs), finale sur un match en terrain neutre après la dernière journée. Primes : ${Z.eur ? Z.eur(Q_.PRIMES.participation) : Q_.PRIMES.participation} de participation, puis à chaque victoire et à chaque tour.</p>`;
 }
+
+/* ---------- v106 : les sélections (trêves internationales, Ligue des nations, stats des matchs de sélection) ---------- */
+const QN = () => window.QMN;
+const ancienneSaison = () => M().calendrier.some(s => s.tour);   // saison d'avant v106 : le Tournoi des Six Emblèmes
+const natNom = n => (D.NATIONS[n] || {}).nom || n;
+const ligneMatchN = (m, moiN) => `<div class="el${moiN && (m.dom === moiN || m.ext === moiN) ? ' moi' : ''}">${blason(m.dom, 'p', 1)}<div class="t"><b>${esc(natNom(m.dom))} – ${esc(natNom(m.ext))}</b><span>${m.res ? `${m.res.score[0]}–${m.res.score[1]}${m.res.vif != null ? ' · vif d\'or : ' + esc(natNom(m.res.vif ? m.ext : m.dom)) : ''}` : 'à jouer'}${m.neutre ? ' · terrain neutre' : ''}</span></div>${blason(m.ext, 'p', 1)}</div>`;
+function tableNations(rows, qualif){
+  const moiN = M().manager.selection ? M().manager.selection.nat : null;
+  return `<table class="cl"><thead><tr><th>#</th><th>Nation</th><th>J</th><th class="tab-cache">V</th><th class="tab-cache">N</th><th class="tab-cache">D</th><th>Diff</th><th>Pts</th></tr></thead><tbody>
+    ${rows.map((r, i) => `<tr class="${r.id === moiN ? 'moi' : ''}${qualif && i < qualif && r.j ? ' q' : ''}"><td>${i + 1}</td><td class="club"><div>${blason(r.id, 'p', 1)}<span>${esc(natNom(r.id))}</span></div></td><td>${r.j}</td><td class="tab-cache">${r.g}</td><td class="tab-cache">${r.n}</td><td class="tab-cache">${r.p}</td><td>${r.pm - r.pe > 0 ? '+' : ''}${r.pm - r.pe}</td><td class="pts">${r.pts}</td></tr>`).join('')}</tbody></table>`;
+}
+function vueLdn(){
+  const N = QN(), E = N.etat(M()), L = E.ldn, moiN = M().manager.selection ? M().manager.selection.nat : null;
+  const H = E.hist.slice().reverse();
+  const palm = H.length ? `<div class="carte"><h2>Palmarès</h2><div class="liste">${H.map(h => `<div class="el">${blason(h.v, 'p', 1)}<div class="t"><b>${esc(natNom(h.v))}</b><span>été ${h.saison + 1} · finale ${h.score.join('–')} contre ${esc(natNom(h.f))}</span></div></div>`).join('')}</div></div>` : '';
+  if (!L) return `<div class="carte"><h2>${esc(D.LDN.nom)}</h2><p class="mut" style="margin:0">${E.aLdn ? 'Le tirage des groupes se fait au début de la saison.' : `Pas de ${esc(D.LDN.nom)} cet été : la prochaine se joue l'été ${M().saison + 2} (saison ${lab(M().saison + 1)}). Cet été, une trêve internationale en juin.`}</p></div>${palm}`;
+  const phase = L.vainqueur ? `Vainqueur : ${esc(natNom(L.vainqueur))}` : E.tours.find(([, ms]) => ms.length && ms.some(m => !m.res)) ? N.ETAPES[E.tours.find(([, ms]) => ms.length && ms.some(m => !m.res))[0]] : E.tours.some(([, ms]) => ms.length) ? 'Tableau final' : 'Phase de groupes';
+  const ko = E.tours.slice().reverse().filter(([, ms]) => ms.length).map(([e, ms]) => `<div class="carte"><h2>${N.ETAPES[e]}</h2><div class="liste">${ms.map(m => ligneMatchN(m, moiN)).join('')}</div></div>`).join('');
+  return `<div class="carte"><h2>${esc(D.LDN.nom)} · été ${L.saison + 1}</h2><p class="sous" style="margin:0">${phase} · 19 sélections${moiN ? ` · ${esc(natNom(moiN))} : ${esc(N.SORTIE[L.sortie[moiN]] || '')}` : ''}</p></div>
+    ${ko}<div class="eu-grille">${E.groupes.map(([g, T]) => `<div class="carte eu-g"><h2>Groupe ${g}</h2>${tableNations(T, 2)}</div>`).join('')}</div>${palm}
+    <p class="petit mut">L'été, une saison sur deux : 4 groupes tirés dans des chapeaux de force (un match contre chaque adversaire), les deux premiers en quarts, puis demies et finale en terrain neutre. À égalité, la sélection qui a pris le vif d'or passe.</p>`;
+}
+function vueMatchsNations(){
+  const moiN = M().manager.selection ? M().manager.selection.nat : null, N = QN();
+  const S = M().calendrier.filter(s => s.type === 'sixn' && s.comp);
+  return S.map(s => `<div class="carte"><h2>${esc(N.titreSemaine(s))} <span class="mut">${Z.fmtDate(s.date)}</span></h2>${s.matchs.length ? `<div class="liste">${s.matchs.map(m => ligneMatchN(m, moiN)).join('')}</div>` : '<p class="mut" style="margin:0">Affiches selon les résultats.</p>'}</div>`).join('')
+    + `<p class="petit mut">Trêves internationales en octobre, novembre et mars (et en juin les étés sans ${esc(D.LDN.nom)}) : les championnats s'arrêtent une semaine et chaque sélection joue un amical contre une adversaire tirée au sort.</p>`;
+}
+/* colonnes : [clé, titre, largeur, valeur(j), format, bas, info] (même tableau que les stats du championnat) */
+const COL_N = [['m', 'Sél.', 42, j => j.nS.m, v => v, 0, 'Matchs de sélection cette saison'], ['b', 'Buts', 42, j => j.nS.b, v => v, 0, 'Buts'], ['v', 'Vifs', 40, j => j.nS.v, v => v, 0, 'Vifs d\'or attrapés'],
+  ['cog', 'Cogn.', 44, j => j.nS.cog, v => v, 0, 'Cognards réussis'], ['arr', 'Arrêts', 46, j => j.nS.arr, v => v, 0, 'Arrêts'], ['note', 'Note', 44, j => j.nS.nn ? j.nS.notes / j.nS.nn : null, v => nb(v), 0, 'Note moyenne'],
+  ['tot', 'Carr.', 44, j => j.sel || 0, v => v, 0, 'Sélections depuis le début de la partie'], ['totB', 'Buts c.', 50, j => j.selB || 0, v => v, 0, 'Buts en sélection depuis le début de la partie']];
+function vueJoueursNations(){
+  const an = M().saison, moiN = M().manager.selection ? M().manager.selection.nat : null, mc = M().manager.club;
+  const filtre = CS.natF || 'toutes', tri = COL_N.some(c => c[0] === CS.natT) ? CS.natT : 'b';
+  let L = Object.values(M().joueurs).filter(j => j.nS && j.nS.s === an && j.nS.m && (filtre === 'toutes' || j.nat === filtre));
+  const choix = [['toutes', 'Toutes'], ...(moiN ? [[moiN, natNom(moiN)]] : []), ...(mc && club(mc).nat !== moiN ? [[club(mc).nat, natNom(club(mc).nat)]] : [])];
+  const rows = L.map(j => ({id:j.id, o:j}));
+  const t = rows.length ? tableau(rows, COL_N, tri, CS.natS || 1, 'natT', 'Joueur', (r, i) => `<button class="ts-l${r.o.club && r.o.club === mc ? ' moi' : ''}" role="row" data-act="joueur" data-j="${r.id}"><span class="ts-r">${i + 1}</span><span class="ts-n">${posteB(r.o.poste)}<b>${esc(r.o.p[0])}. ${esc(r.o.n)}</b>${flag(r.o.nat)}</span>`, 60) : '';
+  return `<div class="chips petites">${choix.map(([k, n]) => `<button class="chip ${filtre === k ? 'on' : ''}" data-act="natF" data-v="${k}">${k === 'toutes' ? '' : flag(k) + ' '}${esc(n)}</button>`).join('')}</div>
+    ${t ? `<div class="carte ts-carte">${t}</div>` : '<div class="carte"><p class="mut" style="margin:0">Aucun match de sélection joué cette saison.</p></div>'}
+    <p class="petit mut">Matchs de sélection de la saison (amicaux et ${esc(D.LDN.nom)}) ; « Carr. » et « Buts c. » : depuis le début de la partie. Tes joueurs sont surlignés.</p>`;
+}
+function vueNations(){
+  const k = CS.nat || (QN().etat(M()).ldn ? 'ldn' : 'matchs');
+  const onglets = [['ldn', D.LDN.nom], ['matchs', 'Matchs'], ['bilan', 'Bilan'], ['joueurs', 'Joueurs']];
+  const corps = k === 'ldn' ? vueLdn() : k === 'bilan' ? `<div class="carte">${tableNations(Q_().classement(M(), 'sixn'))}</div><p class="petit mut">Tous les matchs de sélection de la saison, amicaux compris.</p>` : k === 'joueurs' ? vueJoueursNations() : vueMatchsNations();
+  return `<div class="seg mini st-vues" role="tablist">${onglets.map(([x, n]) => `<button role="tab" data-act="natVue" data-v="${x}" class="${k === x ? 'on' : ''}" aria-selected="${k === x}">${esc(n)}</button>`).join('')}</div><div class="st-zone">${corps}</div>`;
+}
+const Q_ = () => window.QM;
+ACT.natVue = d => { CS.nat = d.v; Z.rendre(); };
+ACT.natF = d => { CS.natF = d.v; Z.rendre(); };
+ACT.natT = d => { if (CS.natT === d.t) CS.natS = -(CS.natS || 1); else { CS.natT = d.t; CS.natS = 1; } Z.rendre(); };
 
 /* ---------- Classements : trois vues ---------- */
 const orig = VUES.classements;
@@ -217,8 +270,10 @@ VUES.classements = function(){
     if (estEu) seg0.querySelectorAll('button').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-selected', 'false'); });
     seg0.lastElementChild.insertAdjacentHTML('beforebegin', `<button role="tab" data-act="ligue" data-l="eu" class="${estEu ? 'on' : ''}" aria-selected="${estEu}">${esc(Q_.COURT)}</button>`);
   }
+  if (seg0 && seg0.classList.contains('defile')){ const on = seg0.querySelector('.on'); if (on) requestAnimationFrame(() => { seg0.scrollLeft = Math.max(0, on.offsetLeft - (seg0.clientWidth - on.offsetWidth) / 2); }); }   // v106 : l'onglet choisi reste visible
   if (estEu){ [...Z.VUE.querySelectorAll(':scope > .carte, :scope > p.petit')].forEach(e => e.remove()); seg0.insertAdjacentHTML('afterend', `<div class="st-zone">${vueEurope()}</div>`); return; }
   const mc = M().manager.club && club(M().manager.club), l = U.ligue || (mc ? mc.ligue : Object.keys(M().ligues)[0]);
+  if (l === 'sixn' && QN() && !ancienneSaison()){ const seg1 = Z.VUE.querySelector('.seg'); [...Z.VUE.querySelectorAll(':scope > .carte, :scope > p.petit')].forEach(e => e.remove()); if (seg1) seg1.insertAdjacentHTML('afterend', vueNations()); return; }   // v106
   if (l === 'sixn' || !M().ligues[l]) return;
   const seg = Z.VUE.querySelector('.seg'); if (!seg) return;
   seg.insertAdjacentHTML('afterend', `<div class="seg mini st-vues" role="tablist">${[['classement', 'Classement'], ['equipes', 'Stats équipes'], ['joueurs', 'Stats joueurs'], ['prix', 'Prix']].map(([k, n]) => `<button role="tab" data-act="stVue" data-v="${k}" class="${CS.vue === k ? 'on' : ''}" aria-selected="${CS.vue === k}">${n}</button>`).join('')}</div>`);

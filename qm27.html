@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="6d244091">
+<meta name="mon-ecran-version" content="ffa08773">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -101,6 +101,7 @@ h1.grand{font-size:1.7rem;letter-spacing:-.03em;margin:4px 0 0;line-height:1.1}
 .seg{display:flex;background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
 .seg button{flex:1;min-height:34px;border-radius:9px;font-size:.83rem;font-weight:550;color:var(--ink-soft);padding:0 6px}
 .seg button.on{background:var(--accent);color:var(--on-accent)}
+.seg.defile{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.seg.defile::-webkit-scrollbar{display:none}.seg.defile button{flex:1 0 auto;white-space:nowrap}   /* v106 : 4 championnats, les Anneaux et les sélections */
 
 /* Blasons */
 .blason{--c1:#444;--c2:#ddd;flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:.7rem;letter-spacing:.02em;
@@ -916,6 +917,7 @@ html.desk .er{cursor:grab}
 <script src="qm27-bureau.js"></script>
 <script src="qm27-prix.js"></script>
 <script src="qm27-europe.js"></script>
+<script src="qm27-nations.js"></script>
 <script src="qm27-visuel.js"></script>
 <script src="qm27-ui.js"></script>
 <script src="qm27-ecrans.js"></script>

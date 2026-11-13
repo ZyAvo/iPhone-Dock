@@ -1,4 +1,4 @@
-// mon-ecran-version: c608cf94
+// mon-ecran-version: 19cc5f1c
 /* QM27 (v87) — graphismes dessinés par le code, sans image : blasons des clubs, maillots, avatars, radar du profil.
    Tout est déterministe : un club ou une personne a toujours le même dessin (graine = identifiant).
    window.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe}. Aucune dépendance (QMD seulement pour les prénoms). */
@@ -53,11 +53,18 @@ const EMBLEMES = {bath:'serpent', york:'aile', canterbury:'baguette', glastonbur
   rennes:'etincelle', paris:'masque', lyon:'chapeau', carcassonne:'chapeau', nantes:'oiseau', strasbourg:'hibou', besancon:'serpent', brest:'masque',
   toulouse:'champignon', bordeaux:'fantome', marseille:'queue', poitiers:'serpent', lille:'comete', montpellier:'feuille', reims:'licorne', grenoble:'etincelle',
   benevento:'chapeau', perugia:'aile', venezia:'flamme', milano:'serpent', torino:'etincelle', arezzo:'masque', napoli:'oeil', roma:'boule',
-  firenze:'etoile', palermo:'masque', bologna:'champignon', genova:'lanterne', verona:'baguette', trieste:'fantome', bari:'flamme', bergamo:'balai'};
+  firenze:'etoile', palermo:'masque', bologna:'champignon', genova:'lanterne', verona:'baguette', trieste:'fantome', bari:'flamme', bergamo:'balai',
+  madrid:'aile', barcelona:'flamme', sevilla:'flamme', toledo:'baguette', stockholm:'chapeau', goteborg:'queue', uppsala:'boule', malmo:'fantome',
+  oslo:'fantome', bergen:'feuille', trondheim:'queue', tromso:'comete', kobenhavn:'serpent', aarhus:'etincelle', odense:'champignon', helsinki:'chaudron',
+  turku:'livre', tampere:'lanterne', reykjavik:'etoile', akureyri:'masque', berlin:'chapeau', munchen:'serpent', hamburg:'lanterne', koln:'champignon',
+  krakow:'flamme', warszawa:'queue', gdansk:'aile', amsterdam:'chaudron', utrecht:'fantome', bruxelles:'baguette', antwerpen:'masque', wien:'oeil',
+  salzburg:'masque', praha:'livre', brno:'flamme', luxembourg:'serpent'};
 const emblemeDe = id => EMBLEMES[id] || choix(rng('emb' + id), Object.keys(EMB));
 
 /* sélections : couleurs du maillot */
-const NATIONS = {ENG:['#f4f4f4', '#c8102e'], SCO:['#1b2a4a', '#ffffff'], WAL:['#c8102e', '#ffffff'], IRL:['#169b62', '#ffffff'], FRA:['#1f3c88', '#ffffff'], ITA:['#2a7de1', '#ffffff']};
+const NATIONS = {ENG:['#f4f4f4', '#c8102e'], SCO:['#1b2a4a', '#ffffff'], WAL:['#c8102e', '#ffffff'], IRL:['#169b62', '#ffffff'], FRA:['#1f3c88', '#ffffff'], ITA:['#2a7de1', '#ffffff'],
+  ESP:['#c60b1e', '#ffc400'], DEN:['#c8102e', '#ffffff'], SWE:['#006aa7', '#fecc00'], NOR:['#ba0c2f', '#00205b'], FIN:['#ffffff', '#002f6c'], ISL:['#02529c', '#dc1e35'],
+  GER:['#ffffff', '#1a1a1a'], NED:['#ff7f00', '#ffffff'], BEL:['#e30613', '#fdda24'], LUX:['#00a1de', '#ef3340'], POL:['#ffffff', '#dc143c'], AUT:['#ed2939', '#ffffff'], CZE:['#d7141a', '#11457e']};
 const couleursNation = n => NATIONS[n] || ['#33415c', '#e0e1dd'];
 
 /* ---------- blason ---------- */
@@ -79,7 +86,9 @@ const PARTITIONS = {
 };
 /* v93 : illustrations (images/qm27/ : blasons, lieux et bâtiments du domaine, fond de carte) ; les dessins en code restent pour la galerie et en secours */
 const IMAGES = 'images/qm27/';
-const aImage = id => !!(D() && D().CLUBS.some(x => x[0] === id));
+/* v106 : seuls les 48 clubs d'origine ont un blason illustré ; les autres gardent le blason dessiné en attendant leurs images */
+const BLASONS_ILLUSTRES = new Set(['aberdeen', 'aberystwyth', 'arezzo', 'bari', 'bath', 'benevento', 'bergamo', 'besancon', 'bologna', 'bordeaux', 'brest', 'canterbury', 'carcassonne', 'conwy', 'cork', 'dublin', 'firenze', 'galway', 'genova', 'glastonbury', 'grenoble', 'inverness', 'lille', 'lyon', 'marseille', 'milano', 'montpellier', 'nantes', 'napoli', 'norwich', 'oxford', 'palermo', 'paris', 'perugia', 'poitiers', 'reims', 'rennes', 'roma', 'stirling', 'strasbourg', 'swansea', 'torino', 'toulouse', 'trieste', 'venezia', 'verona', 'whitby', 'york']);
+const aImage = id => BLASONS_ILLUSTRES.has(id);
 function blason(c, cls){
   if (c && aImage(c.id)) return `<img class="blz img ${cls || ''}" src="${IMAGES}blasons/${c.id}.webp" alt="" aria-hidden="true" decoding="async" draggable="false">`;
   return blasonDessin(c, cls);
@@ -110,7 +119,7 @@ const MOTIFS = {
   epaules:(t) => `<path d="M0 0h40v12C30 9 10 9 0 12z" fill="${t}"/>`,
 };
 /* v99 : maillots illustrés (images/qm27/maillots/<id>-d|e.webp, recolorés aux couleurs de chaque club et nation) */
-const aMaillot = id => !!(D() && id && (D().CLUBS.some(x => x[0] === id) || (D().SIX_NATIONS || []).includes(id)));
+const aMaillot = id => !!(D() && id && (D().CLUBS.some(x => x[0] === id) || !!D().NATIONS[id]));
 function maillot(c, num, cls, sponsor){   // v88 : nom du sponsor sur la poitrine
   if (c && aMaillot(c.id) && !c.dessin){
     const sp = sponsor ? sponsor.split(' ')[0].toUpperCase().replace(/[<&>]/g, '') : '', aNum = num !== undefined && num !== null && num !== '';
@@ -257,13 +266,30 @@ const EMBL = {
   ITA:{anneau:['#008c45', '#ffffff', '#cd212a'], nom:'la couronne de laurier', svg:`<g transform="translate(12 12) scale(.8) translate(-12 -12)"><g fill="#008c45">${lauriers()}</g><path d="M10.2 19.6l1.8-1.4 1.8 1.4M10.6 20.6l1.4-1.2 1.4 1.2" stroke="#cd212a" stroke-width="1.2" fill="none" stroke-linecap="round"/>
     <path d="M12 7.4l.9 1.9 2 .2-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.2z" fill="#e8b83c"/></g>`},
 };
+/* v106 : nouvelles nations, un symbole du jeu dans l'anneau aux couleurs du drapeau (en attendant des emblèmes illustrés) */
+const symb = (k, C) => `<g transform="translate(12 12) scale(.62) translate(-12 -12)">${EMB[k](C)}</g>`;
+Object.assign(EMBL, {
+  ESP:{anneau:['#c60b1e', '#ffc400', '#c60b1e'], nom:'la flamme', svg:symb('flamme', '#c60b1e')},
+  DEN:{anneau:['#c8102e', '#ffffff'], nom:"l'étoile", svg:symb('etoile', '#c8102e')},
+  SWE:{anneau:['#006aa7', '#fecc00'], nom:"l'étincelle", svg:symb('etincelle', '#d9a400')},
+  NOR:{anneau:['#ba0c2f', '#ffffff', '#00205b'], nom:'la lune', svg:symb('lune', '#00205b')},
+  FIN:{anneau:['#ffffff', '#002f6c'], nom:'le hibou', svg:symb('hibou', '#002f6c')},
+  ISL:{anneau:['#02529c', '#ffffff', '#dc1e35'], nom:'la comète', svg:symb('comete', '#02529c')},
+  GER:{anneau:['#1a1a1a', '#dd0000', '#ffce00'], nom:"l'aile", svg:symb('aile', '#1a1a1a')},
+  NED:{anneau:['#ae1c28', '#ffffff', '#21468b'], nom:'la feuille', svg:symb('feuille', '#ff7f00')},
+  BEL:{anneau:['#1a1a1a', '#fdda24', '#e30613'], nom:'le masque', svg:symb('masque', '#1a1a1a')},
+  LUX:{anneau:['#ef3340', '#ffffff', '#00a1de'], nom:'la mélusine', svg:symb('serpent', '#00a1de')},
+  POL:{anneau:['#ffffff', '#dc143c'], nom:"l'oiseau blanc", svg:symb('oiseau', '#dc143c')},
+  AUT:{anneau:['#ed2939', '#ffffff', '#ed2939'], nom:'la boule de cristal', svg:symb('boule', '#ed2939')},
+  CZE:{anneau:['#ffffff', '#d7141a', '#11457e'], nom:'la licorne', svg:symb('licorne', '#11457e')},
+});
 function anneauDe(L){
   const r = 10.3, C = 2 * Math.PI * r, n = L.length, seg = C / n;
   return L.map((c, i) => `<circle cx="12" cy="12" r="${r}" fill="none" stroke="${c}" stroke-width="2.6" stroke-dasharray="${(seg + (n > 1 ? 0.05 : 0)).toFixed(3)} ${(C - seg).toFixed(3)}" stroke-dashoffset="${(-seg * i).toFixed(3)}" transform="rotate(-90 12 12)"/>`).join('');
 }
 function embleme(n, cls){
   const e = EMBL[n]; if (!e) return '';
-  if (!(cls || '').includes('dessin')) return `<img class="emb img ${cls || ''}" src="${IMAGES}emblemes/${n}.webp" width="24" height="24" alt="${D().NATIONS[n] ? D().NATIONS[n].nom : n} (${e.nom})" decoding="async" draggable="false">`;   // v99 : emblème illustré
+  if (!(cls || '').includes('dessin') && D().SIX_NATIONS.includes(n)) return `<img class="emb img ${cls || ''}" src="${IMAGES}emblemes/${n}.webp" width="24" height="24" alt="${D().NATIONS[n] ? D().NATIONS[n].nom : n} (${e.nom})" decoding="async" draggable="false">`;   // v99 : emblème illustré
   return `<svg class="emb ${cls || ''}" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="${D().NATIONS[n] ? D().NATIONS[n].nom : n} (${e.nom})">
     <circle cx="12" cy="12" r="9" fill="#fbf8f0"/>${e.bas ? `<path d="M3 12.6a9 9 0 0 0 18 0z" fill="${e.bas}" opacity=".9"/>` : ''}${anneauDe(e.anneau)}
     <circle cx="12" cy="12" r="11.6" fill="none" stroke="rgba(0,0,0,.3)" stroke-width=".7"/><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(0,0,0,.14)" stroke-width=".5"/>${e.svg}</svg>`;

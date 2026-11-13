@@ -1,6 +1,7 @@
-// mon-ecran-version: 9d5d9458
+// mon-ecran-version: 8c9c3f40
 /* QM27 (v104) — la Ligue des Anneaux, coupe d'Europe des clubs, et les prix européens.
    16 clubs : 5 par championnat, 6 pour celui du tenant du titre (ses 6 premiers s'il en fait partie, sinon ses 5 premiers et lui).
+   v106 : 4 championnats, 4 places chacun ; le tenant qui finit plus bas que 4e prend la 4e place de sa ligue.
    4 groupes de 4 en aller-retour (mercredis des journées 3 à 13), quarts et demies en aller-retour (journées 16-18 et 27-28),
    finale sur un match en terrain neutre, une semaine après la dernière journée. Les matchs (ligue 'eu') sont rangés dans les
    semaines du calendrier, avec le championnat ; leur date affichée est le mercredi d'avant.
@@ -28,10 +29,22 @@ const ou = (m, id) => m.dom === id || m.ext === id;
 function qualifies(M){
   const L = Object.values(M.ligues), h = M.europeHist || [], tenant = h.length && h[h.length - 1].saison === M.saison - 1 ? h[h.length - 1].v : null;
   const rangs = M.europeRangs && M.europeRangs.saison === M.saison - 1 ? M.europeRangs.ligues : null;
-  const ordre = l => rangs && rangs[l.id] ? rangs[l.id].filter(id => M.clubs[id] && M.clubs[id].ligue === l.id) : l.clubs.slice().sort((a, b) => M.clubs[b].rep - M.clubs[a].rep);
+  const parRep = l => l.clubs.slice().sort((a, b) => M.clubs[b].rep - M.clubs[a].rep);
+  const ordre = l => {
+    if (rangs && rangs[l.id]) return rangs[l.id].filter(id => M.clubs[id] && M.clubs[id].ligue === l.id);
+    if (rangs && l.id === 'la' && (rangs.fr || rangs.it)){   // v106 : première saison à 4 championnats, les classements français et italien alternés, puis les nouveaux
+      const a = (rangs.fr || []).filter(id => l.clubs.includes(id)), b = (rangs.it || []).filter(id => l.clubs.includes(id)), o = [];
+      for (let i = 0; i < Math.max(a.length, b.length); i++){ if (a[i]) o.push(a[i]); if (b[i]) o.push(b[i]); }
+      return [...o, ...parRep(l).filter(id => !o.includes(id))];
+    }
+    return parRep(l);
+  };
   const base = Math.floor(TAILLE / L.length), Q_ = [];
   for (const l of L){ const o = ordre(l); Q_.push(...o.slice(0, base)); }
   let reste = TAILLE - Q_.length;
+  if (tenant && M.clubs[tenant] && reste <= 0 && !Q_.includes(tenant)){   // v106 (4 championnats, 4 places chacun) : le tenant prend la 4e place de sa ligue s'il finit plus bas
+    const o = ordre(M.ligues[M.clubs[tenant].ligue]), k = Q_.indexOf(o[base - 1]); if (k >= 0) Q_[k] = tenant;
+  }
   if (tenant && M.clubs[tenant] && reste > 0){   // la ligue du tenant a une place de plus : son 6e, ou le tenant s'il n'est pas dans les 5
     const o = ordre(M.ligues[M.clubs[tenant].ligue]); Q_.push(Q_.includes(tenant) ? o[base] : tenant); reste--;
   }

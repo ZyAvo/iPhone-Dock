@@ -1,4 +1,4 @@
-// mon-ecran-version: 174bdfb1
+// mon-ecran-version: f298277b
 /* QM27 (v85, lot 3) — stade et installations, centre de formation, réputation des clubs, carrière du manager
    (offres d'autres clubs, démission, licenciement, sans club) et double poste de sélectionneur pour le Tournoi des Six Emblèmes.
    Sans affichage : complète window.QMC (qm27-club.js) et s'insère dans ses rendez-vous de la semaine et de la saison. */
@@ -9,7 +9,7 @@ const Q = () => root.QM;
 const borne = (x, a, b) => Math.max(a, Math.min(b, x));
 const nomJ = j => j ? `${j.p} ${j.n}` : '?';
 const euros = x => QMC.euros(x);
-const club = (M, id) => M.clubs[id];
+const club = (M, id) => M.clubs[id] || (M.reserve && M.reserve[id]);   // v106 : club sorti du jeu (palmarès)
 const lab = an => `${an}-${String(an + 1).slice(2)}`;
 const rng = (M, ...cle) => Q().hasard(Q().melange(M.graine, ...cle));
 const tic = M => M.tic || 0;
@@ -184,6 +184,7 @@ function verifierLicenciement(M){
 
 /* ---------- Sélectionneur ---------- */
 function forceNations(M){
+  if (root.QMN) return root.QMN.parForce(M);   // v106 : les 19 sélections
   return D.SIX_NATIONS.map(n => { const e = Q().selection(M, n); const ids = Q().titulaires(e);
     return {n, f:ids.reduce((s, id) => s + Q().note20(M.joueurs[id], ['P', 'B', 'A', 'G'].find(p => e[p].includes(id))), 0) / (ids.length || 1)}; }).sort((a, b) => b.f - a.f).map(x => x.n);
 }
@@ -193,10 +194,10 @@ function selectionSemaine(M, S, r){
   const debutJanvier = new Date(S.date).getUTCMonth() === 0 && !(M.calendrier[M.semaine - 1] && new Date(M.calendrier[M.semaine - 1].date).getUTCMonth() === 0);
   if (!mg.selection && !mg.offreSel && mg.rep >= K.repSelection && ((S.type === 'prepa' && S.semaine === 1) || debutJanvier)){
     const pris = mg.selPassees || [];
-    const L = D.SIX_NATIONS.filter(n => !pris.includes(n));
-    const nat = mg.club && L.includes(club(M, mg.club).nat) ? club(M, mg.club).nat : r.choix(L.length ? L : D.SIX_NATIONS);
+    const L = D.SELECTIONS.filter(n => !pris.includes(n));   // v106 : toutes les sélections
+    const nat = mg.club && L.includes(club(M, mg.club).nat) ? club(M, mg.club).nat : r.choix(L.length ? L : D.SELECTIONS);
     mg.offreSel = {nat, expire:tic(M) + 4};
-    Q().message(M, `La fédération ${D.NATIONS[nat].nom === 'Angleterre' ? 'anglaise' : 'de ' + D.NATIONS[nat].nom} vous appelle`, `Elle vous propose de diriger la sélection pendant le Tournoi des Six Emblèmes, en plus de votre club. Réponse attendue sous quatre semaines (Plus › Carrière).`, 'carriere');
+    Q().message(M, `La fédération ${D.NATIONS[nat].nom === 'Angleterre' ? 'anglaise' : 'de ' + D.NATIONS[nat].nom} vous appelle`, `Elle vous propose de diriger la sélection, en plus de votre club : les matchs amicaux des trêves internationales et, un été sur deux, la ${D.LDN.nom}. Réponse attendue sous quatre semaines (Plus › Carrière).`, 'carriere');
   }
   if (S.tour === 5 && mg.selection){
     const nat = mg.selection.nat, k = Q().classement(M, 'sixn').findIndex(x => x.id === nat) + 1, vise = mg.selection.objectif || 3;
@@ -210,11 +211,30 @@ function selectionSemaine(M, S, r){
 function accepterSelection(M){
   const mg = M.manager; if (!mg.offreSel) return {ok:false, msg:'Offre expirée.'};
   const nat = mg.offreSel.nat, rang = forceNations(M).indexOf(nat) + 1;
-  mg.selection = {nat, depuis:M.saison, objectif:Math.min(6, rang + 1)};
+  mg.selection = {nat, depuis:M.saison, objectif:Math.min(6, rang + 1), vise:viseLdn(rang)};
   M.sel = {nat, compo:null, tactique:Q().TACTIQUE_DEFAUT(), perso:false};
   mg.offreSel = null;
-  Q().message(M, `Sélectionneur : ${D.NATIONS[nat].nom}`, `Objectif de la fédération : finir dans les ${mg.selection.objectif} premiers du Tournoi des Six Emblèmes. Convocations et consignes dans Club › Sélection.`, 'carriere');
+  Q().message(M, `Sélectionneur : ${D.NATIONS[nat].nom}`, `Objectif de la fédération pour la ${D.LDN.nom} : ${TXT_VISE[mg.selection.vise]}. Convocations et consignes dans Club › Sélection.`, 'carriere');
   return {ok:true, msg:`Sélectionneur : ${D.NATIONS[nat].nom}`};
+}
+/* v106 : objectif à la Ligue des nations selon le rang de force parmi les 19 sélections (2 = finale, 4 = demies, 8 = quarts, 19 = bonne figure) */
+const viseLdn = rang => rang <= 2 ? 2 : rang <= 4 ? 4 : rang <= 8 ? 8 : 19;
+const ECHELONS = [1, 2, 4, 8, 19];   // vainqueur, finale, demies, quarts, groupes
+const TXT_VISE = {2:'atteindre la finale', 4:'atteindre les demi-finales', 8:'sortir des groupes', 19:'faire bonne figure'};
+/* appelé par qm27-nations.js après chaque étape de la Ligue des nations : bilan quand la sélection du joueur est éliminée ou après la finale */
+function bilanSelection(M, S){
+  const mg = M.manager, sel = mg && mg.selection, L = M.ldn; if (!sel || !L || L.saison !== M.saison || sel.bilanLdn === M.saison) return;
+  const n = sel.nat, so = L.sortie[n], e = S.etape, fini = e === 'f' || (e === 'g5' && so === 'g') || (e === 'qf' && so === 'qf') || (e === 'sf' && so === 'sf');
+  if (!fini) return;
+  sel.bilanLdn = M.saison;
+  const k = root.QMN.RANG_SORTIE[so] || 19, vise = sel.vise || viseLdn(forceNations(M).indexOf(n) + 1), quoi = root.QMN.SORTIE[so].toLowerCase(), nomN = D.NATIONS[n].nom;
+  const parcours = so === 'v' ? 'remporte la compétition !' : so === 'g' ? 'sort en phase de groupes' : so === 'f' ? 'perd en finale' : `atteint les ${quoi}`;
+  if (k <= vise){ mg.rep = Math.min(100, Math.round((mg.rep + 3 + (k === 1 ? 4 : 0)) * 10) / 10);
+    Q().message(M, `${D.LDN.nom} : contrat rempli`, `${nomN} ${parcours} (objectif : ${TXT_VISE[vise]}). La fédération vous garde.`, 'carriere'); }
+  else if (ECHELONS.indexOf(k) - ECHELONS.indexOf(vise) >= 2){   // deux tours en dessous de l'objectif (mg.selPassees = mg.selPassees || []).push(n); mg.selection = null; M.sel = null; mg.rep = Math.max(1, Math.round((mg.rep - 2) * 10) / 10);
+    Q().message(M, `${D.LDN.nom} : la fédération vous remercie`, `${nomN} ${parcours} alors que l'objectif était de ${TXT_VISE[vise]}. Fin du double poste.`, 'carriere'); }
+  else Q().message(M, `${D.LDN.nom} terminée`, `${nomN} ${parcours} (objectif : ${TXT_VISE[vise]}). La fédération reste prudente mais vous garde.`, 'carriere');
+  sel.vise = viseLdn(forceNations(M).indexOf(n) + 1);   // objectif de la prochaine édition
 }
 function refuserSelection(M){ M.manager.offreSel = null; return {ok:true}; }
 function quitterSelection(M){ const mg = M.manager; if (!mg.selection) return {ok:false}; (mg.selPassees = mg.selPassees || []).push(mg.selection.nat); mg.selection = null; M.sel = null; return {ok:true, msg:'Vous quittez la sélection'}; }
@@ -253,6 +273,7 @@ function completer3(M){
     if ((M.v || 1) < 3) Q().message(M, 'Nouveautés de QM27 : stade et carrière', `Club › Stade : agrandis le stade, améliore boutique, buvettes, tribunes et centre de formation, qui accueille des jeunes chaque été. Plus › Carrière : offres d'autres clubs, démission et, à partir d'une réputation de ${K.repSelection}, le poste de sélectionneur pendant le Tournoi des Six Emblèmes. Plus › Sauvegardes : la partie se retrouve sur un autre appareil.`, 'club'); }
 }
 Object.assign(QMC, {
+  bilanSelection,
   initMonde(M, r){ base.initMonde(M, r); M.tic = 0; },
   semaine(M, S){
     base.semaine(M, S);

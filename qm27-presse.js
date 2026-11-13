@@ -1,4 +1,4 @@
-// mon-ecran-version: 38988926
+// mon-ecran-version: 89e4e7fe
 /* QM27 (v94) — conférences de presse, sans affichage. Expose window.QMP. Chargé après qm27-vestiaire.js.
    Après chaque match : 1 à 3 questions (réglage), posées par des médias différents et tirées selon le contexte
    (résultat, vif d'or, joueurs du match, blessures, série, classement, objectif, mercato, vestiaire, supporters, finances,
@@ -237,12 +237,12 @@ const SUJETS = {
     ['calme', 'Les joueurs ne pensent qu\'au terrain.', {eq:1}],
     ['franc', 'Il faudra peut-être vendre, oui.', {eq:-3, conf:2}],
     ['drole', 'Demandez aux gobelins de Gringotts.', {pr:2, conf:-1}]]},
-  appeles:{w:x => x.appeles >= 2 ? 2 : 0, m:'souaffle', q:['{n2} de vos joueurs sont appelés pour le {tournoi}. Une fierté ou un problème ?'],
+  appeles:{w:x => x.appeles >= 2 ? 2 : 0, m:'souaffle', q:['{n2} de vos joueurs sont appelés en sélection. Une fierté ou un problème ?'],
     r:[
     ['elogieux', 'Une fierté. Ils le méritent.', {eq:2, pr:1}],
     ['franc', 'Un problème : on jouera sans eux en championnat.', {pr:1, conf:1}],
     ['drole', 'J\'espère surtout qu\'ils reviendront entiers.', {pr:2}]]},
-  selection:{w:x => x.sixn ? 6 : 0, m:'souaffle', q:['Tout le pays rêve du {tournoi}. Est-ce un objectif réaliste ?', 'Sélectionner, c\'est choisir. Avez-vous des regrets sur votre liste ?'],
+  selection:{w:x => x.sixn ? 6 : 0, m:'souaffle', q:['Tout le pays rêve de la {tournoi}. Est-ce un objectif réaliste ?', 'Sélectionner, c\'est choisir. Avez-vous des regrets sur votre liste ?'],
     r:[
     ['ambitieux', 'Oui. Nous avons les joueurs pour aller au bout.', {eq:2, rep:0.3, pr:1}],
     ['humble', 'D\'autres nations sont mieux armées. Nous jouerons crânement.', {eq:1, pr:1}],
@@ -292,7 +292,7 @@ function contexte(M, X){
   const S = Q().semaine(M), x = {M, X, U, mg, moi, d, notes, res:Math.sign(d), vifMoi, vifAdv, sixn:!!X.sixn, domicile:moi === 0 && X.domicile, meteo:X.meteo,
     meteoNom:((D.METEOS[X.meteo] || {}).nom || '').toLowerCase(), adv:X.e[adv].nom, c:X.e[moi].nom, sc:`${X.score[moi]}–${X.score[adv]}`,
     top:mes[0], flop:mes.length > 1 ? mes[mes.length - 1] : null, topAdv:siens[0], fautes:X.stats[moi].fautes, penAdv:X.stats[adv].pen,
-    tournoi:D.TOURNOI.nom, confiance:mg ? mg.confiance : 60};
+    tournoi:D.LDN.nom, confiance:mg ? mg.confiance : 60};   // v106 : la Ligue des nations remplace le Tournoi des Six Emblèmes
   x.vifPerdu = d < 0 && vifAdv && X.score[moi] > X.score[adv] - EQ.points.vif;
   x.arrache = d > 0 && vifMoi && X.score[moi] - EQ.points.vif <= X.score[adv] - 30;   // mené d'au moins trois buts avant le vif d'or
   x.ecartButs = (X.stats[moi].buts - X.stats[adv].buts) * 10;

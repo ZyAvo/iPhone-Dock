@@ -1,4 +1,4 @@
-// mon-ecran-version: 6dedc112
+// mon-ecran-version: 77b92fc1
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -45,7 +45,7 @@ const regler = () => LS.ecrire(K_REG, REG);
 /* ---------- Petits outils d'affichage ---------- */
 const fmtDate = (t, long) => new Date(t).toLocaleDateString('fr-FR', long ? {weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'UTC'} : {weekday:'short', day:'numeric', month:'short', timeZone:'UTC'});
 const lab = an => `${an}-${String(an + 1).slice(2)}`;
-const club = id => M.clubs[id];
+const club = id => M.clubs[id] || (M.reserve && M.reserve[id]) || {id, nom:id, ville:'', nat:'ENG', rep:50, couleurs:['#445', '#ddd'], sigle:String(id).slice(0, 3).toUpperCase(), effectif:[], ligue:null};   // v106 : club sorti du jeu
 const nat = id => D.NATIONS[id];
 const V = window.QMV;   // v87 : graphismes (qm27-visuel.js)
 /* avatar d'un joueur, d'un membre du staff ou du manager, aux couleurs de son club */
@@ -287,15 +287,15 @@ function vueAccueil(){
     const h = M.histo[M.histo.length - 1] || {}, pos = h.manager ? h.manager.pos : '?';
     prochain = `<div class="carte" style="border-color:var(--or)"><h2>Fin de la saison ${lab(M.saison)}</h2>
       <p style="margin:0 0 6px"><b>${esc(c.nom)} termine ${pos}${pos === 1 ? 'er' : 'e'}</b> (objectif : ${esc(mg.objectif.txt.toLowerCase())}).</p>
-      <p class="sous" style="margin:0 0 4px">Champions : ${Object.values(M.ligues).map(L => esc(club(h.champions[L.id]).nom)).join(' · ')}</p>
-      <p class="sous" style="margin:0 0 12px">Six Emblèmes : ${flag(h.sixn)} ${esc(nat(h.sixn).nom)}</p>
+      <p class="sous" style="margin:0 0 4px">Champions : ${Object.values(h.champions || {}).map(id => esc(club(id).nom)).join(' · ')}</p>
+      ${h.sixn ? `<p class="sous" style="margin:0 0 12px">Six Emblèmes : ${flag(h.sixn)} ${esc(nat(h.sixn).nom)}</p>` : ''}${h.ldn ? `<p class="sous" style="margin:0 0 12px">${esc(D.LDN.nom)} : ${flag(h.ldn)} ${esc(nat(h.ldn).nom)}</p>` : ''}
       <button class="btn or plein" data-act="saisonSuivante">Lancer la saison ${lab(M.saison + 1)}</button></div>`;
   } else {
     const m = QM.matchDuJoueur(M);
     if (m){
       const sx = m.ligue === 'sixn', moiId = sx ? mg.selection.nat : mg.club;
       const eu = m.ligue === 'eu', QE = window.QME;   // v104 : Ligue des Anneaux
-      const comp = sx ? `${D.TOURNOI.court} · tour ${S.tour} · avec ${nat(moiId).nom}` : eu ? `${QE.NOM} · ${QE.nomTour(m)}${m.neutre ? ' · terrain neutre' : ''}` : `${M.ligues[m.ligue].court} · Journée ${S.journee}${S.tour ? ' · ' + D.TOURNOI.court + ', tour ' + S.tour : ''}`;
+      const comp = sx ? `${m.comp && window.QMN ? window.QMN.titreMatch(m) : `${D.TOURNOI.court} · tour ${S.tour}`} · avec ${nat(moiId).nom}` : eu ? `${QE.NOM} · ${QE.nomTour(m)}${m.neutre ? ' · terrain neutre' : ''}` : `${M.ligues[m.ligue].court} · Journée ${S.journee}${S.tour ? ' · ' + D.TOURNOI.court + ', tour ' + S.tour : ''}`;
       const abs = !sx && S.tour ? QM.convoques(M, mg.club).map(id => M.joueurs[id]) : [], reste = QM.matchsDuJoueur(M).filter(x => !x.res).length;
       const adv = m.dom === moiId ? m.ext : m.dom, lg = id => sx ? 'sixn' : club(id).ligue, T = {[m.dom]:M.tables[lg(m.dom)][m.dom], [m.ext]:M.tables[lg(m.ext)][m.ext]};
       const rang = id => QM.classement(M, lg(id)).findIndex(r => r.id === id) + 1, forme = id => (T[id].forme || []).map(f => `<span class="vnd ${f}">${f}</span>`).join('');
@@ -311,9 +311,9 @@ function vueAccueil(){
         <div class="btns">${sx ? '<button class="btn sec" data-act="vue" data-v="selection">Convocations</button>' : ''}<button class="btn" data-act="preparer">Préparer le match</button></div>
         ${sx ? '' : `<p class="petit mut" style="margin:8px 0 0;text-align:center">Adversaire : ${etoiles(club(adv).rep)}${B.a(c, 'boule') ? ` · météo prévue : ${D.METEOS[QM.meteoPrevue(M, m, S)].ico} ${esc(D.METEOS[QM.meteoPrevue(M, m, S)].nom)}` : ''}</p>`}</div>`;
     } else {
-      const titre = S.type === 'sixn' ? `${D.TOURNOI.court} · tour ${S.tour}` : S.type === 'prepa' ? `Préparation · semaine ${S.semaine}` : S.type === 'europe' && window.QME ? `Finale de la ${window.QME.NOM}` : 'Semaine sans match';
+      const titre = S.type === 'sixn' ? (S.comp && window.QMN ? window.QMN.titreSemaine(S) : `${D.TOURNOI.court} · tour ${S.tour}`) : S.type === 'prepa' ? `Préparation · semaine ${S.semaine}` : S.type === 'europe' && window.QME ? `Finale de la ${window.QME.NOM}` : 'Semaine sans match';
       prochain = `<div class="carte"><h2>${titre} <span class="mut">${fmtDate(S.date)}</span></h2>
-        ${S.type === 'sixn' ? `<p class="sous" style="margin:0 0 8px">Les ligues font une pause. Sélections gérées par les fédérations.</p><div class="liste">${S.matchs.map(x => `<div class="el">${blason(x.dom, 'p', 1)}<div class="t"><b>${esc(nat(x.dom).nom)} – ${esc(nat(x.ext).nom)}</b></div>${blason(x.ext, 'p', 1)}</div>`).join('')}</div>` : ''}
+        ${S.type === 'sixn' ? `<p class="sous" style="margin:0 0 8px">${S.comp ? 'Les championnats font une pause : ' + (S.comp === 'ami' ? 'matchs amicaux, adversaires tirés au sort.' : 'les sélections jouent la ' + esc(D.LDN.nom) + '.') : 'Les ligues font une pause.'} Sélections gérées par les fédérations.</p><div class="liste">${S.matchs.map(x => `<div class="el">${blason(x.dom, 'p', 1)}<div class="t"><b>${esc(nat(x.dom).nom)} – ${esc(nat(x.ext).nom)}</b></div>${blason(x.ext, 'p', 1)}</div>`).join('')}</div>` : ''}
         ${S.type === 'prepa' ? `<p class="sous" style="margin:0 0 4px">Pas de match : on s'entraîne et le mercato d'été est ouvert jusqu'à la première journée.</p>` : ''}
         ${S.type === 'europe' ? `<p class="sous" style="margin:0 0 8px">Le championnat est fini. En terrain neutre :</p><div class="liste">${S.matchs.map(x => `<div class="el">${blason(x.dom, 'p')}<div class="t"><b>${esc(club(x.dom).nom)} – ${esc(club(x.ext).nom)}</b></div>${blason(x.ext, 'p')}</div>`).join('')}</div>` : ''}
         <div class="btns" style="margin-top:10px">${C.mercatoOuvert(S) ? '<button class="btn sec" data-act="vue" data-v="mercato">Mercato</button>' : ''}<button class="btn" data-act="continuer">Continuer</button></div></div>`;
@@ -354,9 +354,10 @@ function tableHTML(rows, ligue, compact, deb = 0){
 }
 function vueClassements(){
   const l = U.ligue || club(M.manager.club).ligue;
-  const tabs = [...Object.values(M.ligues).map(x => [x.id, x.court]), ['sixn', 'Six Emblèmes']];
+  const court = t => { const x = String(t).replace(/^Ligue /, ''); return x[0].toUpperCase() + x.slice(1); };   // v106 : « Ligue scandinave » → « Scandinave »
+  const tabs = [...Object.values(M.ligues).map(x => [x.id, court(x.court)]), ['sixn', M.calendrier.some(s => s.tour) ? 'Six Emblèmes' : 'Sélections']];
   VUE.innerHTML = `<div><h1 class="grand">Classements</h1><p class="sous">Saison ${lab(M.saison)} · victoire ${E.points.victoire} pts, nul ${E.points.nul} pt</p></div>
-  <div class="seg" role="tablist">${tabs.map(([k, n]) => `<button role="tab" data-act="ligue" data-l="${k}" class="${k === l ? 'on' : ''}">${esc(n)}</button>`).join('')}</div>
+  <div class="seg defile" role="tablist">${tabs.map(([k, n]) => `<button role="tab" data-act="ligue" data-l="${k}" class="${k === l ? 'on' : ''}">${esc(n)}</button>`).join('')}</div>
   <div class="carte">${tableHTML(QM.classement(M, l), l, false)}</div>
   <p class="petit mut">Départage : points, différence de points marqués et encaissés, points marqués, vifs d'or attrapés.</p>`;
 }
@@ -416,7 +417,7 @@ function carriereHTML(j){
   const typeT = {transfert:'Transfert', libre:'Arrivée libre', libere:'Fin de contrat', pret:'Prêt', retour:'Retour de prêt'};
   const tot = L.reduce((a, x) => [a[0] + x[2], a[1] + x[ix]], [0, 0]);
   const R_ = window.QMR, palm = R_ && j.prix && j.prix.length ? R_.palmaresHTML(j.prix, esc) : '';   // v103 : palmarès
-  return `<details class="carte fj-carriere"><summary><h2 style="display:inline">Carrière</h2> <span class="mut petit">${L.length} saison${L.length > 1 ? 's' : ''} · ${tot[0]} matchs · ${tot[1]} ${nomS}${j.sel ? ` · ${j.sel} sélection${j.sel > 1 ? 's' : ''}` : ''}${j.prix && j.prix.length ? ` · ${j.prix.length} distinction${j.prix.length > 1 ? 's' : ''}` : ''}</span></summary>
+  return `<details class="carte fj-carriere"><summary><h2 style="display:inline">Carrière</h2> <span class="mut petit">${L.length} saison${L.length > 1 ? 's' : ''} · ${tot[0]} matchs · ${tot[1]} ${nomS}${j.sel ? ` · ${j.sel} sélection${j.sel > 1 ? 's' : ''}${j.selB ? ` (${j.selB} but${j.selB > 1 ? 's' : ''})` : ''}` : ''}${j.prix && j.prix.length ? ` · ${j.prix.length} distinction${j.prix.length > 1 ? 's' : ''}` : ''}</span></summary>
     ${palm ? `<h4 class="sous-t">Palmarès et prix</h4>${palm}` : ''}
     <div class="tab-carr" role="table"><div class="tc-l tc-h" role="row"><span>Saison</span><span>Club</span><span>MJ</span><span>${nomS[0].toUpperCase() + nomS.slice(1)}</span><span>Moy.</span></div>
     ${L.map((x, i) => `<div class="tc-l" role="row"><span>${lab(x[0])}${i ? '' : ' <i class="mut">en cours</i>'}</span><span class="tc-c">${x[1] && M.clubs[x[1]] ? blason(x[1], 'p') : ''}${esc(villeC(x[1]))}</span><span>${x[2]}</span><span>${x[ix]}</span><span>${x[7] ? (x[7] / 10).toFixed(1).replace('.', ',') : '—'}</span></div>`).join('')}</div>
@@ -761,10 +762,10 @@ function ficheSemaine(k){
   const s = M.calendrier[k], mg = M.manager, l = mg.club ? club(mg.club).ligue : null;
   const ligne = (m, sixn) => `<div class="el">${blason(m.dom, 'p', sixn)}<div class="t"><b>${esc(nomEq(m.dom, sixn))} – ${esc(nomEq(m.ext, sixn))}</b><span>${m.res ? `${m.res.duree} min${m.res.vif >= 0 ? ' · vif d\'or : ' + esc(nomEq(m.res.vif ? m.ext : m.dom, sixn)) : ''}` : 'à venir'}</span></div><b>${m.res ? m.res.score.join('–') : ''}</b>${blason(m.ext, 'p', sixn)}</div>`;
   const Ls = s.matchs.filter(m => m.ligue === 'sixn'), Lc = s.matchs.filter(m => m.ligue !== 'sixn' && m.ligue !== 'eu' && (!l || m.ligue === l)), Le = s.matchs.filter(m => m.ligue === 'eu'), QE = window.QME;
-  const titre = s.type === 'sixn' ? `${D.TOURNOI.court} · tour ${s.tour}` : s.type === 'europe' && QE ? `Finale de la ${QE.NOM}` : `Journée ${s.journee}${s.tour ? ' · ' + D.TOURNOI.court + ' (tour ' + s.tour + ')' : ''}`;
+  const titre = s.type === 'sixn' ? (s.comp && window.QMN ? window.QMN.titreSemaine(s) : `${D.TOURNOI.court} · tour ${s.tour}`) : s.type === 'europe' && QE ? `Finale de la ${QE.NOM}` : `Journée ${s.journee}${s.tour ? ' · ' + D.TOURNOI.court + ' (tour ' + s.tour + ')' : ''}`;
   feuille(`${teteF(titre, fmtDate(s.date, true))}
   ${Lc.length ? `${l ? `<h4 class="sous-t">${esc(M.ligues[l].nom)}</h4>` : ''}<div class="liste">${Lc.map(m => ligne(m, false)).join('')}</div>` : ''}
-  ${Ls.length ? `<h4 class="sous-t">${esc(D.TOURNOI.nom)}</h4><div class="liste">${Ls.map(m => ligne(m, true)).join('')}</div>` : ''}
+  ${Ls.length ? `<h4 class="sous-t">${esc(s.comp === 'ldn' ? D.LDN.nom : s.comp === 'ami' ? D.AMICAUX.nom : D.TOURNOI.nom)}</h4><div class="liste">${Ls.map(m => ligne(m, true)).join('')}</div>` : ''}
   ${Le.length && QE ? `<h4 class="sous-t">${esc(QE.NOM)} · ${fmtDate(Le[0].date || s.date)}</h4><div class="liste">${Le.map(m => ligne(m, false).replace('<span>', `<span>${esc(QE.nomTour(m))} · `)).join('')}</div>` : ''}`);
 }
 
@@ -805,7 +806,7 @@ function vueAide(){
     <p><b>Recrutement.</b> Les attributs des joueurs des autres clubs s'affichent en fourchettes tant que ton recruteur ne les connaît pas bien : suis-les, affronte leur équipe. Les offres partent par hibou et la réponse arrive la semaine suivante (contre-offres dans Mercato › Offres ; un autre club peut doubler). Clauses : pourcentage à la revente, clause libératoire, prime au vif d'or. Prêts jusqu'à la fin de la saison, avec ou sans option d'achat.</p>
     <p><b>Le président.</b> En début de saison, une réunion fixe l'objectif, la philosophie (jeunes, joueurs du pays, spectacle, comptes, vedette), l'enveloppe des transferts et la limite de la masse salariale. Tu peux viser plus haut, déplacer de l'argent entre transferts et salaires et demander un effort : trois propositions refusées et il impose son plan. Il juge chaque résultat selon la force de l'adversaire, et chaque engagement en fin de saison (confiance +5 ou −5).</p>
     <p><b>Entraînement.</b> Club › Zone technique › Entraînement : cinq séances par semaine (physique, vol, balle, tactique, mise en place, récupération), une intensité et un atelier par poste. Ton adjoint prépare tout par défaut (foncier puis pré-saison en août, récupération quand les titulaires sont fatigués) ; tu peux reprendre la main sur une semaine ou fixer ta semaine type. Le travail physique rend bien plus en août. Après le pic d'âge, le physique décline.</p>
-    <p><b>Le calendrier.</b> Préparation et mercato d'été en août, championnat de septembre à avril, trêve des fêtes, mercato d'hiver en janvier. Le ${D.TOURNOI.nom} se joue en février et mars <i>pendant</i> le championnat : les joueurs convoqués par leur sélection (✈︎) manquent le match de leur club ce week-end-là. Plus › Calendrier : vue par mois et vue de la saison.</p>
+    <p><b>Le calendrier.</b> Préparation et mercato d'été en août, championnat de septembre à avril, trêve des fêtes, mercato d'hiver en janvier. Trois trêves internationales (octobre, novembre, mars) : les championnats s'arrêtent une semaine et les sélections jouent un match amical contre une adversaire tirée au sort. L'été, une saison sur deux, la ${D.LDN.nom} réunit les 19 sélections : groupes, puis quarts, demies et finale ; les autres étés, une trêve en juin. Les clubs ne s'entraînent pas pendant ces semaines. Plus › Calendrier : vue par mois et vue de la saison.</p>
     <p><b>Ton profil.</b> Plus › Mon profil : apparence, âge, nationalité et huit attributs de manager (tactique, motivation, gestion humaine, jeunes, préparation physique, évaluation des talents, négociation, détermination). Répartis tes points avant ton premier match ; ensuite ils progressent en fin de saison selon ce que tu as fait. Le président te propose un contrat, prolongé si sa confiance tient.</p>
     <p><b>Clubs et records.</b> Plus › Clubs et joueurs : tous les effectifs (notes estimées), missions du recruteur sur un club ou une ligue. Salle des trophées : vitrine, records du club et du championnat (avec quelques records anciens à battre), palmarès.</p>
     <p><b>Mercato.</b> Ouvert pendant la préparation d'août et en janvier. Les agents libres signent à tout moment. Un club demande au moins la valeur du joueur (plus s'il est titulaire), le joueur un salaire selon son niveau, son ambition et la réputation de ton club. Mets des joueurs en vente pour recevoir des offres.</p>
@@ -942,7 +943,7 @@ function ficheFiltres(){
       <label><span>Valeur maximum</span>${sel('valMax', [[0, 'Toutes'], ...[250000, 500000, 1000000, 2000000, 5000000].map(v => [v, eurT(v).replace(/ G$/, ' Gallions')])], MERC.valMax)}</label>
       <label><span>Salaire actuel maximum</span>${sel('salMax', [[0, 'Tous'], ...[2000, 5000, 10000, 20000].map(v => [v, eurT(v).replace(/ G$/, ' Gallions') + ' / sem.'])], MERC.salMax)}</label>
       <label><span>Note estimée minimum</span>${sel('noteMin', [[0, 'Toutes'], [40, '40'], [50, '50'], [55, '55'], [60, '60'], [65, '65'], [70, '70']], MERC.noteMin)}</label>
-      <label><span>Nationalité</span>${sel('nat', [['', 'Toutes'], ...D.SIX_NATIONS.map(n => [n, nat(n).nom])], MERC.nat)}</label>
+      <label><span>Nationalité</span>${sel('nat', [['', 'Toutes'], ...D.SELECTIONS.map(n => [n, nat(n).nom]).sort((a, b) => a[1].localeCompare(b[1], 'fr'))], MERC.nat)}</label>
       <label><span>Caractéristique</span>${sel('attr', [['', 'Aucune'], ...D.ATTRS.map(a => [a[0], a[1]])], MERC.attr)}</label>
       <label><span>Au moins</span>${sel('attrMin', [8, 10, 12, 13, 14, 15, 16, 17, 18].map(x => [x, x + ' / 20']), MERC.attrMin)}</label>
     </div>
@@ -1258,7 +1259,7 @@ function vueChomage(){
   <div class="carte"><h2>Offres</h2>${oc.length ? oc.map(o => { const c = club(o.club), o2 = QM.objectif(M, o.club);
     return `<div class="el">${blason(c.id)}<div class="t"><b>${esc(c.nom)}</b><span>${esc(M.ligues[c.ligue].court)} · réputation ${c.rep} · ${esc(o2.txt.toLowerCase())}</span></div></div>
       <div class="btns" style="margin:4px 0 10px"><button class="btn sec" data-act="refuserPoste" data-c="${c.id}">Refuser</button><button class="btn" data-act="accepterPoste" data-c="${c.id}">Accepter</button></div>`; }).join('') : '<p class="mut" style="margin:0">Pas encore d\'offre. Avance le temps : les clubs à la recherche d\'un entraîneur se manifestent.</p>'}</div>
-  ${mg.selection && S && (S.type === 'sixn' || S.tour) && QM.matchDuJoueur(M) && !QM.matchDuJoueur(M).res ? '<div class="carte"><h2>Six Emblèmes</h2><p class="sous" style="margin:0 0 8px">Tu restes sélectionneur.</p><button class="btn plein" data-act="preparer">Préparer le match de la sélection</button></div>' : ''}
+  ${mg.selection && S && (S.type === 'sixn' || S.tour) && QM.matchDuJoueur(M) && !QM.matchDuJoueur(M).res ? `<div class="carte"><h2>${S.comp && window.QMN ? esc(window.QMN.titreSemaine(S)) : 'Six Emblèmes'}</h2><p class="sous" style="margin:0 0 8px">Tu restes sélectionneur.</p><button class="btn plein" data-act="preparer">Préparer le match de la sélection</button></div>` : ''}
   ${S && S.type === 'bilan' ? '<button class="btn or plein" data-act="saisonSuivante">Passer à la saison suivante</button>' : `<button class="btn plein" data-act="continuer">Avancer d'une semaine${S ? ' (' + fmtDate(S.date) + ')' : ''}</button>`}
   <div class="carte"><h2>Boîte de réception</h2>${M.boite.slice(0, 5).map(msgHTML).join('')}</div>`;
 }
@@ -1282,14 +1283,14 @@ function vueCarriere(){
 function vueSelection(){
   const sel = M.manager.selection, n = sel.nat, T = M.sel.tactique, ctx = ctxCompo();
   U.fitMap = TT() ? TT().adequationCompo(M, ctx.K, QM.completerTactique({...T})) : null;
-  avecPanneau(() => { VUE.innerHTML = `<div><h1 class="grand">${flag(n)} ${esc(nat(n).nom)}</h1><p class="sous">Sélection · objectif : top ${sel.objectif} du Tournoi des Six Emblèmes${M.sel.perso ? '' : ' · convocation automatique'}</p></div>
+  avecPanneau(() => { VUE.innerHTML = `<div><h1 class="grand">${flag(n)} ${esc(nat(n).nom)}</h1><p class="sous">Sélection · ${M.calendrier.some(s => s.tour) ? `objectif : top ${sel.objectif} du Tournoi des Six Emblèmes` : `${esc(D.LDN.nom)} : ${esc(({2:'atteindre la finale', 4:'atteindre les demi-finales', 8:'sortir des groupes', 19:'faire bonne figure'})[sel.vise] || 'faire bonne figure')}`}${M.sel.perso ? '' : ' · convocation automatique'}</p></div>
   ${compoHTML(ctx)}
   <div class="carte"><h2>Consignes</h2>${consignesHTML(T, 'consigneSel')}</div>`; });
 }
 function choisirSel(p, i, banc){
   const n = M.manager.selection.nat, conv = C.convocation(M).compo;
   const L = Object.values(M.joueurs).filter(j => j.nat === n && j.club && !j.acad).sort((a, b) => QM.note(b, banc ? b.poste : p) - QM.note(a, banc ? a.poste : p)).slice(0, 40);
-  feuille(`${teteF(banc ? 'Remplaçant' : D.POSTES[p].nom, `Joueurs ${esc(nat(n).nom === 'Angleterre' ? 'anglais' : 'de ' + nat(n).nom)} · note au poste`)}
+  feuille(`${teteF(banc ? 'Remplaçant' : D.POSTES[p].nom, `Sélectionnables : ${esc(nat(n).nom)} · note au poste`)}
     <div class="liste">${L.map(j => `<button class="el" data-act="mettreSel" data-j="${j.id}" data-p="${p}" data-i="${i}" data-b="${banc ? 1 : 0}" ${j.bless ? 'disabled style="opacity:.5"' : ''}>${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}${QM.titulaires(conv).includes(j.id) ? ' <span class="badge tit">titulaire</span>' : conv.banc.includes(j.id) ? ' <span class="badge">remplaçant</span>' : ''}</b><span>${esc(club(j.club).nom)}${j.bless ? ' · ✚ blessé' : ''}</span></div><span class="note ${classeNote(QM.note(j, banc ? j.poste : p))}">${QM.note(j, banc ? j.poste : p)}</span></button>`).join('')}</div>`);
 }
 function mettreSel(jid, p, i, banc){
@@ -1742,7 +1743,7 @@ const ACT = {
   ouvrirSync:async () => { const v = ($('#codeSync') || {}).value || ''; try{ const r = await Synchro.ouvrirAvecCode(v); if (!r) toast(r === false ? 'Code incorrect' : 'Synchronisation introuvable'); }catch(e){ toast(msgSync(e)); } NUAGE.infos = null; rendreNuage(); },
   envoyerNuage:async d => { try{ await sauver(); await envoyerNuage(+d.n, false); NUAGE.infos = null; }catch(e){ toast(msgSync(e)); } rendreNuage(); },
   recupererNuage:async d => { if (!confirm(`Remplacer l'emplacement ${d.n} de cet appareil par la partie en ligne ?`)) return; try{ await recupererNuage(+d.n); U.vue = 'accueil'; rendre(); scrollTo(0, 0); }catch(e){ toast(msgSync(e)); } },
-  continuer:() => { const S = QM.semaine(M); QM.terminerSemaine(M, null); sauver(); rendre(); scrollTo(0, 0); toast(S.type === 'sixn' ? `${D.TOURNOI.court} · tour ${S.tour} joué` : S.type === 'prepa' ? `Préparation · semaine ${S.semaine} terminée` : 'Semaine passée'); },
+  continuer:() => { const S = QM.semaine(M); QM.terminerSemaine(M, null); sauver(); rendre(); scrollTo(0, 0); toast(S.type === 'sixn' ? (S.comp && window.QMN ? `${window.QMN.titreSemaine(S)} : joué` : `${D.TOURNOI.court} · tour ${S.tour} joué`) : S.type === 'prepa' ? `Préparation · semaine ${S.semaine} terminée` : 'Semaine passée'); },
   saisonSuivante:() => { QM.saisonSuivante(M); M.dernierMatch = null; sauver(); rendre(); scrollTo(0, 0); toast(`Saison ${lab(M.saison)} lancée`); },
 };
 document.addEventListener('click', e => {

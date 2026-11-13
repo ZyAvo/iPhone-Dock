@@ -1,4 +1,4 @@
-// mon-ecran-version: c770a1f7
+// mon-ecran-version: 8f090b70
 // QM27 : vérifie l'équilibrage du moteur. Usage : node outils/dev/qm27-essai.mjs [nb de matchs] [nb de saisons]
 // Joue des matchs et des saisons complètes sans affichage, puis compare les moyennes aux cibles du GDD
 // (buts par équipe, durée, part des matchs décidés par le vif d'or, blessures, avantage du terrain).
@@ -8,7 +8,7 @@ import vm from 'node:vm';
 const ctx = {console, Date, Math, JSON};
 ctx.globalThis = ctx;
 vm.createContext(ctx);
-for (const f of ['qm27-donnees.js', 'qm27.js', 'qm27-club.js', 'qm27-carriere.js', 'qm27-domaine.js', 'qm27-vestiaire.js', 'qm27-presse.js', 'qm27-tactique.js', 'qm27-bureau.js', 'qm27-prix.js', 'qm27-europe.js']) vm.runInContext(readFileSync(new URL('../../' + f, import.meta.url), 'utf8'), ctx, {filename:f});
+for (const f of ['qm27-donnees.js', 'qm27.js', 'qm27-club.js', 'qm27-carriere.js', 'qm27-domaine.js', 'qm27-vestiaire.js', 'qm27-presse.js', 'qm27-tactique.js', 'qm27-bureau.js', 'qm27-prix.js', 'qm27-europe.js', 'qm27-nations.js']) vm.runInContext(readFileSync(new URL('../../' + f, import.meta.url), 'utf8'), ctx, {filename:f});
 const QM = ctx.QM, D = ctx.QMD, QMC = ctx.QMC;
 
 const nbMatchs = +(process.argv[2] || 1000), nbSaisons = +(process.argv[3] || 2);
@@ -48,7 +48,7 @@ console.log(`   blessures par match: ${(bless / R.length).toFixed(2)}`);
 
 /* saisons complètes (v84 : entraînement, finances, mercato) */
 const W = QM.nouveauMonde(1000);
-QM.choisirClub(W, 'carcassonne', 'Essai');
+QM.choisirClub(W, 'toledo', 'Essai');   // v106 : Carcassonne est en réserve
 const note = id => QM.note20(W.joueurs[id], W.joueurs[id].poste);
 const photo = () => Object.fromEntries(Object.values(W.joueurs).filter(j => j.club).map(j => [j.id, {club:j.club, n:QM.note20(j, j.poste), age:j.age}]));
 const budget0 = Object.fromEntries(Object.values(W.clubs).map(c => [c.id, c.budget]));
@@ -65,8 +65,9 @@ for (let i = 0; i < nbSaisons; i++){
     const f = r => `${W.clubs[r.id].nom} (rép. ${W.clubs[r.id].rep}) ${r.pts} pts`;
     console.log(`  ${L.court.padEnd(10)} 1. ${f(C[0])} · 2. ${f(C[1])} · 16. ${f(C[C.length - 1])}`);
   }
-  const SN = QM.classement(W, 'sixn');
-  console.log(`  Six Nations : ${SN.map(r => `${D.NATIONS[r.id].nom} ${r.pts}`).join(', ')}`);
+  const SN = QM.classement(W, 'sixn'), E = ctx.QMN.etat(W);   // v106 : bilan des 19 sélections, Ligue des nations un été sur deux
+  console.log(`  Sélections (${SN[0].j} à ${Math.max(...SN.map(r => r.j))} matchs) : ${SN.slice(0, 6).map(r => `${D.NATIONS[r.id].nom} ${r.pts}`).join(', ')}…`);
+  if (E.ldn) console.log(`  Ligue des nations : ${E.groupes.map(([g, T]) => g + ' ' + T.map(x => D.NATIONS[x.id].court + ' ' + x.pts).join('/')).join(' · ')} → vainqueur ${D.NATIONS[E.ldn.vainqueur] ? D.NATIONS[E.ldn.vainqueur].nom : '?'} (finale contre ${E.ldn.finaliste})`);
   /* progression par tranche d'âge (joueurs restés en club toute la saison) */
   const ap = photo(), T = {};
   for (const [id, a] of Object.entries(avant)){ const b = ap[id]; if (!b) continue; const k = a.age <= 21 ? '≤ 21 ans' : a.age <= 25 ? '22-25' : a.age <= 29 ? '26-29' : a.age <= 32 ? '30-32' : '33 +'; (T[k] = T[k] || []).push((b.n - a.n) * 5); }

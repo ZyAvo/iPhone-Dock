@@ -1,4 +1,4 @@
-// mon-ecran-version: 59da93f4
+// mon-ecran-version: 8d7ea84b
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -24,7 +24,7 @@ const euros = x => {
   if (m) return `${s}${m} M${no ? ' ' + no + ' N' : ''}`;
   return `${s}${no} N`;
 };
-const club = (M, id) => M.clubs[id];
+const club = (M, id) => M.clubs[id] || (M.reserve && M.reserve[id]);   // v106 : club sorti du jeu (palmarès)
 const estJoueur = (M, id) => !!id && !!M.manager && M.manager.club === id;
 const aClub = M => !!(M.manager && M.manager.club);
 
@@ -79,7 +79,7 @@ const numLibre = (M, c) => { const pris = new Set(c.effectif.map(id => (M.joueur
 function contrat(M, r, j, c, ans){ j.contrat = {fin:M.saison + (ans ?? r.ent(0, 3)), sal:arrondi(salaireDemande(j, c) * (0.9 + r() * 0.15), 50)}; }
 function nouveauJoueur(M, j, c){ const r = Q().hasard(Q().melange(M.graine, j.id)); contrat(M, r, j, c, r.ent(1, 3)); }
 function creerLibre(M, r){
-  const poste = r.pondere([['P', 40], ['B', 25], ['A', 15], ['G', 20]]), nat = r.pondere([['ENG', 26], ['FRA', 22], ['ITA', 22], ['SCO', 10], ['WAL', 10], ['IRL', 10]]);
+  const poste = r.pondere([['P', 40], ['B', 25], ['A', 15], ['G', 20]]), nat = r.pondere(D.SELECTIONS.map(n => [n, 1 + D.CLUBS.filter(c => c[3] === n && c[4] !== 'reserve').length]));   // v106 : toutes les nations, au prorata des clubs
   const j = Q().creerJoueur(r, nat, poste, EQ.niveauMin - 0.9 + r() * 2.8, r.ent(22, 33), 'j' + (M.prochainId++));
   j.club = null; j.contrat = null; M.joueurs[j.id] = j; M.libres.push(j.id); return j;
 }
@@ -102,6 +102,7 @@ function completerClub(M, r, c){
   c.masseMax = masseMax(c);
   if (c.compo && !c.compo.roles) Q().rolesAuto(M, c.compo, true);
 }
+function nouveauClub(M, r, c){ completerClub(M, r, c); }   // v106 : club ajouté à une partie en cours
 function initMonde(M, r){
   M.libres = M.libres || []; M.offres = M.offres || []; M.transferts = M.transferts || [];
   for (const c of Object.values(M.clubs)) completerClub(M, r, c);
@@ -513,7 +514,7 @@ function potentielEstime(M, j){
   return Math.round(borne(vrai + bruit, 1, 5));
 }
 
-root.QMC = {noterCarriere, niv, multInst, entretienInst, compter, finVide, creerStaff, numLibre, transfert, libererJoueur, reparerCompo, progression, completerClub, besoin, initMonde, migrer, semaine, avantSaison, apresSaison, nouveauJoueur, dureeBlessure, salaireDemande, valeur, masse, masseMax, prixRef, remplissage, euros,
+root.QMC = {nouveauClub, noterCarriere, niv, multInst, entretienInst, compter, finVide, creerStaff, numLibre, transfert, libererJoueur, reparerCompo, progression, completerClub, besoin, initMonde, migrer, semaine, avantSaison, apresSaison, nouveauJoueur, dureeBlessure, salaireDemande, valeur, masse, masseMax, prixRef, remplissage, euros,
             mercatoOuvert, prochaineFenetre, proposerTransfert, accepterOffre, refuserOffre, mettreEnVente, suivre, liberer, coutLiberation, prolonger, embaucher,
             UNITES_GALLION, acheterBalais, reglerPrix, potentielEstime, prixClub, exigenceJoueur, NOMS_REC, NOMS_DEP, ENT_DEFAUT, revenusSaison};
 })(typeof window !== 'undefined' ? window : globalThis);

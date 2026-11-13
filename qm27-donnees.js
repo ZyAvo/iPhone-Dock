@@ -1,4 +1,4 @@
-// mon-ecran-version: 77f7e436
+// mon-ecran-version: 25c77f0c
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -12,15 +12,37 @@ const NATIONS = {
   IRL:{nom:'Irlande', court:'IRL', drapeau:'🇮🇪'},
   FRA:{nom:'France', court:'FRA', drapeau:'🇫🇷'},
   ITA:{nom:'Italie', court:'ITA', drapeau:'🇮🇹'},
+  /* v106 : treize nations de plus (championnats latin, scandinave et d'Europe centrale) */
+  ESP:{nom:'Espagne', court:'ESP', drapeau:'🇪🇸'},
+  DEN:{nom:'Danemark', court:'DAN', drapeau:'🇩🇰'},
+  SWE:{nom:'Suède', court:'SUÈ', drapeau:'🇸🇪'},
+  NOR:{nom:'Norvège', court:'NOR', drapeau:'🇳🇴'},
+  FIN:{nom:'Finlande', court:'FIN', drapeau:'🇫🇮'},
+  ISL:{nom:'Islande', court:'ISL', drapeau:'🇮🇸'},
+  GER:{nom:'Allemagne', court:'ALL', drapeau:'🇩🇪'},
+  NED:{nom:'Pays-Bas', court:'P-B', drapeau:'🇳🇱'},
+  BEL:{nom:'Belgique', court:'BEL', drapeau:'🇧🇪'},
+  LUX:{nom:'Luxembourg', court:'LUX', drapeau:'🇱🇺'},
+  POL:{nom:'Pologne', court:'POL', drapeau:'🇵🇱'},
+  AUT:{nom:'Autriche', court:'AUT', drapeau:'🇦🇹'},
+  CZE:{nom:'Tchéquie', court:'TCH', drapeau:'🇨🇿'},
 };
-const SIX_NATIONS = ['ENG', 'FRA', 'IRL', 'ITA', 'SCO', 'WAL'];
-const TOURNOI = {nom:'Tournoi des Six Emblèmes', court:'Six Emblèmes'};   // v91 : le tournoi des sélections (se joue pendant le championnat)
+const SIX_NATIONS = ['ENG', 'FRA', 'IRL', 'ITA', 'SCO', 'WAL'];   // les six nations historiques (emblèmes illustrés)
+const SELECTIONS = Object.keys(NATIONS);   // v106 : toutes les sélections (Ligue des nations, amicaux)
+const TOURNOI = {nom:'Tournoi des Six Emblèmes', court:'Six Emblèmes'};   // v91-v105 : l'ancien tournoi des sélections (palmarès des anciennes saisons)
+const LDN = {nom:'Ligue des nations', court:'Ligue des nations', mini:'LDN'};   // v106 : l'été, une saison sur deux (poules puis élimination)
+const AMICAUX = {nom:'Matchs amicaux', court:'Amical', fenetres:'Trêve internationale'};   // v106 : trois ou quatre trêves par saison, adversaires tirés au sort
 
-const LIGUES = [
+const LIGUES = [   // v106 : quatre championnats de 16 clubs (avant : B&I, France, Italie)
   {id:'bi', nom:'Ligue britannique et irlandaise', court:'Ligue B&I'},
-  {id:'fr', nom:'Ligue de France', court:'Ligue FR'},
-  {id:'it', nom:"Ligue d'Italie", court:'Ligue IT'},
+  {id:'la', nom:'Ligue latine', court:'Ligue latine'},
+  {id:'sc', nom:'Ligue scandinave', court:'Ligue scandinave'},
+  {id:'ce', nom:"Ligue d'Europe centrale", court:'Ligue centrale'},
 ];
+const LIGUES_ANCIENNES = {fr:{id:'fr', nom:'Ligue de France', court:'Ligue FR'}, it:{id:'it', nom:"Ligue d'Italie", court:'Ligue IT'}};   // palmarès d'avant v106
+/* v106 : clubs mis de côté (future deuxième division) ; une partie d'avant v106 les sort du jeu à la fin de sa saison */
+const RESERVE = ['nantes', 'lille', 'strasbourg', 'montpellier', 'grenoble', 'poitiers', 'brest', 'reims', 'carcassonne', 'besancon',
+  'bologna', 'genova', 'palermo', 'verona', 'bari', 'trieste', 'perugia', 'bergamo', 'benevento', 'arezzo'];
 
 /* [id, nom, ville, nation, ligue, réputation 1-100, couleur 1, couleur 2, capacité du stade] */
 const CLUBS = [
@@ -40,48 +62,100 @@ const CLUBS = [
   ['galway', 'Galway Banshees', 'Galway', 'IRL', 'bi', 60, '#3a0ca3', '#f7f7f7', 14000],
   ['cork', 'Cork Cloakwings', 'Cork', 'IRL', 'bi', 62, '#9d0208', '#1b1b1e', 15000],
   ['dublin', 'Dublin Druids', 'Dublin', 'IRL', 'bi', 80, '#1b5e20', '#f9d71c', 28000],
-  ['rennes', 'Enchanteurs de Rennes', 'Rennes', 'FRA', 'fr', 64, '#b1001c', '#141414', 16000],
-  ['paris', 'Gargouilles de Paris', 'Paris', 'FRA', 'fr', 85, '#14213d', '#c0c0c8', 32000],
-  ['lyon', 'Mages de Lyon', 'Lyon', 'FRA', 'fr', 78, '#283593', '#e53935', 27000],
-  ['carcassonne', 'Sorcières de Carcassonne', 'Carcassonne', 'FRA', 'fr', 46, '#6a1b4d', '#f2cc8f', 8000],
-  ['nantes', 'Faucons de Nantes', 'Nantes', 'FRA', 'fr', 62, '#f4d35e', '#1f6f50', 17000],
-  ['strasbourg', 'Hiboux de Strasbourg', 'Strasbourg', 'FRA', 'fr', 58, '#1e5aa8', '#f2f2f2', 15000],
-  ['besancon', 'Vouivres de Besançon', 'Besançon', 'FRA', 'fr', 44, '#2e7d32', '#ffd166', 7000],
-  ['brest', 'Korrigans de Brest', 'Brest', 'FRA', 'fr', 50, '#d00000', '#f7f7f2', 9500],
-  ['toulouse', 'Farfadets de Toulouse', 'Toulouse', 'FRA', 'fr', 70, '#5e2b97', '#ffffff', 22000],
-  ['bordeaux', 'Spectres de Bordeaux', 'Bordeaux', 'FRA', 'fr', 66, '#1c1c3c', '#e5e5e5', 19000],
-  ['marseille', 'Sirènes de Marseille', 'Marseille', 'FRA', 'fr', 74, '#00a6d6', '#ffffff', 26000],
-  ['poitiers', 'Mélusines de Poitiers', 'Poitiers', 'FRA', 'fr', 52, '#0b6e4f', '#d4af37', 10000],
-  ['lille', 'Comètes de Lille', 'Lille', 'FRA', 'fr', 60, '#c1121f', '#fdf0d5', 16000],
-  ['montpellier', 'Mandragores de Montpellier', 'Montpellier', 'FRA', 'fr', 56, '#ff6f00', '#1a2a6c', 13000],
-  ['reims', 'Licornes de Reims', 'Reims', 'FRA', 'fr', 48, '#e8e8e8', '#b00020', 9000],
-  ['grenoble', 'Sortilèges de Grenoble', 'Grenoble', 'FRA', 'fr', 54, '#264653', '#e9c46a', 11000],
-  ['benevento', 'Streghe di Benevento', 'Benevento', 'ITA', 'it', 44, '#3c1642', '#e0c3fc', 7000],
-  ['perugia', 'Grifoni di Perugia', 'Perugia', 'ITA', 'it', 48, '#a4161a', '#f5f3f4', 9000],
-  ['venezia', 'Fenici di Venezia', 'Venezia', 'ITA', 'it', 66, '#e85d04', '#03071e', 17000],
-  ['milano', 'Biscioni di Milano', 'Milano', 'ITA', 'it', 84, '#0c3b2e', '#ffba00', 31000],
-  ['torino', 'Talismani di Torino', 'Torino', 'ITA', 'it', 76, '#6a040f', '#f1faee', 25000],
-  ['arezzo', 'Chimere di Arezzo', 'Arezzo', 'ITA', 'it', 42, '#9c6644', '#ede0d4', 6500],
-  ['napoli', 'Sibille di Napoli', 'Napoli', 'ITA', 'it', 72, '#0077b6', '#caf0f8', 24000],
-  ['roma', 'Aruspici di Roma', 'Roma', 'ITA', 'it', 82, '#7b2cbf', '#ffd60a', 30000],
-  ['firenze', 'Astrologi di Firenze', 'Firenze', 'ITA', 'it', 68, '#4a148c', '#b388ff', 19000],
-  ['palermo', 'Gorgoni di Palermo', 'Palermo', 'ITA', 'it', 56, '#f6aa1c', '#941b0c', 13000],
-  ['bologna', 'Folletti di Bologna', 'Bologna', 'ITA', 'it', 62, '#ae2012', '#001219', 16000],
-  ['genova', 'Lanterne di Genova', 'Genova', 'ITA', 'it', 58, '#023e8a', '#ffb703', 15000],
-  ['verona', 'Incantatori di Verona', 'Verona', 'ITA', 'it', 54, '#3a86ff', '#ffbe0b', 12000],
-  ['trieste', 'Spiriti di Trieste', 'Trieste', 'ITA', 'it', 50, '#adb5bd', '#212529', 10000],
-  ['bari', 'Draghi di Bari', 'Bari', 'ITA', 'it', 52, '#d62828', '#003049', 12000],
-  ['bergamo', 'Befane di Bergamo', 'Bergamo', 'ITA', 'it', 46, '#283618', '#dda15e', 8500],
+  ['rennes', 'Enchanteurs de Rennes', 'Rennes', 'FRA', 'la', 64, '#b1001c', '#141414', 16000],
+  ['paris', 'Gargouilles de Paris', 'Paris', 'FRA', 'la', 85, '#14213d', '#c0c0c8', 32000],
+  ['lyon', 'Mages de Lyon', 'Lyon', 'FRA', 'la', 78, '#283593', '#e53935', 27000],
+  ['carcassonne', 'Sorcières de Carcassonne', 'Carcassonne', 'FRA', 'reserve', 46, '#6a1b4d', '#f2cc8f', 8000],
+  ['nantes', 'Faucons de Nantes', 'Nantes', 'FRA', 'reserve', 62, '#f4d35e', '#1f6f50', 17000],
+  ['strasbourg', 'Hiboux de Strasbourg', 'Strasbourg', 'FRA', 'reserve', 58, '#1e5aa8', '#f2f2f2', 15000],
+  ['besancon', 'Vouivres de Besançon', 'Besançon', 'FRA', 'reserve', 44, '#2e7d32', '#ffd166', 7000],
+  ['brest', 'Korrigans de Brest', 'Brest', 'FRA', 'reserve', 50, '#d00000', '#f7f7f2', 9500],
+  ['toulouse', 'Farfadets de Toulouse', 'Toulouse', 'FRA', 'la', 70, '#5e2b97', '#ffffff', 22000],
+  ['bordeaux', 'Spectres de Bordeaux', 'Bordeaux', 'FRA', 'la', 66, '#1c1c3c', '#e5e5e5', 19000],
+  ['marseille', 'Sirènes de Marseille', 'Marseille', 'FRA', 'la', 74, '#00a6d6', '#ffffff', 26000],
+  ['poitiers', 'Mélusines de Poitiers', 'Poitiers', 'FRA', 'reserve', 52, '#0b6e4f', '#d4af37', 10000],
+  ['lille', 'Comètes de Lille', 'Lille', 'FRA', 'reserve', 60, '#c1121f', '#fdf0d5', 16000],
+  ['montpellier', 'Mandragores de Montpellier', 'Montpellier', 'FRA', 'reserve', 56, '#ff6f00', '#1a2a6c', 13000],
+  ['reims', 'Licornes de Reims', 'Reims', 'FRA', 'reserve', 48, '#e8e8e8', '#b00020', 9000],
+  ['grenoble', 'Sortilèges de Grenoble', 'Grenoble', 'FRA', 'reserve', 54, '#264653', '#e9c46a', 11000],
+  ['benevento', 'Streghe di Benevento', 'Benevento', 'ITA', 'reserve', 44, '#3c1642', '#e0c3fc', 7000],
+  ['perugia', 'Grifoni di Perugia', 'Perugia', 'ITA', 'reserve', 48, '#a4161a', '#f5f3f4', 9000],
+  ['venezia', 'Fenici di Venezia', 'Venezia', 'ITA', 'la', 66, '#e85d04', '#03071e', 17000],
+  ['milano', 'Biscioni di Milano', 'Milano', 'ITA', 'la', 84, '#0c3b2e', '#ffba00', 31000],
+  ['torino', 'Talismani di Torino', 'Torino', 'ITA', 'la', 76, '#6a040f', '#f1faee', 25000],
+  ['arezzo', 'Chimere di Arezzo', 'Arezzo', 'ITA', 'reserve', 42, '#9c6644', '#ede0d4', 6500],
+  ['napoli', 'Sibille di Napoli', 'Napoli', 'ITA', 'la', 72, '#0077b6', '#caf0f8', 24000],
+  ['roma', 'Aruspici di Roma', 'Roma', 'ITA', 'la', 82, '#7b2cbf', '#ffd60a', 30000],
+  ['firenze', 'Astrologi di Firenze', 'Firenze', 'ITA', 'la', 68, '#4a148c', '#b388ff', 19000],
+  ['palermo', 'Gorgoni di Palermo', 'Palermo', 'ITA', 'reserve', 56, '#f6aa1c', '#941b0c', 13000],
+  ['bologna', 'Folletti di Bologna', 'Bologna', 'ITA', 'reserve', 62, '#ae2012', '#001219', 16000],
+  ['genova', 'Lanterne di Genova', 'Genova', 'ITA', 'reserve', 58, '#023e8a', '#ffb703', 15000],
+  ['verona', 'Incantatori di Verona', 'Verona', 'ITA', 'reserve', 54, '#3a86ff', '#ffbe0b', 12000],
+  ['trieste', 'Spiriti di Trieste', 'Trieste', 'ITA', 'reserve', 50, '#adb5bd', '#212529', 10000],
+  ['bari', 'Draghi di Bari', 'Bari', 'ITA', 'reserve', 52, '#d62828', '#003049', 12000],
+  ['bergamo', 'Befane di Bergamo', 'Bergamo', 'ITA', 'reserve', 46, '#283618', '#dda15e', 8500],
+  /* v106 : Ligue latine (les 6 premiers clubs français et italiens + 4 espagnols) */
+  ['madrid', 'Grifos de Madrid', 'Madrid', 'ESP', 'la', 83, '#f2f2f2', '#6d1a36', 31000],
+  ['barcelona', 'Dracs de Barcelona', 'Barcelona', 'ESP', 'la', 80, '#a50044', '#004d98', 29000],
+  ['sevilla', 'Salamandras de Sevilla', 'Sevilla', 'ESP', 'la', 68, '#d62828', '#fcbf49', 19000],
+  ['toledo', 'Hechiceros de Toledo', 'Toledo', 'ESP', 'la', 58, '#3c1f5c', '#c9a227', 12000],
+  /* v106 : Ligue scandinave */
+  ['stockholm', 'Stockholm Trollkarlar', 'Stockholm', 'SWE', 'sc', 78, '#0b3d91', '#f5c400', 27000],
+  ['goteborg', 'Göteborg Sjörån', 'Göteborg', 'SWE', 'sc', 70, '#004b87', '#e8e8e8', 21000],
+  ['uppsala', 'Uppsala Völvor', 'Uppsala', 'SWE', 'sc', 60, '#5c2a7e', '#f2d16b', 13000],
+  ['malmo', 'Malmö Mylingar', 'Malmö', 'SWE', 'sc', 55, '#2e2e38', '#9fd3c7', 11000],
+  ['oslo', 'Oslo Draugar', 'Oslo', 'NOR', 'sc', 76, '#a4161a', '#0b2545', 25000],
+  ['bergen', 'Bergen Huldrer', 'Bergen', 'NOR', 'sc', 68, '#1b4332', '#d8f3dc', 19000],
+  ['trondheim', 'Trondheim Nøkker', 'Trondheim', 'NOR', 'sc', 61, '#14213d', '#8ecae6', 14000],
+  ['tromso', 'Tromsø Nordlys', 'Tromsø', 'NOR', 'sc', 52, '#2a9d8f', '#e9f5f2', 9000],
+  ['kobenhavn', 'København Lindorme', 'København', 'DEN', 'sc', 79, '#c1121f', '#fdf0d5', 28000],
+  ['aarhus', 'Aarhus Ellefolk', 'Aarhus', 'DEN', 'sc', 64, '#386641', '#f2e8cf', 16000],
+  ['odense', 'Odense Nisser', 'Odense', 'DEN', 'sc', 56, '#9e2a2b', '#ffffff', 11000],
+  ['helsinki', 'Helsinki Noidat', 'Helsinki', 'FIN', 'sc', 69, '#002f6c', '#ffffff', 20000],
+  ['turku', 'Turku Tietäjät', 'Turku', 'FIN', 'sc', 58, '#7f5539', '#ede0d4', 12000],
+  ['tampere', 'Tampere Menninkäiset', 'Tampere', 'FIN', 'sc', 54, '#3a5a40', '#ffb703', 10000],
+  ['reykjavik', 'Reykjavík Álfar', 'Reykjavík', 'ISL', 'sc', 60, '#1d3557', '#e63946', 13000],
+  ['akureyri', 'Akureyri Tröll', 'Akureyri', 'ISL', 'sc', 47, '#495057', '#f8f9fa', 7500],
+  /* v106 : Ligue d'Europe centrale */
+  ['berlin', 'Berliner Hexer', 'Berlin', 'GER', 'ce', 82, '#1a1a1a', '#d4af37', 30000],
+  ['munchen', 'Münchner Lindwürmer', 'München', 'GER', 'ce', 80, '#0057b8', '#ffffff', 29000],
+  ['hamburg', 'Hamburger Klabauter', 'Hamburg', 'GER', 'ce', 68, '#003049', '#f77f00', 19000],
+  ['koln', 'Kölner Heinzelmännchen', 'Köln', 'GER', 'ce', 62, '#d62828', '#fefae0', 15000],
+  ['krakow', 'Smoki Kraków', 'Kraków', 'POL', 'ce', 74, '#9d0208', '#ffd60a', 24000],
+  ['warszawa', 'Syreny Warszawa', 'Warszawa', 'POL', 'ce', 70, '#e5383b', '#ffffff', 21000],
+  ['gdansk', 'Gryfy Gdańsk', 'Gdańsk', 'POL', 'ce', 56, '#023e8a', '#ffc300', 11000],
+  ['amsterdam', 'Amsterdamse Heksen', 'Amsterdam', 'NED', 'ce', 73, '#ff6b00', '#1d1d1d', 23000],
+  ['utrecht', 'Utrechtse Witte Wieven', 'Utrecht', 'NED', 'ce', 57, '#f8f9fa', '#7209b7', 11500],
+  ['bruxelles', 'Sorciers de Bruxelles', 'Bruxelles', 'BEL', 'ce', 69, '#6a040f', '#ffba08', 19000],
+  ['antwerpen', 'Antwerpse Reuzen', 'Antwerpen', 'BEL', 'ce', 60, '#2b2d42', '#e63946', 13500],
+  ['wien', 'Wiener Basilisken', 'Wien', 'AUT', 'ce', 75, '#7b2cbf', '#f1faee', 25000],
+  ['salzburg', 'Salzburger Perchten', 'Salzburg', 'AUT', 'ce', 58, '#5e3023', '#f3e9dc', 12000],
+  ['praha', 'Golemové Praha', 'Praha', 'CZE', 'ce', 72, '#3d405b', '#e07a5f', 22000],
+  ['brno', 'Draci Brno', 'Brno', 'CZE', 'ce', 55, '#38b000', '#081c15', 10500],
+  ['luxembourg', 'Melusina Lëtzebuerg', 'Luxembourg', 'LUX', 'ce', 50, '#00a1de', '#ef3340', 8000],
 ];
 
 /* Origine des joueurs d'un club selon sa nation : [nation, poids] */
-const ORIGINES = {
+const ORIGINES = {   // v106 : les nouveaux joueurs d'un club viennent surtout de son pays, un peu des voisins
   ENG:[['ENG', 70], ['SCO', 8], ['WAL', 8], ['IRL', 7], ['FRA', 4], ['ITA', 3]],
   SCO:[['SCO', 65], ['ENG', 15], ['IRL', 8], ['WAL', 6], ['FRA', 3], ['ITA', 3]],
   WAL:[['WAL', 65], ['ENG', 15], ['SCO', 7], ['IRL', 7], ['FRA', 3], ['ITA', 3]],
   IRL:[['IRL', 68], ['ENG', 12], ['SCO', 8], ['WAL', 6], ['FRA', 3], ['ITA', 3]],
-  FRA:[['FRA', 85], ['ITA', 5], ['ENG', 3], ['IRL', 3], ['SCO', 2], ['WAL', 2]],
-  ITA:[['ITA', 85], ['FRA', 6], ['ENG', 3], ['IRL', 2], ['SCO', 2], ['WAL', 2]],
+  FRA:[['FRA', 82], ['ITA', 5], ['ESP', 5], ['BEL', 3], ['ENG', 3], ['LUX', 2]],
+  ITA:[['ITA', 83], ['FRA', 6], ['ESP', 5], ['AUT', 2], ['ENG', 2], ['CZE', 2]],
+  ESP:[['ESP', 82], ['FRA', 6], ['ITA', 5], ['ENG', 3], ['IRL', 2], ['GER', 2]],
+  SWE:[['SWE', 72], ['NOR', 8], ['DEN', 8], ['FIN', 8], ['ISL', 4]],
+  NOR:[['NOR', 72], ['SWE', 10], ['DEN', 8], ['ISL', 6], ['FIN', 4]],
+  DEN:[['DEN', 72], ['SWE', 10], ['NOR', 8], ['GER', 6], ['ISL', 4]],
+  FIN:[['FIN', 76], ['SWE', 12], ['NOR', 5], ['DEN', 4], ['ISL', 3]],
+  ISL:[['ISL', 70], ['NOR', 10], ['DEN', 10], ['SWE', 6], ['FIN', 4]],
+  GER:[['GER', 74], ['AUT', 7], ['POL', 6], ['NED', 4], ['CZE', 4], ['BEL', 3], ['LUX', 2]],
+  POL:[['POL', 80], ['CZE', 8], ['GER', 8], ['AUT', 4]],
+  NED:[['NED', 72], ['BEL', 12], ['GER', 8], ['LUX', 4], ['DEN', 4]],
+  BEL:[['BEL', 68], ['NED', 12], ['FRA', 8], ['LUX', 6], ['GER', 6]],
+  AUT:[['AUT', 72], ['GER', 12], ['CZE', 8], ['POL', 4], ['ITA', 4]],
+  CZE:[['CZE', 78], ['POL', 8], ['AUT', 7], ['GER', 7]],
+  LUX:[['LUX', 62], ['BEL', 12], ['FRA', 10], ['GER', 10], ['NED', 6]],
 };
 
 /* Banques de noms (courants et réels, jamais ceux d'un personnage connu de l'univers d'origine). v105 : environ 60 prénoms masculins (h),
@@ -104,7 +178,46 @@ const NOMS = {
        n:['Aubert','Barbier','Bertrand','Blanchard','Boyer','Brunet','Carpentier','Chevalier','Clément','Colin','Delmas','Deschamps','Duval','Fabre','Faure','Fournier','Gaillard','Garnier','Guérin','Hamon','Jacquet','Joly','Lacroix','Lambert','Laurent','Leclerc','Lefèvre','Lemaire','Lenoir','Marchand','Masson','Mercier','Meunier','Moulin','Noël','Perrin','Picard','Poirier','Renard','Rey','Roche','Roussel','Roux','Sabatier','Tessier','Vasseur','Vidal','Vincent','Arnal','Cabrol','Adam','Andrieu','Arnaud','Bailly','Baron','Barre','Besson','Blanc','Bonnet','Bouvier','Brun','Caron','Chauvin','Collet','Cordier','Courtois','Cousin','Dumas','Dupont','Durand','Dubois','Fleury','Fontaine','Fortin','Gauthier','Germain','Gilbert','Girard','Gros','Guillot','Hébert','Huet','Humbert','Jacob','Julien','Lebrun','Leblanc','Lecomte','Leroy','Lemoine','Marie','Martin','Michaud','Millet','Morel','Muller','Olivier','Pagès','Payet','Petit','Philippe','Prévost','Rivière','Robin','Rolland','Rousseau','Royer','Simon','Thomas','Vallet','Vautrin','Aubry','Bousquet','Cazals','Combes','Delaunay','Dupuis','Ferrand','Guilhem','Labbé','Langlois','Marty','Maury','Pujol','Rigal','Teyssier','Vernet','Bourdon','Carré','Charpentier','Couderc','Delorme','Gay','Léger','Mallet','Maréchal','Pascal','Poulain','Raynaud','Salmon','Tardieu','Valette','Verdier','Alibert','Bonnafous','Cassagne','Delpech','Escande','Fabié']},
   ITA:{h:['Lorenzo','Matteo','Leonardo','Alessandro','Francesco','Andrea','Riccardo','Tommaso','Gabriele','Davide','Federico','Simone','Pietro','Marco','Luca','Alberto','Antonio','Angelo','Bruno','Carlo','Cristian','Daniele','Diego','Edoardo','Elia','Emanuele','Enrico','Fabio','Filippo','Giacomo','Giorgio','Giovanni','Giuseppe','Jacopo','Manuel','Massimo','Mattia','Michele','Nicolò','Paolo','Raffaele','Roberto','Salvatore','Samuele','Sergio','Stefano','Valerio','Vincenzo','Umberto','Ettore','Gianluca','Luigi','Nicola','Ottavio','Renato','Tiziano','Vittorio','Alessio','Dario','Ivo'],
        f:['Giulia','Sofia','Aurora','Alice','Ginevra','Chiara','Martina','Beatrice','Francesca','Elena','Sara','Vittoria','Noemi','Camilla','Bianca','Alessia','Anna','Arianna','Benedetta','Carlotta','Caterina','Cecilia','Claudia','Costanza','Elisa','Eleonora','Emma','Federica','Gaia','Giada','Greta','Ilaria','Irene','Laura','Letizia','Lucia','Ludovica','Maria','Marta','Matilde','Michela','Nicole','Paola','Rebecca','Serena','Silvia','Sveva','Teresa','Valentina','Viola','Agnese','Angelica','Asia','Debora','Emilia','Fiamma','Giorgia','Linda','Margherita','Rachele'],
-       n:['Bianchi','Romano','Colombo','Ricci','Marino','Greco','Bruno','Gallo','Conti','De Luca','Mancini','Costa','Giordano','Rizzo','Lombardi','Moretti','Barbieri','Fontana','Santoro','Mariani','Rinaldi','Caruso','Ferrara','Galli','Martini','Leone','Longo','Gentile','Martinelli','Vitale','Serra','Coppola','De Santis','Fabbri','Bellini','Ferri','Pellegrini','Palumbo','Sanna','Orlando','Amato','Basile','Battaglia','Bernardi','Bianco','Bonetti','Bruni','Caputo','Carbone','Cattaneo','Cirillo','Colonna','Conte','Cristiani','D\'Amico','D\'Angelo','De','Rosa','Donati','Esposito','Farina','Ferraro','Fiore','Gatti','Giuliani','Grasso','Guerra','Lanza','Lombardo','Mancuso','Marchetti','Marini','Mazza','Messina','Monti','Morelli','Negri','Neri','Palmieri','Parisi','Pace','Pagano','Piras','Poli','Porcu','Riva','Rossetti','Rossi','Ruggiero','Russo','Sala','Salvi','Sartori','Silvestri','Testa','Valentini','Villa','Zanetti','Zanella','Agostini','Albanese','Arena','Barone','Benedetti','Bertolini','Brambilla','Castelli','Cocco','Corsi','Damiani','Di','Stefano','Fadda','Ferrante','Franco','Gentili','Grassi','Leoni','Longhi','Lucchesi','Magri','Mele','Melis','Montanari','Mura','Nardi','Orsini','Pellegrino','Pepe','Piazza','Pozzi','Rocca','Romeo','Sacco','Santini','Sorrentino','Tedesco','Toscano','Vacca','Valli','Vitali','Zappa']}
+       n:['Bianchi','Romano','Colombo','Ricci','Marino','Greco','Bruno','Gallo','Conti','De Luca','Mancini','Costa','Giordano','Rizzo','Lombardi','Moretti','Barbieri','Fontana','Santoro','Mariani','Rinaldi','Caruso','Ferrara','Galli','Martini','Leone','Longo','Gentile','Martinelli','Vitale','Serra','Coppola','De Santis','Fabbri','Bellini','Ferri','Pellegrini','Palumbo','Sanna','Orlando','Amato','Basile','Battaglia','Bernardi','Bianco','Bonetti','Bruni','Caputo','Carbone','Cattaneo','Cirillo','Colonna','Conte','Cristiani','D\'Amico','D\'Angelo','De','Rosa','Donati','Esposito','Farina','Ferraro','Fiore','Gatti','Giuliani','Grasso','Guerra','Lanza','Lombardo','Mancuso','Marchetti','Marini','Mazza','Messina','Monti','Morelli','Negri','Neri','Palmieri','Parisi','Pace','Pagano','Piras','Poli','Porcu','Riva','Rossetti','Rossi','Ruggiero','Russo','Sala','Salvi','Sartori','Silvestri','Testa','Valentini','Villa','Zanetti','Zanella','Agostini','Albanese','Arena','Barone','Benedetti','Bertolini','Brambilla','Castelli','Cocco','Corsi','Damiani','Di','Stefano','Fadda','Ferrante','Franco','Gentili','Grassi','Leoni','Longhi','Lucchesi','Magri','Mele','Melis','Montanari','Mura','Nardi','Orsini','Pellegrino','Pepe','Piazza','Pozzi','Rocca','Romeo','Sacco','Santini','Sorrentino','Tedesco','Toscano','Vacca','Valli','Vitali','Zappa']},
+  ESP:{h:['Alejandro','Pablo','Daniel','Javier','Adrián','Álvaro','Diego','Hugo','Marcos','Sergio','Carlos','Mario','Iván','Rubén','Raúl','Jorge','Alberto','Fernando','Rafael','Andrés','Manuel','Antonio','Miguel','Ignacio','Gonzalo','Íñigo','Unai','Jaime','Óscar','Víctor','Enrique','Luis','Joaquín','Rodrigo','Martín','Samuel','Bruno','Nicolás','Guillermo','Tomás','Lucas','Aitor','Pau','Jordi','Xavier','Mateo','Ángel','Eduardo'],
+       f:['Lucía','María','Paula','Laura','Marta','Andrea','Carmen','Sara','Alba','Elena','Claudia','Irene','Nerea','Julia','Ana','Cristina','Noelia','Rocío','Natalia','Patricia','Beatriz','Silvia','Raquel','Lorena','Teresa','Inés','Pilar','Aitana','Martina','Carla','Valeria','Olivia','Ainhoa','Leire','Nuria','Montse','Marina','Sofía','Celia','Blanca','Esther','Mireia','Gemma','Alicia','Isabel','Victoria'],
+       n:['García','Martínez','López','Sánchez','Pérez','Gómez','Fernández','Ruiz','Díaz','Moreno','Muñoz','Álvarez','Romero','Alonso','Gutiérrez','Navarro','Torres','Domínguez','Vázquez','Ramos','Gil','Ramírez','Serrano','Blanco','Molina','Morales','Suárez','Ortega','Delgado','Castro','Ortiz','Rubio','Marín','Sanz','Iglesias','Medina','Garrido','Cortés','Castillo','Santos','Lozano','Guerrero','Cano','Prieto','Méndez','Cruz','Calvo','Gallego','Vidal','León','Márquez','Herrera','Peña','Flores','Cabrera','Campos','Vega','Fuentes','Carrasco','Diez','Caballero','Reyes','Nieto','Aguilar','Pascual','Santana','Herrero','Lorenzo','Montero','Hidalgo','Giménez','Ibáñez','Ferrer','Durán','Santiago','Benítez','Mora','Vicente','Arias','Vargas','Carmona','Crespo','Román','Pastor','Soto','Sáez','Velasco','Moya','Soler','Parra','Esteban','Bravo','Gallardo','Rojas','Echeverría','Aranda','Urquiza','Zubizarreta','Goikoetxea','Etxeberria','Puig','Vilanova','Casals']},
+  DEN:{h:['Mads','Rasmus','Mikkel','Frederik','Christian','Anders','Jonas','Kasper','Oliver','Emil','Magnus','Nikolaj','Søren','Lars','Jens','Henrik','Peter','Thomas','Martin','Jesper','Morten','Simon','Mathias','Tobias','Lasse','Jakob','Asger','Malthe','Viktor','Aksel','Laurits','Carl','William','Noah','Oscar','Elias','Villads','Bertil','Esben','Troels','Torben','Ulrik','Niels','Kristian','Bjarke'],
+       f:['Anna','Emma','Ida','Freja','Clara','Laura','Sofie','Mathilde','Cecilie','Line','Julie','Maja','Signe','Astrid','Karoline','Josefine','Mette','Camilla','Louise','Katrine','Marie','Pernille','Sara','Christina','Rikke','Tove','Nanna','Ingrid','Johanne','Alberte','Agnes','Esther','Karla','Liva','Sigrid','Silje','Dorthe','Hanne','Lise','Birgitte','Ellen','Vigga','Asta','Merete'],
+       n:['Jensen','Nielsen','Hansen','Pedersen','Andersen','Christensen','Larsen','Sørensen','Rasmussen','Jørgensen','Petersen','Madsen','Kristensen','Olsen','Thomsen','Christiansen','Poulsen','Johansen','Møller','Mortensen','Knudsen','Jakobsen','Mikkelsen','Olesen','Frederiksen','Laursen','Henriksen','Lund','Schmidt','Eriksen','Holm','Kristiansen','Clausen','Simonsen','Svendsen','Andreasen','Iversen','Østergaard','Jeppesen','Vestergaard','Nissen','Lauridsen','Kjær','Jepsen','Mogensen','Bach','Thygesen','Friis','Dahl','Bruun','Lind','Skov','Damgaard','Brandt','Juhl','Toft','Holst','Bang','Krogh','Winther','Overgaard','Bundgaard','Thorsen','Kirkegaard','Rask','Lykke','Ravn','Gregersen','Mathiesen','Bertelsen','Fisker','Hald','Kofoed','Wulff','Egholm','Kjeldsen']},
+  SWE:{h:['Erik','Lars','Karl','Anders','Johan','Per','Nils','Lennart','Mikael','Jan','Hans','Olof','Gustav','Axel','Oskar','Viktor','Filip','Emil','Linus','Isak','Hugo','Ludvig','Alexander','Sebastian','Jonas','Fredrik','Henrik','Magnus','Mattias','Andreas','Daniel','Joakim','Niklas','Pontus','Rasmus','Simon','Albin','Elias','Melker','Vilgot','Teodor','Valter','Sixten','Folke','Måns','Björn','Gunnar','Sven'],
+       f:['Anna','Eva','Maria','Karin','Sara','Lena','Kerstin','Emma','Ingrid','Linnea','Elin','Ida','Klara','Maja','Ebba','Alva','Wilma','Astrid','Saga','Freja','Elsa','Alice','Julia','Moa','Matilda','Tilda','Hanna','Johanna','Sofia','Frida','Josefin','Malin','Therese','Jenny','Amanda','Lovisa','Agnes','Signe','Tove','Stina','Märta','Greta','Sigrid','Selma','Vera'],
+       n:['Andersson','Johansson','Karlsson','Nilsson','Eriksson','Larsson','Olsson','Persson','Svensson','Gustafsson','Pettersson','Jonsson','Jansson','Hansson','Bengtsson','Jönsson','Lindberg','Jakobsson','Magnusson','Lindström','Olofsson','Lindqvist','Lindgren','Berg','Axelsson','Bergström','Lundberg','Lind','Lundgren','Lundqvist','Mattsson','Berglund','Fredriksson','Sandberg','Henriksson','Forsberg','Sjöberg','Wallin','Engström','Eklund','Danielsson','Lundin','Håkansson','Björk','Bergman','Gunnarsson','Holm','Wikström','Samuelsson','Isaksson','Fransson','Bergqvist','Nyström','Holmberg','Arvidsson','Löfgren','Söderberg','Nyberg','Blomqvist','Claesson','Nordström','Mårtensson','Lundström','Viklund','Björklund','Eliasson','Pålsson','Berggren','Sandström','Lund','Nordin','Ström','Åberg','Hermansson','Ekström','Holmgren','Sundberg','Hedlund','Dahlberg','Hellström','Sjögren','Abrahamsson','Falk','Öberg','Ek']},
+  NOR:{h:['Ole','Lars','Jan','Per','Bjørn','Kjell','Svein','Arne','Knut','Hans','Geir','Tor','Terje','Morten','Rune','Trond','Espen','Øyvind','Eirik','Håkon','Sindre','Magnus','Sander','Jonas','Henrik','Kristian','Martin','Andreas','Even','Vegard','Aksel','Mathias','Tobias','Fredrik','Sigurd','Halvor','Torstein','Erlend','Audun','Gaute','Ivar','Leif','Steinar','Vidar','Ulrik','Kasper','Jørgen'],
+       f:['Anne','Inger','Kari','Marit','Ingrid','Liv','Eva','Berit','Astrid','Bjørg','Hilde','Anna','Solveig','Marianne','Randi','Ida','Silje','Hege','Tone','Nina','Kristin','Ragnhild','Ingeborg','Sigrid','Synnøve','Guro','Tuva','Thea','Nora','Emma','Sara','Maja','Ingvild','Live','Selma','Frida','Oda','Mathilde','Vilde','Hedda','Tiril','Mari','Siri','Torunn','Aud','Sunniva'],
+       n:['Hansen','Johansen','Olsen','Larsen','Andersen','Pedersen','Nilsen','Kristiansen','Jensen','Karlsen','Johnsen','Pettersen','Eriksen','Berg','Haugen','Hagen','Johannessen','Andreassen','Jacobsen','Dahl','Jørgensen','Halvorsen','Henriksen','Lund','Sørensen','Jakobsen','Moen','Gundersen','Iversen','Strand','Solberg','Svendsen','Eide','Knutsen','Martinsen','Paulsen','Bakken','Kristoffersen','Mathisen','Lie','Amundsen','Rasmussen','Solheim','Ruud','Kristensen','Bakke','Myhre','Sæther','Lunde','Tangen','Hauge','Fredriksen','Vik','Holm','Haugland','Aas','Bøe','Ødegård','Nygård','Nordby','Brekke','Sandvik','Lien','Fjeld','Aasen','Strøm','Moe','Tveit','Rønning','Vold','Hovland','Sunde','Berge','Engen','Midtbø','Rønningen']},
+  FIN:{h:['Juha','Timo','Matti','Kari','Mikko','Jari','Antti','Jukka','Mika','Markku','Pekka','Hannu','Heikki','Seppo','Janne','Ari','Sami','Petri','Ville','Tuomas','Jussi','Lauri','Eero','Aleksi','Joonas','Onni','Väinö','Eino','Leevi','Elias','Oliver','Aatu','Veeti','Niilo','Otto','Akseli','Kasper','Joel','Arttu','Riku','Teemu','Toni','Olli','Jarkko','Ilkka','Esa','Tapio'],
+       f:['Anna','Maria','Liisa','Hanna','Elina','Johanna','Laura','Tiina','Sari','Päivi','Riikka','Minna','Satu','Kaisa','Heidi','Katja','Anu','Emilia','Aino','Helmi','Sofia','Ellen','Venla','Eevi','Aada','Lilja','Iida','Siiri','Pihla','Noora','Ella','Oona','Veera','Inka','Milla','Nelli','Saara','Tuuli','Kirsi','Marjut','Leena','Pirjo','Hilkka','Aili','Sanni'],
+       n:['Korhonen','Virtanen','Mäkinen','Nieminen','Mäkelä','Hämäläinen','Laine','Heikkinen','Koskinen','Järvinen','Lehtonen','Lehtinen','Saarinen','Salminen','Heinonen','Niemi','Heikkilä','Kinnunen','Salonen','Turunen','Salo','Laitinen','Tuominen','Rantanen','Karjalainen','Jokinen','Mattila','Savolainen','Lahtinen','Ahonen','Hiltunen','Hirvonen','Lindholm','Leppänen','Kallio','Väisänen','Miettinen','Aaltonen','Manninen','Pitkänen','Lappalainen','Seppälä','Huttunen','Ojala','Kauppinen','Laaksonen','Kettunen','Hakala','Leinonen','Mustonen','Toivonen','Räsänen','Peltonen','Rautio','Kivelä','Halonen','Koivisto','Vainio','Hyvönen','Pesonen','Honkanen','Anttila','Niskanen','Laakso','Suominen','Rinne','Kokkonen','Lundqvist','Eskola','Valtonen','Ikonen','Partanen','Hakkarainen','Korpela']},
+  ISL:{h:['Jón','Sigurður','Guðmundur','Gunnar','Ólafur','Einar','Kristján','Magnús','Stefán','Jóhann','Björn','Árni','Þórður','Halldór','Ragnar','Bjarni','Helgi','Pétur','Sveinn','Haraldur','Jónas','Ari','Aron','Atli','Birkir','Davíð','Egill','Elías','Emil','Gylfi','Hannes','Hörður','Ingi','Kári','Logi','Orri','Rúnar','Sindri','Snorri','Tómas','Viktor','Þór','Ásgeir','Hilmar'],
+       f:['Guðrún','Anna','Sigríður','Kristín','Margrét','Helga','Sigrún','Ingibjörg','María','Jóhanna','Katrín','Ragnheiður','Elín','Hildur','Þórunn','Ásta','Erla','Eva','Hrefna','Lilja','Sara','Sólveig','Embla','Hekla','Freyja','Saga','Ylfa','Iðunn','Rakel','Agnes','Brynja','Dagný','Elísabet','Hulda','Íris','Karen','Una','Védís','Þóra','Unnur','Bryndís','Gerður','Arna','Edda'],
+       n:['Jónsson','Sigurðsson','Guðmundsson','Gunnarsson','Ólafsson','Einarsson','Kristjánsson','Magnússon','Stefánsson','Jóhannsson','Björnsson','Árnason','Þórðarson','Halldórsson','Ragnarsson','Bjarnason','Helgason','Pétursson','Sveinsson','Haraldsson','Jónasson','Arason','Atlason','Birkisson','Davíðsson','Egilsson','Gylfason','Hannesson','Harðarson','Ingason','Kárason','Logason','Orrason','Rúnarsson','Snorrason','Tómasson','Viktorsson','Þórsson','Ásgeirsson','Hilmarsson','Jónsdóttir','Sigurðardóttir','Guðmundsdóttir','Gunnarsdóttir','Ólafsdóttir','Einarsdóttir','Kristjánsdóttir','Magnúsdóttir','Stefánsdóttir','Jóhannsdóttir','Björnsdóttir','Árnadóttir','Halldórsdóttir','Ragnarsdóttir','Bjarnadóttir','Helgadóttir','Pétursdóttir','Sveinsdóttir','Haraldsdóttir','Hannesdóttir','Snorradóttir','Egilsdóttir']},
+  GER:{h:['Lukas','Leon','Finn','Jonas','Paul','Felix','Maximilian','Elias','Ben','Noah','Luca','Tim','Jan','Niklas','Moritz','Philipp','Julian','Tobias','Florian','Sebastian','Fabian','Dominik','Matthias','Stefan','Andreas','Michael','Thomas','Markus','Christian','Daniel','Alexander','Johannes','Simon','David','Erik','Anton','Emil','Jakob','Konstantin','Leonhard','Valentin','Benedikt','Kilian','Lennart','Henrik','Theo','Mats','Jannik','Torben'],
+       f:['Anna','Lena','Lea','Laura','Hannah','Leonie','Sophie','Marie','Julia','Lisa','Sarah','Katharina','Johanna','Lara','Mia','Emma','Clara','Charlotte','Ida','Paula','Greta','Frieda','Mathilda','Nele','Pia','Jana','Franziska','Theresa','Christina','Sabine','Petra','Andrea','Stefanie','Melanie','Nicole','Kerstin','Anja','Vanessa','Svenja','Annika','Jule','Luisa','Antonia','Helene','Magdalena','Elisa','Merle'],
+       n:['Müller','Schmidt','Schneider','Fischer','Weber','Meyer','Wagner','Becker','Schulz','Hoffmann','Schäfer','Koch','Bauer','Richter','Klein','Wolf','Schröder','Neumann','Schwarz','Zimmermann','Braun','Krüger','Hofmann','Hartmann','Lange','Schmitt','Werner','Schmitz','Krause','Meier','Lehmann','Schmid','Schulze','Maier','Köhler','Herrmann','König','Walter','Mayer','Huber','Kaiser','Fuchs','Peters','Lang','Scholz','Möller','Weiß','Jung','Hahn','Schubert','Vogel','Friedrich','Keller','Günther','Frank','Berger','Winkler','Roth','Beck','Lorenz','Baumann','Franke','Albrecht','Schuster','Simon','Ludwig','Böhm','Winter','Kraus','Martin','Schumacher','Krämer','Vogt','Stein','Jäger','Otto','Sommer','Groß','Seidel','Heinrich','Brandt','Haas','Schreiber','Graf','Dietrich','Ziegler','Kuhn','Kühn','Pohl','Engel','Horn','Busch','Bergmann','Thomas','Voigt','Sauer','Arnold']},
+  NED:{h:['Daan','Sem','Lucas','Levi','Finn','Milan','Jesse','Thijs','Bram','Ruben','Lars','Stijn','Tim','Niels','Jasper','Wouter','Joost','Pieter','Maarten','Bas','Sander','Koen','Jeroen','Rik','Floris','Gijs','Teun','Siem','Mees','Luuk','Thomas','Hidde','Jelle','Sjoerd','Joris','Willem','Hendrik','Dirk','Gerrit','Bart','Roel','Tygo','Jurre','Wessel','Mats'],
+       f:['Emma','Julia','Sophie','Lotte','Fleur','Sanne','Anouk','Lisa','Eva','Femke','Iris','Noor','Tess','Sara','Lieke','Isa','Fenna','Jet','Roos','Maud','Vera','Marloes','Esther','Ingrid','Annemiek','Wendy','Linda','Mirjam','Floor','Nina','Lynn','Saar','Yara','Evi','Liv','Mila','Puck','Hanna','Merel','Ilse','Romy','Demi','Anne','Maartje','Nienke'],
+       n:['de Jong','Jansen','de Vries','van den Berg','van Dijk','Bakker','Janssen','Visser','Smit','Meijer','de Boer','Mulder','de Groot','Bos','Vos','Peters','Hendriks','van Leeuwen','Dekker','Brouwer','de Wit','Dijkstra','Smits','de Graaf','van der Meer','van der Linden','Kok','Jacobs','de Haan','Vermeulen','van den Heuvel','van der Veen','van den Broek','de Bruijn','de Bruin','van der Heijden','Schouten','van Beek','Willems','van Vliet','van de Ven','Hoekstra','Maas','Verhoeven','Koster','van Dam','van der Wal','Prins','Blom','Huisman','Peeters','de Jonge','Kuipers','van Veen','Post','Kuiper','Veenstra','Kramer','van den Brink','Scholten','van Wijk','Postma','Martens','Vink','de Ruiter','Timmermans','Groen','Gerritsen','Jonker','van Loon','Boer','van der Velde','Willemsen','Smeets','Lammers']},
+  BEL:{h:['Lucas','Louis','Noah','Arthur','Jules','Victor','Adam','Liam','Mathis','Nathan','Hugo','Thomas','Maxime','Simon','Arnaud','Julien','Nicolas','Antoine','Guillaume','Pieter','Jens','Wout','Lander','Seppe','Robbe','Thibault','Bert','Stijn','Tom','Koen','Jef','Wannes','Matthias','Michiel','Bram','Kobe','Siebe','Cédric','Grégory','Benoît','Olivier','Sébastien','Laurent','Xavier','Dries'],
+       f:['Emma','Olivia','Louise','Mila','Alice','Juliette','Elena','Camille','Lina','Marie','Lotte','Fien','Nore','Lien','Jana','Ellen','Hanne','Elise','Charlotte','Manon','Chloé','Laura','Sarah','Julie','Lisa','Amélie','Noémie','Céline','Sofie','Leen','Ine','Eline','Kaat','Margot','Febe','Roos','Anaïs','Pauline','Mathilde','Valérie','Nathalie','Isabelle','Delphine','Hélène','Annelies'],
+       n:['Peeters','Janssens','Maes','Jacobs','Mertens','Willems','Claes','Goossens','Wouters','De Smet','Dubois','Lambert','Dupont','Martin','Simon','Leclercq','Dumont','Laurent','Lemaire','Renard','Michel','Mathieu','Lejeune','Gérard','Denis','Hermans','Aerts','Pauwels','Smets','Vermeulen','Van Damme','De Backer','Verbeke','Desmet','Vandenberghe','Declercq','Wuyts','Coppens','Michiels','Hendrickx','Martens','Lemmens','Bogaert','Cools','Segers','Vervoort','Stevens','Baert','Verstraete','Moens','Delvaux','Collard','Lecomte','Piron','Wauters','Gilson','Dethier','Fontaine','Henrard','Lenaerts','Verhaegen','Van Hoof','Geerts','Van de Velde','Vandamme','Sterckx','Thys']},
+  LUX:{h:['Luca','Noah','Gabriel','Léo','Tom','Ben','Max','Liam','Mathis','Jules','Paul','Nico','Lucas','Tim','Leon','Felix','Luc','Marc','Jean','Pierre','Laurent','Philippe','Michel','Patrick','Gilles','Yves','Claude','Joé','Charel','Gil','Jang','Pit','Mil','Raoul','Jeff','Steve','Sven','Kevin','Pol','Lex','Mike','Ricardo','Tiago','Jos'],
+       f:['Emma','Léa','Mia','Sophie','Lara','Lena','Zoé','Chloé','Laura','Julie','Sarah','Anne','Marie','Claire','Sandra','Nathalie','Martine','Carole','Isabelle','Monique','Christiane','Nadine','Joëlle','Josiane','Fabienne','Michèle','Lynn','Lisa','Elena','Nora','Tessy','Lily','Romy','Maïté','Jil','Liz','Kim','Mandy','Sandy','Tania','Ana','Inês','Beatriz','Rita','Sylvie'],
+       n:['Schmit','Muller','Weber','Wagner','Hoffmann','Thill','Schmitz','Klein','Becker','Kremer','Meyer','Schroeder','Reuter','Kieffer','Hansen','Ries','Welter','Majerus','Feller','Wolff','Bertemes','Faber','Simon','Steffen','Peters','Hilbert','Bauler','Kayser','Weis','Kohn','Mangen','Zeimet','Lentz','Frising','Theis','Goergen','Schiltz','Nilles','Jacoby','Gaasch','Heinen','Reding','Wirtz','Goedert','Hoss','Thein','Back','Biver','Krier','Frisch','Hentges','Flammang','Ewen','Kirsch','Dos Santos','Ferreira','Da Silva','Pereira','Gonçalves']},
+  POL:{h:['Jakub','Kacper','Szymon','Filip','Jan','Mateusz','Bartosz','Michał','Wojciech','Piotr','Paweł','Tomasz','Krzysztof','Marcin','Łukasz','Adam','Dawid','Kamil','Rafał','Grzegorz','Maciej','Damian','Sebastian','Patryk','Hubert','Igor','Oskar','Wiktor','Antoni','Franciszek','Aleksander','Stanisław','Tymon','Ignacy','Bruno','Leon','Mikołaj','Dominik','Karol','Konrad','Artur','Daniel','Przemysław','Zbigniew','Jarosław'],
+       f:['Zuzanna','Julia','Maja','Zofia','Hanna','Lena','Alicja','Maria','Amelia','Oliwia','Wiktoria','Natalia','Aleksandra','Agnieszka','Katarzyna','Magdalena','Joanna','Anna','Małgorzata','Ewa','Monika','Karolina','Paulina','Dominika','Martyna','Weronika','Kinga','Marta','Justyna','Patrycja','Gabriela','Laura','Emilia','Pola','Nina','Liliana','Antonina','Iga','Helena','Barbara','Dorota','Beata','Izabela','Klaudia','Sylwia'],
+       n:['Nowak','Kowalski','Wiśniewski','Wójcik','Kowalczyk','Kamiński','Lewandowski','Zieliński','Szymański','Woźniak','Dąbrowski','Kozłowski','Jankowski','Mazur','Wojciechowski','Kwiatkowski','Krawczyk','Kaczmarek','Piotrowski','Grabowski','Zając','Pawłowski','Michalski','Król','Wieczorek','Jabłoński','Wróbel','Nowakowski','Majewski','Olszewski','Stępień','Malinowski','Jaworski','Adamczyk','Dudek','Nowicki','Pawlak','Górski','Witkowski','Walczak','Sikora','Baran','Rutkowski','Michalak','Szewczyk','Ostrowski','Tomaszewski','Pietrzak','Zalewski','Wróblewski','Marciniak','Jasiński','Zawadzki','Bąk','Jakubowski','Sadowski','Duda','Włodarczyk','Wilk','Chmielewski','Borkowski','Sokołowski','Szczepański','Sawicki','Lis','Kucharski','Kalinowski','Wysocki','Mazurek','Kubiak','Kołodziej','Czarnecki']},
+  AUT:{h:['Lukas','Tobias','David','Jakob','Maximilian','Elias','Paul','Felix','Simon','Julian','Florian','Fabian','Stefan','Thomas','Michael','Andreas','Markus','Christoph','Martin','Manuel','Patrick','Dominik','Matthias','Bernhard','Georg','Johannes','Clemens','Valentin','Leopold','Ferdinand','Konstantin','Raphael','Moritz','Noah','Jonas','Leon','Anton','Emil','Vinzenz','Benedikt','Lorenz','Theodor','Gregor','Severin','Quirin'],
+       f:['Anna','Hannah','Sophie','Lena','Marie','Laura','Lea','Julia','Sarah','Katharina','Johanna','Magdalena','Theresa','Elisabeth','Valentina','Emilia','Lina','Mia','Emma','Leonie','Christina','Barbara','Andrea','Sabine','Petra','Claudia','Martina','Verena','Teresa','Franziska','Viktoria','Antonia','Rosa','Paulina','Helena','Klara','Ida','Amelie','Leni','Marlene','Romana','Gertraud','Hemma','Waltraud','Ingrid'],
+       n:['Gruber','Huber','Bauer','Wagner','Müller','Pichler','Steiner','Moser','Mayer','Hofer','Leitner','Berger','Fuchs','Eder','Fischer','Schmid','Winkler','Weber','Schwarz','Maier','Schneider','Reiter','Mayr','Schmidt','Wimmer','Egger','Brunner','Lang','Baumgartner','Auer','Binder','Lechner','Wolf','Wallner','Aigner','Ebner','Koller','Lehner','Haas','Schuster','Holzer','Lackner','Wieser','Strasser','Pirker','Hofmann','Stadler','Riegler','Pfeiffer','Kofler','Rainer','Hauser','Grabner','Kaiser','Unterberger','Kogler','Hackl','Pölzl','Gasser','Hinterberger','Ortner','Zauner','Kern','Mader','Prem','Thaler']},
+  CZE:{h:['Jakub','Jan','Tomáš','Lukáš','Matěj','Adam','Ondřej','Vojtěch','Filip','David','Petr','Martin','Pavel','Jiří','Josef','Karel','Václav','Michal','Marek','Radek','Roman','Zdeněk','Milan','Vladimír','Miroslav','Daniel','Dominik','Šimon','Antonín','Tadeáš','Kryštof','Viktor','Štěpán','Prokop','Vít','Matyáš','Kamil','Aleš','Libor','Dalibor','Bohumil','Jaromír','Ladislav','Oldřich'],
+       f:['Eliška','Tereza','Anna','Adéla','Natálie','Karolína','Kristýna','Barbora','Klára','Lucie','Kateřina','Veronika','Michaela','Markéta','Petra','Jana','Lenka','Hana','Zuzana','Monika','Simona','Alena','Ivana','Martina','Šárka','Pavla','Vendula','Nikola','Sofie','Viktorie','Amálie','Julie','Ema','Rozálie','Magdaléna','Bára','Laura','Linda','Daniela','Denisa','Dagmar','Radka','Blanka','Věra','Libuše'],
+       n:['Novák','Svoboda','Novotný','Dvořák','Černý','Procházka','Kučera','Veselý','Horák','Němec','Marek','Pospíšil','Pokorný','Hájek','Král','Jelínek','Růžička','Beneš','Fiala','Sedláček','Doležal','Zeman','Kolář','Navrátil','Čermák','Vaněk','Urban','Blažek','Kříž','Kovář','Kratochvíl','Bartoš','Vlček','Polák','Musil','Kopecký','Šimek','Konečný','Malý','Holub','Štěpánek','Čech','Kadlec','Staněk','Dostál','Soukup','Šťastný','Mareš','Moravec','Sýkora','Tichý','Valenta','Vávra','Matoušek','Říha','Bureš','Ševčík','Hruška','Mašek','Pavlík','Janda','Hrubý','Mach','Dušek','Šebesta','Skála','Tůma','Kopal','Štěpán']},
 };
 for (const N of Object.values(NOMS)) N.p = [...N.h, ...N.f];
 
@@ -306,5 +419,5 @@ const ROLES = {
 const FOCUS = [['technique', 'Technique', ['Vol', 'Balle', 'Gardien']], ['physique', 'Physique', ['Physique']], ['tactique', 'Tactique', ['Mental']], ['repos', 'Repos', []]];
 const INTENSITES = [[1, 'Légère'], [2, 'Normale'], [3, 'Intense']];
 
-root.QMD = {TOURNOI, MANIES, BATIMENTS, PRODUITS, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
+root.QMD = {TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
 })(typeof window !== 'undefined' ? window : globalThis);

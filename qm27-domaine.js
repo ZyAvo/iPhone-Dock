@@ -1,4 +1,4 @@
-// mon-ecran-version: e7d269b6
+// mon-ecran-version: fb959305
 /* QM27 (v88, lot 5) — le domaine du club : bâtiments sorciers (niveaux 1 à 5 et améliorations au choix aux niveaux 3 et 5),
    stade en quatre tribunes, Bazar (produits et prix), sponsor maillot et panneaux à négocier, supporters, emprunt à la Banque des Gobelins,
    salle des trophées et palmarès, petits événements. Sans affichage : expose window.QMB (bonus lus par le moteur) et complète window.QMC.
@@ -10,7 +10,7 @@ const Q = () => root.QM;
 const borne = (x, a, b) => Math.max(a, Math.min(b, x));
 const arrondi = (x, pas) => Math.round(x / pas) * pas;
 const euros = x => QMC.euros(x);
-const club = (M, id) => M.clubs[id];
+const club = (M, id) => M.clubs[id] || (M.reserve && M.reserve[id]);   // v106 : club sorti du jeu (palmarès)
 const rng = (M, ...cle) => Q().hasard(Q().melange(M.graine, ...cle));
 const tic = M => M.tic || 0;
 const estJoueur = (M, c) => !!(M.manager && c && M.manager.club === c.id);
@@ -191,8 +191,8 @@ function palmaresAncien(M){
   return anciensCache[k] = L;
 }
 function titres(M, c){
-  const L = palmaresAncien(M).filter(x => x.club === c.id).map(x => ({saison:x.saison, titre:`Champion · ${M.ligues[x.ligue].court}`, ancien:true}));
-  for (const h of M.histo) for (const [lg, id] of Object.entries(h.champions || {})) if (id === c.id) L.push({saison:h.saison, titre:`Champion · ${M.ligues[lg].court}`, ancien:false});
+  const L = palmaresAncien(M).filter(x => x.club === c.id).map(x => ({saison:x.saison, titre:`Champion · ${Q().ligueDe(M, x.ligue).court}`, ancien:true}));
+  for (const h of M.histo) for (const [lg, id] of Object.entries(h.champions || {})) if (id === c.id) L.push({saison:h.saison, titre:`Champion · ${Q().ligueDe(M, lg).court}`, ancien:false});
   return L.sort((x, y) => x.saison < y.saison ? 1 : -1);
 }
 const visites = (M, c) => niv(c, 'trophees') * (900 + 250 * titres(M, c).length) * (a(c, 'fantome') ? 1.5 : 1) * (a(c, 'musee') ? 2 : 1);
@@ -299,7 +299,7 @@ function apresSaison(M){
 }
 
 /* ---------- Branchements ---------- */
-const base = {initMonde:QMC.initMonde, semaine:QMC.semaine, avantSaison:QMC.avantSaison, apresSaison:QMC.apresSaison, migrer:QMC.migrer, apresChoixClub:QMC.apresChoixClub};
+const base = {nouveauClub:QMC.nouveauClub, initMonde:QMC.initMonde, semaine:QMC.semaine, avantSaison:QMC.avantSaison, apresSaison:QMC.apresSaison, migrer:QMC.migrer, apresChoixClub:QMC.apresChoixClub};
 function completer4(M, v){
   for (const c of Object.values(M.clubs)) completerClub(M, c);
   assurer(M);
@@ -307,6 +307,7 @@ function completer4(M, v){
 }
 Object.assign(QMC, {
   initMonde(M, r){ base.initMonde(M, r); for (const c of Object.values(M.clubs)) completerClub(M, c); },
+  nouveauClub(M, r, c){ base.nouveauClub(M, r, c); completerClub(M, c); },
   semaine(M, S){ base.semaine(M, S); semaine(M, S); },
   avantSaison(M, r){ base.avantSaison(M, r); avantSaison(M); },
   apresSaison(M, r){ base.apresSaison(M, r); apresSaison(M); },
