@@ -1,4 +1,4 @@
-// mon-ecran-version: a06f8fa4
+// mon-ecran-version: 55c0411f
 /* QM27 (v87) — graphismes dessinés par le code, sans image : blasons des clubs, maillots, avatars, radar du profil.
    Tout est déterministe : un club ou une personne a toujours le même dessin (graine = identifiant).
    window.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe}. Aucune dépendance (QMD seulement pour les prénoms). */
@@ -349,50 +349,6 @@ const BAT_IMG = {bureau:'lieux/direction', tribunes:'batiments/tribunes', boutiq
 /* dans un <svg viewBox="0 0 64 64"> : l'illustration si elle existe, sinon le dessin */
 function batiment(type, c1, c2){ return BAT_IMG[type] ? `<image href="${IMAGES}${BAT_IMG[type]}.webp" x="-2" y="-4" width="68" height="68" preserveAspectRatio="xMidYMax meet"/>` : batimentDessin(type, c1, c2); }
 function batimentDessin(type, c1, c2){ return (BAT_ICONES[type] || BAT_ICONES.bureau)(c1 || '#5a6a80', c2 || '#e6e9ee'); }
-/* v111 : trophées illustrés (images/qm27/trophees/) ; cle = ligue (bi, la, sc, ce ; fr et it : la coupe latine), eu, ln */
-const COUPE = {bi:'bi', la:'la', fr:'la', it:'la', sc:'sc', ce:'ce', eu:'eu', ln:'ln', sx:'ln'};
-const coupeImg = (cle, cls) => COUPE[cle] ? `<img class="${cls || 'tro'} img" src="${IMAGES}trophees/coupe-${COUPE[cle]}.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">` : '';
-/* récompense d'un palmarès : [saison, code, ligue, quand] (pour « meilleur à son poste », quand = le poste) */
-function prixImg(x, cls){
-  const k = x[1], f = k === 'ch' ? 'coupe-' + (COUPE[x[2]] || 'la') : k === 'ld' ? 'coupe-eu' : k === 'ln' || k === 'sx' ? 'coupe-ln' : k === 'pa' ? 'prix-pa' + (x[3] || 'P') : 'prix-' + k;
-  return `<img class="${cls || 'pr-ico'}" src="${IMAGES}trophees/${f}.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" onerror="this.remove()">`;
-}
-/* v111 : produits du Bazar dessinés en rouge, bleu et jaune purs (images/qm27/bazar/), recolorés aux couleurs du club dans un canvas */
-const PROD_CLES = {peluche:'', choco:'r', balai:'rb', fanion:'rb', edition:'rb'};   // clés recolorées (r rouge, b bleu, j jaune) ; défaut : les trois
-const hexRgb = h => { h = String(h).replace('#', ''); if (h.length === 3) h = h.replace(/./g, x => x + x); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
-const CACHE_PROD = new Map();
-function couleursProduit(c){
-  const [c1, c2] = (c && c.couleurs) || ['#445566', '#dddddd'], lum = x => { const [r, g, b] = hexRgb(x); return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
-  const c3 = Math.abs(lum(c1) - lum(c2)) > 0.25 ? c2 : lum(c1) < 0.5 ? '#f2efe6' : '#1d2533';
-  return [c1, c2, c3];
-}
-function colorierProduit(img, cols, cles){
-  const k = img.dataset.prod + '|' + cols.join(',') + '|' + cles; if (CACHE_PROD.has(k)){ img.src = CACHE_PROD.get(k); return; }
-  try {
-    const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
-    const g = cv.getContext('2d'); g.drawImage(img, 0, 0); const d = g.getImageData(0, 0, cv.width, cv.height), p = d.data, C = cols.map(hexRgb);
-    for (let i = 0; i < p.length; i += 4){
-      if (p[i + 3] < 8) continue;
-      const r = p[i] / 255, gg = p[i + 1] / 255, b = p[i + 2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), v = mx, s = mx ? (mx - mn) / mx : 0;
-      if (s < 0.42 || v < 0.3) continue;
-      let h = 0; const dd = mx - mn; if (dd){ h = mx === r ? ((gg - b) / dd) % 6 : mx === gg ? (b - r) / dd + 2 : (r - gg) / dd + 4; h *= 60; if (h < 0) h += 360; }
-      const q = (h < 22 || h > 330) ? 0 : (h >= 200 && h <= 275) ? 1 : (h >= 38 && h < 72 && v > 0.55) ? 2 : -1;
-      if (q < 0 || !cles.includes('rbj'[q])) continue;
-      const o = Math.min(1.05, Math.max(0.5, v / 0.97)), c = C[q];
-      p[i] = Math.min(255, c[0] * o); p[i + 1] = Math.min(255, c[1] * o); p[i + 2] = Math.min(255, c[2] * o);
-    }
-    g.putImageData(d, 0, 0); const url = cv.toDataURL('image/png'); CACHE_PROD.set(k, url); img.src = url;
-  } catch (e){ /* image d'une autre origine ou canvas indisponible : on garde le modèle */ }
-}
-/* à appeler après l'affichage : recolore les <img data-prod> de la page selon le club */
-function colorierProduits(racine, c){
-  const cols = couleursProduit(c);
-  (racine || document).querySelectorAll('img[data-prod]:not([data-fait])').forEach(img => {
-    const cles = PROD_CLES[img.dataset.prod] ?? 'rbj'; img.dataset.fait = '1'; if (!cles) return;
-    if (img.complete && img.naturalWidth) colorierProduit(img, cols, cles); else img.addEventListener('load', () => colorierProduit(img, cols, cles), {once:true});
-  });
-}
-const produitImg = (id, cls) => `<img class="${cls || 'prod-img'}" data-prod="${id}" src="${IMAGES}bazar/${id}.webp" alt="" aria-hidden="true" decoding="async">`;
 /* trophée (coupe) : variante selon le titre */
 function trophee(k, titre){
   const r = rng('trophee' + k + titre), or = choix(r, ['#e2b23a', '#d9a62e', '#c9c9c9', '#e8c55a']), anse = r() < 0.5;
@@ -401,5 +357,5 @@ function trophee(k, titre){
     <rect x="18" y="22" width="4" height="10" fill="${or}"/><path d="M12 32h16l2 6H10z" fill="${melange(or, '#000000', 0.2)}"/><rect x="9" y="38" width="22" height="7" rx="1" fill="#4a3a2a"/><path d="M14 9c0 4 1 7 4 8" stroke="#fff" stroke-width="1.2" opacity=".55" fill="none"/></svg>`;
 }
 
-root.QMV = {BAT_IMG, coupeImg, prixImg, produitImg, colorierProduits, IMAGES, VISAGES, visageDe, attribuerVisages, blasonDessin, batimentDessin, embleme, EMBL, blason, maillot, avatar, radar, couleursNation, emblemeDe, feminin, EMB, EMBLEMES, lisible, melange, batiment, trophee};
+root.QMV = {IMAGES, VISAGES, visageDe, attribuerVisages, blasonDessin, batimentDessin, embleme, EMBL, blason, maillot, avatar, radar, couleursNation, emblemeDe, feminin, EMB, EMBLEMES, lisible, melange, batiment, trophee};
 })(typeof window !== 'undefined' ? window : globalThis);

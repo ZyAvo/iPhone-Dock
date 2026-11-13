@@ -1,4 +1,4 @@
-// mon-ecran-version: 223f0fc7
+// mon-ecran-version: fb959305
 /* QM27 (v88, lot 5) — le domaine du club : bâtiments sorciers (niveaux 1 à 5 et améliorations au choix aux niveaux 3 et 5),
    stade en quatre tribunes, Bazar (produits et prix), sponsor maillot et panneaux à négocier, supporters, emprunt à la Banque des Gobelins,
    salle des trophées et palmarès, petits événements. Sans affichage : expose window.QMB (bonus lus par le moteur) et complète window.QMC.
@@ -191,9 +191,8 @@ function palmaresAncien(M){
   return anciensCache[k] = L;
 }
 function titres(M, c){
-  const L = palmaresAncien(M).filter(x => x.club === c.id).map(x => ({saison:x.saison, titre:`Champion · ${Q().ligueDe(M, x.ligue).court}`, ancien:true, cle:x.ligue}));
-  for (const h of M.histo) for (const [lg, id] of Object.entries(h.champions || {})) if (id === c.id) L.push({saison:h.saison, titre:`Champion · ${Q().ligueDe(M, lg).court}`, ancien:false, cle:lg});
-  for (const h of M.europeHist || []) if (h.v === c.id) L.push({saison:`${h.saison}-${String(h.saison + 1).slice(2)}`, titre:'Ligue des Anneaux', ancien:false, cle:'eu'});   // v111
+  const L = palmaresAncien(M).filter(x => x.club === c.id).map(x => ({saison:x.saison, titre:`Champion · ${Q().ligueDe(M, x.ligue).court}`, ancien:true}));
+  for (const h of M.histo) for (const [lg, id] of Object.entries(h.champions || {})) if (id === c.id) L.push({saison:h.saison, titre:`Champion · ${Q().ligueDe(M, lg).court}`, ancien:false});
   return L.sort((x, y) => x.saison < y.saison ? 1 : -1);
 }
 const visites = (M, c) => niv(c, 'trophees') * (900 + 250 * titres(M, c).length) * (a(c, 'fantome') ? 1.5 : 1) * (a(c, 'musee') ? 2 : 1);

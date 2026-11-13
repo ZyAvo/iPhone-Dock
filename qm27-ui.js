@@ -1,4 +1,4 @@
-// mon-ecran-version: 5d7d021f
+// mon-ecran-version: 842dcdac
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -1082,32 +1082,7 @@ function batPlan(c, k){
     <text x="${x}" y="${y + 14}" text-anchor="middle" class="dlab">${esc(nomBat(k).replace('Pensionnat des jeunes ailes', 'Pensionnat').replace('Cabinet de divination', 'Divination').replace('Résidence des joueurs', 'Résidence').replace('Salle des trophées', 'Trophées').replace('Bureau du président', 'Président').replace('Volière à hiboux', 'Volière').replace('Hangar à balais', 'Hangar').replace('Taverne du stade', 'Taverne').replace('Bazar du club', 'Bazar'))}</text>
     ${n ? `<g transform="translate(${x - 14} ${y + 18})">${[0, 1, 2, 3, 4].map(i => `<rect x="${i * 6}" y="0" width="4.4" height="3" rx="1" fill="${i < n ? 'var(--or)' : 'var(--line)'}"/>`).join('')}</g>` : ''}</g>`;
 }
-/* v111 : la carte illustrée du domaine (images/qm27/domaine/), 12 clairières de 3 × 4 ; le château est le bureau du président.
-   Repère de l'image (1024 × 1536) : [x0, x1, y0, y1] de chaque clairière */
-const CLAIRIERES = {voliere:[126, 346, 509, 619], salle:[399, 618, 508, 618], divination:[670, 889, 509, 618],
-  infirmerie:[101, 340, 660, 793], tribunes:[397, 628, 661, 793], aire:[683, 914, 660, 792],
-  formation:[76, 333, 839, 984], buvettes:[394, 637, 839, 983], boutique:[696, 945, 838, 984],
-  residence:[52, 328, 1034, 1211], hangar:[390, 644, 1033, 1208], trophees:[706, 972, 1034, 1208]};
-const COURT_BAT = {formation:'Pensionnat', divination:'Divination', residence:'Résidence', trophees:'Trophées', tribunes:'Stade', buvettes:'Taverne', boutique:'Bazar', infirmerie:'Infirmerie', aire:'Aire d\'envol', hangar:'Hangar', salle:'Salle', voliere:'Volière'};
-function planIllustre(c){
-  /* deux passes : les bâtiments (rangée du haut d'abord), puis toutes les plaques par-dessus, jamais cachées par un voisin */
-  const I = V.IMAGES, L = [['bureau', 595, 292, 300, 'Bureau du président', 0, null, false],
-    ...Object.entries(CLAIRIERES).map(([k, [x0, x1, y0, y1]]) => [k, (x0 + x1) / 2, y1 - 8, Math.min(230, (x1 - x0) * 0.86), COURT_BAT[k] || nomBat(k), C.niv(c, k), c.travaux.find(t => t.type === k || (k === 'tribunes' && t.type === 'stade')), B.amelEnAttente(c, k)])];
-  const aria = (k, n, tr, att) => `${esc(nomBat(k))}${n ? ', niveau ' + n : ''}${tr ? ', travaux en cours' : ''}${att ? ', amélioration à choisir' : ''}`;
-  const bats = L.map(([k, x, y, w, nom, n, tr, att]) => `<g class="dbat d2" data-act="batiment" data-b="${k}" role="button" tabindex="0" aria-label="${aria(k, n, tr, att)}">
-      <rect x="${x - w / 2}" y="${y - w}" width="${w}" height="${w + 10}" fill="transparent"/>
-      ${k !== 'bureau' ? `<image href="${I}${V.BAT_IMG[k]}.webp" x="${x - w / 2}" y="${y - w}" width="${w}" height="${w}" preserveAspectRatio="xMidYMax meet" class="bat-img"/>` : ''}
-      ${tr ? `<text x="${x + w * 0.38}" y="${y - w * 0.6}" text-anchor="middle" class="d2-chantier">🔨</text>` : ''}</g>`).join('');
-  const plaques = L.map(([k, x, y, w, nom, n, tr, att]) => { const lg = nom.length * 9.6 + (n ? 36 : 0) + 22;
-    return `<g class="dbat" data-act="batiment" data-b="${k}" aria-hidden="true" transform="translate(${x} ${y + 4})"><rect x="${-lg}" y="-25" width="${2 * lg}" height="48" rx="24" class="plaque"/>
-      <text y="11" text-anchor="middle" class="d2-t">${esc(nom)}${n ? ` <tspan class="d2-n">${n}</tspan>` : ''}</text>
-      ${att ? `<g transform="translate(${lg - 4} -22)"><circle r="19" class="pastille"/><text y="9" text-anchor="middle" class="d2-p">!</text></g>` : ''}</g>`; }).join('');
-  return `<svg class="plan plan2" viewBox="0 0 1024 1536" role="group" aria-label="Plan du domaine de ${esc(c.nom)}">
-    <image href="${I}domaine/carte-jour.webp" x="0" y="0" width="1024" height="1536" class="fond-img"/><image href="${I}domaine/carte-nuit.webp" x="0" y="0" width="1024" height="1536" class="fond-nuit"/>
-    ${bats}${plaques}</svg>`;
-}
 function planDomaine(c){
-  if (V.BAT_IMG && V.IMAGES) return planIllustre(c);   // v111
   return `<svg class="plan" viewBox="0 0 420 320" role="group" aria-label="Plan du domaine">
     <rect x="0" y="0" width="420" height="320" rx="18" class="dsol"/>
     <path d="M0 26C60 6 120 16 170 8s120-4 170 10 80 6 80 6V0H0z" class="dcolline"/>
@@ -1157,7 +1132,35 @@ function ficheBat(k){
       ${vue ? `<button class="btn sec" data-act="allerVue" data-v="${vue}">Ouvrir</button>` : ''}</div>
     <div class="carte"><h2>Améliorations <span class="mut petit">une au choix par niveau</span></h2>${choix(3)}${choix(5)}</div>${extra}`);
 }
+/* v112 : stade illustré façon FM98 (images/qm27/stade/) : le terrain vide et une pièce de tribune par emplacement, selon sa capacité.
+   Repère du terrain 1536 × 1024 ; [centre x, base y, largeur] de chaque emplacement de gauche (la droite est son miroir). */
+const STADE_RATIO = {'angle-avant-bois':0.931, 'angle-avant-chantier':1.156, 'angle-avant-grande':0.975, 'angle-avant-pierre':0.797, 'angle-fond-bois':0.969, 'angle-fond-chantier':1.247, 'angle-fond-grande':0.922, 'angle-fond-pierre':0.916, 'avant-bois':0.488, 'avant-chantier':0.926, 'avant-grande':0.781, 'avant-pierre':0.572, 'fond-bois':0.715, 'fond-chantier':1.039, 'fond-grande':0.877, 'fond-pierre':0.748, 'virage-bois':0.966, 'virage-chantier':1.262, 'virage-grande':1.212, 'virage-pierre':0.972};   // hauteur / largeur de chaque pièce
+const STADE_POS = {N:[768, 268, 560], S:[780, 905, 560], O:[100, 560, 210], E:[100, 560, 210], NO:[262, 278, 250], NE:[262, 278, 250], SO:[205, 860, 250], SE:[205, 860, 250]};
+const STADE_PIECE = {N:'fond', S:'avant', O:'virage', E:'virage', NO:'angle-fond', NE:'angle-fond', SO:'angle-avant', SE:'angle-avant'};
+const NIV_T = ['bois', 'pierre', 'grande'];
+function niveauxStade(c){
+  const t = c.dom.trib, rang = (v, a, b) => v < a ? 0 : v < b ? 1 : 2, ch = c.travaux.some(x => x.type === 'stade') ? c.dom.cote : null;
+  const n = {N:rang(t.N, 4500, 9000), S:rang(t.S, 4500, 9000), O:rang(t.O, 2500, 5000), E:rang(t.E, 2500, 5000)};
+  const coin = (a, b) => c.stade < 10000 ? -1 : Math.min(n[a], n[b]);   // petits stades : pas de tribunes d'angle
+  const r = {...n, NO:coin('N', 'O'), NE:coin('N', 'E'), SO:coin('S', 'O'), SE:coin('S', 'E')};
+  const out = {}; for (const k in r) out[k] = k === ch ? 'chantier' : r[k] < 0 ? null : NIV_T[r[k]];
+  return out;
+}
+function stadeIllustre(c){
+  const I = V.IMAGES, n = niveauxStade(c), t = c.dom.trib, nomC = {N:'nord', S:'sud', E:'est', O:'ouest'};
+  const piece = k => { if (!n[k]) return ''; const nom = `${STADE_PIECE[k]}-${n[k]}`, [cx0, base, w] = STADE_POS[k], dr = k === 'E' || k === 'NE' || k === 'SE', cx = dr ? 1536 - cx0 : cx0, h = w * (STADE_RATIO[nom] || 0.8);
+    const img = `<image href="${I}stade/${nom}.webp" x="${-w / 2}" y="${-h}" width="${w}" height="${h}" preserveAspectRatio="none"/>`;
+    const g = `<g transform="translate(${cx} ${base})${dr ? ' scale(-1 1)' : ''}">${img}</g>`;
+    return t[k] != null ? `<g class="trib2" data-act="tribune" data-c="${k}" role="button" tabindex="0" aria-label="Tribune ${nomC[k]} : ${t[k].toLocaleString('fr-FR')} places${n[k] === 'chantier' ? ', travaux en cours' : ''}">${g}</g>` : `<g aria-hidden="true">${g}</g>`; };
+  const ordre = ['NO', 'NE', 'N', 'O', 'E', 'SO', 'SE', 'S'];
+  const lab = {N:[768, 300], S:[780, 945], O:[100, 600], E:[1436, 600]};
+  const plaques = Object.entries(lab).map(([k, [x, y]]) => { const v = t[k], txt = `${(v / 1000).toFixed(v % 1000 ? 1 : 0).replace('.', ',')} k${n[k] === 'chantier' ? ' 🔨' : ''}`;
+    return `<g class="trib2" data-act="tribune" data-c="${k}" aria-hidden="true" transform="translate(${x} ${y})"><rect x="${-txt.length * 15 - 22}" y="-34" width="${2 * (txt.length * 15 + 22)}" height="58" rx="29" class="st-pl"/><text y="12" text-anchor="middle" class="st-t">${txt}</text></g>`; }).join('');
+  return `<svg class="stadev stade2" viewBox="0 -230 1536 1254" role="group" aria-label="Le stade : ${c.stade.toLocaleString('fr-FR')} places">
+    <image href="${I}stade/terrain.webp" x="0" y="0" width="1536" height="1024" class="st-fond"/>${ordre.map(piece).join('')}${plaques}</svg>`;
+}
 function stadeVue(c){
+  if (V.IMAGES) return stadeIllustre(c);   // v112
   const t = c.dom.trib, ep = x => 10 + Math.min(34, x / 900), [c1, c2] = c.couleurs, lv = C.niv(c, 'tribunes');
   const n = ep(t.N), s = ep(t.S), e = ep(t.E), o = ep(t.O), X0 = 70, X1 = 290, Y0 = 60, Y1 = 170;
   const tribune = (cote, d, lab, cap) => `<g class="trib" data-act="tribune" data-c="${cote}" role="button" tabindex="0" aria-label="Tribune ${lab} : ${cap.toLocaleString('fr-FR')} places"><path d="${d}" fill="${lv >= 3 ? V.melange(c1, '#000000', .18) : c1}" stroke="rgba(0,0,0,.35)"/>
@@ -1182,7 +1185,7 @@ function vueStade(){
   const nom = {N:'Nord', S:'Sud', E:'Est', O:'Ouest'};
   VUE.innerHTML = `<div><h1 class="grand">Stade</h1><p class="sous">${esc(c.nom)} · ${c.stade.toLocaleString('fr-FR')} places · tribunes niveau ${C.niv(c, 'tribunes')}</p></div>
   <div class="cols"><div>
-    <div class="carte">${stadeVue(c)}<p class="petit mut" style="margin:6px 2px 0">Touche une tribune pour l'agrandir de ${E.stade.tranche.toLocaleString('fr-FR')} places (${eur(C.coutTravaux(c, 'stade'))}, ${E.stade.semaines} semaines). Panneaux vendus : ${c.dom.panneaux.length} / ${B.placesPanneaux(c)}.</p></div>
+    <div class="carte">${stadeVue(c)}<p class="petit mut" style="margin:6px 2px 0">Touche une tribune (ou son chiffre) pour l'agrandir de ${E.stade.tranche.toLocaleString('fr-FR')} places (${eur(C.coutTravaux(c, 'stade'))}, ${E.stade.semaines} semaines). Panneaux vendus : ${c.dom.panneaux.length} / ${B.placesPanneaux(c)}.</p></div>
     <div class="carte"><h2>Tribunes</h2><div class="liste">${Object.keys(nom).map(k => `<div class="el"><div class="t"><b>Tribune ${nom[k]}</b><span>${c.dom.trib[k].toLocaleString('fr-FR')} places</span></div>${ext ? (c.dom.cote === k ? `<span class="badge">travaux · ${ext.fin - (M.tic || 0)} sem.</span>` : '') : `<button class="btn sec" data-act="tribune" data-c="${k}">+ ${(E.stade.tranche / 1000)} k</button>`}</div>`).join('')}</div></div>
   </div><div>
     <div class="carte"><h2>Billetterie</h2><div class="ligne"><button class="btn sec" data-act="prix" data-d="-1" aria-label="Baisser le prix">−</button><b style="flex:1;text-align:center;font-size:1.15rem">${eur(c.prix)} la place</b><button class="btn sec" data-act="prix" data-d="1" aria-label="Augmenter le prix">+</button></div>
@@ -1196,11 +1199,10 @@ function vueBoutique(){
   VUE.innerHTML = `<div><h1 class="grand">Bazar du club</h1><p class="sous">Niveau ${C.niv(c, 'boutique')} · ${actifs} / ${B.placesRayon(c)} produits en rayon · environ ${eur(B.recettesBazar(c))} par semaine</p></div>
   <div class="carte"><div class="liste">${D.PRODUITS.map(p => { const ok = !p[4] || B.a(c, p[4]), st = d.produits[p[0]] || {actif:false, prix:'normal'};
     if (!ok) return `<div class="el" style="opacity:.55"><div class="t"><b>🔒 ${esc(p[1])}</b><span>Débloqué par ${esc(B.AMEL[p[4]].nom)} (${esc(nomBat(B.AMEL[p[4]].bat))}, niveau ${B.AMEL[p[4]].niv})</span></div></div>`;
-    return `<div class="el prod">${V.produitImg(p[0])}<label class="interr"><input type="checkbox" data-chg="produit" data-p="${p[0]}" ${st.actif ? 'checked' : ''}><span></span></label>
+    return `<div class="el prod"><label class="interr"><input type="checkbox" data-chg="produit" data-p="${p[0]}" ${st.actif ? 'checked' : ''}><span></span></label>
       <div class="t"><b>${esc(p[1])}</b><span>${'★'.repeat(Math.round(p[2] * 3))} · ${eur(p[3] * B.PRIX[st.prix].p)} · ${st.actif ? '≈ ' + eur(B.recetteProduit(c, p, st)) + ' / sem.' : 'pas en rayon'}</span></div>
       <div class="seg mini">${['bas', 'normal', 'haut'].map(v => `<button data-act="prixProduit" data-p="${p[0]}" data-v="${v}" class="${st.prix === v ? 'on' : ''}">${lib[v]}</button>`).join('')}</div></div>`; }).join('')}</div>
-    <p class="petit mut" style="margin:8px 0 0">Les produits portent les couleurs du club. Prix bas : un peu moins de recettes, des supporters ravis. Prix haut : plus de recettes, des supporters qui râlent. Chaque niveau du Bazar ajoute une place en rayon.</p></div>`;
-  V.colorierProduits(VUE, c);   // v111
+    <p class="petit mut" style="margin:8px 0 0">Prix bas : un peu moins de recettes, des supporters ravis. Prix haut : plus de recettes, des supporters qui râlent. Chaque niveau du Bazar ajoute une place en rayon.</p></div>`;
 }
 function vuePartenaires(){
   const c = B.assurer(M), d = c.dom, sp = d.sponsor, pl = B.placesPanneaux(c);
@@ -1219,7 +1221,7 @@ function vuePartenaires(){
 function vueTrophees(){
   const c = B.assurer(M), T = B.titres(M, c);
   VUE.innerHTML = `<div><h1 class="grand">Salle des trophées</h1><p class="sous">${esc(c.nom)} · niveau ${C.niv(c, 'trophees')} · visites ${eur(B.visites(M, c))} par semaine</p></div>
-  <div class="carte">${T.length ? `<div class="trophees">${T.map((x, i) => `<div class="tr ${x.ancien ? 'ancien' : ''}">${(V.coupeImg && V.coupeImg(x.cle)) || V.trophee(x.titre, x.saison)}<b>${esc(x.saison)}</b><span>${esc(x.titre)}</span></div>`).join('')}</div>` : '<p class="mut" style="margin:0">La vitrine est vide. À toi de la remplir.</p>'}
+  <div class="carte">${T.length ? `<div class="trophees">${T.map((x, i) => `<div class="tr ${x.ancien ? 'ancien' : ''}">${V.trophee(x.titre, x.saison)}<b>${esc(x.saison)}</b><span>${esc(x.titre)}</span></div>`).join('')}</div>` : '<p class="mut" style="margin:0">La vitrine est vide. À toi de la remplir.</p>'}
     <p class="petit mut" style="margin:10px 0 0">Les titres d'avant ton arrivée sont un peu passés. Chaque titre attire plus de visiteurs.</p></div>`;
 }
 function banqueHTML(c){
