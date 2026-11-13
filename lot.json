@@ -1,6 +1,6 @@
 {
- "lot": "v107",
- "date": "2026-11-13T08:03:58+00:00",
+ "lot": "v108",
+ "date": "2026-11-13T08:47:10+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/appli-ios.yml": "71fe94d4",
@@ -47,6 +47,7 @@
   "outils/dev/classeur/tuto.py": "62da4948",
   "outils/dev/empaqueter.py": "d9934bc2",
   "outils/dev/icones.py": "69297db2",
+  "outils/dev/qm27-blasons.py": "70b1fbab",
   "outils/dev/qm27-decoupe.py": "db2509e3",
   "outils/dev/qm27-decoupe2.py": "486d40fc",
   "outils/dev/qm27-essai.mjs": "8f090b70",
@@ -83,7 +84,7 @@
   "qm27.js": "40d19ed6",
   "reglages.html": "7ce973d7",
   "sport.html": "01a1235f",
-  "sw.js": "93f8fea7",
+  "sw.js": "28710264",
   "synchro.js": "0ce8808a",
   "themes.js": "1769949a",
   "tv.html": "710b63d8",

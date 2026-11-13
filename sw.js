@@ -1,4 +1,4 @@
-// mon-ecran-version: 93f8fea7
+// mon-ecran-version: 28710264
 /* Mon Écran — mise en mémoire sur l'iPhone pour un démarrage instantané, même sans réseau.
    - Pages (accueil, actus, sport, état) : dernière version si le réseau répond en moins de 1,5 s,
      sinon la version en mémoire tout de suite, mise à jour en arrière-plan (la page se recharge seule
@@ -6,7 +6,7 @@
    - Données (matchs, programme TV, actus, état) : réseau d'abord ; sans réseau, dernière version connue.
    - Polices Google : gardées en mémoire.
    Les sites extérieurs (ESPN, Spotify, flux RSS…) ne passent pas par ici. */
-const PAGES = 'pages-v1', DATA = 'donnees-v1', FONTS = 'polices-v1', IMAGES = 'images-v1';   // v93 : illustrations de QM27
+const PAGES = 'pages-v1', DATA = 'donnees-v1', FONTS = 'polices-v1', IMAGES = 'images-v2';   // v93 : illustrations de QM27 ; v108 : v2, les images redécoupées (mêmes noms) sont rechargées une fois
 const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'pronos.html', 'reglages.html', 'tv.html', 'ambreval.html', 'ambreval.js', 'ambreval-art.js', 'ambreval-ui.js', 'qm27.html', 'qm27.js', 'qm27-donnees.js', 'qm27-club.js', 'qm27-carriere.js', 'qm27-domaine.js', 'qm27-vestiaire.js', 'qm27-presse.js', 'qm27-tactique.js', 'qm27-bureau.js', 'qm27-prix.js', 'qm27-europe.js', 'qm27-nations.js', 'qm27-visuel.js', 'qm27-ui.js', 'qm27-ecrans.js', 'qm27-stats.js', 'noyau.js', 'themes.js', 'tv.js', 'match.js', 'synchro.js', 'commun.js', 'commun.css', 'polices/Geist-Variable.woff2', 'manifest.json', 'manifest-pronos.json', 'apple-touch-icon.png', 'icone-192.png', 'icone-512.png'];
 
 self.addEventListener('install', e => {
