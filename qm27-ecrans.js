@@ -1,4 +1,4 @@
-// mon-ecran-version: fd5f983e
+// mon-ecran-version: a6c2c797
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -161,6 +161,16 @@ const SCENES = {
       si:M_ => { const R = G() && G().reunion(M_); return !!(R && R.fin && R.accord); }},
     {id:'bourse', img:'scenes/bureau-bourse', calques:[['scenes/bureau-piece', 'piece p1'], ['scenes/bureau-piece', 'piece p2'], ['scenes/bureau-piece', 'piece p3']], x:12.7, y:69.4, w:15, plaque:'g', anim:'pieces', nom:'Finances', act:'scFinances'},
   ]},
+  /* v117 : la banque des Gobelins (finances) ; le coffre s'ouvre en trois images, le plan du stade se remplit jusqu'à l'affluence prévue */
+  finances:{fond:'scenes/banque-fond', ratio:1536 / 1024, objets:[
+    {id:'plaque', img:'scenes/banque-plaque', x:84.2, y:29.2, w:21, anim:'fixe', muet:true, nom:'Solde', act:'scCoffre',
+      textes:[[(M_, c) => eurT(c.budget), 'left:8%;top:22%;width:84%;height:56%', 'sc-grave']]},
+    {id:'coffre', img:'scenes/banque-coffre-1', calques:[['scenes/banque-coffre-2', 'f2'], ['scenes/banque-coffre-3', 'f3']], x:84.2, y:39.6, w:26, plaque:'d', anim:'porte', nom:'Le coffre', act:'scCoffre'},
+    {id:'plan', img:'scenes/banque-plan-vide', calques:[['scenes/banque-plan-plein', 'plein'], ['scenes/banque-etiquette', 'fixe', 'left:63%;top:58%;width:33%']], x:17.9, y:30.2, w:27, plaque:'g', anim:'remplit', nom:'Billetterie', act:'scBillet',
+      textes:[[(M_, c) => eurT(c.prix), 'left:65%;top:66%;width:29%;height:14%', 'sc-encre']],
+      vars:(M_, c) => ({'--r':Math.round(18 + 60 * Math.min(1, C.remplissage(M_, c, {rep:60}))) + '%'})},
+    {id:'gobelin', img:'scenes/banque-gobelin', calques:[['scenes/banque-gobelin-monocle', 'monocle', 'top:auto;bottom:0']], x:51, y:45.1, w:34, anim:'gobelin', nom:'Banque des Gobelins', act:'scGobelin'},
+  ]},
 };
 const SC_OK = {};
 function sceneDispo(l){
@@ -173,7 +183,9 @@ function sceneHTML(l){
   const obj = o => {
     const corps = o.portrait ? `<span class="sc-toile">${avatarMgr('sc-av')}</span><img class="sc-cadre" src="${src(o.cadre)}" alt="" draggable="false">`
       : `<img class="sc-base"${o.club ? ' data-prod="scene"' : ''} src="${src(o.img)}" alt="" draggable="false">${(o.calques || []).map(([k, cl, st]) => `<img class="sc-c ${cl}" src="${src(k)}" alt="" draggable="false"${st ? ` style="${st}"` : ''}>`).join('')}`;
-    return `<button class="sc-obj sc-${o.anim}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="left:${o.x}%;top:${o.y}%;width:${o.w}%" aria-label="${esc(o.nom)}">${corps}<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(o.nom)}</span></button>`;
+    const vars = o.vars ? Object.entries(o.vars(M_, c)).map(([k, v]) => `;${k}:${v}`).join('') : '';
+    const textes = (o.textes || []).map(([fn, st, cl]) => `<span class="sc-txt ${cl || ''}" style="${st}">${esc(fn(M_, c))}</span>`).join('');
+    return `<button class="sc-obj sc-${o.anim}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="left:${o.x}%;top:${o.y}%;width:${o.w}%${vars}" aria-label="${esc(o.nom)}">${corps}${textes}${o.muet ? '' : `<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(o.nom)}</span>`}</button>`;
   };
   return `<div class="scene" style="aspect-ratio:${1 / S.ratio}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}</div>
     <p class="petit mut sc-aide">Touche un objet de la pièce.</p>`;
@@ -249,7 +261,7 @@ const LOOK = {
 };
 const persoMgr = () => { const mg = M().manager, p = G() ? G().profil(M()) : null; return {id:'manager', p:(mg.nom || 'M').split(' ')[0], n:mg.nom, nat:p ? p.nat : 'FRA', age:p ? p.age : 40, look:p && p.look}; };
 const avatarMgr = (cls) => avatarDe(persoMgr(), cls, M().manager.club || null);
-Z.avatarMgr = avatarMgr;
+Z.avatarMgr = avatarMgr; Z.sceneHTML = sceneHTML; Z.sceneDispo = sceneDispo;   // v117 : scènes utilisables par les écrans de qm27-ui.js (finances)
 function vueProfil(){
   const M_ = M(), mg = M_.manager, Gm = G(), p = Gm.profil(M_), c = mg.club ? club(mg.club) : null, pool = p.pool || 0;
   const titres = M_.histo.filter(h => h.manager && h.manager.pos === 1).length;

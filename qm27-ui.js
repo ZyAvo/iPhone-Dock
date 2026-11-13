@@ -1,4 +1,4 @@
-// mon-ecran-version: ad684437
+// mon-ecran-version: a185c915
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -197,7 +197,7 @@ function rendre(){
      et la hauteur le temps que les images se recalent (Safari ramenait la page en haut) */
   const memeVue = U.vue === rendre.vue, y = scrollY, hMin = memeVue && VUE ? VUE.offsetHeight : 0;
   if (hMin) VUE.style.minHeight = hMin + 'px';
-  try { rendreVue(); } finally {
+  try { rendreVue(); rafraichirFeuilleScene(); } finally {
     rendre.vue = U.vue;
     if (memeVue && U.vue === rendre.vue){ scrollTo(0, y); requestAnimationFrame(() => { scrollTo(0, y); setTimeout(() => { if (VUE) VUE.style.minHeight = ''; }, 120); }); }
     else if (VUE) VUE.style.minHeight = '';
@@ -1009,32 +1009,39 @@ function ficheOffre(jid, mode){
     ${o.msg ? `<p style="margin:0 0 10px;font-weight:600;color:var(--moyen)">${pieces(esc(o.msg))}</p>` : ''}
     <button class="btn plein" data-act="envoyerOffre">${mode === 'prolonger' ? 'Proposer la prolongation' : libre ? 'Proposer le contrat' : 'Envoyer le hibou'}</button>`);
 }
-function vueFinances(){
-  const c = club(M.manager.club), F = c.fin.saison, P = c.fin.derniere, ms = C.masse(M, c);
-  const tot = o => Object.values(o).reduce((t, x) => t + x, 0);
-  const aff = Math.round(c.stade * C.remplissage(M, c, {rep:60}));
-  const h = c.fin.hist, max = Math.max(1, ...h.map(x => Math.abs(x.net)));
-  const balai = D.BALAIS.find(b => b.id === c.balai) || D.BALAIS[0];
-  const ligne = (n, a, b) => `<tr><td style="text-align:left">${n}</td><td>${eur(a)}</td>${P ? `<td class="tab-cache mut">${eur(b || 0)}</td>` : ''}</tr>`;
-  VUE.innerHTML = `<div><h1 class="grand">Finances</h1><p class="sous">Saison ${lab(M.saison)} · Gallions fictifs</p></div>
-  <div class="cols"><div>
-  <div class="carte"><h2>Solde</h2><div style="font-size:1.9rem;font-weight:800;letter-spacing:-.03em;color:${c.budget < 0 ? 'var(--mauvais)' : 'inherit'}">${eur(c.budget)}</div>
+/* v117 : les finances en morceaux, partagés par l'écran et par la banque illustrée (coffre, plan du stade, gobelin) */
+const Z_ = () => window.QMU;
+const totF = o => Object.values(o).reduce((t, x) => t + x, 0);
+function finSolde(c){ const ms = C.masse(M, c); return `<div class="carte"><h2>Solde</h2><div style="font-size:1.9rem;font-weight:800;letter-spacing:-.03em;color:${c.budget < 0 ? 'var(--mauvais)' : 'inherit'}">${eur(c.budget)}</div>
     <div style="margin:12px 0 4px" class="ligne"><span style="flex:1">Masse salariale (joueurs et staff)</span><b>${eur(ms)} / ${eur(c.masseMax)}</b></div>
     <div class="jauge" role="meter" aria-valuenow="${Math.round(ms / c.masseMax * 100)}" aria-valuemin="0" aria-valuemax="100" aria-label="Masse salariale"><i style="width:${Math.min(100, ms / c.masseMax * 100)}%;background:${ms > c.masseMax ? 'var(--mauvais)' : 'var(--accent)'}"></i></div>
-    <p class="petit mut" style="margin:8px 0 0">Limite fixée par le président : au-delà, il refuse les nouveaux contrats.</p></div>
-  <div class="carte"><h2>16 dernières semaines</h2><div class="histo">${h.map(x => `<div title="${fmtDate(x.d)} : ${eurT(x.net)}"><i style="height:${Math.max(3, Math.abs(x.net) / max * 100)}%;background:${x.net < 0 ? 'var(--mauvais)' : 'var(--bon)'}"></i></div>`).join('') || '<p class="mut">Pas encore de semaine jouée.</p>'}</div></div>
-  <div class="carte"><h2>Billetterie</h2><div class="ligne"><button class="btn sec" data-act="prix" data-d="-1" aria-label="Baisser le prix">−</button><b style="flex:1;text-align:center;font-size:1.15rem">${eur(c.prix)} la place</b><button class="btn sec" data-act="prix" data-d="1" aria-label="Monter le prix">+</button></div>
-    <p class="petit mut" style="margin:8px 0 0">Environ ${aff.toLocaleString('fr-FR')} spectateurs (${Math.round(aff / c.stade * 100)} %) contre un adversaire moyen, soit ${eur(aff * c.prix)} par match à domicile. Prix conseillé : ${eur(C.prixRef(c))}. Plus cher : moins de monde ; les résultats remplissent le stade.</p></div>
-  </div><div>
-  <div class="carte"><h2>Recettes ${P ? '<span class="mut petit">saison · précédente</span>' : ''}</h2><table class="cl"><tbody>${Object.keys(C.NOMS_REC).map(k => ligne(C.NOMS_REC[k], F.rec[k] || 0, P && (P.rec[k] || 0))).join('')}<tr><td style="text-align:left"><b>Total</b></td><td><b>${eur(tot(F.rec))}</b></td>${P ? `<td class="tab-cache mut">${eur(tot(P.rec))}</td>` : ''}</tr></tbody></table></div>
-  <div class="carte"><h2>Dépenses</h2><table class="cl"><tbody>${Object.keys(C.NOMS_DEP).map(k => ligne(C.NOMS_DEP[k], F.dep[k] || 0, P && (P.dep[k] || 0))).join('')}<tr><td style="text-align:left"><b>Total</b></td><td><b>${eur(tot(F.dep))}</b></td>${P ? `<td class="tab-cache mut">${eur(tot(P.dep))}</td>` : ''}</tr></tbody></table></div>
-  ${banqueHTML(B.assurer(M))}
-  <div class="btns" style="margin-bottom:12px"><button class="btn sec" data-act="vue" data-v="partenaires">Partenaires</button><button class="btn sec" data-act="vue" data-v="boutique">Bazar</button><button class="btn sec" data-act="vue" data-v="stade">Stade</button></div>
-  <div class="carte"><h2>Balais <span class="mut petit">${esc(balai.nom)}</span></h2>
+    <p class="petit mut" style="margin:8px 0 0">Limite fixée par le président : au-delà, il refuse les nouveaux contrats.</p></div>`; }
+function finHisto(c){ const h = c.fin.hist, max = Math.max(1, ...h.map(x => Math.abs(x.net))); return `<div class="carte"><h2>16 dernières semaines</h2><div class="histo">${h.map(x => `<div title="${fmtDate(x.d)} : ${eurT(x.net)}"><i style="height:${Math.max(3, Math.abs(x.net) / max * 100)}%;background:${x.net < 0 ? 'var(--mauvais)' : 'var(--bon)'}"></i></div>`).join('') || '<p class="mut">Pas encore de semaine jouée.</p>'}</div></div>`; }
+function finBillet(c){ const aff = Math.round(c.stade * C.remplissage(M, c, {rep:60})); return `<div class="carte"><h2>Billetterie</h2><div class="ligne"><button class="btn sec" data-act="prix" data-d="-1" aria-label="Baisser le prix">−</button><b style="flex:1;text-align:center;font-size:1.15rem">${eur(c.prix)} la place</b><button class="btn sec" data-act="prix" data-d="1" aria-label="Monter le prix">+</button></div>
+    <p class="petit mut" style="margin:8px 0 0">Environ ${aff.toLocaleString('fr-FR')} spectateurs (${Math.round(aff / c.stade * 100)} %) contre un adversaire moyen, soit ${eur(aff * c.prix)} par match à domicile. Prix conseillé : ${eur(C.prixRef(c))}. Plus cher : moins de monde ; les résultats remplissent le stade.</p></div>`; }
+function finRecDep(c){ const F = c.fin.saison, P = c.fin.derniere, tot = totF;
+  const ligne = (n, a, b) => `<tr><td style="text-align:left">${n}</td><td>${eur(a)}</td>${P ? `<td class="tab-cache mut">${eur(b || 0)}</td>` : ''}</tr>`;
+  return `<div class="carte"><h2>Recettes ${P ? '<span class="mut petit">saison · précédente</span>' : ''}</h2><table class="cl"><tbody>${Object.keys(C.NOMS_REC).map(k => ligne(C.NOMS_REC[k], F.rec[k] || 0, P && (P.rec[k] || 0))).join('')}<tr><td style="text-align:left"><b>Total</b></td><td><b>${eur(tot(F.rec))}</b></td>${P ? `<td class="tab-cache mut">${eur(tot(P.rec))}</td>` : ''}</tr></tbody></table></div>
+  <div class="carte"><h2>Dépenses</h2><table class="cl"><tbody>${Object.keys(C.NOMS_DEP).map(k => ligne(C.NOMS_DEP[k], F.dep[k] || 0, P && (P.dep[k] || 0))).join('')}<tr><td style="text-align:left"><b>Total</b></td><td><b>${eur(tot(F.dep))}</b></td>${P ? `<td class="tab-cache mut">${eur(tot(P.dep))}</td>` : ''}</tr></tbody></table></div>`; }
+function blocBalais(c){ const balai = D.BALAIS.find(b => b.id === c.balai) || D.BALAIS[0]; return `<div class="carte"><h2>Balais <span class="mut petit">${esc(balai.nom)}</span></h2>
     <div class="ligne" style="margin-bottom:4px"><span style="flex:1">Usure</span><b>${Math.round(c.usure)} %</b></div><div class="jauge"><i style="width:${c.usure}%"></i></div>
     <p class="petit mut" style="margin:8px 0">Des balais usés font perdre un peu de vitesse et de maniabilité. Un jeu complet pour l'effectif :</p>
     <div class="liste">${D.BALAIS.map(b => `<div class="el"><div class="t"><b>${esc(b.nom)}${b.id === c.balai ? ' <span class="badge tit">actuels</span>' : ''}</b><span>vitesse ${b.vit} · maniabilité ${b.man} · stabilité ${b.sta}</span></div><button class="btn sec" data-act="balais" data-b="${b.id}">${eur(b.prix * 1000)}</button></div>`).join('')}</div></div>
-  </div></div>`;
+  </div>`; }
+function vueFinances(){
+  const c = club(M.manager.club), scene = Z_() && Z_().sceneDispo('finances');   // v117 : la banque illustrée, les cartes passent dessous
+  VUE.innerHTML = `<div><h1 class="grand">Finances et banque</h1><p class="sous">Saison ${lab(M.saison)} · Gallions fictifs</p></div>
+  ${scene ? Z_().sceneHTML('finances') + '<details class="sc-detail"><summary>Toutes les finances en détail</summary>' : ''}
+  <div class="cols"><div>
+  ${finSolde(c)}
+  ${finHisto(c)}
+  ${finBillet(c)}
+  </div><div>
+  ${finRecDep(c)}
+  ${banqueHTML(B.assurer(M))}
+  <div class="btns" style="margin-bottom:12px"><button class="btn sec" data-act="vue" data-v="partenaires">Partenaires</button><button class="btn sec" data-act="vue" data-v="boutique">Bazar</button><button class="btn sec" data-act="vue" data-v="stade">Stade</button></div>
+  <p class="petit mut" style="margin:0 0 12px">Les balais se gèrent désormais dans Vestiaire et mentorat.</p>
+  </div></div>${scene ? '</details>' : ''}`;
 }
 function vueStaff(){
   const c = club(M.manager.club);
@@ -1066,7 +1073,7 @@ function vueFormation(){
 const B = window.QMB;
 const POS_DOM = {infirmerie:[62, 56], salle:[140, 50], bureau:[210, 44], formation:[280, 50], voliere:[358, 56], divination:[52, 166], aire:[368, 166],
   trophees:[62, 272], residence:[140, 280], buvettes:[210, 288], boutique:[280, 280], hangar:[358, 272]};
-const VUE_BAT = {stade:'stade', boutique:'boutique', formation:'formation', entrainement:'entrainement', balais:'finances', tactique:'tactique', mercato:'mercato', trophees:'trophees'};
+const VUE_BAT = {stade:'stade', boutique:'boutique', formation:'formation', entrainement:'entrainement', balais:'vestiaire', tactique:'tactique', mercato:'mercato', trophees:'trophees'};
 const nomBat = k => k === 'bureau' ? 'Bureau du président' : (B.BAT[k] || [])[1] || k;
 const pips = n => `<span class="pips" aria-label="niveau ${n} sur 5">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
 const coutEntretien = (c, k) => ((E.inst[k] || E.bat[k] || {}).entretien || 0) * C.niv(c, k);
@@ -1315,6 +1322,7 @@ function vueVestiaire(){
       ${ment.length ? `<div class="liste">${ment.map(p => { const a = M.joueurs[p.mentor], b = M.joueurs[p.jeune]; return `<div class="el"><span class="avp">${avatarDe(a)}</span><span class="avp">${avatarDe(b)}</span><div class="t"><b>${esc(a.n)} → ${esc(b.n)}</b><span>${b.age} ans · progresse 15 % plus vite, prend l'état d'esprit du mentor</span></div><button class="btn sec" data-act="finMentor" data-j="${b.id}">Arrêter</button></div>`; }).join('')}</div>` : ''}
       ${ment.length < 3 && vieux.length && jeunes.length ? `<div class="mentor-form"><label>Mentor<select id="mentorA">${vieux.map(j => `<option value="${j.id}">${esc(nomJ(j))} (${j.age} ans)</option>`).join('')}</select></label><label>Jeune<select id="mentorB">${jeunes.map(j => `<option value="${j.id}">${esc(nomJ(j))} (${j.age} ans)</option>`).join('')}</select></label><button class="btn" data-act="mentor">Former le binôme</button></div>` : ment.length < 3 ? '<p class="mut" style="margin:0">Il faut un joueur de 26 ans ou plus et un jeune de 22 ans ou moins.</p>' : ''}</div>
     ${pretes.length ? `<div class="carte"><h2>Prêtés ailleurs</h2><div class="liste">${pretes.map(j => ligneJ(j, `à ${esc(club(j.club).nom)} jusqu'à la fin de la saison`)).join('')}</div></div>` : ''}
+    ${blocBalais(c)}
   </div></div>`;
 }
 function causerieHTML(moment){
@@ -1882,6 +1890,13 @@ $('#fichier').addEventListener('change', async e => {
 window.QM27 = {partie:() => M, sauver, rendre};
 /* v91 : boîte à outils de l'interface pour qm27-ecrans.js (écrans du lot 8) */
 ACT.infoTac = d => { U.infoTac = d.k; LS.ecrire('qm27:infoTac', d.k); rendre(); };   // v107
+/* v117 : feuilles ouvertes depuis une scène illustrée. Marquées data-sc : après un rendre() (prix, emprunt…), la feuille se redessine sur place. */
+Object.assign(ACT, {
+  scCoffre:d => { const c = club(M.manager.club); feuille(`<div data-sc="scCoffre">${teteF('Le coffre', esc(c.nom))}${finSolde(c)}${finHisto(c)}${finRecDep(c)}</div>`, d && d.garder); },
+  scBillet:d => { const c = club(M.manager.club); feuille(`<div data-sc="scBillet">${teteF('Billetterie', `${esc(c.nom)} · ${c.stade.toLocaleString('fr-FR')} places`)}${finBillet(c)}<div class="btns"><button class="btn sec" data-act="vue" data-v="stade">Stade et tribunes</button></div></div>`, d && d.garder); },
+  scGobelin:d => { feuille(`<div data-sc="scGobelin">${teteF('Banque des Gobelins', 'Prêts aux clubs')}${banqueHTML(B.assurer(M))}</div>`, d && d.garder); },
+});
+function rafraichirFeuilleScene(){ const el = document.querySelector('.fond .feuille [data-sc]'); if (el && ACT[el.dataset.sc]) ACT[el.dataset.sc]({garder:true}); }
 window.QMU = {flagSeul, pieces, eurT, get M(){ return M; }, get X(){ return X; }, get EMP(){ return EMP; }, U, REG, regler, VUES, ACT, VUE, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, nomEq, flag, posteB, etoiles, nomJ, court,
   classeNote, classeAttr, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, valVue, connu, HH, roleDe, ficheSemaine, msgHTML, tableHTML, ICO, MERC, ligneMercato, IDX, COURT_ATTR, LS, nomBat};
 })();
