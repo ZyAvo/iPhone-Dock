@@ -1,4 +1,4 @@
-// mon-ecran-version: a06f8fa4
+// mon-ecran-version: 9e33fc50
 /* QM27 (v87) — graphismes dessinés par le code, sans image : blasons des clubs, maillots, avatars, radar du profil.
    Tout est déterministe : un club ou une personne a toujours le même dessin (graine = identifiant).
    window.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe}. Aucune dépendance (QMD seulement pour les prénoms). */
@@ -352,6 +352,11 @@ function batimentDessin(type, c1, c2){ return (BAT_ICONES[type] || BAT_ICONES.bu
 /* v111 : trophées illustrés (images/qm27/trophees/) ; cle = ligue (bi, la, sc, ce ; fr et it : la coupe latine), eu, ln */
 const COUPE = {bi:'bi', la:'la', fr:'la', it:'la', sc:'sc', ce:'ce', eu:'eu', ln:'ln', sx:'ln'};
 const coupeImg = (cle, cls) => COUPE[cle] ? `<img class="${cls || 'tro'} img" src="${IMAGES}trophees/coupe-${COUPE[cle]}.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">` : '';
+const coupeSrc = cle => COUPE[cle] ? `${IMAGES}trophees/coupe-${COUPE[cle]}.webp` : '';
+/* v115 : Série 5 — postes, séances et ateliers d'entraînement, logos des sponsors (images/qm27/postes, entrainement, sponsors) */
+const posteImg = (p, cls) => `<img class="${cls || 'pimg'}" src="${IMAGES}postes/${p}.webp" alt="" aria-hidden="true" decoding="async">`;
+const entrImg = (id, cls) => `<img class="${cls || 'eimg'}" src="${IMAGES}entrainement/${id}.webp" alt="" aria-hidden="true" decoding="async">`;
+function logoSponsor(nom, cls){ const i = (root.QMD.SPONSORS || []).indexOf(nom); return i < 0 ? '' : `<img class="${cls || 'logo-sp'}" src="${IMAGES}sponsors/${String(i + 1).padStart(2, '0')}.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">`; }
 /* récompense d'un palmarès : [saison, code, ligue, quand] (pour « meilleur à son poste », quand = le poste) */
 function prixImg(x, cls){
   const k = x[1], f = k === 'ch' ? 'coupe-' + (COUPE[x[2]] || 'la') : k === 'ld' ? 'coupe-eu' : k === 'ln' || k === 'sx' ? 'coupe-ln' : k === 'pa' ? 'prix-pa' + (x[3] || 'P') : 'prix-' + k;
@@ -401,5 +406,5 @@ function trophee(k, titre){
     <rect x="18" y="22" width="4" height="10" fill="${or}"/><path d="M12 32h16l2 6H10z" fill="${melange(or, '#000000', 0.2)}"/><rect x="9" y="38" width="22" height="7" rx="1" fill="#4a3a2a"/><path d="M14 9c0 4 1 7 4 8" stroke="#fff" stroke-width="1.2" opacity=".55" fill="none"/></svg>`;
 }
 
-root.QMV = {BAT_IMG, coupeImg, prixImg, produitImg, colorierProduits, IMAGES, VISAGES, visageDe, attribuerVisages, blasonDessin, batimentDessin, embleme, EMBL, blason, maillot, avatar, radar, couleursNation, emblemeDe, feminin, EMB, EMBLEMES, lisible, melange, batiment, trophee};
+root.QMV = {coupeSrc, posteImg, entrImg, logoSponsor, BAT_IMG, coupeImg, prixImg, produitImg, colorierProduits, IMAGES, VISAGES, visageDe, attribuerVisages, blasonDessin, batimentDessin, embleme, EMBL, blason, maillot, avatar, radar, couleursNation, emblemeDe, feminin, EMB, EMBLEMES, lisible, melange, batiment, trophee};
 })(typeof window !== 'undefined' ? window : globalThis);

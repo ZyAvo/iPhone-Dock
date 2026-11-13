@@ -1,4 +1,4 @@
-// mon-ecran-version: 9043a206
+// mon-ecran-version: 7ac4ad18
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -628,16 +628,17 @@ ACT.cal = d => { U.calMode = d.c === 'tout' ? 'saison' : 'mois'; rendre(); };
 
 /* ============================== Entraînement programmable ============================== */
 const ICO_S = {physique:'🏃', vol:'🧹', balle:'🔴', tactique:'🧠', match:'📋', recup:'🛁'};
+const icoS = s => ICO_S[s] ? V.entrImg(s, 'eimg') : '';   // v115 : images de la Série 5 (les émojis restent pour les menus déroulants)
 const nomS = k => (G().SEANCE[k] || [])[1] || k;
 const nomInt = i => (D.INTENSITES.find(x => x[0] === i) || [0, 'Normale'])[1];
 function jaugesProg(c, p, S){
   const a = G().apercu(M(), c, p, S);
   return `<div class="jauges-prog">${[['progression', 'Progression', 'var(--bon)'], ['fatigue', 'Fatigue', 'var(--moyen)'], ['risque', 'Risque de blessure', 'var(--mauvais)'], ['cohesion', 'Cohésion', 'var(--accent)']].map(([k, n, col]) => `<div><span class="petit">${n}</span>${jauge(a[k], n, col)}</div>`).join('')}</div>`;
 }
-const jourChips = p => `<div class="jours">${p.jours.map((s, i) => `<span class="jour s-${s}"><small>${G().JOURS[i]}</small><b aria-hidden="true">${ICO_S[s] || ''}</b><em>${nomS(s)}</em></span>`).join('')}</div>`;
+const jourChips = p => `<div class="jours">${p.jours.map((s, i) => `<span class="jour s-${s}"><small>${G().JOURS[i]}</small><b aria-hidden="true">${icoS(s)}</b><em>${nomS(s)}</em></span>`).join('')}</div>`;
 function vueEntrainement(){
   const M_ = M(), c = moi(), Gm = G(), P = Gm.plan(c), k0 = M_.semaine, S0 = window.QM.semaine(M_), p0 = Gm.programmeDe(M_, c, k0);
-  const atel = p => `<div class="ateliers">${['P', 'B', 'A', 'G'].map(po => { const a = Gm.ATELIERS[po].find(x => x[0] === (p.ateliers || {})[po]) || Gm.ATELIERS[po][0]; return `<span>${posteB(po)}${a[1]}</span>`; }).join('')}</div>`;
+  const atel = p => `<div class="ateliers">${['P', 'B', 'A', 'G'].map(po => { const a = Gm.ATELIERS[po].find(x => x[0] === (p.ateliers || {})[po]) || Gm.ATELIERS[po][0]; return `<span>${posteB(po)}${V.entrImg(po + '-' + a[0], 'eimg')}${a[1]}</span>`; }).join('')}</div>`;
   const fat = Math.round(Gm.fatigueTitulaires(M_, c));
   const avenir = []; for (let k = k0; k < Math.min(M_.calendrier.length - 1, k0 + 8); k++) avenir.push(k);
   const quoi = S => !S ? '' : S.type === 'prepa' ? `Préparation ${S.semaine}` : S.type === 'sixn' ? (S.comp && window.QMN ? window.QMN.titreSemaine(S) : `${D.TOURNOI.court} · tour ${S.tour}`) : S.type === 'europe' ? 'Finale des Anneaux' : `J${S.journee}${S.tour ? ' · ' + D.TOURNOI.court : ''}${(S.matchs || []).some(m => m.ligue === 'eu') ? ' · Anneaux' : ''}`;
@@ -653,7 +654,7 @@ function vueEntrainement(){
     ${P.auto ? '' : `<div class="carte"><h2>Ta semaine type</h2><p style="margin:0 0 8px"><b>${esc(P.modele.nom || 'Semaine type')}</b> · ${nomInt(P.modele.int).toLowerCase()}</p>${jourChips(P.modele)}<button class="btn sec plein" style="margin-top:10px" data-act="progEditer" data-k="modele">Modifier la semaine type</button></div>`}
   </div><div>
     <div class="carte"><h2>Semaines à venir</h2><div class="liste">${avenir.slice(1).map(k => { const S = M_.calendrier[k], p = Gm.programmeDe(M_, c, k);
-      return `<button class="el" data-act="progEditer" data-k="${k}"><div class="t"><b>${fmtDate(S.date)} · ${esc(quoi(S))}</b><span>${esc(p.nom || 'Programme')} · ${nomInt(p.int).toLowerCase()} · ${p.jours.map(s => ICO_S[s]).join('')}</span></div><span class="d">${p.auto ? '<span class="badge">adjoint</span>' : '<span class="badge tit">toi</span>'}</span></button>`; }).join('') || '<p class="mut">Fin de saison.</p>'}</div></div>
+      return `<button class="el" data-act="progEditer" data-k="${k}"><div class="t"><b>${fmtDate(S.date)} · ${esc(quoi(S))}</b><span>${esc(p.nom || 'Programme')} · ${nomInt(p.int).toLowerCase()} · <span class="ico-s">${p.jours.map(s => icoS(s)).join('')}</span></span></div><span class="d">${p.auto ? '<span class="badge">adjoint</span>' : '<span class="badge tit">toi</span>'}</span></button>`; }).join('') || '<p class="mut">Fin de saison.</p>'}</div></div>
     <div class="carte aide"><h2>Repères</h2>
       <p><b>Séances.</b> Physique : vitesse, endurance, force (bien plus efficace en préparation d'août). Vol : pilotage, virages, piqués. Balle : passes, tirs, frappes, arrêts. Tactique : lecture du jeu et cohésion. Mise en place : un peu de tout avant le match. Récupération : la fatigue baisse, pas de progrès.</p>
       <p><b>Ateliers.</b> Chaque poste travaille un groupe d'attributs en plus (+35 %).</p>
@@ -665,9 +666,9 @@ function ficheProg(){
   const M_ = M(), c = moi(), Gm = G(), p = PROG.p, k = PROG.k, S = k === 'modele' ? window.QM.semaine(M_) : M_.calendrier[k];
   feuille(`${teteF(k === 'modele' ? 'Semaine type' : `Semaine du ${fmtDate(S.date)}`, k === 'modele' ? 'S\'applique quand tu prépares toi-même' : 'Programme de la semaine')}
     <h4 class="sous-t">Partir d'un modèle</h4><div class="chips">${Object.entries(Gm.MODELES).map(([id, x]) => `<button class="chip ${p.nom === x.nom ? 'on' : ''}" data-act="progModele" data-m="${id}">${x.nom}</button>`).join('')}</div>
-    <h4 class="sous-t">Séances</h4><div class="seances">${p.jours.map((s, i) => `<label class="seance"><span>${Gm.JOURS[i]}</span><select data-chg="seance" data-i="${i}">${Gm.SEANCES.map(x => `<option value="${x[0]}" ${x[0] === s ? 'selected' : ''}>${ICO_S[x[0]]} ${x[1]}</option>`).join('')}</select></label>`).join('')}</div>
+    <h4 class="sous-t">Séances</h4><div class="seances">${p.jours.map((s, i) => `<label class="seance"><span>${Gm.JOURS[i]}</span>${icoS(s)}<select data-chg="seance" data-i="${i}">${Gm.SEANCES.map(x => `<option value="${x[0]}" ${x[0] === s ? 'selected' : ''}>${x[1]}</option>`).join('')}</select></label>`).join('')}</div>
     <h4 class="sous-t">Intensité</h4><div class="seg">${D.INTENSITES.map(([v, n]) => `<button data-act="progInt" data-v="${v}" class="${p.int === v ? 'on' : ''}">${n}</button>`).join('')}</div>
-    <h4 class="sous-t">Ateliers par poste</h4><div class="seances">${['P', 'B', 'A', 'G'].map(po => `<label class="seance"><span>${posteB(po)}</span><select data-chg="atelier" data-p="${po}">${Gm.ATELIERS[po].map(a => `<option value="${a[0]}" ${(p.ateliers || {})[po] === a[0] ? 'selected' : ''}>${a[1]}</option>`).join('')}</select></label>`).join('')}</div>
+    <h4 class="sous-t">Ateliers par poste</h4><div class="seances">${['P', 'B', 'A', 'G'].map(po => `<label class="seance"><span>${posteB(po)}</span>${V.entrImg(po + '-' + ((p.ateliers || {})[po] || Gm.ATELIERS[po][0][0]), 'eimg')}<select data-chg="atelier" data-p="${po}">${Gm.ATELIERS[po].map(a => `<option value="${a[0]}" ${(p.ateliers || {})[po] === a[0] ? 'selected' : ''}>${a[1]}</option>`).join('')}</select></label>`).join('')}</div>
     <h4 class="sous-t">Effets attendus</h4>${jaugesProg(c, p, S)}
     <div class="btns" style="margin-top:14px;flex-wrap:wrap">${k !== 'modele' && !p.auto && Gm.plan(c).sem[M_.saison + ':' + k] ? '<button class="btn sec" data-act="progRendre">Rendre à l\'adjoint</button>' : ''}<button class="btn" data-act="progOk">Enregistrer</button>${k !== 'modele' ? '<button class="btn sec" data-act="progOk" data-n="4">Pour 4 semaines</button>' : ''}</div>`);
 }

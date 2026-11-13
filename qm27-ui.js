@@ -1,4 +1,4 @@
-// mon-ecran-version: c88bbea4
+// mon-ecran-version: ad684437
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -69,7 +69,7 @@ function blason(id, taille, sixn){
 }
 const classeNote = n => n >= 66 ? 'n4' : n >= 56 ? 'n3' : n >= 46 ? 'n2' : 'n1';
 const classeAttr = v => v >= 15 ? 'n4' : v >= 10 ? 'n3' : v >= 6 ? 'n2' : 'n1';
-const posteB = p => `<span class="poste ${p}" title="${D.POSTES[p].nom}">${p}</span>`;
+const posteB = p => `<span class="poste ${p} pi" title="${D.POSTES[p].nom}" role="img" aria-label="${D.POSTES[p].nom}">${V.posteImg(p)}</span>`;   // v115 : image du poste (souaffle, batte, vif d'or, gants)
 const etoiles = rep => { const n = Math.max(1, Math.min(5, Math.round((rep - 30) / 11))); return `<span class="etoiles" aria-label="${n} étoiles sur 5">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</span>`; };
 const nomJ = j => j ? `${j.p} ${j.n}` : '—';
 const court = j => j ? `${j.p[0]}. ${j.n}` : '—';
@@ -628,7 +628,7 @@ function jetonHTML(K, s, sel, T){
   if (!j) return `<button class="jeton vide${banc ? ' b' : ''}" data-act="jeton" data-slot="${s}"${pos} aria-label="${nomSlot(s)} : place libre">${eti}<span class="rond">+</span><b>${banc ? 'Libre' : D.POSTES[s[0]].nom}</b></button>`;
   const p = banc ? j.poste : s[0], n = QM.note(j, p), hors = !banc && j.poste !== p, iv = infoJeton(j, n);
   return `<button class="jeton ${p}${hors ? ' hors' : ''}${banc ? ' b' : ''}${U.flash === id ? ' flash' : ''}" data-act="jeton" data-slot="${s}" data-j="${id}"${pos} aria-label="${esc(nomJ(j))}, ${nomSlot(s)}, note ${n}">${eti}
-    <span class="rond kit">${V.maillot(kitDe(sel), sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? '')}${banc ? `<i class="ps">${p}</i>` : ''}${K.cap === id && !banc ? '<i class="cap" title="Capitaine">C</i>' : ''}${K.pen === id && !banc ? '<i class="pn" title="Tireur de penalty">P</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : ''}${j.inter && !sel ? '<i class="bl" title="En sélection">✈︎</i>' : ''}${banc ? '' : `<i class="ntj ${iv.cls}">${iv.txt}</i>`}</span>${banc ? `<b>${esc(j.n)}</b><span class="nt ${iv.cls}">${iv.txt}</span>` : `<b class="eti">${U.fitMap && U.fitMap[id] ? pastille(U.fitMap[id]) : ''}<span class="nm">${esc(j.n)}</span>${hors ? `<span class="hp" title="Hors de son poste">${j.poste}</span>` : ''}</b>`}</button>`;
+    <span class="rond kit">${V.maillot(kitDe(sel), sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? '')}${banc ? `<i class="ps pi" title="${D.POSTES[p].nom}">${V.posteImg(p)}</i>` : ''}${K.cap === id && !banc ? '<i class="cap" title="Capitaine">C</i>' : ''}${K.pen === id && !banc ? '<i class="pn" title="Tireur de penalty">P</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : ''}${j.inter && !sel ? '<i class="bl" title="En sélection">✈︎</i>' : ''}${banc ? '' : `<i class="ntj ${iv.cls}">${iv.txt}</i>`}</span>${banc ? `<b>${esc(j.n)}</b><span class="nt ${iv.cls}">${iv.txt}</span>` : `<b class="eti">${U.fitMap && U.fitMap[id] ? pastille(U.fitMap[id]) : ''}<span class="nm">${esc(j.n)}</span>${hors ? `<span class="hp" title="Hors de son poste">${j.poste}</span>` : ''}</b>`}</button>`;
 }
 function ligneEff(ctx, j){
   const K = ctx.K, s = slotDe(K, j.id), p = s && s[0] !== 'R' ? s[0] : j.poste, n = QM.note(j, p);
@@ -1239,18 +1239,30 @@ function vuePartenaires(){
   VUE.innerHTML = `<div><h1 class="grand">Partenaires</h1><p class="sous">Sponsor maillot et panneaux autour du terrain</p></div>
   <div class="cols"><div>
     <div class="carte"><h2>Sponsor maillot</h2><div class="spons">${V.maillot(c, '', 'g', sp ? sp.nom : '')}<div>
-      ${sp ? `<b>${esc(sp.nom)}</b><span>${eur(sp.fixe)} par saison${sp.victoire ? ` · ${eur(sp.victoire)} par victoire` : ''}${sp.objectif ? ` · ${eur(sp.objectif)} si l'objectif est atteint` : ''}</span><span>Contrat jusqu'en ${sp.fin + 1}</span>` : '<b>Aucun sponsor</b><span>Choisis une offre ci-dessous.</span>'}</div></div>
-      ${!sp && d.offresSponsor.length ? `<div class="liste" style="margin-top:8px">${d.offresSponsor.map((o, i) => `<div class="el"><div class="t"><b>${esc(o.nom)} <span class="badge">${esc(o.style)}</span></b><span>${eur(o.fixe)} / saison${o.victoire ? ' · ' + eur(o.victoire) + ' / victoire' : ''}${o.objectif ? ' · ' + eur(o.objectif) + ' si objectif' : ''} · ${o.ans} saison${o.ans > 1 ? 's' : ''}</span></div><button class="btn" data-act="sponsor" data-i="${i}">Signer</button></div>`).join('')}</div>` : ''}</div>
+      ${sp ? `<b>${V.logoSponsor(sp.nom, 'logo-sp g')}${esc(sp.nom)}</b><span>${eur(sp.fixe)} par saison${sp.victoire ? ` · ${eur(sp.victoire)} par victoire` : ''}${sp.objectif ? ` · ${eur(sp.objectif)} si l'objectif est atteint` : ''}</span><span>Contrat jusqu'en ${sp.fin + 1}</span>` : '<b>Aucun sponsor</b><span>Choisis une offre ci-dessous.</span>'}</div></div>
+      ${!sp && d.offresSponsor.length ? `<div class="liste" style="margin-top:8px">${d.offresSponsor.map((o, i) => `<div class="el">${V.logoSponsor(o.nom)}<div class="t"><b>${esc(o.nom)} <span class="badge">${esc(o.style)}</span></b><span>${eur(o.fixe)} / saison${o.victoire ? ' · ' + eur(o.victoire) + ' / victoire' : ''}${o.objectif ? ' · ' + eur(o.objectif) + ' si objectif' : ''} · ${o.ans} saison${o.ans > 1 ? 's' : ''}</span></div><button class="btn" data-act="sponsor" data-i="${i}">Signer</button></div>`).join('')}</div>` : ''}</div>
   </div><div>
     <div class="carte"><h2>Panneaux <span class="mut petit">${d.panneaux.length} / ${pl}</span></h2>
-      ${d.panneaux.length ? `<div class="liste">${d.panneaux.map((p, i) => `<div class="el"><div class="t"><b>${esc(p.nom)}</b><span>${eur(p.montant)} / saison · jusqu'en ${p.fin + 1}</span></div><button class="btn sec" data-act="retirerPanneau" data-i="${i}">Retirer</button></div>`).join('')}</div>` : '<p class="mut">Aucun panneau vendu.</p>'}
-      ${d.offresPanneaux.length ? `<h2 style="margin-top:14px">Annonceurs intéressés</h2><div class="liste">${d.offresPanneaux.map((o, i) => `<div class="el"><div class="t"><b>${esc(o.nom)}</b><span>${eur(o.montant)} / saison · ${o.ans} saison${o.ans > 1 ? 's' : ''}</span></div><button class="btn ${d.panneaux.length >= pl ? 'sec' : ''}" data-act="signerPanneau" data-i="${i}" ${d.panneaux.length >= pl ? 'disabled' : ''}>Vendre</button></div>`).join('')}</div>` : ''}
+      ${d.panneaux.length ? `<div class="liste">${d.panneaux.map((p, i) => `<div class="el">${V.logoSponsor(p.nom)}<div class="t"><b>${esc(p.nom)}</b><span>${eur(p.montant)} / saison · jusqu'en ${p.fin + 1}</span></div><button class="btn sec" data-act="retirerPanneau" data-i="${i}">Retirer</button></div>`).join('')}</div>` : '<p class="mut">Aucun panneau vendu.</p>'}
+      ${d.offresPanneaux.length ? `<h2 style="margin-top:14px">Annonceurs intéressés</h2><div class="liste">${d.offresPanneaux.map((o, i) => `<div class="el">${V.logoSponsor(o.nom)}<div class="t"><b>${esc(o.nom)}</b><span>${eur(o.montant)} / saison · ${o.ans} saison${o.ans > 1 ? 's' : ''}</span></div><button class="btn ${d.panneaux.length >= pl ? 'sec' : ''}" data-act="signerPanneau" data-i="${i}" ${d.panneaux.length >= pl ? 'disabled' : ''}>Vendre</button></div>`).join('')}</div>` : ''}
       <p class="petit mut" style="margin:8px 0 0">Chaque niveau du stade ajoute deux emplacements. De nouveaux annonceurs se présentent chaque été.</p></div>
   </div></div>`;
+}
+/* v115 : la vitrine illustrée (images/qm27/trophees/vitrine.webp, repère 1536 × 1024) : trois étagères de verre (dessus à y = 346, 492, 652),
+   sept coupes au plus par étagère, les plus récentes en haut ; les titres d'avant ton arrivée un peu passés */
+const VITRINE = {etageres:[346, 492, 652], x0:310, x1:1230, parEtagere:7, taille:[150, 124, 136]};
+function vitrineHTML(T){
+  const L = T.filter(x => V.coupeSrc && V.coupeSrc(x.cle)).slice(0, VITRINE.parEtagere * 3), pas = (VITRINE.x1 - VITRINE.x0) / VITRINE.parEtagere;
+  const coupes = L.map((x, i) => { const r = Math.floor(i / VITRINE.parEtagere), k = i % VITRINE.parEtagere, n = Math.min(VITRINE.parEtagere, L.length - r * VITRINE.parEtagere), t = VITRINE.taille[r];
+    const cx = (VITRINE.x0 + VITRINE.x1) / 2 + (k - (n - 1) / 2) * pas;
+    return `<image class="${x.ancien ? 'anc' : ''}" href="${V.coupeSrc(x.cle)}" x="${Math.round(cx - t / 2)}" y="${VITRINE.etageres[r] - t + 4}" width="${t}" height="${t}"><title>${esc(x.titre)} · ${esc(x.saison)}</title></image>`; }).join('');
+  return `<div class="carte vitrine"><svg viewBox="0 0 1536 1024" role="img" aria-label="Vitrine : ${T.length} trophée${T.length > 1 ? 's' : ''}"><image href="${V.IMAGES}trophees/vitrine.webp" width="1536" height="1024"/>${coupes}</svg>
+    ${L.length ? '' : '<p class="petit mut" style="margin:8px 0 0">Les étagères attendent ton premier titre.</p>'}${T.length > L.length ? `<p class="petit mut" style="margin:8px 0 0">La vitrine montre les ${L.length} titres les plus récents.</p>` : ''}</div>`;
 }
 function vueTrophees(){
   const c = B.assurer(M), T = B.titres(M, c);
   VUE.innerHTML = `<div><h1 class="grand">Salle des trophées</h1><p class="sous">${esc(c.nom)} · niveau ${C.niv(c, 'trophees')} · visites ${eur(B.visites(M, c))} par semaine</p></div>
+  ${vitrineHTML(T)}
   <div class="carte">${T.length ? `<div class="trophees">${T.map((x, i) => `<div class="tr ${x.ancien ? 'ancien' : ''}">${(V.coupeImg && V.coupeImg(x.cle)) || V.trophee(x.titre, x.saison)}<b>${esc(x.saison)}</b><span>${esc(x.titre)}</span></div>`).join('')}</div>` : '<p class="mut" style="margin:0">La vitrine est vide. À toi de la remplir.</p>'}
     <p class="petit mut" style="margin:10px 0 0">Les titres d'avant ton arrivée sont un peu passés. Chaque titre attire plus de visiteurs.</p></div>`;
 }
@@ -1290,7 +1302,7 @@ function vueVestiaire(){
   const vieux = c.effectif.map(id => M.joueurs[id]).filter(j => j && j.age >= 26 && !ment.some(p => p.mentor === j.id)).sort((a, b) => (QM.at(b, 'det') + b.cache.pro) - (QM.at(a, 'det') + a.cache.pro));
   const jeunes = c.effectif.map(id => M.joueurs[id]).filter(j => j && j.age <= 22 && !ment.some(p => p.jeune === j.id));
   const pretes = Object.values(M.joueurs).filter(j => j.pret && j.pret.de === c.id);
-  const ligneJ = (j, d) => `<button class="el" data-act="joueur" data-j="${j.id}"><span class="avp">${avatarDe(j)}<i class="poste ${j.poste}">${j.poste}</i></span><div class="t"><b>${esc(nomJ(j))}</b><span>${d}</span></div><span class="note ${j.moral >= 70 ? 'n4' : j.moral >= 45 ? 'n3' : 'n1'}" title="Moral">${Math.round(j.moral)}</span></button>`;
+  const ligneJ = (j, d) => `<button class="el" data-act="joueur" data-j="${j.id}"><span class="avp">${avatarDe(j)}<i class="poste ${j.poste} pi" title="${D.POSTES[j.poste].nom}">${V.posteImg(j.poste)}</i></span><div class="t"><b>${esc(nomJ(j))}</b><span>${d}</span></div><span class="note ${j.moral >= 70 ? 'n4' : j.moral >= 45 ? 'n3' : 'n1'}" title="Moral">${Math.round(j.moral)}</span></button>`;
   VUE.innerHTML = `<div><h1 class="grand">Vestiaire</h1><p class="sous">${esc(c.nom)} · moral sur 100</p></div>
   <div class="cols"><div>
     <div class="carte"><h2>Ambiance</h2><div class="ligne"><span style="flex:1">${amb >= 75 ? 'Excellente' : amb >= 60 ? 'Bonne' : amb >= 45 ? 'Tendue' : 'Mauvaise'}</span><b>${amb} / 100</b></div><div class="jauge" style="margin-top:6px"><i style="width:${amb}%"></i></div>
