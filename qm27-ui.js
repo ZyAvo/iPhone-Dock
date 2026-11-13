@@ -1,4 +1,4 @@
-// mon-ecran-version: 77b92fc1
+// mon-ecran-version: 2fb4d600
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -232,7 +232,7 @@ function vueDemarrage(){
   const L = emplacements();
   VUE.innerHTML = `
   <div class="logo-qm">${LOGO}<h1>Quidditch Manager 27<small>QM27</small></h1></div>
-  <p class="sous">Prenez les commandes d'un club : composition, consignes, matchs en direct. 48 clubs, 3 ligues et le Tournoi des Six Emblèmes.</p>
+  <p class="sous">Prenez les commandes d'un club : composition, consignes, matchs en direct. 64 clubs, 4 championnats, la Ligue des Anneaux et les sélections.</p>
   <div class="carte"><h2>Parties</h2><div class="liste">
   ${Array.from({length:NB_EMP}, (_, i) => i + 1).map(n => { const e = L[n];
     if (!e) return `<div class="el emp"><span class="blason nat" aria-hidden="true" style="font-size:1.3rem;color:var(--ink-soft)">+</span><div class="t"><b>Emplacement ${n}</b><span>Libre</span></div><button class="btn" data-act="nouvelle" data-n="${n}">Nouvelle carrière</button></div>`;
@@ -606,13 +606,27 @@ const TERRAIN_SVG = `<svg viewBox="0 0 100 140" aria-hidden="true"><defs><patter
   <circle cx="50" cy="70" r="1.2" class="vif"/></svg>`;
 /* maillot de l'équipe affichée : club du manager ou sélection */
 const kitDe = sel => sel ? {id:M.manager.selection.nat, couleurs:V.couleursNation(M.manager.selection.nat), motif:'uni'} : club(M.manager.club);
+/* v107 : l'info affichée à côté de chaque joueur sur le terrain et le banc (gardée sur l'appareil) */
+const INFOS_TAC = [['note', 'Note', 'Note au poste'], ['fat', 'Fatigue', 'Fatigue du moment (en %, moins c\'est mieux)'], ['forme', 'Forme', 'Forme sur 10'], ['moral', 'Moral', 'Moral sur 100'],
+  ['charge', 'Charge', 'Fatigue cumulée des dernières semaines (moins c\'est mieux)'], ['age', 'Âge', 'Âge']];
+U.infoTac = LS.lire('qm27:infoTac', 'note');
+function infoJeton(j, n){
+  const k = U.infoTac, f = j.fat || 0, ch = j.charge || 0;
+  if (k === 'fat') return {txt:Math.round(f) + '%', cls:f >= 60 ? 'iv-x' : f >= 35 ? 'iv-m' : 'iv-b'};
+  if (k === 'forme') return {txt:String(j.forme).replace('.', ','), cls:j.forme >= 7 ? 'iv-b' : j.forme < 5 ? 'iv-x' : 'iv-m'};
+  if (k === 'moral') return {txt:String(Math.round(j.moral)), cls:j.moral >= 65 ? 'iv-b' : j.moral < 40 ? 'iv-x' : 'iv-m'};
+  if (k === 'charge') return {txt:String(Math.round(ch)), cls:ch >= 62 ? 'iv-x' : ch >= 35 ? 'iv-m' : 'iv-b'};
+  if (k === 'age') return {txt:j.age + ' a', cls:''};
+  return {txt:String(n), cls:classeNote(n)};
+}
+const infoTacHTML = () => `<div class="tinfo"><span>À côté des joueurs</span><div class="seg mini" role="group" aria-label="Info affichée à côté des joueurs">${INFOS_TAC.map(([k, n, t]) => `<button data-act="infoTac" data-k="${k}" class="${U.infoTac === k ? 'on' : ''}" aria-pressed="${U.infoTac === k}" title="${t}">${n}</button>`).join('')}</div></div>`;
 function jetonHTML(K, s, sel, T){
   const id = lireSlot(K, s), j = M.joueurs[id], banc = s[0] === 'R', ps = banc ? null : posT(s, T);
   const pos = banc ? '' : ` style="left:${ps[0]}%;top:${ps[1]}%"`, eti = banc ? `<em>${nomSlot(s)}</em>` : '';
   if (!j) return `<button class="jeton vide${banc ? ' b' : ''}" data-act="jeton" data-slot="${s}"${pos} aria-label="${nomSlot(s)} : place libre">${eti}<span class="rond">+</span><b>${banc ? 'Libre' : D.POSTES[s[0]].nom}</b></button>`;
-  const p = banc ? j.poste : s[0], n = QM.note(j, p), hors = !banc && j.poste !== p;
+  const p = banc ? j.poste : s[0], n = QM.note(j, p), hors = !banc && j.poste !== p, iv = infoJeton(j, n);
   return `<button class="jeton ${p}${hors ? ' hors' : ''}${banc ? ' b' : ''}${U.flash === id ? ' flash' : ''}" data-act="jeton" data-slot="${s}" data-j="${id}"${pos} aria-label="${esc(nomJ(j))}, ${nomSlot(s)}, note ${n}">${eti}
-    <span class="rond kit">${V.maillot(kitDe(sel), sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? '')}${banc ? `<i class="ps">${p}</i>` : ''}${K.cap === id && !banc ? '<i class="cap" title="Capitaine">C</i>' : ''}${K.pen === id && !banc ? '<i class="pn" title="Tireur de penalty">P</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : ''}${j.inter && !sel ? '<i class="bl" title="En sélection">✈︎</i>' : ''}${banc ? '' : `<i class="ntj ${classeNote(n)}">${n}</i>`}</span>${banc ? `<b>${esc(j.n)}</b><span class="nt ${classeNote(n)}">${n}</span>` : `<b class="eti">${U.fitMap && U.fitMap[id] ? pastille(U.fitMap[id]) : ''}<span class="nm">${esc(j.n)}</span>${hors ? `<span class="hp" title="Hors de son poste">${j.poste}</span>` : ''}</b>`}</button>`;
+    <span class="rond kit">${V.maillot(kitDe(sel), sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? '')}${banc ? `<i class="ps">${p}</i>` : ''}${K.cap === id && !banc ? '<i class="cap" title="Capitaine">C</i>' : ''}${K.pen === id && !banc ? '<i class="pn" title="Tireur de penalty">P</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : ''}${j.inter && !sel ? '<i class="bl" title="En sélection">✈︎</i>' : ''}${banc ? '' : `<i class="ntj ${iv.cls}">${iv.txt}</i>`}</span>${banc ? `<b>${esc(j.n)}</b><span class="nt ${iv.cls}">${iv.txt}</span>` : `<b class="eti">${U.fitMap && U.fitMap[id] ? pastille(U.fitMap[id]) : ''}<span class="nm">${esc(j.n)}</span>${hors ? `<span class="hp" title="Hors de son poste">${j.poste}</span>` : ''}</b>`}</button>`;
 }
 function ligneEff(ctx, j){
   const K = ctx.K, s = slotDe(K, j.id), p = s && s[0] !== 'R' ? s[0] : j.poste, n = QM.note(j, p);
@@ -642,6 +656,7 @@ function compoHTML(ctx){
     <div class="tcentre"><div class="tbarre"><button class="btn sec" data-act="panneau" aria-expanded="${ouvert}">☰ ${ctx.sel ? 'Joueurs' : 'Effectif'}</button><button class="btn sec" data-act="${ctx.sel ? 'selAuto' : 'compoAuto'}">Auto</button></div>
       <div class="seg phase" role="tablist">${[['avec', 'Avec le souafle'], ['sans', 'Sans le souafle']].map(([k, n]) => `<button data-act="phase" data-p="${k}" class="${(U.phase || 'avec') === k ? 'on' : ''}" role="tab" aria-selected="${(U.phase || 'avec') === k}">${n}</button>`).join('')}</div>
       ${(U.phase || 'avec') === 'avec' ? `<div class="tzone"><span>Zone d'attaque</span><div class="seg mini" role="group" aria-label="Zone d'attaque">${['axe', 'couloirs', 'loin'].map(k => `<button data-act="zoneAtt" data-z="${k}" class="${(ctx.T.zone || 'axe') === k ? 'on' : ''}" aria-pressed="${(ctx.T.zone || 'axe') === k}">${esc(nomOpt('zone', k))}</button>`).join('')}</div></div>` : ''}
+      ${infoTacHTML()}
       <div class="tterrain">${TERRAIN_SVG}${(U.phase || 'avec') === 'avec' ? zonesHTML(ctx.T) : ''}${SLOTS_T.map(x => jetonHTML(K, x, ctx.sel, ctx.T)).join('')}</div></div>
     <div class="tbanc"><h3>Banc</h3>${SLOTS_B().map(x => jetonHTML(K, x, ctx.sel, ctx.T)).join('')}</div>
   </div>
@@ -705,7 +720,7 @@ function ficheJeton(s){
 let GL = null, clicBloque = 0;
 function finGlisser(){ if (!GL) return; clearTimeout(GL.tempo); const t = document.querySelector('.tac.repli'); if (t) t.classList.remove('repli'); if (GL.fantome) GL.fantome.remove(); if (GL.cible) GL.cible.classList.remove('cible'); GL.src.classList.remove('source'); document.body.classList.remove('glisse'); GL = null; }
 function debutGlisser(){
-  GL.actif = true; const r = GL.src.getBoundingClientRect(), f = (GL.src.classList.contains('er') ? GL.src.querySelector('.t b') : GL.src.querySelector('.rond')).cloneNode(true);
+  GL.actif = true; const r = GL.src.getBoundingClientRect(), f = (GL.eff ? GL.src.querySelector('.tj-n b') : GL.src.classList.contains('er') ? GL.src.querySelector('.t b') : GL.src.querySelector('.rond')).cloneNode(true);
   const d = document.createElement('div'); d.className = 'fantome ' + (M.joueurs[GL.id] ? M.joueurs[GL.id].poste : ''); d.appendChild(f);
   d.style.left = GL.x + 'px'; d.style.top = GL.y + 'px'; document.body.appendChild(d); GL.fantome = d;
   GL.src.classList.add('source'); document.body.classList.add('glisse');
@@ -715,9 +730,11 @@ function debutGlisser(){
 }
 document.addEventListener('pointerdown', e => {
   if (e.button > 0 || e.target.closest('select, .pick')) return;
-  const src = e.target.closest('.jeton[data-j], .er[data-drag]'); if (!src) return;
+  /* v107 : dans l'Effectif, à la souris seulement (au doigt, la liste doit défiler) */
+  const eff = U.vue === 'effectif' && e.pointerType === 'mouse' && M && M.manager && M.manager.club ? e.target.closest('.tj-l[data-j]') : null;
+  const src = eff || e.target.closest('.jeton[data-j], .er[data-drag]'); if (!src) return;
   finGlisser();
-  GL = {src, id:src.dataset.j || src.dataset.drag, x:e.clientX, y:e.clientY, x0:e.clientX, y0:e.clientY, actif:false, ligne:src.classList.contains('er'), souris:e.pointerType === 'mouse'};
+  GL = {src, id:src.dataset.j || src.dataset.drag, x:e.clientX, y:e.clientY, x0:e.clientX, y0:e.clientY, actif:false, ligne:src.classList.contains('er'), souris:e.pointerType === 'mouse', eff:!!eff};
   if (GL.ligne && !GL.souris) GL.tempo = setTimeout(() => { if (GL && !GL.actif) debutGlisser(); }, 380);
 });
 document.addEventListener('pointermove', e => {
@@ -727,7 +744,8 @@ document.addEventListener('pointermove', e => {
   if (!GL.actif){ if (GL.ligne && !GL.souris){ if (d > 8) finGlisser(); return; } if (d < 6) return; debutGlisser(); }
   e.preventDefault();
   GL.fantome.style.left = GL.x + 'px'; GL.fantome.style.top = GL.y + 'px';
-  const el = document.elementFromPoint(GL.x, GL.y), c = el && el.closest('.jeton');
+  if (GL.eff){ const h = innerHeight, bord = 70; if (GL.y > h - bord) scrollBy(0, Math.ceil((GL.y - h + bord) / 3)); else if (GL.y < bord + 60) scrollBy(0, -Math.ceil((bord + 60 - GL.y) / 3)); }   // v107 : la page défile près des bords
+  const el = document.elementFromPoint(GL.x, GL.y), c = el && el.closest(GL.eff ? '.tj-l[data-j]' : '.jeton');
   const cible = c && c !== GL.src ? c : null;
   if (cible !== GL.cible){ if (GL.cible) GL.cible.classList.remove('cible'); if (cible) cible.classList.add('cible'); GL.cible = cible; }
   GL.surPanneau = !cible && !!(el && el.closest('.tpan'));
@@ -736,6 +754,7 @@ document.addEventListener('pointerup', () => {
   if (!GL) return;
   if (!GL.actif){ finGlisser(); return; }
   clicBloque = Date.now();
+  if (GL.eff){ const a = GL.id, b = GL.cible ? GL.cible.dataset.j : null; finGlisser(); if (b) echangerEff(a, b); return; }
   const id = GL.id, cible = GL.cible ? GL.cible.dataset.slot : null, reserve = GL.surPanneau && !GL.ligne;
   if (GL.repli && cible) U.panneau = false;
   finGlisser();
@@ -745,6 +764,12 @@ document.addEventListener('pointercancel', finGlisser);
 document.addEventListener('touchmove', e => { if (GL && GL.actif) e.preventDefault(); }, {passive:false});
 document.addEventListener('click', e => { if (Date.now() - clicBloque < 400){ e.preventDefault(); e.stopPropagation(); } }, true);
 document.addEventListener('contextmenu', e => { if (e.target.closest('.er, .jeton')) e.preventDefault(); });
+/* v107 : échange de places entre deux joueurs de l'effectif (titulaire, remplaçant ou réserve) */
+function echangerEff(a, b){
+  const ctx = ctxCompo(), K = ctx.K, sa = slotDe(K, a), sb = slotDe(K, b);
+  if (!sa && !sb){ toast(`${court(M.joueurs[a])} et ${court(M.joueurs[b])} sont tous deux en réserve : rien à échanger`); return; }
+  if (sb) placerSlot(ctx, a, sb); else placerSlot(ctx, b, sa);
+}
 function choisirPour(p, i, banc){
   const c = club(M.manager.club), CK = c.compo, actuel = banc ? CK.banc[i] : CK[p][i];
   const rang = j => { const r = roleDe(j.id); return !banc ? 0 : r.tit ? 2 : r.banc ? 1 : 0; };   // v86 : pour le banc, la réserve d'abord
@@ -1784,6 +1809,7 @@ $('#fichier').addEventListener('change', async e => {
 /* pour les essais (outils/dev) et la console : la partie ouverte */
 window.QM27 = {partie:() => M, sauver, rendre};
 /* v91 : boîte à outils de l'interface pour qm27-ecrans.js (écrans du lot 8) */
+ACT.infoTac = d => { U.infoTac = d.k; LS.ecrire('qm27:infoTac', d.k); rendre(); };   // v107
 window.QMU = {pieces, eurT, get M(){ return M; }, get X(){ return X; }, get EMP(){ return EMP; }, U, REG, regler, VUES, ACT, VUE, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, nomEq, flag, posteB, etoiles, nomJ, court,
   classeNote, classeAttr, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, valVue, connu, HH, roleDe, ficheSemaine, msgHTML, tableHTML, ICO, MERC, ligneMercato, IDX, COURT_ATTR, LS, nomBat};
 })();

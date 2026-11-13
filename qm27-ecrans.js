@@ -1,4 +1,4 @@
-// mon-ecran-version: 4f170150
+// mon-ecran-version: e098d264
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -389,8 +389,8 @@ function vueEffectif(){
     <button class="mini-b roue" data-act="effNumeros" aria-label="Numéros de maillot" title="Numéros de maillot">#</button><button class="mini-b roue" data-act="effReglages" aria-label="Régler les vues de l'effectif" title="Régler les vues">⚙︎</button></div>
   <div class="chips petites">${[['tous', 'Tous'], ['P', 'Pours.'], ['B', 'Batteurs'], ['A', 'Attrap.'], ['G', 'Gardiens'], ['bless', 'Absents']].map(([k, n]) => `<button class="chip ${EFF.poste === k ? 'on' : ''}" data-act="effPoste" data-p="${k}">${n}</button>`).join('')}</div>
   <div class="chips petites tri-eff"><span class="mut petit">Ordre</span>${[['poste', 'Par poste'], ['sel', 'Composition'], ['note', 'Note']].map(([k, n]) => `<button class="chip ${EFF.tri === k ? 'on' : ''}" data-act="effOrdre" data-t="${k}" aria-pressed="${EFF.tri === k}">${n}</button>`).join('')}</div>
-  <div class="carte tj-carte">${tableJoueurs(L, {cols:vueEff(EFF.vue).cols, tri:EFF.tri, sens:EFF.sens, K})}</div>
-  <p class="petit mut">T titulaire · R1-R5 remplaçants · – réserve · <span style="color:var(--mauvais)">✚</span> blessé · ✈︎ en sélection. « Composition » range les titulaires, puis les remplaçants, la réserve et les absents. Touche un en-tête pour trier, un joueur pour sa fiche.</p>`;
+  <div class="carte tj-carte eff-glisse">${tableJoueurs(L, {cols:vueEff(EFF.vue).cols, tri:EFF.tri, sens:EFF.sens, K})}</div>
+  <p class="petit mut">T titulaire · R1-R5 remplaçants · – réserve · <span style="color:var(--mauvais)">✚</span> blessé · ✈︎ en sélection. « Composition » range les titulaires, puis les remplaçants, la réserve et les absents. Touche un en-tête pour trier, un joueur pour sa fiche.${document.documentElement.classList.contains('desk') ? ' À la souris : maintiens le clic sur un joueur et lâche-le sur un autre pour échanger leurs places.' : ''}</p>`;
 }
 const garderEff = () => LS.ecrire('qm27:effectif', {vue:EFF.vue, tri:EFF.tri, sens:EFF.sens});
 ACT.effVue = d => { EFF.vue = d.v; if (!['poste', 'abs', 'nom', 'age', 'sel', 'note'].includes(EFF.tri) && !vueEff(d.v).cols.includes(EFF.tri)) EFF.tri = 'poste'; garderEff(); rendre(); };

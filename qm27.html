@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="ffa08773">
+<meta name="mon-ecran-version" content="f4b60236">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -636,7 +636,11 @@ i.fit.moyen{background:var(--moyen)}i.fit.faible{background:var(--mauvais)}
 /* v98 : terrain épuré — étiquette unique nom + note (pastille d'adéquation), zone d'attaque réglée au-dessus du terrain */
 .zones,.zn{pointer-events:none!important}
 .zn.on rect{fill:rgba(243,211,107,.18);stroke:rgba(243,211,107,.7);stroke-dasharray:2 1.5;stroke-width:.5}
-.tzone{margin:0 0 8px}.tzone>span{display:block;font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 3px}
+.tzone{margin:0 0 8px}.tinfo{margin:0 0 8px}.tinfo .seg.mini button{overflow:visible;text-overflow:clip;padding:0 1px;font-size:.7rem;letter-spacing:-.01em}.tinfo>span{display:block;font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 3px}   /* v107 */
+.jeton .ntj.iv-b,.jeton .nt.iv-b{color:#16723a}.jeton .ntj.iv-m,.jeton .nt.iv-m{color:#946200}.jeton .ntj.iv-x,.jeton .nt.iv-x{color:#c0392b}
+.tbanc .jeton .nt.iv-b{color:var(--bon)}.tbanc .jeton .nt.iv-m{color:var(--moyen)}.tbanc .jeton .nt.iv-x{color:var(--mauvais)}
+.tj-l.source{opacity:.4}.tj-l.cible{box-shadow:inset 0 0 0 2px var(--or);background:color-mix(in srgb, var(--or) 14%, transparent)}
+html.desk .eff-glisse .tj-l[data-j]{cursor:grab}body.glisse,body.glisse *{cursor:grabbing!important;user-select:none}.tzone>span{display:block;font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 3px}
 .tterrain .jeton{width:auto;gap:1px}
 .tterrain .jeton .rond.kit{width:36px;height:36px}
 html.desk .tterrain .jeton .rond.kit{width:50px;height:50px}
