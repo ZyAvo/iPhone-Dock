@@ -1,4 +1,4 @@
-// mon-ecran-version: add461f9
+// mon-ecran-version: 1421f5b0
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -176,6 +176,18 @@ const SCENES = {
     {id:'etiquette', zone:[343, 612, 417, 668], anim:'fixe', muet:true, nom:'Prix des places', act:'scBillet', textes:[[(M_, c) => eurT(c.prix), 'left:6%;top:18%;width:88%;height:64%;transform:rotate(-1deg)', 'sc-encre', [1.9, 12]]]},
     {id:'gobelin', zone:[388, 632, 676, 850], calques:[['scenes/banque-gobelin-B', 'b']], anim:'bascule', nom:'Banque des Gobelins', act:'scGobelin'},
   ]},
+  /* v121 : le vestiaire (page Équipe) façon FM98, images A (repos), B (tout bouge), C (tableau couvert) ; vue: = écran ouvert directement */
+  equipe:{fond:'scenes/equipe-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
+    {id:'robes', zone:[5, 290, 400, 730], club:true, calques:[['scenes/equipe-robes-A-seule', 'fixe'], ['scenes/equipe-robes-B', 'b'], ['scenes/equipe-robes-B-seule', 'b']], plaque:'g', anim:'bascule', nom:'Effectif', vue:'effectif'},
+    {id:'couloir', zone:[400, 370, 560, 680], calques:[['scenes/equipe-couloir-B', 'b']], anim:'parle', act:'scCouloir',
+      nom:M_ => { const m = window.QM.matchDuJoueur(M_); return m && !m.res ? 'Préparer le match' : 'Aucun match cette semaine'; }},
+    {id:'potions', zone:[918, 86, 1024, 592], calques:[['scenes/equipe-potions-B', 'b']], plaque:'d', anim:'bascule', nom:'Infirmerie', act:'scBlesses'},
+    {id:'tableau', zone:[672, 158, 922, 492], calques:[['scenes/equipe-tableau-B', 'f2'], ['scenes/equipe-tableau-C', 'f3']], anim:'porte', nom:'Tactique', vue:'tactique'},
+    {id:'balais', zone:[665, 466, 952, 892], calques:[['scenes/equipe-balais-B', 'b']], anim:'bascule', nom:'Balais', act:'scBalais'},
+    {id:'journal', zone:[0, 972, 322, 1208], calques:[['scenes/equipe-journal-B', 'b']], plaque:'g', anim:'bascule', nom:'Staff', vue:'staff'},
+    {id:'souaffle', zone:[320, 858, 702, 1232], calques:[['scenes/equipe-souaffle-B', 'b']], anim:'bascule', nom:'Progression des joueurs', act:'scProgression'},
+    {id:'malle', zone:[728, 898, 1024, 1482], calques:[['scenes/equipe-malle-B', 'b']], plaque:'d', anim:'bascule', nom:'Entraînement', vue:'entrainement'},
+  ]},
 };
 const SC_OK = {};
 function sceneDispo(l){
@@ -192,10 +204,11 @@ function sceneHTML(l){
     /* taille = [corps max, largeur en cqw × caractères] : le texte rétrécit pour tenir */
     const textes = (o.textes || []).map(([fn, st, cl, taille]) => { const t = String(fn(M_, c)), fs = taille ? `;font-size:${Math.min(taille[0], taille[1] / Math.max(1, t.length)).toFixed(2)}cqw` : '';
       return `<span class="sc-txt ${cl || ''}" style="${st}${fs}">${esc(t)}</span>`; }).join('');
+    const nom = typeof o.nom === 'function' ? o.nom(M_, c) : o.nom;
     const pos = o.zone ? `left:${o.zone[0] / S.l * 100}%;top:${o.zone[1] / S.h * 100}%;width:${(o.zone[2] - o.zone[0]) / S.l * 100}%;height:${(o.zone[3] - o.zone[1]) / S.h * 100}%`
       : `left:${o.x}%;top:${o.y}%;width:${o.w}%`;
     if (o.decor) return `<div class="sc-obj sc-zone sc-decor" style="${pos}" aria-hidden="true">${corps}</div>`;
-    return `<button class="sc-obj sc-${o.anim}${o.zone ? ' sc-zone' : ''}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="${pos}${vars}" aria-label="${esc(o.nom)}">${corps}${textes}${o.muet ? '' : `<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(o.nom)}</span>`}</button>`;
+    return `<button class="sc-obj sc-${o.anim}${o.zone ? ' sc-zone' : ''}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="${pos}${vars}" aria-label="${esc(nom)}">${corps}${textes}${o.muet ? '' : `<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(nom)}</span>`}</button>`;
   };
   return `<div class="scene" style="aspect-ratio:${1 / S.ratio}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}</div>
     <p class="petit mut sc-aide">Touche un objet de la pièce.</p>`;
@@ -205,7 +218,7 @@ ACT.scObjet = (d, b) => {
   const o = (SCENES[d.l] || {objets:[]}).objets.find(x => x.id === d.o); if (!o) return;
   const el = b || document.querySelector(`.sc-obj[data-o="${d.o}"]`), calme = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (el && !calme){ el.classList.remove('joue'); void el.offsetWidth; el.classList.add('joue'); clearTimeout(el._joue); el._joue = setTimeout(() => el.classList.remove('joue'), 1700); }   // v119 : l'objet revient au repos (le coffre se referme)
-  setTimeout(() => ACT[o.act] && ACT[o.act](d), calme ? 0 : 520);
+  setTimeout(() => { if (o.vue){ fermerFeuille(); aller(o.vue); } else if (ACT[o.act]) ACT[o.act](d); }, calme ? 0 : 520);
 };
 const humeurPresident = mg => mg.confiance >= 70 ? 'Le président est ravi.' : mg.confiance >= 45 ? 'Le président est serein.' : mg.confiance >= 25 ? 'Le président s\'impatiente.' : 'Le président doute sérieusement de toi.';
 ACT.scConfiance = () => { const M_ = M(), mg = M_.manager, c = moi(), o = mg.objectif, CL = window.QM.classement(M_, c.ligue), pos = CL.findIndex(r => r.id === c.id) + 1;
@@ -230,6 +243,16 @@ ACT.scReunion = () => { const M_ = M(), R = G() && G().reunion(M_);
   feuille(`${teteF('Plan de la saison', esc(moi().nom))}${reunionCarte(M_, true) || '<p class="mut">Pas de réunion cette saison.</p>'}`); };
 ACT.scFinances = () => { fermerFeuille(); aller('finances'); };
 
+/* v121 : la page Équipe, le vestiaire illustré ; sans les images, une simple liste des écrans de l'équipe */
+function vueEquipe(){
+  const c = moi(), scene = sceneDispo('equipe');
+  const liens = [['effectif', 'Effectif', 'Les joueurs, leurs notes et leur forme'], ['tactique', 'Tactique', 'Composition et consignes'], ['entrainement', 'Entraînement', 'Le programme de la semaine'],
+    ['staff', 'Staff', 'Adjoints, préparateurs et soigneurs'], ['vestiaire', 'Vestiaire et mentorat', 'Ambiance, leaders, mentorat et balais']];
+  VUE.innerHTML = `<div><h1 class="grand">L'équipe</h1><p class="sous">Le vestiaire · ${esc(c.nom)}</p></div>
+  ${scene ? sceneHTML('equipe') : ''}
+  <details class="sc-detail"${scene ? '' : ' open'}><summary>Tous les écrans de l'équipe</summary><div class="carte"><div class="liste">${liens.map(([v, n, x]) => `<button class="el" data-act="vue" data-v="${v}"><div class="t"><b>${n}</b><span>${x}</span></div><span class="d mut">›</span></button>`).join('')}</div></div></details>`;
+  if (scene) V.colorierProduits(VUE, c);   // les robes aux couleurs du club
+}
 function vueDirection(){
   const M_ = M(), mg = M_.manager, c = moi(), o = mg.objectif, p = G() ? G().profil(M_) : null, ct = p && p.contrat;
   const CL = window.QM.classement(M_, c.ligue), pos = CL.findIndex(r => r.id === c.id) + 1;
@@ -790,7 +813,7 @@ function MENU(){
   const M_ = M(), mg = M_.manager, cl = !!mg.club, nl = nonLus(), ouvert = cl && C.mercatoOuvert(window.QM.semaine(M_));
   const G_ = [
     ['Mon club', [['accueil', 'Accueil', '🏠'], ['boite', 'Boîte de réception', '✉️', nl || ''], ['calendrier', 'Calendrier', '📅', '', 1]]],
-    ['Équipe', [['effectif', 'Effectif', '👥', '', 1], ['tactique', 'Tactique', '🧭', '', 1], ['entrainement', 'Entraînement', '🏃', '', 1], ['vestiaire', 'Vestiaire et mentorat', '🛋️', '', 1], ['formation', 'Poudlard (formation)', '🎓', '', 1], ...(mg.selection ? [['selection', 'Sélection', '🏆']] : [])]],
+    ['Équipe', [['equipe', 'Le vestiaire', '🚪', '', 1], ['effectif', 'Effectif', '👥', '', 1], ['tactique', 'Tactique', '🧭', '', 1], ['entrainement', 'Entraînement', '🏃', '', 1], ['vestiaire', 'Vestiaire et mentorat', '🛋️', '', 1], ['formation', 'Poudlard (formation)', '🎓', '', 1], ...(mg.selection ? [['selection', 'Sélection', '🏆']] : [])]],
     ['Recrutement', [['mercato', 'Mercato', '🦉', ouvert ? '●' : '', 1], ['clubs', 'Clubs et joueurs', '🔭'], ['staff', 'Staff', '🧙', '', 1]]],
     ['Domaine', [['club', 'Carte du domaine', '🏰', '', 1], ['direction', 'Bureau du président', '🏛️', '', 1], ['finances', 'Finances et banque', '💰', '', 1], ['stade', 'Stade et tribunes', '🏟️', '', 1], ['boutique', 'Bazar', '🛍️', '', 1], ['partenaires', 'Partenaires', '🤝', '', 1], ['domaine', 'Bâtiments', '🧱', '', 1], ['trophees', 'Salle des trophées', '🏆', '', 1]]],
     ['Compétitions', [['classements', 'Classements', '📊']]],
@@ -800,7 +823,7 @@ function MENU(){
   return G_.map(([g, L]) => [g, L.filter(x => cl || !x[4])]).filter(([, L]) => L.length);
 }
 /* v99 : icônes illustrées (images/qm27/icones/<vue>.webp) ; l'emoji reste en secours si l'image manque */
-const ICONES = new Set(['accueil', 'boite', 'calendrier', 'effectif', 'tactique', 'entrainement', 'vestiaire', 'formation', 'selection', 'mercato', 'clubs', 'staff', 'club',
+const ICONES = new Set(['equipe', 'accueil', 'boite', 'calendrier', 'effectif', 'tactique', 'entrainement', 'vestiaire', 'formation', 'selection', 'mercato', 'clubs', 'staff', 'club',
   'direction', 'finances', 'stade', 'boutique', 'partenaires', 'domaine', 'trophees', 'classements', 'profil', 'carriere', 'sauvegardes', 'aide', 'quitterKiosk', 'presse', 'reunion']);
 const icoVue = (v, secours, cls) => ICONES.has(v) ? `<img class="${cls || ''}" src="${V.IMAGES}icones/${v}.webp" alt="" width="22" height="22" decoding="async" draggable="false" onerror="this.replaceWith(document.createTextNode('${secours}'))">` : secours;
 Z.icoVue = icoVue;
@@ -831,6 +854,6 @@ addEventListener('keydown', e => { if (e.key === 'Escape') fermerTiroir(); });
 Z.apresRendu = majMenu;
 
 /* ============================== Enregistrement ============================== */
-Object.assign(VUES, {club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});
+Object.assign(VUES, {equipe:vueEquipe, club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});
 if (Z.M && Z.M.manager) rendre(); else majMenu();
 })();

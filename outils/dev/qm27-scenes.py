@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: de9cd692
+# mon-ecran-version: ab05f192
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -107,12 +107,20 @@ RETOUCHES['bureau'] = {'zones':{'chapeau':[40, 100, 285, 300], 'echarpe':[780, 4
                         # l'écharpe seule (détourée sur ses rayures rouges et jaunes), recoloriée par l'écran aux couleurs du club ; on écarte la lanterne
                         'seules':[('echarpe', 'A', None), ('echarpe', 'B', (268, 160, 336, 236))]}
 
-def seule_echarpe(img, sans):
+RETOUCHES['equipe'] = {'zones':{'robes':[5, 290, 400, 730], 'couloir':[400, 370, 560, 680], 'tableau':[672, 158, 922, 492], 'balais':[665, 466, 952, 892],
+                                 'potions':[918, 86, 1024, 592], 'journal':[0, 972, 322, 1208], 'souaffle':[320, 858, 702, 1232], 'malle':[728, 898, 1024, 1482]},
+                        'pieces':[('robes', 'B'), ('couloir', 'B'), ('tableau', 'B'), ('tableau', 'C'), ('balais', 'B'), ('potions', 'B'), ('journal', 'B'), ('souaffle', 'B'), ('malle', 'B')],
+                        'seules':[('robes', 'A', (0, 0, 400, 48)), ('robes', 'B', (0, 0, 400, 48))]}   # v121 : le vestiaire (page Équipe), robes aux couleurs du club
+
+def seule_echarpe(img, sans, plusieurs=False):
     import cv2
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(int); H, S, V = hsv[..., 0], hsv[..., 1], hsv[..., 2]
-    m = ((((H <= 6) | (H >= 170)) & (S > 150) & (V > 90)) | ((H >= 17) & (H <= 32) & (S > 150) & (V > 170))).astype(np.uint8)
+    rouge = ((H <= 6) | (H >= 170)) & (S > 150) & (V > 90)
+    m = (rouge | ((H >= 17) & (H <= 32) & (S > 150) & (V > 170))).astype(np.uint8)
     m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((15, 15), np.uint8)); n, lab, st, _ = cv2.connectedComponentsWithStats(m)
-    m = nd.binary_fill_holes(lab == 1 + np.argmax(st[1:, 4])).astype(np.uint8); m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    # plusieurs : les quatre robes ; un morceau garde du rouge vif et de la hauteur (les patères et l'anneau de laiton de la porte n'en ont pas)
+    garde = [k for k in range(1, n) if st[k, 4] > 2500 and st[k, 3] > 120 and rouge[lab == k].mean() > 0.15] if plusieurs else [1 + np.argmax(st[1:, 4])]
+    m = nd.binary_fill_holes(np.isin(lab, garde)).astype(np.uint8); m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
     if sans: x0, y0, x1, y1 = sans; m[y0:y1, x0:x1] = 0
     return cv2.GaussianBlur(m.astype(np.float32), (0, 0), 0.8)
 FONDU = 14
@@ -136,6 +144,6 @@ for lieu, R in RETOUCHES.items():
         Image.fromarray(rgba, 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-{im}.webp'), 'WEBP', quality=86, method=6)
         tailles[f'{lieu}-{obj}-{im}'] = [x0, y0, x1, y1]
     for obj, im, sans in R.get('seules', []):
-        x0, y0, x1, y1 = R['zones'][obj]; p = (a if im == 'A' else regs[im])[y0:y1, x0:x1]; al = seule_echarpe(p, sans)
+        x0, y0, x1, y1 = R['zones'][obj]; p = (a if im == 'A' else regs[im])[y0:y1, x0:x1]; al = seule_echarpe(p, sans, obj == 'robes')
         Image.fromarray(np.dstack([cv2.cvtColor(p, cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-{im}-seule.webp'), 'WEBP', quality=88, method=6)
 print(json.dumps(tailles))

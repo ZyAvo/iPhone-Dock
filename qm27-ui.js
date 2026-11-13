@@ -1,4 +1,4 @@
-// mon-ecran-version: a185c915
+// mon-ecran-version: a643d619
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -206,7 +206,7 @@ function rendre(){
 function rendreVue(){
   entete(); barre();
   if (!M || !M.manager) return vueDemarrage();
-  const besoinClub = ['vestiaire', 'effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier', 'domaine', 'boutique', 'partenaires', 'trophees', 'direction'];
+  const besoinClub = ['equipe', 'vestiaire', 'effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier', 'domaine', 'boutique', 'partenaires', 'trophees', 'direction'];
   if (!M.manager.club && besoinClub.includes(U.vue)) U.vue = 'accueil';
   if (!M.manager.club && U.vue === 'accueil') return vueChomage();
   if (U.vue === 'selection' && !M.manager.selection) U.vue = 'accueil';
@@ -1895,6 +1895,22 @@ Object.assign(ACT, {
   scCoffre:d => { const c = club(M.manager.club); feuille(`<div data-sc="scCoffre">${teteF('Le coffre', esc(c.nom))}${finSolde(c)}${finHisto(c)}${finRecDep(c)}</div>`, d && d.garder); },
   scBillet:d => { const c = club(M.manager.club); feuille(`<div data-sc="scBillet">${teteF('Billetterie', `${esc(c.nom)} · ${c.stade.toLocaleString('fr-FR')} places`)}${finBillet(c)}<div class="btns"><button class="btn sec" data-act="vue" data-v="stade">Stade et tribunes</button></div></div>`, d && d.garder); },
   scGobelin:d => { feuille(`<div data-sc="scGobelin">${teteF('Banque des Gobelins', 'Prêts aux clubs')}${banqueHTML(B.assurer(M))}</div>`, d && d.garder); },
+});
+/* v121 : feuilles du vestiaire illustré */
+Object.assign(ACT, {
+  scBalais:d => { const c = club(M.manager.club); feuille(`<div data-sc="scBalais">${teteF('Balais', esc(c.nom))}${blocBalais(c)}</div>`, d && d.garder); },
+  scBlesses:d => { const c = club(M.manager.club), L = c.effectif.map(id => M.joueurs[id]).filter(j => j && j.bless).sort((a, b) => b.bless.jours - a.bless.jours);
+    feuille(`<div data-sc="scBlesses">${teteF('Infirmerie', L.length ? `${L.length} blessé${L.length > 1 ? 's' : ''}` : 'Personne à soigner')}
+      ${L.length ? `<div class="carte"><div class="liste">${L.map(j => `<button class="el" data-act="joueur" data-j="${j.id}">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}</b><span>${esc(j.bless.nom)} · encore ${j.bless.jours} jour${j.bless.jours > 1 ? 's' : ''}</span></div><span class="d mut">›</span></button>`).join('')}</div></div>`
+        : '<p class="mut">Tout le monde est sur pied.</p>'}</div>`, d && d.garder); },
+  scProgression:() => feuille(`${teteF('Progression des joueurs', 'Bientôt')}<p style="margin:0 0 10px">Ici viendront la progression de chaque joueur et son entraînement individuel.</p>
+    <p class="petit mut" style="margin:0 0 12px">En attendant, les ateliers par poste se règlent dans le programme d'entraînement.</p>
+    <div class="btns"><button class="btn sec" data-act="vue" data-v="entrainement">Entraînement</button><button class="btn sec" data-act="vue" data-v="effectif">Effectif</button></div>`),
+  scCouloir:() => { const m = QM.matchDuJoueur(M); if (m && !m.res){ fermerFeuille(); return ACT.preparer(); }
+    let pm = null; try { pm = TT() && TT().prochainMatch(M); } catch (e){}
+    const adv = pm && pm.m && (pm.m.dom === M.manager.club ? pm.m.ext : pm.m.dom);
+    feuille(`${teteF('Aucun match cette semaine', esc(club(M.manager.club).nom))}${adv && M.clubs[adv] ? `<p style="margin:0 0 12px">Prochain match contre <b>${esc(club(adv).nom)}</b>${pm.S && pm.S.date ? `, le ${fmtDate(pm.S.date)}` : ''}.</p>` : '<p class="mut">Pas de match prévu pour l\'instant.</p>'}
+      <div class="btns"><button class="btn sec" data-act="vue" data-v="calendrier">Calendrier</button><button class="btn sec" data-act="vue" data-v="tactique">Tactique</button></div>`); },
 });
 function rafraichirFeuilleScene(){ const el = document.querySelector('.fond .feuille [data-sc]'); if (el && ACT[el.dataset.sc]) ACT[el.dataset.sc]({garder:true}); }
 window.QMU = {flagSeul, pieces, eurT, get M(){ return M; }, get X(){ return X; }, get EMP(){ return EMP; }, U, REG, regler, VUES, ACT, VUE, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, nomEq, flag, posteB, etoiles, nomJ, court,
