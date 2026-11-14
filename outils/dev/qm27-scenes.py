@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 08c66ea0
+# mon-ecran-version: 5b7046e9
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -116,6 +116,31 @@ RETOUCHES['recrutement'] = {'zones':{'portraits':[40, 125, 435, 498], 'dossiers'
                                       'globe':[740, 875, 1024, 1450]},
                              'pieces':[('portraits', 'B'), ('dossiers', 'B'), ('sorciere', 'B'), ('hibou', 'B'), ('globe', 'B')]}   # v122 : le bureau du recrutement
 
+# v124 : le Bazar ; l'ardoise s'efface (B), et une couche « articles » = les tissus rouge et jaune des rayons, recoloriés aux couleurs du club
+RETOUCHES['boutique'] = {'zones':{'ardoise':[285, 728, 745, 1325]}, 'pieces':[('ardoise', 'B')],
+                         'couches':[('articles', [0, 110, 1004, 1040],
+                                     [[0, 110, 236, 572], [236, 272, 392, 702], [0, 636, 272, 1036], [625, 178, 812, 552], [808, 446, 1004, 752], [652, 556, 802, 752]],
+                                     [[212, 186, 300, 362], [726, 316, 788, 412], [280, 720, 752, 1040]])]}   # (nom, cadre, rayons, écartés : lanternes et cadre de l'ardoise)
+
+def couche_tissus(img, cadre, boites, sans):
+    import cv2
+    x0, y0, x1, y1 = cadre; z = img[y0:y1, x0:x1]; hsv = cv2.cvtColor(z, cv2.COLOR_BGR2HSV).astype(int); H, S, V = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    m = (((H <= 11) | (H >= 165) | ((H >= 11) & (H <= 36))) & (S > 105) & (V > 75)).astype(np.uint8)
+    garde = np.zeros_like(m)
+    for bx0, by0, bx1, by1 in boites: garde[by0 - y0:by1 - y0, bx0 - x0:bx1 - x0] = 1
+    for bx0, by0, bx1, by1 in sans: garde[by0 - y0:by1 - y0, bx0 - x0:bx1 - x0] = 0
+    m = cv2.morphologyEx(m * garde, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8)); n, lab, st, _ = cv2.connectedComponentsWithStats(m)
+    m = np.isin(lab, [k for k in range(1, n) if st[k, 4] > 150]).astype(np.float32)
+    return z, cv2.GaussianBlur(m, (0, 0), 0.7)
+
+def jaunir(z):
+    """Les jaunes tirant sur l'orange (22-38°) passent au jaune franc (50°) : l'écran ne recolorie que le rouge et le jaune (pas l'orange),
+    sinon une partie des rayures gardait sa couleur d'origine. Seulement sur les couches détourées (tissus), jamais sur le décor."""
+    import cv2
+    hsv = cv2.cvtColor(z, cv2.COLOR_BGR2HSV); H, S, V = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    w = (H >= 11) & (H <= 19) & (S > 105) & (V > 120); hsv[..., 0] = np.where(w, 25, H)
+    return cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
 def seule_echarpe(img, sans, plusieurs=False):
     import cv2
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(int); H, S, V = hsv[..., 0], hsv[..., 1], hsv[..., 2]
@@ -147,7 +172,11 @@ for lieu, R in RETOUCHES.items():
         rgba = np.dstack([cv2.cvtColor(p, cv2.COLOR_BGR2RGB), (al * 255).astype(np.uint8)])
         Image.fromarray(rgba, 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-{im}.webp'), 'WEBP', quality=86, method=6)
         tailles[f'{lieu}-{obj}-{im}'] = [x0, y0, x1, y1]
+    for nom, cadre, boites, sans in R.get('couches', []):
+        z, al = couche_tissus(a, cadre, boites, sans)
+        Image.fromarray(np.dstack([cv2.cvtColor(jaunir(z), cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{nom}-A-seule.webp'), 'WEBP', quality=88, method=6)
+        tailles[f'{lieu}-{nom}'] = cadre
     for obj, im, sans in R.get('seules', []):
         x0, y0, x1, y1 = R['zones'][obj]; p = (a if im == 'A' else regs[im])[y0:y1, x0:x1]; al = seule_echarpe(p, sans, obj == 'robes')
-        Image.fromarray(np.dstack([cv2.cvtColor(p, cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-{im}-seule.webp'), 'WEBP', quality=88, method=6)
+        Image.fromarray(np.dstack([cv2.cvtColor(jaunir(p), cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-{im}-seule.webp'), 'WEBP', quality=88, method=6)
 print(json.dumps(tailles))

@@ -1,4 +1,4 @@
-// mon-ecran-version: ae2121e2
+// mon-ecran-version: 541572d2
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -150,7 +150,7 @@ document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === 
 /* v119 : le bureau du président, méthode des retouches (images A à D de ChatGPT) ; zones en pixels de A (1024 × 1536) */
 const LETTRE = [190, 800, 448, 902], reunionDe = M_ => G() && G().reunion(M_);
 const SCENES = {
-  direction:{fond:'scenes/bureau-fond', v:2, ratio:1536 / 1024, l:1024, h:1536, objets:[
+  direction:{fond:'scenes/bureau-fond', v:3, ratio:1536 / 1024, l:1024, h:1536, objets:[
     {id:'chapeau', zone:[40, 100, 285, 300], calques:[['scenes/bureau-chapeau-B', 'b']], plaque:'g', anim:'parle', nom:'Confiance du président', act:'scConfiance'},
     /* le portrait : le cadre ovale vide de l'image A (ovale intérieur mesuré : centre 849 × 253, 133 × 204, penché de 4,6°), le visage du manager dedans */
     {id:'portrait', zone:[782.6, 151.4, 915.6, 355.4], portrait:{angle:4.6}, anim:'respire', nom:'Mon contrat, mon profil', act:'scPortrait'},
@@ -177,7 +177,7 @@ const SCENES = {
     {id:'gobelin', zone:[388, 632, 676, 850], calques:[['scenes/banque-gobelin-B', 'b']], anim:'bascule', nom:'Banque des Gobelins', act:'scGobelin'},
   ]},
   /* v121 : le vestiaire (page Équipe) façon FM98, images A (repos), B (tout bouge), C (tableau couvert) ; vue: = écran ouvert directement */
-  equipe:{fond:'scenes/equipe-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
+  equipe:{fond:'scenes/equipe-fond', v:2, ratio:1536 / 1024, l:1024, h:1536, objets:[
     {id:'robes', zone:[5, 290, 400, 730], club:true, calques:[['scenes/equipe-robes-A-seule', 'fixe'], ['scenes/equipe-robes-B', 'b'], ['scenes/equipe-robes-B-seule', 'b']], plaque:'g', anim:'bascule', nom:'Effectif', vue:'effectif'},
     {id:'couloir', zone:[400, 370, 560, 680], calques:[['scenes/equipe-couloir-B', 'b']], anim:'parle', act:'scCouloir',
       nom:M_ => { const m = window.QM.matchDuJoueur(M_); return m && !m.res ? 'Préparer le match' : 'Aucun match cette semaine'; }},
@@ -197,7 +197,34 @@ const SCENES = {
       nom:M_ => M_.offres && M_.offres.length ? `Offres (${M_.offres.length})` : 'Offres et ventes'},
     {id:'globe', zone:[740, 875, 1024, 1450], calques:[['scenes/recrutement-globe-B', 'b']], plaque:'d', anim:'bascule', nom:'Clubs et joueurs', vue:'clubs'},
   ]},
+  /* v124 : le Bazar ; les articles en rayon (couche détourée, aux couleurs du club, décor non cliquable) et l'ardoise où défilent les prix à la craie */
+  boutique:{fond:'scenes/boutique-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
+    {id:'articles', zone:[0, 110, 1004, 1040], decor:true, club:true, calques:[['scenes/boutique-articles-A-seule', 'fixe']]},
+    {id:'ardoise', zone:[285, 728, 745, 1325], calques:[['scenes/boutique-ardoise-B', 'b']], anim:'bascule', nom:'Les prix', act:'scArdoise',
+      html:(M_, c) => ardoiseHTML(c), htmlStyle:'left:6%;top:24%;width:88%;height:70%'},
+  ]},
 };
+/* l'ardoise : les produits en rayon, trois par page ; ardoiseDefile() fait passer les pages (l'éponge efface, puis la page suivante s'écrit) */
+const NOMS_ARDOISE = {echarpe:'Écharpes', maillot:'Maillots', peluche:'Vifs d\'or en peluche', balai:'Balais miniatures', chapeau:'Chapeaux pointus', fanion:'Fanions',
+  edition:'Éditions spéciales', echarpe2:'Écharpes magiques', choco:'Vifs d\'or en chocolat'};
+function ardoiseHTML(c){
+  const d = c.dom || {produits:{}}, L = D.PRODUITS.filter(p => d.produits[p[0]] && d.produits[p[0]].actif && (!p[4] || B.a(c, p[4])));
+  if (!L.length) return '<div class="ard-page on"><p class="ard-n">Rayons vides</p><p class="ard-p">Bientôt !</p></div>';
+  const pages = []; for (let i = 0; i < L.length; i += 3) pages.push(L.slice(i, i + 3));
+  return pages.map((P, k) => `<div class="ard-page${k ? '' : ' on'}">${P.map(p => { const st = d.produits[p[0]];
+    return `<p class="ard-n">${esc(NOMS_ARDOISE[p[0]] || p[1])}</p><p class="ard-p">${esc(eurT(p[3] * B.PRIX[st.prix].p))}${st.prix === 'bas' ? ' <span class="ard-promo">promo !</span>' : ''}</p>`; }).join('')}</div>`).join('');
+}
+function ardoiseDefile(){
+  clearInterval(ardoiseDefile.t);
+  ardoiseDefile.t = setInterval(() => {
+    const ob = document.querySelector('.sc-obj[data-o="ardoise"]'); if (!ob){ clearInterval(ardoiseDefile.t); return; }
+    const P = [...ob.querySelectorAll('.ard-page')]; if (P.length < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    ob.classList.add('efface');
+    setTimeout(() => { const i = P.findIndex(x => x.classList.contains('on')); P[i].classList.remove('on'); P[(i + 1) % P.length].classList.add('on'); }, 550);
+    setTimeout(() => ob.classList.remove('efface'), 1000);
+  }, 4800);
+}
+Z.ardoiseDefile = ardoiseDefile;
 const SC_OK = {};
 function sceneDispo(l){
   if (!SCENES[l]) return false;
@@ -216,8 +243,9 @@ function sceneHTML(l){
     const nom = typeof o.nom === 'function' ? o.nom(M_, c) : o.nom;
     const pos = o.zone ? `left:${o.zone[0] / S.l * 100}%;top:${o.zone[1] / S.h * 100}%;width:${(o.zone[2] - o.zone[0]) / S.l * 100}%;height:${(o.zone[3] - o.zone[1]) / S.h * 100}%`
       : `left:${o.x}%;top:${o.y}%;width:${o.w}%`;
+    const html = o.html ? `<div class="sc-html" style="${o.htmlStyle || ''}">${o.html(M_, c)}</div>` : '';
     if (o.decor) return `<div class="sc-obj sc-zone sc-decor" style="${pos}" aria-hidden="true">${corps}</div>`;
-    return `<button class="sc-obj sc-${o.anim}${o.zone ? ' sc-zone' : ''}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="${pos}${vars}" aria-label="${esc(nom)}">${corps}${textes}${o.muet ? '' : `<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(nom)}</span>`}</button>`;
+    return `<button class="sc-obj sc-${o.anim}${o.zone ? ' sc-zone' : ''}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="${pos}${vars}" aria-label="${esc(nom)}">${corps}${html}${textes}${o.muet ? '' : `<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(nom)}</span>`}</button>`;
   };
   return `<div class="scene" style="aspect-ratio:${1 / S.ratio}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}</div>
     <p class="petit mut sc-aide">Touche un objet de la pièce.</p>`;

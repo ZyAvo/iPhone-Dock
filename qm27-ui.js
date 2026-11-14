@@ -1,4 +1,4 @@
-// mon-ecran-version: 4249c9f5
+// mon-ecran-version: d4cd9a1d
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -1232,14 +1232,17 @@ function vueStade(){
 function vueBoutique(){
   const c = B.assurer(M), d = c.dom, dispo = B.produitsDispo(c), actifs = dispo.filter(p => d.produits[p[0]] && d.produits[p[0]].actif).length;
   const lib = {bas:'Bas', normal:'Normal', haut:'Haut'};
+  const scene = Z_() && Z_().sceneDispo('boutique');   // v124 : la boutique illustrée, l'ardoise des prix
   VUE.innerHTML = `<div><h1 class="grand">Bazar du club</h1><p class="sous">Niveau ${C.niv(c, 'boutique')} · ${actifs} / ${B.placesRayon(c)} produits en rayon · environ ${eur(B.recettesBazar(c))} par semaine</p></div>
-  <div class="carte"><div class="liste">${D.PRODUITS.map(p => { const ok = !p[4] || B.a(c, p[4]), st = d.produits[p[0]] || {actif:false, prix:'normal'};
+  ${scene ? Z_().sceneHTML('boutique') : ''}
+  <div class="carte" id="rayons"><div class="liste">${D.PRODUITS.map(p => { const ok = !p[4] || B.a(c, p[4]), st = d.produits[p[0]] || {actif:false, prix:'normal'};
     if (!ok) return `<div class="el" style="opacity:.55"><div class="t"><b>🔒 ${esc(p[1])}</b><span>Débloqué par ${esc(B.AMEL[p[4]].nom)} (${esc(nomBat(B.AMEL[p[4]].bat))}, niveau ${B.AMEL[p[4]].niv})</span></div></div>`;
     return `<div class="el prod">${V.produitImg(p[0])}<label class="interr"><input type="checkbox" data-chg="produit" data-p="${p[0]}" ${st.actif ? 'checked' : ''}><span></span></label>
       <div class="t"><b>${esc(p[1])}</b><span>${'★'.repeat(Math.round(p[2] * 3))} · ${eur(p[3] * B.PRIX[st.prix].p)} · ${st.actif ? '≈ ' + eur(B.recetteProduit(c, p, st)) + ' / sem.' : 'pas en rayon'}</span></div>
       <div class="seg mini">${['bas', 'normal', 'haut'].map(v => `<button data-act="prixProduit" data-p="${p[0]}" data-v="${v}" class="${st.prix === v ? 'on' : ''}">${lib[v]}</button>`).join('')}</div></div>`; }).join('')}</div>
     <p class="petit mut" style="margin:8px 0 0">Les produits portent les couleurs du club. Prix bas : un peu moins de recettes, des supporters ravis. Prix haut : plus de recettes, des supporters qui râlent. Chaque niveau du Bazar ajoute une place en rayon.</p></div>`;
   V.colorierProduits(VUE, c);   // v111
+  if (scene) Z_().ardoiseDefile();
 }
 function vuePartenaires(){
   const c = B.assurer(M), d = c.dom, sp = d.sponsor, pl = B.placesPanneaux(c);
@@ -1898,6 +1901,7 @@ Object.assign(ACT, {
 });
 /* v121 : feuilles du vestiaire illustré */
 Object.assign(ACT, {
+  scArdoise:() => { const r = document.getElementById('rayons'); if (r) r.scrollIntoView({behavior:'smooth', block:'start'}); },   // v124 : l'ardoise mène aux prix
   scMerc:d => { fermerFeuille(); MERC.onglet = d.o; MERC.vu = 1; aller('mercato'); },   // v122 : depuis le bureau du recrutement, l'onglet voulu du mercato
   scBalais:d => { const c = club(M.manager.club); feuille(`<div data-sc="scBalais">${teteF('Balais', esc(c.nom))}${blocBalais(c)}</div>`, d && d.garder); },
   scBlesses:d => { const c = club(M.manager.club), L = c.effectif.map(id => M.joueurs[id]).filter(j => j && j.bless).sort((a, b) => b.bless.jours - a.bless.jours);
