@@ -1,4 +1,4 @@
-// mon-ecran-version: d4cd9a1d
+// mon-ecran-version: 356747d6
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -809,6 +809,9 @@ function vueSauvegardes(){
 function vueAide(){
   const P = REG.pauses;
   VUE.innerHTML = `<div><h1 class="grand">Règles et réglages</h1></div>
+  ${window.Themes && Themes.polices ? `<div class="carte"><h2>Police des titres</h2><style>${Themes.facesPolices()}</style><div class="liste">
+    ${[{id:'kiosk', nom:'Comme KiosK', d:'La police choisie dans État', famille:''}, ...Themes.polices].map(P => `<label class="el"><div class="t"><b style="${P.famille ? `font-family:${esc(P.famille)};font-size:1.08em` : ''}">${esc(P.nom)}</b><span>${esc(P.d)}</span></div><input type="radio" name="policeJeu" data-chg="policeJeu" value="${P.id}" ${Themes.policeJeu() === P.id ? 'checked' : ''} style="width:22px;height:22px"></label>`).join('')}
+  </div><p class="petit mut" style="margin:8px 0 0">Pour le jeu seulement : les titres des écrans de QM27.</p></div>` : ''}
   <div class="carte"><h2>Noms des clubs et des ligues</h2><div class="liste">
     ${D.LANGUES_NOMS.map(([k, n, ex]) => `<label class="el"><div class="t"><b>${n}</b><span>${esc(ex)}</span></div><input type="radio" name="nomsLg" data-chg="noms" value="${k}" ${(REG.noms || 'local') === k ? 'checked' : ''} style="width:22px;height:22px"></label>`).join('')}
   </div></div>
@@ -1861,6 +1864,7 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if (t.dataset.chg === 'pause'){ REG.pauses[t.dataset.k] = t.checked; regler(); }
+  if (t.dataset.chg === 'policeJeu'){ Themes.choisirPoliceJeu(t.value); return; }   // v126
   if (t.dataset.chg === 'noms'){ REG.noms = QM.langueNoms(t.value); regler(); if (M){ QM.nommer(M); sauver(); } if (MONDE_NEUF) QM.nommer(MONDE_NEUF); entete(); toast({local:'Noms dans la langue de chaque pays', en:'Noms en anglais', fr:'Noms en français'}[REG.noms]); }
   if (t.dataset.chg === 'resumes'){ REG.resumes = t.checked ? 'enjeu' : 'tout'; regler(); }
   if (t.dataset.chg === 'son'){ REG.son = t.checked; regler(); }

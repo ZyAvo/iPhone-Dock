@@ -1,4 +1,4 @@
-// mon-ecran-version: 06ebe1d8
+// mon-ecran-version: dad5868a
 /* Mon Écran — thèmes de couleurs (v42), communs à toutes les pages.
    Chargé dans <head> juste après noyau.js : applique le thème et le mode choisis dans État avant l'affichage,
    écrit les couleurs du thème et le fond dégradé (calque fixe : sur iPhone, Safari ignore « background-attachment:fixed »
@@ -270,7 +270,38 @@ function poserIcones(){
   }catch(e){}
 }
 
+/* ---------- v126 : police des titres ----------
+   Réglage de KiosK « police » (État › Thème) et réglage propre au jeu « qm27:police » (QM27 › Règles et réglages ; « kiosk » = suivre KiosK).
+   Seulement les titres (h1, h2, .grand, hors en-têtes de page à hauteur fixe) : textes, chiffres et tableaux gardent Geist. Polices dans polices/ (licence LICENCE-titres.txt). */
+const POLICES = [
+  {id:'geist', nom:'Geist', d:'La police de KiosK', famille:''},
+  {id:'cinzel', nom:'Cinzel', d:'Capitales gravées dans la pierre', famille:'"Cinzel", "Trajan Pro", serif', fichier:'Cinzel-Variable.woff2', poids:'400 900', ajust:'letter-spacing:.01em'},
+  {id:'almendra', nom:'Almendra', d:'Calligraphie médiévale', famille:'"Almendra", "Palatino", serif', fichier:'Almendra-Bold.woff2', poids:'700'},
+  {id:'fell', nom:'IM Fell English', d:'Vieux livre imprimé', famille:'"IM Fell English", "Iowan Old Style", serif', fichier:'IMFellEnglish-Regular.woff2', poids:'400', ajust:'font-weight:400!important'},
+];
+const NOMS_POL = {cinzel:'Cinzel', almendra:'Almendra', fell:'IM Fell English'};
+const dansJeu = () => /qm27\.html$/.test(location.pathname);
+const policeKiosk = () => { const p = LS.lire('police'); return POLICES.some(x => x.id === p) ? p : 'geist'; };
+const policeJeu = () => { const p = LS.lire('qm27:police'); return POLICES.some(x => x.id === p) ? p : 'kiosk'; };
+const policeIci = () => { const j = dansJeu() ? policeJeu() : 'kiosk'; return j === 'kiosk' ? policeKiosk() : j; };
+function poserPolice(id){
+  try{
+    const d = document.documentElement, P = POLICES.find(x => x.id === (id || policeIci())) || POLICES[0];
+    let st = document.getElementById('police-titres'); if (!st){ st = document.createElement('style'); st.id = 'police-titres'; (document.head || d).appendChild(st); }
+    if (!P.fichier){ delete d.dataset.police; st.textContent = ''; return; }
+    d.dataset.police = P.id;
+    st.textContent = `@font-face{font-family:"${NOMS_POL[P.id]}";src:url(polices/${P.fichier}) format("woff2");font-weight:${P.poids};font-style:normal;font-display:swap}\n`
+      + `:root[data-police="${P.id}"] :is(h1,h2,.grand):not(header *){font-family:${P.famille};${P.ajust || ''}}`;   // pas les titres d'en-tête (hauteur fixe)
+  }catch(e){}
+}
+
 window.Themes = {
+  polices:POLICES.map(({id, nom, d, famille}) => ({id, nom, d, famille})), policeKiosk, policeJeu,
+  choisirPolice(id){ LS.ecrire('police', id === 'geist' || !POLICES.some(x => x.id === id) ? null : id); poserPolice(); },
+  choisirPoliceJeu(id){ LS.ecrire('qm27:police', id === 'kiosk' || !POLICES.some(x => x.id === id) ? null : id); poserPolice(); },
+  apercuPolice:id => poserPolice(id),
+  /* polices chargées pour les aperçus des listes de choix */
+  facesPolices(){ return POLICES.filter(p => p.fichier).map(P => `@font-face{font-family:"${NOMS_POL[P.id]}";src:url(polices/${P.fichier}) format("woff2");font-weight:${P.poids};font-display:swap}`).join('\n'); },
   toutes:THEMES, liste, actuel, defaut:DEF, perso, lireCouleurs,
   logos:LOGOS.map(({id, nom}) => ({id, nom})), logoSVG, logoActuel, logoCouleurs:t => logoCouleurs(typeof t === 'object' ? t : themeDe(t)),
   choisirLogo(id){ LS.ecrire('logo', id === LOGO_DEF || !LOGOS.some(x => x.id === id) ? null : id); poserIcones(); },
@@ -287,7 +318,7 @@ window.Themes = {
 
 /* au chargement : thème, mode clair/sombre et mise en page PC, avant l'affichage */
 try{
-  ecrireCSS(); poser(actuel()); poserIcones();
+  ecrireCSS(); poser(actuel()); poserIcones(); poserPolice();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', poserIcones, {once:true});
   const d = document.documentElement, m = LS.lire('mode') || CFGv('apparence.mode', '');
   if (m === 'clair') d.dataset.theme = 'light'; else if (m === 'sombre') d.dataset.theme = 'dark';
@@ -295,6 +326,6 @@ try{
   d.classList.toggle('desk', q.matches); q.addEventListener && q.addEventListener('change', e => d.classList.toggle('desk', e.matches));
 }catch(e){}
 /* thème perso arrivé par la synchro, ou changé dans un autre onglet */
-window.addEventListener('synchro:prefs', () => Themes.rafraichir());
-window.addEventListener('storage', e => { if (e.key === 'theme:perso' || e.key === 'palette' || e.key === 'logo') Themes.rafraichir(); });
+window.addEventListener('synchro:prefs', () => { Themes.rafraichir(); poserPolice(); });
+window.addEventListener('storage', e => { if (e.key === 'theme:perso' || e.key === 'palette' || e.key === 'logo') Themes.rafraichir(); if (e.key === 'police' || e.key === 'qm27:police') poserPolice(); });
 })();
