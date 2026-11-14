@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: c4612dc7
+# mon-ecran-version: b69724b9
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -101,16 +101,18 @@ RETOUCHES = {
     'banque': {'zones':{'coffre':[770, 488, 1016, 798], 'plan':[95, 405, 422, 642], 'gobelin':[388, 632, 676, 850]},
                'pieces':[('coffre', 'B'), ('coffre', 'C'), ('plan', 'C'), ('gobelin', 'B')]},
 }
-RETOUCHES['bureau'] = {'zones':{'chapeau':[40, 100, 285, 300], 'echarpe':[780, 420, 1024, 830], 'gazette':[548, 760, 870, 905], 'lettre':[190, 800, 448, 902],
-                                 'bourse':[10, 1050, 330, 1380]},
+RETOUCHES['bureau'] = {'zones':{'chapeau':[10, 110, 225, 310], 'echarpe':[800, 270, 1024, 860], 'gazette':[610, 820, 945, 1000], 'lettre':[110, 880, 345, 990],
+                                 'bourse':[0, 1020, 260, 1310]},
                         'pieces':[('chapeau', 'B'), ('echarpe', 'B'), ('gazette', 'B'), ('lettre', 'B'), ('lettre', 'C'), ('lettre', 'D'), ('bourse', 'B')],
-                        # l'écharpe seule (détourée sur ses rayures rouges et jaunes), recoloriée par l'écran aux couleurs du club ; on écarte la lanterne
-                        'seules':[('echarpe', 'A', None), ('echarpe', 'B', (268, 160, 336, 236))]}
+                        # v131 : bureau repeint, écharpe BLANC et GRIS (A au repos, B qui ondule) ; couche « gris » teinte aux couleurs du club (on écarte la bougie)
+                        'gris':[('echarpe', 'A', 172, [[795, 530, 828, 615]]), ('echarpe', 'B', 172, [[795, 530, 828, 615]])]}
 
-RETOUCHES['equipe'] = {'zones':{'robes':[5, 290, 400, 730], 'couloir':[400, 370, 560, 680], 'tableau':[672, 158, 922, 492], 'balais':[665, 466, 952, 892],
-                                 'potions':[918, 86, 1024, 592], 'journal':[0, 972, 322, 1208], 'souaffle':[320, 858, 702, 1232], 'malle':[728, 898, 1024, 1482]},
+RETOUCHES['equipe'] = {'zones':{'robes':[0, 285, 350, 740], 'couloir':[395, 360, 565, 680], 'tableau':[670, 155, 922, 492], 'balais':[665, 466, 952, 892],
+                                 'potions':[915, 55, 1024, 600], 'journal':[0, 975, 322, 1210], 'souaffle':[400, 790, 600, 1060], 'malle':[700, 840, 1024, 1480]},
                         'pieces':[('robes', 'B'), ('couloir', 'B'), ('tableau', 'B'), ('tableau', 'C'), ('balais', 'B'), ('potions', 'B'), ('journal', 'B'), ('souaffle', 'B'), ('malle', 'B')],
-                        'seules_v124':[('robes', 'A', (0, 0, 400, 48)), ('robes', 'B', (0, 0, 400, 48))]}   # v121 : le vestiaire ; v128 : robes recoloriées retirées (rendu jugé mauvais), « seules_v124 » n'est plus lu
+                        # v121 : le vestiaire ; v131 : repeint avec des robes BLANC et GRIS (A au repos, B au vent, un seul cognard reste dans la malle),
+                        # couches « gris » teintes aux couleurs du club
+                        'gris':[('robes', 'A', 150, []), ('robes', 'B', 150, [])]}
 
 RETOUCHES['recrutement'] = {'zones':{'portraits':[40, 125, 435, 498], 'dossiers':[80, 495, 300, 820], 'sorciere':[330, 400, 690, 780], 'hibou':[745, 340, 1024, 790],
                                       'globe':[740, 875, 1024, 1450]},
@@ -157,6 +159,19 @@ def couche_masque(a, c, sans):
     al = cv2.GaussianBlur(m, (0, 0), 0.7)[y0:y1, x0:x1]
     return a[y0:y1, x0:x1], al, [int(x0), int(y0), int(x1), int(y1)]
 
+# v131 : les tissus BLANC et GRIS d'une zone, détourés par la couleur (pas par le masque magenta : ChatGPT l'a dessiné décalé et incomplet).
+# Sous la lumière chaude, le « blanc » et le « gris » restent peu saturés (S ≈ 100-150) alors que pierre, bois, laiton et bougies flambent (S > 170).
+# La couche a la taille de la zone (transparente ailleurs) : l'écran la pose sur l'objet et la teint (QMV.colorierGris, data-prod="gris:…").
+def couche_grise(img, zone, smax, sans):
+    import cv2
+    x0, y0, x1, y1 = zone; z = img[y0:y1, x0:x1]; hsv = cv2.cvtColor(z, cv2.COLOR_BGR2HSV).astype(int)
+    m = ((hsv[..., 1] < smax) & (hsv[..., 2] > 25)).astype(np.uint8)
+    for bx0, by0, bx1, by1 in sans: m[max(0, by0 - y0):max(0, by1 - y0), max(0, bx0 - x0):max(0, bx1 - x0)] = 0
+    m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8)); m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((7, 7), np.uint8))
+    n, lab, st, _ = cv2.connectedComponentsWithStats(m)
+    m = nd.binary_fill_holes(np.isin(lab, [k for k in range(1, n) if st[k, 4] > 1500])).astype(np.float32)
+    return z, cv2.GaussianBlur(m, (0, 0), 0.7)
+
 def seule_echarpe(img, sans, plusieurs=False):
     import cv2
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(int); H, S, V = hsv[..., 0], hsv[..., 1], hsv[..., 2]
@@ -184,7 +199,8 @@ for lieu, R in RETOUCHES.items():
             T, inl = cv2.estimateAffinePartial2D(np.float32([kb[m.queryIdx].pt for m in mt]), np.float32([ka[m.trainIdx].pt for m in mt]), method=cv2.RANSAC, ransacReprojThreshold=2)
             regs[im] = cv2.warpAffine(b, T, (1024, 1536), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE); print(f'  image {im} recalée ({int(inl.sum())} points)')
         x0, y0, x1, y1 = R['zones'][obj]; p = regs[im][y0:y1, x0:x1]
-        al = np.zeros(p.shape[:2], np.float32); al[FONDU:-FONDU, FONDU:-FONDU] = 1; al = cv2.GaussianBlur(al, (0, 0), FONDU / 2.2)
+        al = np.zeros(p.shape[:2], np.float32); al[0 if y0 == 0 else FONDU:p.shape[0] if y1 >= 1536 else -FONDU, 0 if x0 == 0 else FONDU:p.shape[1] if x1 >= 1024 else -FONDU] = 1
+        al = cv2.GaussianBlur(al, (0, 0), FONDU / 2.2)   # v131 : pas de fondu le long des bords de l'image (rien à raccorder)
         rgba = np.dstack([cv2.cvtColor(p, cv2.COLOR_BGR2RGB), (al * 255).astype(np.uint8)])
         Image.fromarray(rgba, 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-{im}.webp'), 'WEBP', quality=86, method=6)
         tailles[f'{lieu}-{obj}-{im}'] = [x0, y0, x1, y1]
@@ -197,6 +213,10 @@ for lieu, R in RETOUCHES.items():
         z, al = couche_tissus(a, cadre, boites, sans)
         Image.fromarray(np.dstack([cv2.cvtColor(jaunir(z), cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{nom}-A-seule.webp'), 'WEBP', quality=88, method=6)
         tailles[f'{lieu}-{nom}'] = cadre
+    for obj, im, smax, sans in R.get('gris', []):
+        z, al = couche_grise(a if im == 'A' else regs[im], R['zones'][obj], smax, sans)
+        Image.fromarray(np.dstack([cv2.cvtColor(z, cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-gris-{im}.webp'), 'WEBP', quality=88, method=6)
+        print(f'  couche grise {obj}-{im} : {int((al > 0.5).sum())} px')
     for obj, im, sans in R.get('seules', []):
         x0, y0, x1, y1 = R['zones'][obj]; p = (a if im == 'A' else regs[im])[y0:y1, x0:x1]; al = seule_echarpe(p, sans, obj == 'robes')
         Image.fromarray(np.dstack([cv2.cvtColor(jaunir(p), cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-{im}-seule.webp'), 'WEBP', quality=88, method=6)

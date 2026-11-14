@@ -1,4 +1,4 @@
-// mon-ecran-version: b2d5ee29
+// mon-ecran-version: d778b47f
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -148,22 +148,22 @@ document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === 
    Tant que l'image de fond n'est pas déposée, l'écran garde ses cartes (SC_OK[lieu] = false) : rien ne casse.
    Objet : {id, img, x, y, w (centre et largeur en % du fond), anim, nom, act, calques:[[img, classe]], si:(M, c) => bool} */
 /* v119 : le bureau du président, méthode des retouches (images A à D de ChatGPT) ; zones en pixels de A (1024 × 1536) */
-const LETTRE = [190, 800, 448, 902], reunionDe = M_ => G() && G().reunion(M_);
+const LETTRE = [110, 880, 345, 990], reunionDe = M_ => G() && G().reunion(M_);
 const SCENES = {
-  direction:{fond:'scenes/bureau-fond', v:3, ratio:1536 / 1024, l:1024, h:1536, objets:[
-    {id:'chapeau', zone:[40, 100, 285, 300], calques:[['scenes/bureau-chapeau-B', 'b']], plaque:'g', anim:'parle', nom:'Confiance du président', act:'scConfiance'},
-    /* le portrait : le cadre ovale vide de l'image A (ovale intérieur mesuré : centre 849 × 253, 133 × 204, penché de 4,6°), le visage du manager dedans */
-    {id:'portrait', zone:[782.6, 151.4, 915.6, 355.4], portrait:{angle:4.6}, anim:'respire', nom:'Mon contrat, mon profil', act:'scPortrait'},
-    /* l'écharpe : la découpe seule (rayures) est recoloriée aux couleurs du club, posée sur l'écharpe de l'image A, et celle de B au survol */
-    {id:'echarpe', zone:[780, 420, 1024, 830], club:true, calques:[['scenes/bureau-echarpe-A-seule', 'fixe'], ['scenes/bureau-echarpe-B', 'b'], ['scenes/bureau-echarpe-B-seule', 'b']], plaque:'d', anim:'bascule', nom:'Supporters', act:'scSupporters'},
-    {id:'gazette', zone:[548, 760, 870, 905], calques:[['scenes/bureau-gazette-B', 'b']], anim:'bascule', nom:'Presse', act:'scPresse'},
+  direction:{fond:'scenes/bureau-fond', v:4, ratio:1536 / 1024, l:1024, h:1536, objets:[
+    {id:'chapeau', zone:[10, 110, 225, 310], calques:[['scenes/bureau-chapeau-B', 'b']], plaque:'g', anim:'parle', nom:'Confiance du président', act:'scConfiance'},
+    /* le portrait : le cadre ovale vide de l'image A (v131, ovale intérieur mesuré : centre 712,8 × 321,7, 168,4 × 250,8, penché de 3°), le visage du manager dedans */
+    {id:'portrait', zone:[628.6, 196.3, 797, 447.1], portrait:{angle:3}, anim:'respire', nom:'Mon contrat, mon profil', act:'scPortrait'},
+    /* l'écharpe (v131) : peinte en blanc et gris, détourée (couche « gris ») et teinte aux couleurs du club, au repos (A) et quand elle ondule (B) */
+    {id:'echarpe', zone:[800, 270, 1024, 860], calques:[['scenes/bureau-echarpe-gris-A', 'fixe gris'], ['scenes/bureau-echarpe-B', 'b'], ['scenes/bureau-echarpe-gris-B', 'b gris']], plaque:'d', anim:'bascule', nom:'Supporters', act:'scSupporters'},
+    {id:'gazette', zone:[610, 820, 945, 1000], calques:[['scenes/bureau-gazette-B', 'b']], anim:'bascule', nom:'Presse', act:'scPresse'},
     {id:'lettre', zone:LETTRE, calques:[['scenes/bureau-lettre-B', 'b']], anim:'bascule', nom:'Réunion de début de saison', act:'scReunion',
       si:M_ => { const R = reunionDe(M_); return !!(R && !R.fin); }},
     {id:'lettreOuverte', zone:LETTRE, calques:[['scenes/bureau-lettre-D', 'fixe']], anim:'fixe', nom:'Plan de la saison', act:'scReunion',
       si:M_ => { const R = reunionDe(M_); return !!(R && R.fin && R.accord); }},
     {id:'lettreVide', zone:LETTRE, decor:true, calques:[['scenes/bureau-lettre-C', 'fixe']],   // pas de réunion : le bureau est vide à cet endroit
       si:M_ => { const R = reunionDe(M_); return !(R && !R.fin) && !(R && R.fin && R.accord); }},
-    {id:'bourse', zone:[10, 1050, 330, 1380], calques:[['scenes/bureau-bourse-B', 'b']], plaque:'g', anim:'bascule', nom:'Finances', act:'scFinances'},
+    {id:'bourse', zone:[0, 1020, 260, 1310], calques:[['scenes/bureau-bourse-B', 'b']], plaque:'g', anim:'bascule', nom:'Finances', act:'scFinances'},
   ]},
   /* v118 : la banque des Gobelins (finances), méthode des retouches : le fond est l'image A de ChatGPT, objets compris ; chaque objet est une
      zone [x0, y0, x1, y1] (pixels de A) où se superposent les rectangles découpés dans les retouches B et C (qm27-scenes.py, RETOUCHES).
@@ -177,16 +177,16 @@ const SCENES = {
     {id:'gobelin', zone:[388, 632, 676, 850], calques:[['scenes/banque-gobelin-B', 'b']], anim:'bascule', nom:'Banque des Gobelins', act:'scGobelin'},
   ]},
   /* v121 : le vestiaire (page Équipe) façon FM98, images A (repos), B (tout bouge), C (tableau couvert) ; vue: = écran ouvert directement */
-  equipe:{fond:'scenes/equipe-fond', v:2, ratio:1536 / 1024, l:1024, h:1536, objets:[
-    {id:'robes', zone:[5, 290, 400, 730], calques:[['scenes/equipe-robes-B', 'b']], plaque:'g', anim:'bascule', nom:'Effectif', vue:'effectif'},   // v128 : couleurs d'origine (recoloriage retiré)
-    {id:'couloir', zone:[400, 370, 560, 680], calques:[['scenes/equipe-couloir-B', 'b']], anim:'parle', act:'scCouloir',
+  equipe:{fond:'scenes/equipe-fond', v:3, ratio:1536 / 1024, l:1024, h:1536, objets:[
+    {id:'robes', zone:[0, 285, 350, 740], calques:[['scenes/equipe-robes-gris-A', 'fixe gris'], ['scenes/equipe-robes-B', 'b'], ['scenes/equipe-robes-gris-B', 'b gris']], plaque:'g', anim:'bascule', nom:'Effectif', vue:'effectif'},   // v131 : robes blanc et gris teintes aux couleurs du club
+    {id:'couloir', zone:[395, 360, 565, 680], calques:[['scenes/equipe-couloir-B', 'b']], anim:'parle', act:'scCouloir',
       nom:M_ => { const m = window.QM.matchDuJoueur(M_); return m && !m.res ? 'Préparer le match' : 'Aucun match cette semaine'; }},
-    {id:'potions', zone:[918, 86, 1024, 592], calques:[['scenes/equipe-potions-B', 'b']], plaque:'d', anim:'bascule', nom:'Infirmerie', act:'scBlesses'},
-    {id:'tableau', zone:[672, 158, 922, 492], calques:[['scenes/equipe-tableau-B', 'f2'], ['scenes/equipe-tableau-C', 'f3']], anim:'porte', nom:'Tactique', vue:'tactique'},
+    {id:'potions', zone:[915, 55, 1024, 600], calques:[['scenes/equipe-potions-B', 'b']], plaque:'d', anim:'bascule', nom:'Infirmerie', act:'scBlesses'},
+    {id:'tableau', zone:[670, 155, 922, 492], calques:[['scenes/equipe-tableau-B', 'f2'], ['scenes/equipe-tableau-C', 'f3']], anim:'porte', nom:'Tactique', vue:'tactique'},
     {id:'balais', zone:[665, 466, 952, 892], calques:[['scenes/equipe-balais-B', 'b']], anim:'bascule', nom:'Balais', act:'scBalais'},
-    {id:'journal', zone:[0, 972, 322, 1208], calques:[['scenes/equipe-journal-B', 'b']], plaque:'g', anim:'bascule', nom:'Staff', vue:'staff'},
-    {id:'souaffle', zone:[320, 858, 702, 1232], calques:[['scenes/equipe-souaffle-B', 'b']], anim:'bascule', nom:'Progression des joueurs', act:'scProgression'},
-    {id:'malle', zone:[728, 898, 1024, 1482], calques:[['scenes/equipe-malle-B', 'b']], plaque:'d', anim:'bascule', nom:'Entraînement', vue:'entrainement'},
+    {id:'journal', zone:[0, 975, 322, 1210], calques:[['scenes/equipe-journal-B', 'b']], plaque:'g', anim:'bascule', nom:'Staff', vue:'staff'},
+    {id:'souaffle', zone:[400, 790, 600, 1060], calques:[['scenes/equipe-souaffle-B', 'b']], anim:'bascule', nom:'Progression des joueurs', act:'scProgression'},
+    {id:'malle', zone:[700, 840, 1024, 1480], calques:[['scenes/equipe-malle-B', 'b']], plaque:'d', anim:'bascule', nom:'Entraînement', vue:'entrainement'},
   ]},
   /* v122 : le bureau du recrutement, images A (repos) et B (tout bouge) ; args = paramètres passés à l'action (onglet du mercato) */
   recrutement:{fond:'scenes/recrutement-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
@@ -288,6 +288,7 @@ function vueEquipe(){
   VUE.innerHTML = `<div><h1 class="grand">L'équipe</h1><p class="sous">Le vestiaire · ${esc(c.nom)}</p></div>
   ${scene ? sceneHTML('equipe') : ''}
   <details class="sc-detail"${scene ? '' : ' open'}><summary>Tous les écrans de l'équipe</summary><div class="carte"><div class="liste">${liens.map(([v, n, x]) => `<button class="el" data-act="vue" data-v="${v}"><div class="t"><b>${n}</b><span>${x}</span></div><span class="d mut">›</span></button>`).join('')}</div></div></details>`;
+  if (scene) V.colorierProduits(VUE, c);   // v131 : les robes blanc et gris aux couleurs du club
 }
 /* v122 : le bureau du recrutement illustré ; sans les images, la liste des écrans du recrutement */
 function vueRecrutement(){

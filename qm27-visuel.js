@@ -1,4 +1,4 @@
-// mon-ecran-version: cce35bd1
+// mon-ecran-version: 475e9f0c
 /* QM27 (v87) — graphismes dessinés par le code, sans image : blasons des clubs, maillots, avatars, radar du profil.
    Tout est déterministe : un club ou une personne a toujours le même dessin (graine = identifiant).
    window.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe}. Aucune dépendance (QMD seulement pour les prénoms). */
@@ -401,7 +401,7 @@ function colorierGris(img, cols){
     for (let i = 0; i < p.length; i += 4){
       if (p[i + 3] < 8) continue;
       const r = p[i], gg = p[i + 1], b = p[i + 2], mx = Math.max(r, gg, b), mn = Math.min(r, gg, b);
-      if (mx && (mx - mn) / mx > 0.5) continue;   // reflet irisé, fil coloré : on garde
+      if (mx && (mx - mn) / mx > 0.72) continue;   // reflet irisé, fil coloré : on garde (v131 : 0,72, le blanc sous la lumière chaude monte à 0,6)
       const L = (0.299 * r + 0.587 * gg + 0.114 * b) / 255, t = lis(0.3, 0.56, L);
       const k1 = Math.min(1.3, Math.max(0.35, L / 0.24)), k3 = Math.min(1.08, Math.max(0.45, L / 0.88));
       for (let c = 0; c < 3; c++){ const v = C1[c] * k1 * (1 - t) + C3[c] * k3 * t; p[i + c] = Math.min(255, v * 0.88 + p[i + c] * 0.12); }
