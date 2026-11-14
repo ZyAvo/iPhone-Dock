@@ -1,10 +1,11 @@
-// mon-ecran-version: 4d656ed6
+// mon-ecran-version: 89c87432
 // Mon Écran — catalogue TV quotidien (directs, films, séries) à partir de l'abonnement Xtream, publié CHIFFRÉ.
 // Accès : secrets XT_SERVEUR, XT_IDENTIFIANT, XT_MOTDEPASSE ; clé de chiffrement : secret TV_CLE (générée dans la fiche « Accès TV »
 // du Coffre, 32 octets en base64). Le dépôt est public : le catalogue est compressé puis chiffré (AES-256-GCM) avant publication
 // dans donnees/tv/catalogue.json, et il ne contient AUCUN accès (seulement des numéros, des noms, des affiches) : chaque appareil
 // reconstruit les adresses de flux avec les accès de son Coffre. Les journaux n'affichent que des nombres.
-// Appels au fournisseur : 7 par passage (connexion, 3 listes de catégories, films, séries, liste M3U), aucune vidéo.
+// Appels au fournisseur : 7 par passage (connexion, 3 listes de catégories, films, séries, liste M3U), aucune vidéo ; v125 : un 8e
+// (directs par l'API) seulement si la liste M3U n'en donne pas.
 import fs from 'node:fs';
 import zlib from 'node:zlib';
 import { webcrypto as wc } from 'node:crypto';
@@ -63,6 +64,14 @@ const directs = [], episodes = [];
   }
 }
 
+/* v125 : liste M3U vide (téléchargement refusé ou trop long, le 14/11/2026) : les directs viennent de l'API (get_live_streams),
+   un appel de plus seulement dans ce cas ; sans quoi la page TV ne montrait plus que les favoris */
+if (!directs.length){
+  const live = await sur(() => api('get_live_streams'), []), nomCat = new Map((Array.isArray(catL) ? catL : []).map(c => [String(c.category_id), c.category_name || '']));
+  for (const v of Array.isArray(live) ? live : []) directs.push([+v.stream_id || v.stream_id, String(v.name || '').trim(), v.stream_icon || '', nomCat.get(String(v.category_id)) || '', v.epg_channel_id ? 1 : 0]);
+  dire(`⚠️ Liste M3U ${m3u ? 'sans directs' : 'indisponible'} : ${directs.length.toLocaleString('fr-FR')} directs repris de l'API.`);
+}
+
 /* ---------- 4. catalogue compact ---------- */
 const cats = l => (Array.isArray(l) ? l : []).map(c => [String(c.category_id), c.category_name || '?']);
 const D = {cats:[...new Set(directs.map(d => d[3]))].filter(Boolean).map(g => [g, g]), ch:directs};
@@ -95,7 +104,19 @@ const cata = {v:1, genere:new Date().toISOString(), fin:exp, d:D, f:F, s:Sx};
 const k = await wc.subtle.importKey('raw', cle, 'AES-GCM', false, ['encrypt']);
 fs.mkdirSync('donnees/tv', {recursive:true});
 const tailles = [];
+/* v125 : une partie vide ou incomplète (directs sans chaîne ; séries sans épisodes quand la liste M3U manque) garde le fichier de la
+   veille, pris sur la branche donnees-tv, plutôt que d'effacer ce que voyaient les appareils */
+const { execSync } = await import('node:child_process');
+let precOK = null;
+const precedent = nom => {
+  try{
+    if (precOK === null){ execSync('git fetch -q --depth 1 origin donnees-tv', {stdio:'ignore'}); precOK = true; }
+    const t = execSync(`git show FETCH_HEAD:donnees/tv/${nom}.json`, {encoding:'utf8', maxBuffer:64e6}); return t.length > 1000 ? t : null;
+  }catch{ precOK = false; return null; }
+};
+const garder = {directs:!directs.length, series:!m3u && !episodes.length};
 for (const [nom, part] of [['directs', {d:D}], ['films', {f:F}], ['series', {s:Sx}]]){
+  if (garder[nom]){ const p = precedent(nom); if (p){ fs.writeFileSync(`donnees/tv/${nom}.json`, p); tailles.push(`${nom} (de la veille)`); dire(`⚠️ ${nom} : fichier de la veille conservé.`); continue; } }
   const brut = zlib.gzipSync(Buffer.from(JSON.stringify({v:2, genere:cata.genere, fin:exp, ...part})), {level:9});
   const iv = wc.getRandomValues(new Uint8Array(12));
   const ct = Buffer.from(await wc.subtle.encrypt({name:'AES-GCM', iv}, k, brut));

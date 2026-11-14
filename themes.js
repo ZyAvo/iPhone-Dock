@@ -1,4 +1,4 @@
-// mon-ecran-version: 1769949a
+// mon-ecran-version: 06ebe1d8
 /* Mon Écran — thèmes de couleurs (v42), communs à toutes les pages.
    Chargé dans <head> juste après noyau.js : applique le thème et le mode choisis dans État avant l'affichage,
    écrit les couleurs du thème et le fond dégradé (calque fixe : sur iPhone, Safari ignore « background-attachment:fixed »
@@ -40,6 +40,10 @@ const THEMES = [
   {id:'menthe',    nom:'Menthe et mangue', d:'Turquoise frais, orange vif',    c:['#2ec4b6', '#cbf3f0', '#ffffff', '#ffbf69', '#ff9f1c'], accent:'#0f8b80'},
   {id:'aurore',    nom:'Aurore',           d:'Nuit boréale, vert et violet',   c:['#0d1b2a', '#1b998b', '#2de1c2', '#7b2cbf', '#c77dff']},
   {id:'framboise', nom:'Framboise',        d:'Rouge profond et rose',          c:['#590d22', '#a4133c', '#ff4d6d', '#ffb3c1', '#fff0f3']},
+  /* v125 : le thème de QM27, tiré des scènes du jeu (bois sombre, bordeaux, or des lanternes, parchemin, vert sapin) */
+  {id:'grimoire', nom:'Grimoire', d:'Bois sombre, bordeaux et or, comme QM27', c:['#1f150f', '#7a1f2b', '#d4a23a', '#f2e4c4', '#2e4a3b'], accent:'#8f2433', glyphe:'#b8862a',
+   clair:{'blob-1':'rgba(212,162,58,.5)', 'blob-2':'rgba(122,31,43,.38)', 'blob-3':'rgba(46,74,59,.38)', 'blob-4':'rgba(242,228,196,.9)', 'ink':'#2a1a12', 'ink-soft':'#6b5544', 'ink-faint':'#9c8672'},
+   sombre:{'accent':'#d4a23a', 'on-accent':'#1f150f', 'accent-soft':'rgba(212,162,58,.16)', 'blob-1':'rgba(122,31,43,.75)', 'blob-2':'rgba(46,74,59,.6)', 'blob-3':'rgba(212,162,58,.3)', 'blob-4':'rgba(60,36,22,.9)', 'ink':'#f2e4c4', 'ink-soft':'#cdb894', 'ink-faint':'#998568'}},
 ];
 /* thèmes que connaît le classeur actuel (onglet Apparence) : les autres sont proposés même s'il ne les cite pas */
 const CONNUS_V41 = ['bleu', 'gris', 'ardoise', 'minuit', 'encre', 'petrole', 'azur'];

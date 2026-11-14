@@ -1,4 +1,4 @@
-// mon-ecran-version: 16d57bb6
+// mon-ecran-version: c4595e09
 /* QM27 (v91, lot 8) — le bureau du manager, sans affichage. Expose window.QMG et complète window.QMC. Chargé après qm27-vestiaire.js.
    Entraînement programmable : programme de la semaine en 5 séances (lundi-vendredi), intensité, ateliers par poste, modèles,
    préparation physique d'avant-saison ; l'adjoint planifie tout seul si on le laisse faire.
@@ -327,6 +327,7 @@ function reunion(M){
   if (!g.reunion || g.reunion.club !== U.id || (g.reunion.saison !== M.saison && !g.reunion.fin)) g.reunion = {saison:M.saison, club:U.id, fin:false, tours:0, tard:!g.reunion || g.reunion.club !== U.id};
   if (g.reunion.saison !== M.saison) return null;   // réunion d'une autre saison : rien à faire avant la prochaine
   if (!g.reunion.offre) g.reunion.offre = offreInitiale(M);
+  else if (!g.reunion.fin) g.reunion.offre.masse = Math.max(g.reunion.offre.masse, U.masseMax);   // v125 : une réunion ouverte avant un relèvement du plafond (mise à jour v113) en profite
   return g.reunion;
 }
 const matchsJoues = (M, U) => { const T = M.tables[U.ligue] && M.tables[U.ligue][U.id]; return T ? (T.j ?? ((T.g || 0) + (T.n || 0) + (T.p || 0))) : 0; };
