@@ -1,4 +1,4 @@
-// mon-ecran-version: 1feb6c05
+// mon-ecran-version: a04bca12
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -1067,9 +1067,10 @@ function blocJeune(j){
 }
 function vueFormation(){
   const c = club(M.manager.club), L = (c.academie || []).map(id => M.joueurs[id]).filter(Boolean).sort((a, b) => C.potentielEstime(M, b) - C.potentielEstime(M, a) || QM.note(b) - QM.note(a));
-  const resp = c.staff.formation;
+  const resp = c.staff.formation, scene = Z_() && Z_().sceneDispo('formation');   // v132 : le pensionnat illustré
   VUE.innerHTML = `<div><h1 class="grand">Centre de formation</h1><p class="sous">Niveau ${C.niv(c, 'formation')} · responsable : ${esc(resp.p + ' ' + resp.n)} (${resp.note}/20) · ${L.length}/${E.carriere.academieMax} jeunes</p></div>
-  <div class="carte"><div class="liste">${L.map(j => `<button class="el" data-act="joueur" data-j="${j.id}">${posteB(j.poste)}<div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>${j.age} ans · ${D.POSTES[j.poste].nom.toLowerCase()}</span></div><span class="etoiles" aria-label="potentiel">${'★'.repeat(C.potentielEstime(M, j))}${'☆'.repeat(5 - C.potentielEstime(M, j))}</span><span class="note ${classeNote(QM.note(j))}">${QM.note(j)}</span></button>`).join('') || '<p class="mut">Le centre est vide : la prochaine promotion arrive l\'été.</p>'}</div></div>
+  ${scene ? Z_().sceneHTML('formation') : ''}
+  <div class="carte" id="jeunes" style="scroll-margin-top:70px"><div class="liste">${L.map(j => `<button class="el" data-act="joueur" data-j="${j.id}">${posteB(j.poste)}<div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>${j.age} ans · ${D.POSTES[j.poste].nom.toLowerCase()}</span></div><span class="etoiles" aria-label="potentiel">${'★'.repeat(C.potentielEstime(M, j))}${'☆'.repeat(5 - C.potentielEstime(M, j))}</span><span class="note ${classeNote(QM.note(j))}">${QM.note(j)}</span></button>`).join('') || '<p class="mut">Le centre est vide : la prochaine promotion arrive l\'été.</p>'}</div></div>
   <div class="carte aide"><h2>Comment ça marche</h2><p>Chaque été, ${1 + C.niv(c, 'formation')} jeunes de 15-16 ans arrivent. Leur potentiel dépend du niveau du centre (Club › Stade) et du responsable de la formation (Club › Staff). Ils s'entraînent chaque semaine ; promus, ils jouent et progressent plus vite.</p></div>`;
 }
 /* ---------- v88 : le domaine du club (qm27-domaine.js : window.QMB) ---------- */

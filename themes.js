@@ -1,4 +1,4 @@
-// mon-ecran-version: dad5868a
+// mon-ecran-version: 76e078a9
 /* Mon Écran — thèmes de couleurs (v42), communs à toutes les pages.
    Chargé dans <head> juste après noyau.js : applique le thème et le mode choisis dans État avant l'affichage,
    écrit les couleurs du thème et le fond dégradé (calque fixe : sur iPhone, Safari ignore « background-attachment:fixed »
@@ -272,7 +272,7 @@ function poserIcones(){
 
 /* ---------- v126 : police des titres ----------
    Réglage de KiosK « police » (État › Thème) et réglage propre au jeu « qm27:police » (QM27 › Règles et réglages ; « kiosk » = suivre KiosK).
-   Seulement les titres (h1, h2, .grand, hors en-têtes de page à hauteur fixe) : textes, chiffres et tableaux gardent Geist. Polices dans polices/ (licence LICENCE-titres.txt). */
+   Seulement les titres (h1, h2, .grand, hors en-têtes de page à hauteur fixe) et les étiquettes des pièces illustrées de QM27 (.sc-plaque, v132) : textes, chiffres et tableaux gardent Geist. Polices dans polices/ (licence LICENCE-titres.txt). */
 const POLICES = [
   {id:'geist', nom:'Geist', d:'La police de KiosK', famille:''},
   {id:'cinzel', nom:'Cinzel', d:'Capitales gravées dans la pierre', famille:'"Cinzel", "Trajan Pro", serif', fichier:'Cinzel-Variable.woff2', poids:'400 900', ajust:'letter-spacing:.01em'},
@@ -291,7 +291,7 @@ function poserPolice(id){
     if (!P.fichier){ delete d.dataset.police; st.textContent = ''; return; }
     d.dataset.police = P.id;
     st.textContent = `@font-face{font-family:"${NOMS_POL[P.id]}";src:url(polices/${P.fichier}) format("woff2");font-weight:${P.poids};font-style:normal;font-display:swap}\n`
-      + `:root[data-police="${P.id}"] :is(h1,h2,.grand):not(header *){font-family:${P.famille};${P.ajust || ''}}`;   // pas les titres d'en-tête (hauteur fixe)
+      + `:root[data-police="${P.id}"] :is(h1,h2,.grand):not(header *),:root[data-police="${P.id}"] .sc-plaque{font-family:${P.famille};${P.ajust || ''}}`;   // pas les titres d'en-tête (hauteur fixe) ; v132 : les étiquettes des pièces illustrées aussi
   }catch(e){}
 }
 

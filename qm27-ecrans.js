@@ -1,4 +1,4 @@
-// mon-ecran-version: d778b47f
+// mon-ecran-version: c54d1ad3
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -148,6 +148,8 @@ document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === 
    Tant que l'image de fond n'est pas déposée, l'écran garde ses cartes (SC_OK[lieu] = false) : rien ne casse.
    Objet : {id, img, x, y, w (centre et largeur en % du fond), anim, nom, act, calques:[[img, classe]], si:(M, c) => bool} */
 /* v119 : le bureau du président, méthode des retouches (images A à D de ChatGPT) ; zones en pixels de A (1024 × 1536) */
+/* v132 : une retouche de la pièce entière (1024 × 1536) posée sur un objet de zone z : elle déborde de l'objet pour retomber à sa place */
+const salleB = (k, z) => ['scenes/' + k, 'b', `left:${(-z[0] / (z[2] - z[0]) * 100).toFixed(3)}%;top:${(-z[1] / (z[3] - z[1]) * 100).toFixed(3)}%;width:${(1024 / (z[2] - z[0]) * 100).toFixed(3)}%;height:${(1536 / (z[3] - z[1]) * 100).toFixed(3)}%`];
 const LETTRE = [110, 880, 345, 990], reunionDe = M_ => G() && G().reunion(M_);
 const SCENES = {
   direction:{fond:'scenes/bureau-fond', v:4, ratio:1536 / 1024, l:1024, h:1536, objets:[
@@ -203,6 +205,40 @@ const SCENES = {
     {id:'ardoise', zone:[285, 728, 745, 1325], calques:[['scenes/boutique-ardoise-B', 'b']], anim:'bascule', nom:'Les prix', act:'scArdoise',
       html:(M_, c) => ardoiseHTML(c), htmlStyle:'left:6%;top:24%;width:88%;height:70%'},
   ]},
+  /* v132 : le salon du manager (Moi) : son visage dans le miroir (ovale de verre mesuré : centre 141,1 × 610,5, 198,3 × 476,1, penché de −2,9°) */
+  salon:{fond:'scenes/salon-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
+    {id:'miroir', zone:[41.9, 372.5, 240.3, 848.5], portrait:{angle:-2.9, miroir:true}, plaque:'g', anim:'respire', nom:'Mon profil', vue:'profil'},
+    {id:'carte', zone:[350, 90, 730, 525], calques:[['scenes/salon-carte-B', 'b']], anim:'bascule', nom:'Clubs d\'Europe', vue:'clubs'},
+    {id:'trophees', zone:[700, 340, 1020, 520], anim:'bascule', plaque:'d', nom:'Salle des trophées', vue:'trophees', si:M_ => !!M_.manager.club},
+    {id:'lettre', zone:[770, 840, 1024, 1110], calques:[['scenes/salon-lettre-B', 'b']], plaque:'d', anim:'bascule', vue:'boite',
+      nom:() => { const n = nonLus(); return n ? `Boîte de réception (${n})` : 'Boîte de réception'; }},
+    {id:'malle', zone:[125, 1080, 810, 1485], calques:[['scenes/salon-malle-B', 'b']], anim:'bascule', nom:'Ma carrière', vue:'carriere'},
+  ]},
+  /* v132 : le pensionnat (centre de formation) */
+  formation:{fond:'scenes/pensionnat-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
+    {id:'portrait', zone:[0, 130, 248, 556], calques:[['scenes/pensionnat-portrait-B', 'b']], plaque:'g', anim:'bascule', vue:'staff',
+      nom:(M_, c) => { const r = c && c.staff.formation; return r ? `Responsable : ${r.p} ${r.n}` : 'Responsable de la formation'; }},
+    {id:'hibou', zone:[660, 195, 1024, 560], calques:[['scenes/pensionnat-hibou-B', 'b']], plaque:'d', anim:'bascule', nom:'Le pensionnat (bâtiment)', act:'batiment', args:{b:'formation'}},
+    {id:'livre', zone:[340, 470, 820, 728], calques:[['scenes/pensionnat-livre-B', 'b']], anim:'bascule', act:'scJeunes',
+      nom:(M_, c) => { const n = c && c.academie ? c.academie.length : 0; return n ? `Les jeunes (${n})` : 'Les jeunes'; }},
+    {id:'balais', zone:[575, 940, 1024, 1475], calques:[['scenes/pensionnat-balais-B', 'b']], plaque:'d', anim:'bascule', nom:'Progression des joueurs', vue:'progression'},
+  ]},
+  /* v132 : le hall d'entrée du club */
+  hall:{fond:'scenes/hall-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
+    {id:'tableau', zone:[410, 250, 728, 760], anim:'bascule', nom:'Classement', act:'scLigue', args:{lg:null}},
+    {id:'hiboux', zone:[0, 40, 410, 1085], calques:[['scenes/hall-hiboux-B', 'b']], plaque:'g', anim:'bascule', vue:'boite',
+      nom:() => { const n = nonLus(); return n ? `Boîte de réception (${n})` : 'Boîte de réception'; }},
+    {id:'calendrier', zone:[620, 265, 1024, 760], calques:[['scenes/hall-calendrier-B', 'b']], plaque:'d', anim:'bascule', nom:'Calendrier', vue:'calendrier'},
+    {id:'livre', zone:[695, 725, 1015, 1420], calques:[['scenes/hall-livre-B', 'b']], plaque:'d', anim:'bascule', nom:'La Gazette', act:'scPresse'},
+  ]},
+  /* v132 : la Fédération (compétitions) : les quatre bannières des championnats (Avalon, Circé, Yggdrasil, Walpurgis), la coupe, le globe ;
+     toute la salle s'anime d'un coup (image B entière, posée sur chaque objet à sa place) */
+  federation:{fond:'scenes/federation-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
+    ...[['bi', [135, 210, 300, 700], 'g'], ['la', [325, 210, 495, 700]], ['sc', [530, 210, 700, 700]], ['ce', [735, 210, 905, 700], 'd']].map(([lg, z, pl]) =>
+      ({id:'ban-' + lg, zone:z, calques:[salleB('federation-tout-B', z)], plaque:pl, anim:'bascule', act:'scLigue', args:{lg}, nom:M_ => M_.ligues[lg] ? M_.ligues[lg].nom : 'Championnat', si:M_ => !!M_.ligues[lg]})),
+    {id:'coupe', zone:[375, 545, 665, 1045], calques:[salleB('federation-tout-B', [375, 545, 665, 1045])], anim:'bascule', act:'scCoupe', nom:() => window.QME ? window.QME.NOM : 'Palmarès'},
+    {id:'globe', zone:[665, 800, 1024, 1536], calques:[salleB('federation-tout-B', [665, 800, 1024, 1536])], plaque:'d', anim:'bascule', act:'scLigue', args:{lg:'sixn'}, nom:'Sélections nationales'},
+  ]},
 };
 /* l'ardoise : les produits en rayon, trois par page ; ardoiseDefile() fait passer les pages (l'éponge efface, puis la page suivante s'écrit) */
 const NOMS_ARDOISE = {echarpe:'Écharpes', maillot:'Maillots', peluche:'Vifs d\'or en peluche', balai:'Balais miniatures', chapeau:'Chapeaux pointus', fanion:'Fanions',
@@ -234,7 +270,7 @@ function sceneDispo(l){
 function sceneHTML(l){
   const S = SCENES[l], M_ = M(), c = moi(), src = k => `${V.IMAGES}${k}.webp?v=${S.v || 1}`;   // v123 : version de la scène dans l'adresse (les images sont gardées en cache : une scène refaite sous les mêmes noms doit changer de v)
   const obj = o => {
-    const corps = o.portrait ? `<span class="sc-toile" style="transform:rotate(${o.portrait.angle || 0}deg)">${avatarMgr('sc-av')}</span>`
+    const corps = o.portrait ? `<span class="sc-toile${o.portrait.miroir ? ' miroir' : ''}" style="transform:rotate(${o.portrait.angle || 0}deg)">${avatarMgr('sc-av')}</span>`
       : `${o.img ? `<img class="sc-base"${o.club ? ' data-prod="scene"' : ''} src="${src(o.img)}" alt="" draggable="false">` : ''}${(o.calques || []).map(([k, cl, st]) => `<img class="sc-c ${cl}"${o.club && /-seule$/.test(k) ? ` data-prod="scene:${k}"` : / gris$/.test(cl) ? ` data-prod="gris:${k}"` : ''} src="${src(k)}" alt="" draggable="false"${st ? ` style="${st}"` : ''}>`).join('')}`;
     const vars = o.vars ? Object.entries(o.vars(M_, c)).map(([k, v]) => `;${k}:${v}`).join('') : '';
     /* taille = [corps max, largeur en cqw × caractères] : le texte rétrécit pour tenir */
@@ -290,6 +326,30 @@ function vueEquipe(){
   <details class="sc-detail"${scene ? '' : ' open'}><summary>Tous les écrans de l'équipe</summary><div class="carte"><div class="liste">${liens.map(([v, n, x]) => `<button class="el" data-act="vue" data-v="${v}"><div class="t"><b>${n}</b><span>${x}</span></div><span class="d mut">›</span></button>`).join('')}</div></div></details>`;
   if (scene) V.colorierProduits(VUE, c);   // v131 : les robes blanc et gris aux couleurs du club
 }
+/* v132 : le hall, le salon du manager, la Fédération : la pièce illustrée, et la liste des écrans en dessous (ou seule, sans les images) */
+function vuePiece(l, titre, sous, resume, liens){
+  const scene = sceneDispo(l);
+  VUE.innerHTML = `<div><h1 class="grand">${titre}</h1><p class="sous">${sous}</p></div>
+  ${scene ? sceneHTML(l) : ''}
+  <details class="sc-detail"${scene ? '' : ' open'}><summary>${resume}</summary><div class="carte"><div class="liste">${liens.map(([v, n, x]) => `<button class="el" data-act="vue" data-v="${v}"><div class="t"><b>${n}</b><span>${x}</span></div><span class="d mut">›</span></button>`).join('')}</div></div></details>`;
+}
+function vueHall(){
+  const c = moi(), n = nonLus();
+  vuePiece('hall', 'Le hall', `${esc(c.nom)}${n ? ` · ${plur(n, 'message')} non lu${n > 1 ? 's' : ''}` : ''}`, 'Tous les écrans du hall',
+    [['accueil', 'Accueil', 'Le prochain match et les nouvelles'], ['boite', 'Boîte de réception', 'Messages, offres et rapports'], ['calendrier', 'Calendrier', 'Le mois et la saison'], ['classements', 'Classements', 'Championnats, coupes et sélections']]);
+}
+function vueSalon(){
+  const mg = M().manager, c = mg.club ? club(mg.club) : null;
+  vuePiece('salon', 'Mon salon', `${esc(mg.nom)}${c ? ' · ' + esc(c.nom) : ' · sans club'}`, 'Tous les écrans du salon',
+    [['profil', 'Mon profil', 'Avatar, attributs, contrat'], ['carriere', 'Carrière', 'Offres de clubs et de fédérations, parcours'], ['clubs', 'Clubs d\'Europe', 'Tous les clubs et leurs effectifs'], ['boite', 'Boîte de réception', 'Messages, offres et rapports'], ...(c ? [['trophees', 'Salle des trophées', 'Vitrine, records, palmarès']] : [])]);
+}
+function vueFederation(){
+  vuePiece('federation', 'La Fédération', `Saison ${lab(M().saison)} · championnats, coupe d'Europe et sélections`, 'Tous les classements',
+    [['classements', 'Classements', 'Les quatre championnats, la coupe d\'Europe, les sélections']]);
+}
+ACT.scLigue = d => { U.ligue = d.lg || null; aller('classements'); };
+ACT.scCoupe = () => { const Q = window.QME; if (Q && (Q.assurer(M()) || M().europe)){ U.ligue = 'eu'; aller('classements'); } else ACT.palmares(); };
+ACT.scJeunes = () => { const e = document.getElementById('jeunes'); if (e) e.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'}); };
 /* v122 : le bureau du recrutement illustré ; sans les images, la liste des écrans du recrutement */
 function vueRecrutement(){
   const c = moi(), scene = sceneDispo('recrutement'), n = M().offres ? M().offres.length : 0;
@@ -908,12 +968,12 @@ document.addEventListener('change', e => { const t = e.target;
 function MENU(){
   const M_ = M(), mg = M_.manager, cl = !!mg.club, nl = nonLus(), ouvert = cl && C.mercatoOuvert(window.QM.semaine(M_));
   const G_ = [
-    ['Mon club', [['accueil', 'Accueil', '🏠'], ['boite', 'Boîte de réception', '✉️', nl || ''], ['calendrier', 'Calendrier', '📅', '', 1]]],
+    ['Mon club', [['accueil', 'Accueil', '🏠'], ['hall', 'Le hall', '🏰', '', 1], ['boite', 'Boîte de réception', '✉️', nl || ''], ['calendrier', 'Calendrier', '📅', '', 1]]],
     ['Équipe', [['equipe', 'Le vestiaire', '🚪', '', 1], ['effectif', 'Effectif', '👥', '', 1], ['tactique', 'Tactique', '🧭', '', 1], ['entrainement', 'Entraînement', '🏃', '', 1], ['progression', 'Progression des joueurs', '📈', '', 1], ['vestiaire', 'Vestiaire et mentorat', '🛋️', '', 1], ['formation', 'Poudlard (formation)', '🎓', '', 1], ...(mg.selection ? [['selection', 'Sélection', '🏆']] : [])]],
     ['Recrutement', [['recrutement', 'Le bureau', '🗂️', '', 1], ['mercato', 'Mercato', '🦉', ouvert ? '●' : '', 1], ['clubs', 'Clubs et joueurs', '🔭'], ['staff', 'Staff', '🧙', '', 1]]],
     ['Domaine', [['club', 'Carte du domaine', '🏰', '', 1], ['direction', 'Bureau du président', '🏛️', '', 1], ['finances', 'Finances et banque', '💰', '', 1], ['stade', 'Stade et tribunes', '🏟️', '', 1], ['boutique', 'Bazar', '🛍️', '', 1], ['partenaires', 'Partenaires', '🤝', '', 1], ['domaine', 'Bâtiments', '🧱', '', 1], ['trophees', 'Salle des trophées', '🏆', '', 1]]],
-    ['Compétitions', [['classements', 'Classements', '📊']]],
-    ['Moi', [['profil', 'Mon profil', '🧑'], ['carriere', 'Carrière', '🧭']]],
+    ['Compétitions', [['federation', 'La Fédération', '🏛️'], ['classements', 'Classements', '📊']]],
+    ['Moi', [['salon', 'Mon salon', '🛋️'], ['profil', 'Mon profil', '🧑'], ['carriere', 'Carrière', '🧭']]],
     ['Partie', [['sauvegardes', 'Sauvegardes', '💾'], ['aide', 'Règles et réglages', '⚙️'], ['quitterKiosk', 'Quitter vers KiosK', '⏏︎', '', 0, 1]]],
   ];
   return G_.map(([g, L]) => [g, L.filter(x => cl || !x[4])]).filter(([, L]) => L.length);
@@ -950,6 +1010,6 @@ addEventListener('keydown', e => { if (e.key === 'Escape') fermerTiroir(); });
 Z.apresRendu = majMenu;
 
 /* ============================== Enregistrement ============================== */
-Object.assign(VUES, {progression:vueProgression, recrutement:vueRecrutement, equipe:vueEquipe, club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});
+Object.assign(VUES, {hall:vueHall, salon:vueSalon, federation:vueFederation, progression:vueProgression, recrutement:vueRecrutement, equipe:vueEquipe, club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});
 if (Z.M && Z.M.manager) rendre(); else majMenu();
 })();

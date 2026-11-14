@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: b69724b9
+# mon-ecran-version: 27ce5dce
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -117,6 +117,17 @@ RETOUCHES['equipe'] = {'zones':{'robes':[0, 285, 350, 740], 'couloir':[395, 360,
 RETOUCHES['recrutement'] = {'zones':{'portraits':[40, 125, 435, 498], 'dossiers':[80, 495, 300, 820], 'sorciere':[330, 400, 690, 780], 'hibou':[745, 340, 1024, 790],
                                       'globe':[740, 875, 1024, 1450]},
                              'pieces':[('portraits', 'B'), ('dossiers', 'B'), ('sorciere', 'B'), ('hibou', 'B'), ('globe', 'B')]}   # v122 : le bureau du recrutement
+
+# v132 : quatre nouvelles pièces, images A (repos) et B (tout bouge)
+RETOUCHES['salon'] = {'zones':{'carte':[350, 90, 730, 525], 'malle':[125, 1080, 810, 1485], 'lettre':[770, 840, 1024, 1110]},   # le salon du manager
+                      'pieces':[('carte', 'B'), ('malle', 'B'), ('lettre', 'B')]}
+RETOUCHES['pensionnat'] = {'zones':{'portrait':[0, 130, 248, 556], 'livre':[340, 470, 820, 728], 'hibou':[660, 195, 1024, 560], 'balais':[575, 940, 1024, 1475]},   # le centre de formation
+                           'pieces':[('portrait', 'B'), ('livre', 'B'), ('hibou', 'B'), ('balais', 'B')]}
+RETOUCHES['hall'] = {'zones':{'hiboux':[0, 40, 410, 1085], 'calendrier':[620, 265, 1024, 760], 'livre':[695, 725, 1015, 1420]},   # le hall d'entrée du club
+                     'pieces':[('hiboux', 'B'), ('calendrier', 'B'), ('livre', 'B')]}
+# la Fédération : bannières, coupe et globe s'animent ensemble (les bannières qui ondulent débordent les unes sur les autres et sur la coupe) :
+# une seule retouche, l'image B entière
+RETOUCHES['federation'] = {'zones':{'tout':[0, 0, 1024, 1536]}, 'pieces':[('tout', 'B')]}
 
 # v124 : le Bazar ; l'ardoise s'efface (B), et une couche « articles » = les tissus rouge et jaune des rayons, recoloriés aux couleurs du club
 RETOUCHES['boutique'] = {'zones':{'ardoise':[285, 728, 745, 1325]}, 'pieces':[('ardoise', 'B')],   # v128 : la couche « articles » recoloriée est retirée (« couches_v124 » n'est plus lu)
