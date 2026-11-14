@@ -1,4 +1,4 @@
-// mon-ecran-version: 71d9514e
+// mon-ecran-version: c8d7b57f
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -89,7 +89,7 @@ const CLUBS = [
   ['arezzo', 'Chimere di Arezzo', 'Arezzo', 'ITA', 'reserve', 42, '#9c6644', '#ede0d4', 6500],
   ['napoli', 'Sibille di Napoli', 'Napoli', 'ITA', 'la', 72, '#0077b6', '#caf0f8', 24000],
   ['roma', 'Aruspici di Roma', 'Roma', 'ITA', 'la', 82, '#7b2cbf', '#ffd60a', 30000],
-  ['firenze', 'Astrologi di Firenze', 'Firenze', 'ITA', 'la', 68, '#4a148c', '#b388ff', 19000],
+  ['firenze', 'Astrologi di Firenze', 'Firenze', 'ITA', 'la', 68, '#4b2c6f', '#cdbfe0', 19000],   // v130 : violet aubergine et lavande douce (avant #4a148c / #b388ff, trop vifs)
   ['palermo', 'Gorgoni di Palermo', 'Palermo', 'ITA', 'reserve', 56, '#f6aa1c', '#941b0c', 13000],
   ['bologna', 'Folletti di Bologna', 'Bologna', 'ITA', 'reserve', 62, '#ae2012', '#001219', 16000],
   ['genova', 'Lanterne di Genova', 'Genova', 'ITA', 'reserve', 58, '#023e8a', '#ffb703', 15000],

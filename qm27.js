@@ -1,4 +1,4 @@
-// mon-ecran-version: fa62f1d5
+// mon-ecran-version: d0e35ad5
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -840,8 +840,11 @@ function charger(txt){
   M.v = VERSION;
   if (M.ligues.fr && M.manager && !M.avisV106){ M.avisV106 = 1; message(M, 'À la fin de cette saison : quatre championnats', `Cette saison se termine comme prévu (Ligue de France, Ligue d'Italie, Tournoi des Six Emblèmes). À l'intersaison, le Quidditch européen passe à quatre championnats de 16 clubs : ${D.LIGUES.map(L => L.nom).join(', ')}. Vingt clubs français et italiens quittent l'élite${M.manager.club && D.RESERVE.includes(M.manager.club) ? ' (ton club reste : un autre club de ton pays sort à sa place)' : ''}, les Six Emblèmes laissent la place aux trêves internationales et à la ${D.LDN.nom}.`, 'club'); }   // v106
   if (!Object.values(M.joueurs).some(j => j.inter)) convoquer(M);   // v91 : convocations de la semaine en cours
+  for (const [id, [vieux, neuf]] of Object.entries(COULEURS_REVUES)){ const c = M.clubs[id] || (M.reserve || {})[id]; if (c && c.couleurs && c.couleurs.join() === vieux.join()) c.couleurs = neuf.slice(); }   // v130
   return nommer(M);
 }
+/* v130 : couleurs de club revues ; une partie en cours les reçoit si le club avait encore les anciennes */
+const COULEURS_REVUES = {firenze:[['#4a148c', '#b388ff'], ['#4b2c6f', '#cdbfe0']]};
 
 /* v114 : noms des clubs et des ligues dans la langue choisie (réglage de l'appareil, posé par l'écran : QM.langueNoms). Appliqué à la création
    d'un monde, au chargement d'une partie et après la réorganisation des ligues ; les anciens messages gardent leurs noms d'origine. */
