@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: e7fa2cc6
+# mon-ecran-version: c4612dc7
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -141,6 +141,22 @@ def jaunir(z):
     w = (H >= 11) & (H <= 19) & (S > 105) & (V > 120); hsv[..., 0] = np.where(w, 25, H)
     return cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
+# v129 : le Bazar refait avec des tissus BLANC et GRIS ANTHRACITE (images A, B) et un MASQUE (image C : tissus en magenta, le reste en noir).
+# Couche « tissus » = magenta de C (bien calé sur A) ∩ pixels peu saturés de A (les lanternes, balais, vifs d'or que le masque prend aussi
+# sont saturés) − la fenêtre et les lanternes. L'écran la teinte aux couleurs du club (QMV, data-prod="gris:…") : gris foncé → couleur 1,
+# blanc → couleur 2, en gardant ombres et plis (une teinte sur du gris, pas un changement de couleur).
+MASQUES = {'boutique':{'image':'C', 'sans':[[330, 30, 600, 385], [430, 385, 600, 560], [245, 170, 330, 360], [720, 330, 800, 520], [650, 440, 740, 630]], 'nom':'tissus'}}
+def couche_masque(a, c, sans):
+    import cv2
+    mag = ((c[..., 2] > 150) & (c[..., 0] > 150) & (c[..., 1] < 120)).astype(np.uint8); mag = cv2.dilate(mag, np.ones((5, 5), np.uint8))
+    hsv = cv2.cvtColor(a, cv2.COLOR_BGR2HSV).astype(int); m = mag * ((hsv[..., 1] < 125) & (hsv[..., 2] > 22)).astype(np.uint8)
+    for x0, y0, x1, y1 in sans: m[y0:y1, x0:x1] = 0
+    m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8)); n, lab, st, _ = cv2.connectedComponentsWithStats(m)
+    m = np.isin(lab, [k for k in range(1, n) if st[k, 4] > 120]).astype(np.float32)
+    ys, xs = np.nonzero(m); y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    al = cv2.GaussianBlur(m, (0, 0), 0.7)[y0:y1, x0:x1]
+    return a[y0:y1, x0:x1], al, [int(x0), int(y0), int(x1), int(y1)]
+
 def seule_echarpe(img, sans, plusieurs=False):
     import cv2
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(int); H, S, V = hsv[..., 0], hsv[..., 1], hsv[..., 2]
@@ -172,6 +188,11 @@ for lieu, R in RETOUCHES.items():
         rgba = np.dstack([cv2.cvtColor(p, cv2.COLOR_BGR2RGB), (al * 255).astype(np.uint8)])
         Image.fromarray(rgba, 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-{im}.webp'), 'WEBP', quality=86, method=6)
         tailles[f'{lieu}-{obj}-{im}'] = [x0, y0, x1, y1]
+    if lieu in MASQUES and os.path.exists(os.path.join(A, f'{lieu}-{MASQUES[lieu]["image"]}.png')):
+        Q = MASQUES[lieu]; cm = cv2.resize(cv2.imread(os.path.join(A, f'{lieu}-{Q["image"]}.png')), (1024, 1536), interpolation=cv2.INTER_NEAREST)
+        z, al, cadre = couche_masque(a, cm, Q['sans'])
+        Image.fromarray(np.dstack([cv2.cvtColor(z, cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{Q["nom"]}.webp'), 'WEBP', quality=88, method=6)
+        tailles[f'{lieu}-{Q["nom"]}'] = cadre; print(f'  couche {Q["nom"]} (masque {Q["image"]}) : cadre {cadre}')
     for nom, cadre, boites, sans in R.get('couches', []):
         z, al = couche_tissus(a, cadre, boites, sans)
         Image.fromarray(np.dstack([cv2.cvtColor(jaunir(z), cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{nom}-A-seule.webp'), 'WEBP', quality=88, method=6)

@@ -1,4 +1,4 @@
-// mon-ecran-version: 9e33fc50
+// mon-ecran-version: cce35bd1
 /* QM27 (v87) — graphismes dessinés par le code, sans image : blasons des clubs, maillots, avatars, radar du profil.
    Tout est déterministe : un club ou une personne a toujours le même dessin (graine = identifiant).
    window.QMV = {blason, maillot, avatar, radar, couleursNation, emblemeDe}. Aucune dépendance (QMD seulement pour les prénoms). */
@@ -390,9 +390,29 @@ function colorierProduit(img, cols, cles){
   } catch (e){ /* image d'une autre origine ou canvas indisponible : on garde le modèle */ }
 }
 /* à appeler après l'affichage : recolore les <img data-prod> de la page selon le club */
+/* v129 : tissus dessinés en blanc et gris anthracite (Bazar) : teinte d'après la luminosité, gris foncé → couleur 1, blanc → couleur 2,
+   ombres et plis gardés ; une pointe de la couleur d'origine garde la lumière chaude de la pièce ; les reflets colorés ne bougent pas */
+function colorierGris(img, cols){
+  const k = img.dataset.prod + '|' + cols.join(','); if (CACHE_PROD.has(k)){ img.src = CACHE_PROD.get(k); return; }
+  try {
+    const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+    const g = cv.getContext('2d'); g.drawImage(img, 0, 0); const d = g.getImageData(0, 0, cv.width, cv.height), p = d.data, [C1, , C3] = cols.map(hexRgb);
+    const lis = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+    for (let i = 0; i < p.length; i += 4){
+      if (p[i + 3] < 8) continue;
+      const r = p[i], gg = p[i + 1], b = p[i + 2], mx = Math.max(r, gg, b), mn = Math.min(r, gg, b);
+      if (mx && (mx - mn) / mx > 0.5) continue;   // reflet irisé, fil coloré : on garde
+      const L = (0.299 * r + 0.587 * gg + 0.114 * b) / 255, t = lis(0.3, 0.56, L);
+      const k1 = Math.min(1.3, Math.max(0.35, L / 0.24)), k3 = Math.min(1.08, Math.max(0.45, L / 0.88));
+      for (let c = 0; c < 3; c++){ const v = C1[c] * k1 * (1 - t) + C3[c] * k3 * t; p[i + c] = Math.min(255, v * 0.88 + p[i + c] * 0.12); }
+    }
+    g.putImageData(d, 0, 0); const url = cv.toDataURL('image/png'); CACHE_PROD.set(k, url); img.src = url;
+  } catch (e){ /* canvas indisponible : on garde le blanc et gris */ }
+}
 function colorierProduits(racine, c){
   const cols = couleursProduit(c);
   (racine || document).querySelectorAll('img[data-prod]:not([data-fait])').forEach(img => {
+    if (/^gris:/.test(img.dataset.prod)){ img.dataset.fait = '1'; const go = () => colorierGris(img, cols); if (img.complete && img.naturalWidth) go(); else img.addEventListener('load', go, {once:true}); return; }
     const cles = PROD_CLES[img.dataset.prod] ?? 'rbj'; img.dataset.fait = '1'; if (!cles) return;
     if (img.complete && img.naturalWidth) colorierProduit(img, cols, cles); else img.addEventListener('load', () => colorierProduit(img, cols, cles), {once:true});
   });

@@ -1,4 +1,4 @@
-// mon-ecran-version: 0b6d9569
+// mon-ecran-version: b2d5ee29
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -197,8 +197,9 @@ const SCENES = {
       nom:M_ => M_.offres && M_.offres.length ? `Offres (${M_.offres.length})` : 'Offres et ventes'},
     {id:'globe', zone:[740, 875, 1024, 1450], calques:[['scenes/recrutement-globe-B', 'b']], plaque:'d', anim:'bascule', nom:'Clubs et joueurs', vue:'clubs'},
   ]},
-  /* v124 : le Bazar et l'ardoise où défilent les prix à la craie (v128 : articles aux couleurs d'origine, le recoloriage est retiré) */
-  boutique:{fond:'scenes/boutique-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
+  /* v124 : le Bazar et l'ardoise où défilent les prix à la craie ; v129 : refait en tissus blanc et gris, teints aux couleurs du club */
+  boutique:{fond:'scenes/boutique-fond', v:2, ratio:1536 / 1024, l:1024, h:1536, objets:[
+    {id:'tissus', zone:[3, 62, 1009, 1042], decor:true, calques:[['scenes/boutique-tissus', 'fixe gris']]},   // v129 : tissus blanc et gris, teints aux couleurs du club
     {id:'ardoise', zone:[285, 728, 745, 1325], calques:[['scenes/boutique-ardoise-B', 'b']], anim:'bascule', nom:'Les prix', act:'scArdoise',
       html:(M_, c) => ardoiseHTML(c), htmlStyle:'left:6%;top:24%;width:88%;height:70%'},
   ]},
@@ -234,7 +235,7 @@ function sceneHTML(l){
   const S = SCENES[l], M_ = M(), c = moi(), src = k => `${V.IMAGES}${k}.webp?v=${S.v || 1}`;   // v123 : version de la scène dans l'adresse (les images sont gardées en cache : une scène refaite sous les mêmes noms doit changer de v)
   const obj = o => {
     const corps = o.portrait ? `<span class="sc-toile" style="transform:rotate(${o.portrait.angle || 0}deg)">${avatarMgr('sc-av')}</span>`
-      : `${o.img ? `<img class="sc-base"${o.club ? ' data-prod="scene"' : ''} src="${src(o.img)}" alt="" draggable="false">` : ''}${(o.calques || []).map(([k, cl, st]) => `<img class="sc-c ${cl}"${o.club && /-seule$/.test(k) ? ` data-prod="scene:${k}"` : ''} src="${src(k)}" alt="" draggable="false"${st ? ` style="${st}"` : ''}>`).join('')}`;
+      : `${o.img ? `<img class="sc-base"${o.club ? ' data-prod="scene"' : ''} src="${src(o.img)}" alt="" draggable="false">` : ''}${(o.calques || []).map(([k, cl, st]) => `<img class="sc-c ${cl}"${o.club && /-seule$/.test(k) ? ` data-prod="scene:${k}"` : / gris$/.test(cl) ? ` data-prod="gris:${k}"` : ''} src="${src(k)}" alt="" draggable="false"${st ? ` style="${st}"` : ''}>`).join('')}`;
     const vars = o.vars ? Object.entries(o.vars(M_, c)).map(([k, v]) => `;${k}:${v}`).join('') : '';
     /* taille = [corps max, largeur en cqw × caractères] : le texte rétrécit pour tenir */
     const textes = (o.textes || []).map(([fn, st, cl, taille]) => { const t = String(fn(M_, c)), fs = taille ? `;font-size:${Math.min(taille[0], taille[1] / Math.max(1, t.length)).toFixed(2)}cqw` : '';
@@ -825,7 +826,7 @@ ACT.cal = d => { U.calMode = d.c === 'tout' ? 'saison' : 'mois'; rendre(); };
 
 /* ============================== Entraînement programmable ============================== */
 const ICO_S = {physique:'🏃', vol:'🧹', balle:'🔴', technique:'🔴', cohesion:'🤝', tactique:'🧠', match:'📋', recup:'🛁'};
-const IMG_S = {technique:'balle', cohesion:'jour-match'};   // v127 : nouvelles séances, images de la Série 5 en attendant les leurs
+const IMG_S = {};   // v127 : images provisoires des nouvelles séances ; v129 : elles ont les leurs (entrainement/technique, cohesion)
 const icoS = s => ICO_S[s] ? V.entrImg(IMG_S[s] || s, 'eimg') : '';   // v115 : images de la Série 5 (les émojis restent pour les menus déroulants)
 const nomS = k => (G().SEANCE[k] || [])[1] || k;
 const nomInt = i => (D.INTENSITES.find(x => x[0] === i) || [0, 'Normale'])[1];
@@ -837,7 +838,7 @@ const jourChips = p => `<div class="jours">${p.jours.map((s, i) => `<span class=
 /* v127 : maîtrise tactique (carte partagée par l'Entraînement et la Tactique) */
 function carteMaitrise(M_, c){
   const m = G().maitrise(M_, c), v = Math.round(m.v), b = ((m.v - 60) / 100 * 5);
-  return `<div class="carte"><h2>Maîtrise tactique <span class="mut">${v} %</span></h2>${jauge(v, 'Maîtrise tactique', 'var(--accent)')}
+  return `<div class="carte"><h2><img src="${V.IMAGES}icones/maitrise.webp" alt="" width="22" height="22" style="vertical-align:-5px;margin-right:6px">Maîtrise tactique <span class="mut">${v} %</span></h2>${jauge(v, 'Maîtrise tactique', 'var(--accent)')}
     <p class="petit mut" style="margin:8px 0 0">${v >= 90 ? 'Ton système est récité par cœur.' : v >= 70 ? 'L\'équipe connaît bien ton système.' : v >= 45 ? 'Les automatismes se mettent en place.' : 'Les joueurs découvrent ton système.'} En match : ${b >= 0 ? '+' : ''}${b.toFixed(1).replace('.', ',')} %. L'apprentissage tactique la fait monter ; changer ton système la fait baisser.</p></div>`;
 }
 Z.carteMaitrise = carteMaitrise;
@@ -917,7 +918,7 @@ function MENU(){
   return G_.map(([g, L]) => [g, L.filter(x => cl || !x[4])]).filter(([, L]) => L.length);
 }
 /* v99 : icônes illustrées (images/qm27/icones/<vue>.webp) ; l'emoji reste en secours si l'image manque */
-const ICONES = new Set(['recrutement', 'equipe', 'accueil', 'boite', 'calendrier', 'effectif', 'tactique', 'entrainement', 'vestiaire', 'formation', 'selection', 'mercato', 'clubs', 'staff', 'club',
+const ICONES = new Set(['progression', 'recrutement', 'equipe', 'accueil', 'boite', 'calendrier', 'effectif', 'tactique', 'entrainement', 'vestiaire', 'formation', 'selection', 'mercato', 'clubs', 'staff', 'club',
   'direction', 'finances', 'stade', 'boutique', 'partenaires', 'domaine', 'trophees', 'classements', 'profil', 'carriere', 'sauvegardes', 'aide', 'quitterKiosk', 'presse', 'reunion']);
 const icoVue = (v, secours, cls) => ICONES.has(v) ? `<img class="${cls || ''}" src="${V.IMAGES}icones/${v}.webp" alt="" width="22" height="22" decoding="async" draggable="false" onerror="this.replaceWith(document.createTextNode('${secours}'))">` : secours;
 Z.icoVue = icoVue;
