@@ -1,4 +1,4 @@
-// mon-ecran-version: 8ab115ba
+// mon-ecran-version: ae2121e2
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -150,7 +150,7 @@ document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === 
 /* v119 : le bureau du président, méthode des retouches (images A à D de ChatGPT) ; zones en pixels de A (1024 × 1536) */
 const LETTRE = [190, 800, 448, 902], reunionDe = M_ => G() && G().reunion(M_);
 const SCENES = {
-  direction:{fond:'scenes/bureau-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
+  direction:{fond:'scenes/bureau-fond', v:2, ratio:1536 / 1024, l:1024, h:1536, objets:[
     {id:'chapeau', zone:[40, 100, 285, 300], calques:[['scenes/bureau-chapeau-B', 'b']], plaque:'g', anim:'parle', nom:'Confiance du président', act:'scConfiance'},
     /* le portrait : le cadre ovale vide de l'image A (ovale intérieur mesuré : centre 849 × 253, 133 × 204, penché de 4,6°), le visage du manager dedans */
     {id:'portrait', zone:[782.6, 151.4, 915.6, 355.4], portrait:{angle:4.6}, anim:'respire', nom:'Mon contrat, mon profil', act:'scPortrait'},
@@ -168,7 +168,7 @@ const SCENES = {
   /* v118 : la banque des Gobelins (finances), méthode des retouches : le fond est l'image A de ChatGPT, objets compris ; chaque objet est une
      zone [x0, y0, x1, y1] (pixels de A) où se superposent les rectangles découpés dans les retouches B et C (qm27-scenes.py, RETOUCHES).
      Le coffre s'ouvre (A → B → C), le plan se remplit jusqu'à l'affluence prévue (C), le gobelin lève la tête et son monocle (B). */
-  finances:{fond:'scenes/banque-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
+  finances:{fond:'scenes/banque-fond', v:2, ratio:1536 / 1024, l:1024, h:1536, objets:[
     {id:'plaque', zone:[826, 374, 962, 460], anim:'fixe', muet:true, nom:'Solde', act:'scCoffre', textes:[[(M_, c) => eurT(c.budget), 'left:18.4%;top:37.4%;width:62.5%;height:52%;transform:skewY(-17deg)', 'sc-grave', [2.2, 20]]]},
     {id:'coffre', zone:[770, 488, 1016, 798], calques:[['scenes/banque-coffre-B', 'f2'], ['scenes/banque-coffre-C', 'f3']], plaque:'d', anim:'porte', nom:'Le coffre', act:'scCoffre'},
     {id:'plan', zone:[95, 405, 422, 642], calques:[['scenes/banque-plan-C', 'plein']], plaque:'g', anim:'remplit', nom:'Billetterie', act:'scBillet',
@@ -201,11 +201,11 @@ const SCENES = {
 const SC_OK = {};
 function sceneDispo(l){
   if (!SCENES[l]) return false;
-  if (SC_OK[l] === undefined){ SC_OK[l] = false; const im = new Image(); im.onload = () => { SC_OK[l] = true; if (U.vue === l) rendre(); }; im.src = V.IMAGES + SCENES[l].fond + '.webp'; }
+  if (SC_OK[l] === undefined){ SC_OK[l] = false; const im = new Image(); im.onload = () => { SC_OK[l] = true; if (U.vue === l) rendre(); }; im.src = V.IMAGES + SCENES[l].fond + '.webp?v=' + (SCENES[l].v || 1); }
   return SC_OK[l];
 }
 function sceneHTML(l){
-  const S = SCENES[l], M_ = M(), c = moi(), src = k => `${V.IMAGES}${k}.webp`;
+  const S = SCENES[l], M_ = M(), c = moi(), src = k => `${V.IMAGES}${k}.webp?v=${S.v || 1}`;   // v123 : version de la scène dans l'adresse (les images sont gardées en cache : une scène refaite sous les mêmes noms doit changer de v)
   const obj = o => {
     const corps = o.portrait ? `<span class="sc-toile" style="transform:rotate(${o.portrait.angle || 0}deg)">${avatarMgr('sc-av')}</span>`
       : `${o.img ? `<img class="sc-base"${o.club ? ' data-prod="scene"' : ''} src="${src(o.img)}" alt="" draggable="false">` : ''}${(o.calques || []).map(([k, cl, st]) => `<img class="sc-c ${cl}"${o.club && /-seule$/.test(k) ? ` data-prod="scene:${k}"` : ''} src="${src(k)}" alt="" draggable="false"${st ? ` style="${st}"` : ''}>`).join('')}`;
