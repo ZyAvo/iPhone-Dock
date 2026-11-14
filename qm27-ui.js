@@ -1,4 +1,4 @@
-// mon-ecran-version: 093ad13a
+// mon-ecran-version: 1feb6c05
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -1172,7 +1172,7 @@ function ficheBat(k){
     <div class="carte"><h2>Améliorations <span class="mut petit">une au choix par niveau</span></h2>${choix(3)}${choix(5)}</div>${extra}`);
 }
 /* v112 : stade illustré façon FM98 (images/qm27/stade/) : le terrain vide et une pièce de tribune par emplacement, selon sa capacité.
-   Repère du terrain 1536 × 1024 ; [centre x, base y, largeur] de chaque emplacement de gauche (la droite est son miroir). */
+   Repère du terrain 1536 × 1024 ; [centre x, base y, largeur] de chaque emplacement de gauche (la droite en est le symétrique ; v128 : c'est la gauche qui est retournée). */
 const STADE_RATIO = {'angle-avant-bois':0.931, 'angle-avant-chantier':1.156, 'angle-avant-grande':0.975, 'angle-avant-pierre':0.797, 'angle-fond-bois':0.969, 'angle-fond-chantier':1.247, 'angle-fond-grande':0.922, 'angle-fond-pierre':0.916, 'avant-bois':0.488, 'avant-chantier':0.926, 'avant-grande':0.781, 'avant-pierre':0.572, 'fond-bois':0.715, 'fond-chantier':1.039, 'fond-grande':0.877, 'fond-pierre':0.748, 'virage-bois':0.966, 'virage-chantier':1.262, 'virage-grande':1.212, 'virage-pierre':0.972};   // hauteur / largeur de chaque pièce
 const STADE_POS = {N:[768, 268, 560], S:[780, 905, 560], O:[100, 560, 210], E:[100, 560, 210], NO:[262, 278, 250], NE:[262, 278, 250], SO:[205, 860, 250], SE:[205, 860, 250]};
 const STADE_PIECE = {N:'fond', S:'avant', O:'virage', E:'virage', NO:'angle-fond', NE:'angle-fond', SO:'angle-avant', SE:'angle-avant'};
@@ -1189,7 +1189,7 @@ function stadeIllustre(c){
   const I = V.IMAGES, n = niveauxStade(c), t = c.dom.trib, nomC = {N:'nord', S:'sud', E:'est', O:'ouest'};
   const piece = k => { if (!n[k]) return ''; const nom = `${STADE_PIECE[k]}-${n[k]}`, [cx0, base, w] = STADE_POS[k], dr = k === 'E' || k === 'NE' || k === 'SE', cx = dr ? 1536 - cx0 : cx0, h = w * (STADE_RATIO[nom] || 0.8);
     const img = `<image href="${I}stade/${nom}.webp" x="${-w / 2}" y="${-h}" width="${w}" height="${h}" preserveAspectRatio="none"/>`;
-    const g = `<g transform="translate(${cx} ${base})${dr ? ' scale(-1 1)' : ''}">${img}</g>`;
+    const g = `<g transform="translate(${cx} ${base})${dr ? '' : ' scale(-1 1)'}">${img}</g>`;   // v128 : les pièces dessinées regardent vers la gauche : c'est le côté gauche (ouest) qui est retourné
     return t[k] != null ? `<g class="trib2" data-act="tribune" data-c="${k}" role="button" tabindex="0" aria-label="Tribune ${nomC[k]} : ${t[k].toLocaleString('fr-FR')} places${n[k] === 'chantier' ? ', travaux en cours' : ''}">${g}</g>` : `<g aria-hidden="true">${g}</g>`; };
   const ordre = ['NO', 'NE', 'N', 'O', 'E', 'SO', 'SE', 'S'];
   const lab = {N:[768, 300], S:[780, 945], O:[100, 600], E:[1436, 600]};

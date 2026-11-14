@@ -1,4 +1,4 @@
-// mon-ecran-version: 976209d6
+// mon-ecran-version: 0b6d9569
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -178,7 +178,7 @@ const SCENES = {
   ]},
   /* v121 : le vestiaire (page Équipe) façon FM98, images A (repos), B (tout bouge), C (tableau couvert) ; vue: = écran ouvert directement */
   equipe:{fond:'scenes/equipe-fond', v:2, ratio:1536 / 1024, l:1024, h:1536, objets:[
-    {id:'robes', zone:[5, 290, 400, 730], club:true, calques:[['scenes/equipe-robes-A-seule', 'fixe'], ['scenes/equipe-robes-B', 'b'], ['scenes/equipe-robes-B-seule', 'b']], plaque:'g', anim:'bascule', nom:'Effectif', vue:'effectif'},
+    {id:'robes', zone:[5, 290, 400, 730], calques:[['scenes/equipe-robes-B', 'b']], plaque:'g', anim:'bascule', nom:'Effectif', vue:'effectif'},   // v128 : couleurs d'origine (recoloriage retiré)
     {id:'couloir', zone:[400, 370, 560, 680], calques:[['scenes/equipe-couloir-B', 'b']], anim:'parle', act:'scCouloir',
       nom:M_ => { const m = window.QM.matchDuJoueur(M_); return m && !m.res ? 'Préparer le match' : 'Aucun match cette semaine'; }},
     {id:'potions', zone:[918, 86, 1024, 592], calques:[['scenes/equipe-potions-B', 'b']], plaque:'d', anim:'bascule', nom:'Infirmerie', act:'scBlesses'},
@@ -197,9 +197,8 @@ const SCENES = {
       nom:M_ => M_.offres && M_.offres.length ? `Offres (${M_.offres.length})` : 'Offres et ventes'},
     {id:'globe', zone:[740, 875, 1024, 1450], calques:[['scenes/recrutement-globe-B', 'b']], plaque:'d', anim:'bascule', nom:'Clubs et joueurs', vue:'clubs'},
   ]},
-  /* v124 : le Bazar ; les articles en rayon (couche détourée, aux couleurs du club, décor non cliquable) et l'ardoise où défilent les prix à la craie */
+  /* v124 : le Bazar et l'ardoise où défilent les prix à la craie (v128 : articles aux couleurs d'origine, le recoloriage est retiré) */
   boutique:{fond:'scenes/boutique-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
-    {id:'articles', zone:[0, 110, 1004, 1040], decor:true, club:true, calques:[['scenes/boutique-articles-A-seule', 'fixe']]},
     {id:'ardoise', zone:[285, 728, 745, 1325], calques:[['scenes/boutique-ardoise-B', 'b']], anim:'bascule', nom:'Les prix', act:'scArdoise',
       html:(M_, c) => ardoiseHTML(c), htmlStyle:'left:6%;top:24%;width:88%;height:70%'},
   ]},
@@ -288,7 +287,6 @@ function vueEquipe(){
   VUE.innerHTML = `<div><h1 class="grand">L'équipe</h1><p class="sous">Le vestiaire · ${esc(c.nom)}</p></div>
   ${scene ? sceneHTML('equipe') : ''}
   <details class="sc-detail"${scene ? '' : ' open'}><summary>Tous les écrans de l'équipe</summary><div class="carte"><div class="liste">${liens.map(([v, n, x]) => `<button class="el" data-act="vue" data-v="${v}"><div class="t"><b>${n}</b><span>${x}</span></div><span class="d mut">›</span></button>`).join('')}</div></div></details>`;
-  if (scene) V.colorierProduits(VUE, c);   // les robes aux couleurs du club
 }
 /* v122 : le bureau du recrutement illustré ; sans les images, la liste des écrans du recrutement */
 function vueRecrutement(){
