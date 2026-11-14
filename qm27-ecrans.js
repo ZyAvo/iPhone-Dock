@@ -1,4 +1,4 @@
-// mon-ecran-version: 1421f5b0
+// mon-ecran-version: 8ab115ba
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -188,6 +188,15 @@ const SCENES = {
     {id:'souaffle', zone:[320, 858, 702, 1232], calques:[['scenes/equipe-souaffle-B', 'b']], anim:'bascule', nom:'Progression des joueurs', act:'scProgression'},
     {id:'malle', zone:[728, 898, 1024, 1482], calques:[['scenes/equipe-malle-B', 'b']], plaque:'d', anim:'bascule', nom:'Entraînement', vue:'entrainement'},
   ]},
+  /* v122 : le bureau du recrutement, images A (repos) et B (tout bouge) ; args = paramètres passés à l'action (onglet du mercato) */
+  recrutement:{fond:'scenes/recrutement-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
+    {id:'portraits', zone:[40, 125, 435, 498], calques:[['scenes/recrutement-portraits-B', 'b']], plaque:'g', anim:'parle', nom:'Joueurs suivis', act:'scMerc', args:{o:'suivis'}},
+    {id:'dossiers', zone:[80, 495, 300, 820], calques:[['scenes/recrutement-dossiers-B', 'b']], plaque:'g', anim:'bascule', nom:'Mercato', act:'scMerc', args:{o:'recherche'}},
+    {id:'sorciere', zone:[330, 400, 690, 780], calques:[['scenes/recrutement-sorciere-B', 'b']], anim:'bascule', nom:'Staff', vue:'staff'},
+    {id:'hibou', zone:[745, 340, 1024, 790], calques:[['scenes/recrutement-hibou-B', 'b']], plaque:'d', anim:'bascule', act:'scMerc', args:{o:'offres'},
+      nom:M_ => M_.offres && M_.offres.length ? `Offres (${M_.offres.length})` : 'Offres et ventes'},
+    {id:'globe', zone:[740, 875, 1024, 1450], calques:[['scenes/recrutement-globe-B', 'b']], plaque:'d', anim:'bascule', nom:'Clubs et joueurs', vue:'clubs'},
+  ]},
 };
 const SC_OK = {};
 function sceneDispo(l){
@@ -218,7 +227,7 @@ ACT.scObjet = (d, b) => {
   const o = (SCENES[d.l] || {objets:[]}).objets.find(x => x.id === d.o); if (!o) return;
   const el = b || document.querySelector(`.sc-obj[data-o="${d.o}"]`), calme = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (el && !calme){ el.classList.remove('joue'); void el.offsetWidth; el.classList.add('joue'); clearTimeout(el._joue); el._joue = setTimeout(() => el.classList.remove('joue'), 1700); }   // v119 : l'objet revient au repos (le coffre se referme)
-  setTimeout(() => { if (o.vue){ fermerFeuille(); aller(o.vue); } else if (ACT[o.act]) ACT[o.act](d); }, calme ? 0 : 520);
+  setTimeout(() => { if (o.vue){ fermerFeuille(); aller(o.vue); } else if (ACT[o.act]) ACT[o.act]({...d, ...(o.args || {})}); }, calme ? 0 : 520);
 };
 const humeurPresident = mg => mg.confiance >= 70 ? 'Le président est ravi.' : mg.confiance >= 45 ? 'Le président est serein.' : mg.confiance >= 25 ? 'Le président s\'impatiente.' : 'Le président doute sérieusement de toi.';
 ACT.scConfiance = () => { const M_ = M(), mg = M_.manager, c = moi(), o = mg.objectif, CL = window.QM.classement(M_, c.ligue), pos = CL.findIndex(r => r.id === c.id) + 1;
@@ -252,6 +261,14 @@ function vueEquipe(){
   ${scene ? sceneHTML('equipe') : ''}
   <details class="sc-detail"${scene ? '' : ' open'}><summary>Tous les écrans de l'équipe</summary><div class="carte"><div class="liste">${liens.map(([v, n, x]) => `<button class="el" data-act="vue" data-v="${v}"><div class="t"><b>${n}</b><span>${x}</span></div><span class="d mut">›</span></button>`).join('')}</div></div></details>`;
   if (scene) V.colorierProduits(VUE, c);   // les robes aux couleurs du club
+}
+/* v122 : le bureau du recrutement illustré ; sans les images, la liste des écrans du recrutement */
+function vueRecrutement(){
+  const c = moi(), scene = sceneDispo('recrutement'), n = M().offres ? M().offres.length : 0;
+  const liens = [['mercato', 'Mercato', 'Recherche, agents libres, suivis, offres et ventes'], ['clubs', 'Clubs et joueurs', 'Tous les clubs et leurs effectifs'], ['staff', 'Staff', 'Adjoints, préparateurs et soigneurs']];
+  VUE.innerHTML = `<div><h1 class="grand">Le recrutement</h1><p class="sous">${esc(c.nom)}${n ? ` · ${n} offre${n > 1 ? 's' : ''} en attente` : ''}</p></div>
+  ${scene ? sceneHTML('recrutement') : ''}
+  <details class="sc-detail"${scene ? '' : ' open'}><summary>Tous les écrans du recrutement</summary><div class="carte"><div class="liste">${liens.map(([v, nm, x]) => `<button class="el" data-act="vue" data-v="${v}"><div class="t"><b>${nm}</b><span>${x}</span></div><span class="d mut">›</span></button>`).join('')}</div></div></details>`;
 }
 function vueDirection(){
   const M_ = M(), mg = M_.manager, c = moi(), o = mg.objectif, p = G() ? G().profil(M_) : null, ct = p && p.contrat;
@@ -814,7 +831,7 @@ function MENU(){
   const G_ = [
     ['Mon club', [['accueil', 'Accueil', '🏠'], ['boite', 'Boîte de réception', '✉️', nl || ''], ['calendrier', 'Calendrier', '📅', '', 1]]],
     ['Équipe', [['equipe', 'Le vestiaire', '🚪', '', 1], ['effectif', 'Effectif', '👥', '', 1], ['tactique', 'Tactique', '🧭', '', 1], ['entrainement', 'Entraînement', '🏃', '', 1], ['vestiaire', 'Vestiaire et mentorat', '🛋️', '', 1], ['formation', 'Poudlard (formation)', '🎓', '', 1], ...(mg.selection ? [['selection', 'Sélection', '🏆']] : [])]],
-    ['Recrutement', [['mercato', 'Mercato', '🦉', ouvert ? '●' : '', 1], ['clubs', 'Clubs et joueurs', '🔭'], ['staff', 'Staff', '🧙', '', 1]]],
+    ['Recrutement', [['recrutement', 'Le bureau', '🗂️', '', 1], ['mercato', 'Mercato', '🦉', ouvert ? '●' : '', 1], ['clubs', 'Clubs et joueurs', '🔭'], ['staff', 'Staff', '🧙', '', 1]]],
     ['Domaine', [['club', 'Carte du domaine', '🏰', '', 1], ['direction', 'Bureau du président', '🏛️', '', 1], ['finances', 'Finances et banque', '💰', '', 1], ['stade', 'Stade et tribunes', '🏟️', '', 1], ['boutique', 'Bazar', '🛍️', '', 1], ['partenaires', 'Partenaires', '🤝', '', 1], ['domaine', 'Bâtiments', '🧱', '', 1], ['trophees', 'Salle des trophées', '🏆', '', 1]]],
     ['Compétitions', [['classements', 'Classements', '📊']]],
     ['Moi', [['profil', 'Mon profil', '🧑'], ['carriere', 'Carrière', '🧭']]],
@@ -823,7 +840,7 @@ function MENU(){
   return G_.map(([g, L]) => [g, L.filter(x => cl || !x[4])]).filter(([, L]) => L.length);
 }
 /* v99 : icônes illustrées (images/qm27/icones/<vue>.webp) ; l'emoji reste en secours si l'image manque */
-const ICONES = new Set(['equipe', 'accueil', 'boite', 'calendrier', 'effectif', 'tactique', 'entrainement', 'vestiaire', 'formation', 'selection', 'mercato', 'clubs', 'staff', 'club',
+const ICONES = new Set(['recrutement', 'equipe', 'accueil', 'boite', 'calendrier', 'effectif', 'tactique', 'entrainement', 'vestiaire', 'formation', 'selection', 'mercato', 'clubs', 'staff', 'club',
   'direction', 'finances', 'stade', 'boutique', 'partenaires', 'domaine', 'trophees', 'classements', 'profil', 'carriere', 'sauvegardes', 'aide', 'quitterKiosk', 'presse', 'reunion']);
 const icoVue = (v, secours, cls) => ICONES.has(v) ? `<img class="${cls || ''}" src="${V.IMAGES}icones/${v}.webp" alt="" width="22" height="22" decoding="async" draggable="false" onerror="this.replaceWith(document.createTextNode('${secours}'))">` : secours;
 Z.icoVue = icoVue;
@@ -854,6 +871,6 @@ addEventListener('keydown', e => { if (e.key === 'Escape') fermerTiroir(); });
 Z.apresRendu = majMenu;
 
 /* ============================== Enregistrement ============================== */
-Object.assign(VUES, {equipe:vueEquipe, club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});
+Object.assign(VUES, {recrutement:vueRecrutement, equipe:vueEquipe, club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});
 if (Z.M && Z.M.manager) rendre(); else majMenu();
 })();

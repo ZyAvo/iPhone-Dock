@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: ab05f192
+# mon-ecran-version: 08c66ea0
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -111,6 +111,10 @@ RETOUCHES['equipe'] = {'zones':{'robes':[5, 290, 400, 730], 'couloir':[400, 370,
                                  'potions':[918, 86, 1024, 592], 'journal':[0, 972, 322, 1208], 'souaffle':[320, 858, 702, 1232], 'malle':[728, 898, 1024, 1482]},
                         'pieces':[('robes', 'B'), ('couloir', 'B'), ('tableau', 'B'), ('tableau', 'C'), ('balais', 'B'), ('potions', 'B'), ('journal', 'B'), ('souaffle', 'B'), ('malle', 'B')],
                         'seules':[('robes', 'A', (0, 0, 400, 48)), ('robes', 'B', (0, 0, 400, 48))]}   # v121 : le vestiaire (page Équipe), robes aux couleurs du club
+
+RETOUCHES['recrutement'] = {'zones':{'portraits':[40, 125, 435, 498], 'dossiers':[80, 495, 300, 820], 'sorciere':[330, 400, 690, 780], 'hibou':[745, 340, 1024, 790],
+                                      'globe':[740, 875, 1024, 1450]},
+                             'pieces':[('portraits', 'B'), ('dossiers', 'B'), ('sorciere', 'B'), ('hibou', 'B'), ('globe', 'B')]}   # v122 : le bureau du recrutement
 
 def seule_echarpe(img, sans, plusieurs=False):
     import cv2

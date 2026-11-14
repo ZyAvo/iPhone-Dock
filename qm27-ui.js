@@ -1,4 +1,4 @@
-// mon-ecran-version: a643d619
+// mon-ecran-version: 4249c9f5
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -206,7 +206,7 @@ function rendre(){
 function rendreVue(){
   entete(); barre();
   if (!M || !M.manager) return vueDemarrage();
-  const besoinClub = ['equipe', 'vestiaire', 'effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier', 'domaine', 'boutique', 'partenaires', 'trophees', 'direction'];
+  const besoinClub = ['recrutement', 'equipe', 'vestiaire', 'effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier', 'domaine', 'boutique', 'partenaires', 'trophees', 'direction'];
   if (!M.manager.club && besoinClub.includes(U.vue)) U.vue = 'accueil';
   if (!M.manager.club && U.vue === 'accueil') return vueChomage();
   if (U.vue === 'selection' && !M.manager.selection) U.vue = 'accueil';
@@ -1898,6 +1898,7 @@ Object.assign(ACT, {
 });
 /* v121 : feuilles du vestiaire illustré */
 Object.assign(ACT, {
+  scMerc:d => { fermerFeuille(); MERC.onglet = d.o; MERC.vu = 1; aller('mercato'); },   // v122 : depuis le bureau du recrutement, l'onglet voulu du mercato
   scBalais:d => { const c = club(M.manager.club); feuille(`<div data-sc="scBalais">${teteF('Balais', esc(c.nom))}${blocBalais(c)}</div>`, d && d.garder); },
   scBlesses:d => { const c = club(M.manager.club), L = c.effectif.map(id => M.joueurs[id]).filter(j => j && j.bless).sort((a, b) => b.bless.jours - a.bless.jours);
     feuille(`<div data-sc="scBlesses">${teteF('Infirmerie', L.length ? `${L.length} blessé${L.length > 1 ? 's' : ''}` : 'Personne à soigner')}
