@@ -1,4 +1,4 @@
-// mon-ecran-version: 356747d6
+// mon-ecran-version: 093ad13a
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -206,7 +206,7 @@ function rendre(){
 function rendreVue(){
   entete(); barre();
   if (!M || !M.manager) return vueDemarrage();
-  const besoinClub = ['recrutement', 'equipe', 'vestiaire', 'effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier', 'domaine', 'boutique', 'partenaires', 'trophees', 'direction'];
+  const besoinClub = ['progression', 'recrutement', 'equipe', 'vestiaire', 'effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier', 'domaine', 'boutique', 'partenaires', 'trophees', 'direction'];
   if (!M.manager.club && besoinClub.includes(U.vue)) U.vue = 'accueil';
   if (!M.manager.club && U.vue === 'accueil') return vueChomage();
   if (U.vue === 'selection' && !M.manager.selection) U.vue = 'accueil';
@@ -674,7 +674,7 @@ function vueTactique(){
   const nbN = n => Object.values(A).filter(a => a && a.niveau === n).length;
   /* prochain adversaire et prévision de l'adjoint (calculées avec le moteur, sans hasard) */
   let pm = null, R = null, P = null; try { pm = TT() && TT().prochainMatch(M); if (pm){ R = TT().rapport(M, pm.m, pm.S); const cx = TT().contexteMatch(M, pm.m, pm.S); P = cx && TT().prevoir(cx, T); } } catch (e){ console.warn('QM27 tactique', e); }
-  avecPanneau(() => { VUE.innerHTML = `<div><h1 class="grand">Tactique</h1><p class="sous">Note moyenne <b>${moy}</b> · <span title="Adéquation des titulaires">adaptés <i class="fit bon"></i> ${nbN('bon')} <i class="fit moyen"></i> ${nbN('moyen')} <i class="fit faible"></i> ${nbN('faible')}</span>${notes.length < 7 ? ` · <span style="color:var(--moyen)">${7 - notes.length} place${7 - notes.length > 1 ? 's' : ''} libre${7 - notes.length > 1 ? 's' : ''}</span>` : ''}</p></div>
+  avecPanneau(() => { VUE.innerHTML = `<div><h1 class="grand">Tactique</h1><p class="sous">Note moyenne <b>${moy}</b> · <span title="Adéquation des titulaires">adaptés <i class="fit bon"></i> ${nbN('bon')} <i class="fit moyen"></i> ${nbN('moyen')} <i class="fit faible"></i> ${nbN('faible')}</span>${notes.length < 7 ? ` · <span style="color:var(--moyen)">${7 - notes.length} place${7 - notes.length > 1 ? 's' : ''} libre${7 - notes.length > 1 ? 's' : ''}</span>` : ''}${window.QMG && QMG.maitrise ? ` · <span title="Maîtrise tactique : les séances d'apprentissage tactique la font monter, changer ton système la fait baisser">maîtrise <b>${Math.round(QMG.maitrise(M, c).v)} %</b></span>` : ''}</p></div>
   ${compoHTML(ctx)}
   <div class="cols tac-cols"><div>
     <div class="carte cons-c"><h2>Consignes <span class="mut petit">touche un libellé pour ses effets</span></h2>${consignesHTML(T, 'consigne', null, {prev:P, adv:R && R.adv.nom, fit:fitOption(K, T)})}</div>
@@ -1912,9 +1912,7 @@ Object.assign(ACT, {
     feuille(`<div data-sc="scBlesses">${teteF('Infirmerie', L.length ? `${L.length} blessé${L.length > 1 ? 's' : ''}` : 'Personne à soigner')}
       ${L.length ? `<div class="carte"><div class="liste">${L.map(j => `<button class="el" data-act="joueur" data-j="${j.id}">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}</b><span>${esc(j.bless.nom)} · encore ${j.bless.jours} jour${j.bless.jours > 1 ? 's' : ''}</span></div><span class="d mut">›</span></button>`).join('')}</div></div>`
         : '<p class="mut">Tout le monde est sur pied.</p>'}</div>`, d && d.garder); },
-  scProgression:() => feuille(`${teteF('Progression des joueurs', 'Bientôt')}<p style="margin:0 0 10px">Ici viendront la progression de chaque joueur et son entraînement individuel.</p>
-    <p class="petit mut" style="margin:0 0 12px">En attendant, les ateliers par poste se règlent dans le programme d'entraînement.</p>
-    <div class="btns"><button class="btn sec" data-act="vue" data-v="entrainement">Entraînement</button><button class="btn sec" data-act="vue" data-v="effectif">Effectif</button></div>`),
+  scProgression:() => { fermerFeuille(); aller('progression'); },   // v127 : l'écran existe
   scCouloir:() => { const m = QM.matchDuJoueur(M); if (m && !m.res){ fermerFeuille(); return ACT.preparer(); }
     let pm = null; try { pm = TT() && TT().prochainMatch(M); } catch (e){}
     const adv = pm && pm.m && (pm.m.dom === M.manager.club ? pm.m.ext : pm.m.dom);

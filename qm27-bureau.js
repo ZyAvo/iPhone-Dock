@@ -1,4 +1,4 @@
-// mon-ecran-version: c4595e09
+// mon-ecran-version: c1f5c0ad
 /* QM27 (v91, lot 8) — le bureau du manager, sans affichage. Expose window.QMG et complète window.QMC. Chargé après qm27-vestiaire.js.
    Entraînement programmable : programme de la semaine en 5 séances (lundi-vendredi), intensité, ateliers par poste, modèles,
    préparation physique d'avant-saison ; l'adjoint planifie tout seul si on le laisse faire.
@@ -19,15 +19,18 @@ const G = M => M.bureau || (M.bureau = {rec:{ligues:{}, clubs:{}}, serie:{}, mis
 const copie = o => JSON.parse(JSON.stringify(o));
 
 /* ================= Entraînement programmable ================= */
+/* v127 : six séances collectives (préparation physique, travail technique, apprentissage tactique, cohésion, mise en place, récupération) ;
+   « vol » et « balle » (avant v127) restent lisibles dans les programmes déjà enregistrés, mais ne sont plus proposées */
 const SEANCES = [
-  ['physique', 'Physique', 'Endurance, vitesse, force', {Physique:1}],
-  ['vol', 'Vol', 'Pilotage, virages, piqués', {Vol:1}],
-  ['balle', 'Balle', 'Passes, tirs, frappes, arrêts', {Balle:1, Gardien:1}],
-  ['tactique', 'Tactique', 'Placement, lecture du jeu, cohésion', {Mental:1}],
-  ['match', 'Mise en place', 'Répétition du plan de match', {Mental:0.5, Balle:0.5, Gardien:0.5}],
-  ['recup', 'Récupération', 'Soins, bains chauds, repos', {}],
+  ['physique', 'Préparation physique', 'Endurance, vitesse, force (bien plus efficace en août)', {Physique:1}],
+  ['technique', 'Travail technique', 'Vol, passes, tirs, frappes, arrêts', {Vol:0.5, Balle:0.5, Gardien:1}],
+  ['tactique', 'Apprentissage tactique', 'Les joueurs apprennent ton système de jeu (maîtrise tactique)', {Mental:0.6}],
+  ['cohesion', 'Cohésion', 'Jeux d\'équipe et vie de groupe : cohésion et moral', {Mental:0.3}],
+  ['match', 'Mise en place', 'Préparer le prochain adversaire : bonus pour ce match', {Mental:0.3, Balle:0.3, Gardien:0.3}],
+  ['recup', 'Récupération', 'Soins, bains chauds, repos : la fatigue baisse, pas de progrès', {}],
 ];
-const SEANCE = Object.fromEntries(SEANCES.map(s => [s[0], s]));
+const SEANCES_ANCIENNES = [['vol', 'Vol', 'Pilotage, virages, piqués', {Vol:1}], ['balle', 'Balle', 'Passes, tirs, frappes, arrêts', {Balle:1, Gardien:1}]];
+const SEANCE = Object.fromEntries([...SEANCES, ...SEANCES_ANCIENNES].map(s => [s[0], s]));
 const JOURS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven'];
 /* [id, nom, attributs ciblés, attributs de gardien ciblés] */
 const ATELIERS = {
@@ -37,12 +40,13 @@ const ATELIERS = {
   G:[['arrets', 'Arrêts', ['ref'], ['arr', 'cou_a']], ['sorties', 'Sorties', ['agi'], ['sor', 'com']], ['relance', 'Relance', ['pas', 'vis'], ['rel']]],
 };
 const MODELES = {
-  foncier:{nom:'Foncier', jours:['physique', 'physique', 'vol', 'physique', 'recup'], int:3},
-  presaison:{nom:'Pré-saison', jours:['physique', 'vol', 'balle', 'physique', 'tactique'], int:2},
-  type:{nom:'Semaine type', jours:['vol', 'balle', 'physique', 'tactique', 'match'], int:2},
-  technique:{nom:'Travail technique', jours:['vol', 'balle', 'balle', 'vol', 'match'], int:3},
-  tactique:{nom:'Tactique', jours:['tactique', 'balle', 'tactique', 'match', 'recup'], int:2},
-  recup:{nom:'Récupération', jours:['recup', 'vol', 'tactique', 'recup', 'match'], int:1},
+  foncier:{nom:'Foncier', jours:['physique', 'physique', 'technique', 'physique', 'recup'], int:3},
+  presaison:{nom:'Pré-saison', jours:['physique', 'technique', 'cohesion', 'physique', 'tactique'], int:2},
+  type:{nom:'Semaine type', jours:['technique', 'tactique', 'physique', 'technique', 'match'], int:2},
+  technique:{nom:'Travail technique', jours:['technique', 'technique', 'physique', 'technique', 'match'], int:3},
+  tactique:{nom:'Tactique', jours:['tactique', 'technique', 'tactique', 'match', 'recup'], int:2},
+  groupe:{nom:'Esprit de groupe', jours:['cohesion', 'technique', 'tactique', 'cohesion', 'match'], int:2},
+  recup:{nom:'Récupération', jours:['recup', 'technique', 'cohesion', 'recup', 'match'], int:1},
 };
 const IDX = k => D.ATTRS.findIndex(a => a[0] === k), IDXG = k => D.GARDIEN.findIndex(a => a[0] === k);
 function plan(c){ return c.plan || (c.plan = {auto:true, modele:{...copie(MODELES.type), ateliers:null}, sem:{}}); }
@@ -76,8 +80,8 @@ function modeAuto(M, on){ const c = monClub(M); if (c) plan(c).auto = !!on; }
 /* ce que donne un programme : multiplicateurs par famille d'attributs, intensité, bonus d'atelier, fatigue, risque, cohésion */
 function effets(M, c, p, S){
   const part = {Physique:0, Vol:0, Balle:0, Mental:0, Gardien:0};
-  let recup = 0, tac = 0;
-  for (const d of p.jours){ const s = SEANCE[d] || SEANCE.recup; for (const [f, w] of Object.entries(s[3])) part[f] += w / 5; if (d === 'recup') recup += 0.2; if (d === 'tactique') tac += 0.2; if (d === 'match') tac += 0.1; }
+  let recup = 0, tac = 0, cohJ = 0, mep = 0;
+  for (const d of p.jours){ const s = SEANCE[d] || SEANCE.recup; for (const [f, w] of Object.entries(s[3])) part[f] += w / 5; if (d === 'recup') recup += 0.2; if (d === 'tactique') tac += 0.2; if (d === 'match'){ tac += 0.05; mep++; } if (d === 'cohesion') cohJ += 0.2; }
   const phy = eff(M, 'phy'), pre = S && S.type === 'prepa';
   const mix = {};
   for (const [f, v] of Object.entries(part)){
@@ -90,11 +94,110 @@ function effets(M, c, p, S){
     boost[po] = {a:a[2].map(IDX), g:a[3].map(IDXG)}; }
   const i = borne(p.int || 2, 1, 3);
   const fat = Math.round((ENT.fatigue[i - 1] * (1 - recup) - recup * 14) * (1 - phy * 0.02) * 10) / 10;
-  const coh = Math.round((tac * 2.5 + eff(M, 'tac') * 0.06) * 100) / 100;
-  return {mix, int:i, boost, fat, risque:1 - recup, coh, recup, jeunes:1 + eff(M, 'jeu') * 0.015};
+  const coh = Math.round((tac * 1.5 + cohJ * 4 + eff(M, 'tac') * 0.06) * 100) / 100;   // v127 : la séance « cohésion » soude bien plus que la tactique
+  /* v127 : maîtrise tactique (gain de la semaine avant le frein près de 100) et mise en place (bonus du prochain match, 0,8 % par séance, 1,6 % au plus) */
+  const maitrise = Math.round((1.5 + tac * 14 + eff(M, 'tac') * 0.15) * (1 + 0.1 * Math.max(0, QMC.niv(c, 'salle') - 2)) * 10) / 10;
+  return {mix, int:i, boost, fat, risque:1 - recup, coh, recup, jeunes:1 + eff(M, 'jeu') * 0.015, maitrise, mep:Math.min(2, mep) * 0.008, moral:cohJ * 6};
 }
 /* lu par l'entraînement (qm27-club.js) pour le club du joueur */
 function programme(M, c, S){ return effets(M, c, programmeDe(M, c, M.semaine), S); }
+/* ================= v127 : maîtrise tactique, mise en place, entraînement individuel ================= */
+/* la maîtrise porte sur le système de jeu : dispositions avec et sans le souafle, batteurs, zone, passes (pas le rythme ni la prise de risque) */
+const SYSTEME = ['passes', 'sans', 'avec', 'batAvec', 'batSans', 'zone'];
+function maitrise(M, c){
+  if (!c.maitrise){ c.maitrise = {v:60, T:SYSTEME.map(k => (c.tactique || {})[k] || '')}; }
+  return c.maitrise;
+}
+/* après la semaine d'entraînement du club du joueur : changements de système (chaque élément changé fait perdre 12 % de la maîtrise),
+   apprentissage de la semaine, mise en place pour le prochain match, moral des séances de cohésion */
+function apresEntrainement(M, c, P){
+  const m = maitrise(M, c), T = SYSTEME.map(k => (c.tactique || {})[k] || ''), ch = T.filter((x, i) => x !== m.T[i]).length;
+  if (ch){ const avant = m.v; m.v = Math.round(m.v * Math.max(0.4, 1 - 0.12 * ch)); m.T = T;
+    if (avant - m.v >= 4) Q().message(M, 'Nouveau système de jeu', `Tu as changé ${ch} élément${ch > 1 ? 's' : ''} de ton système : la maîtrise tactique passe de ${avant} à ${m.v} %. Les séances d'apprentissage tactique la font remonter.`, 'staff'); }
+  m.v = Math.round(Math.min(100, m.v + P.maitrise * (1 - m.v / 115)) * 10) / 10;
+  c.mep = P.mep ? {k:M.semaine + 1, v:P.mep} : null;
+  if (P.moral) for (const id of c.effectif){ const j = M.joueurs[id]; if (j) j.moral = Math.min(100, j.moral + P.moral * (j.moral < 60 ? 1 : 0.5)); }
+}
+/* bonus de match (lu par equipeClub) : maîtrise 60 % = neutre, 100 % = +2 %, 0 % = −3 % ; mise en place la semaine du match */
+function bonusMatch(M, c){
+  if (!estJoueur(M, c)) return {maitrise:60, mep:0};
+  const m = maitrise(M, c); return {maitrise:m.v, mep:c.mep && c.mep.k === M.semaine ? c.mep.v : 0};
+}
+const estJoueur = (M, c) => M.manager && M.manager.club === c.id;
+
+/* entraînement individuel : un focus par joueur ; focus bonus (un deuxième) selon l'Aire d'envol ; nouveau poste sur au moins une saison */
+const CAPACITES = [
+  ['endurance', 'Endurance', ['end', 'res', 'det']], ['vitesse', 'Vitesse', ['vit', 'acc', 'agi']], ['force', 'Force', ['for', 'res', 'bou']],
+  ['vol', 'Pilotage', ['pil', 'vir', 'equ', 'frm']], ['pique', 'Piqués', ['piq', 'acc', 'equ']], ['passes', 'Passes et réception', ['pas', 'rec', 'ctl']],
+  ['tir', 'Tir et précision', ['tir', 'pre', 'san']], ['frappe', 'Frappe', ['fra', 'pre', 'for']], ['defense', 'Défense', ['int', 'ant', 'pla']],
+  ['reflexes', 'Réflexes et acuité', ['ref', 'acu', 'con']], ['mental', 'Lecture du jeu', ['vis', 'dec', 'ant']], ['caractere', 'Caractère', ['san', 'cou', 'det', 'con']],
+  ['arrets', 'Arrêts (gardien)', ['ref'], ['arr', 'cou_a']], ['sorties', 'Sorties et relance (gardien)', ['agi'], ['sor', 'rel', 'com']],
+];
+const ROLE_ATTRS = {
+  P:{polyvalent:['pas', 'tir', 'int', 'end'], meneur:['pas', 'vis', 'ctl', 'rec'], finisseur:['tir', 'pre', 'san', 'ctl'], harceleur:['int', 'bou', 'ant', 'vit']},
+  B:{equilibre:['fra', 'ant', 'pre'], protecteur:['ant', 'pla', 'con', 'fra'], chasseur:['fra', 'pre', 'agr', 'for']},
+  A:{equilibre:['acu', 'piq', 'vit'], chasseur:['piq', 'vit', 'acc', 'acu'], tacticien:['acu', 'ant', 'dec', 'con']},
+  G:{equilibre:['ref', ['arr', 'sor']], ligne:['ref', ['arr', 'cou_a']], libero:['agi', 'vit', ['sor', 'com']]},
+};
+const SEM_POSTE = 36;   // semaines d'entraînement (sans blessure) pour changer de poste : une saison entière
+const bonusFocus = c => [0, 0, 1, 2, 3, 5][QMC.niv(c, 'aire')] || 0;
+const focusDe = j => (j.focus || []).filter(Boolean);
+/* attributs travaillés par un focus : {a:[index], g:[index], poste} */
+function cibleFocus(j, F){
+  if (F.t === 'cap'){ const C = CAPACITES.find(x => x[0] === F.k); return C ? {a:C[2].map(IDX), g:(C[3] || []).map(IDXG)} : null; }
+  if (F.t === 'role'){ const L = (ROLE_ATTRS[j.poste] || {})[F.k]; if (!L) return null; return {a:L.filter(x => typeof x === 'string').map(IDX), g:(L.find(x => Array.isArray(x)) || []).map(IDXG)}; }
+  if (F.t === 'poste'){ const w = Q().POIDS[F.k]; return {a:w.map((x, i) => x === 3 ? i : -1).filter(i => i >= 0), g:F.k === 'G' ? D.GARDIEN.map((x, i) => i) : [], poste:F.k}; }
+  return null;
+}
+/* les focus actifs de chaque joueur du club (les focus bonus au-delà des places de l'Aire d'envol sont en pause) */
+function focusActifs(M, c){
+  let places = bonusFocus(c); const out = {};
+  for (const id of c.effectif){ const j = M.joueurs[id]; if (!j) continue; const L = focusDe(j); if (!L.length) continue;
+    const garde = L.length > 1 && places > 0 ? (places--, L.slice(0, 2)) : L.slice(0, 1);
+    const cibles = garde.map(F => cibleFocus(j, F)).filter(Boolean);
+    if (cibles.length) out[id] = {a:new Set(cibles.flatMap(x => x.a)), g:new Set(cibles.flatMap(x => x.g)), poste:(cibles.find(x => x.poste) || {}).poste || null, n:garde.length}; }
+  return out;
+}
+function definirFocus(M, jid, rang, F){
+  const c = monClub(M), j = M.joueurs[jid]; if (!c || !j || j.club !== c.id) return {ok:false, txt:'Joueur introuvable.'};
+  const L = (j.focus || []).slice(0, 2);
+  if (rang === 1 && !L[0] && F) return {ok:false, txt:'Choisis d\'abord son focus principal.'};
+  if (rang === 1 && F && !L[1]){
+    const pris = c.effectif.filter(id => id !== jid && focusDe(M.joueurs[id] || {}).length > 1).length;
+    if (pris >= bonusFocus(c)) return {ok:false, txt:bonusFocus(c) ? `Toutes les places de focus bonus sont prises (${bonusFocus(c)} avec l'Aire d'envol au niveau ${QMC.niv(c, 'aire')}).` : 'Pas de focus bonus : il faut l\'Aire d\'envol au niveau 2.'};
+  }
+  if (F && F.t === 'poste'){
+    if (F.k === j.poste) return {ok:false, txt:'C\'est déjà son poste.'};
+    if (L.some((x, i) => x && x.t === 'poste' && i !== rang)) return {ok:false, txt:'Il apprend déjà un nouveau poste.'};
+    if (!j.reconv || j.reconv.p !== F.k) j.reconv = {p:F.k, sem:0};
+    if (F.k === 'G' && !j.g) j.g = D.GARDIEN.map(() => 3 + Math.round(((j.a[IDX('ref')] || 8) + (j.a[IDX('agi')] || 8)) / 8));
+  }
+  const ancien = L[rang]; L[rang] = F || null;
+  if (rang === 0 && !F) L[1] = null;
+  if (ancien && ancien.t === 'poste' && !(F && F.t === 'poste')) j.reconv = null;
+  j.focus = L.filter((x, i) => x || i === 0).slice(0, 2); if (!j.focus.some(Boolean)) delete j.focus;
+  return {ok:true};
+}
+/* fin de semaine pour un joueur du club : fatigue des focus, apprentissage d'un nouveau poste */
+function apresFocus(M, c, j, A){
+  if (!A) return 0;
+  if (A.poste && j.reconv && j.reconv.p === A.poste && !j.bless){
+    j.reconv.sem++;
+    if (j.reconv.sem >= SEM_POSTE){
+      const de = j.poste; j.poste = A.poste; j.reconv = null; j.focus = focusDe(j).filter(F => F.t !== 'poste'); if (!j.focus.length) delete j.focus;
+      if (c.compo){ for (const p of ['P', 'B', 'A', 'G']) c.compo[p] = (c.compo[p] || []).filter(x => x !== j.id); c.compo.banc = (c.compo.banc || []).filter(x => x !== j.id); c.compo.banc.push(j.id); QMC.reparerCompo(M, c); }
+      Q().message(M, `${nomJ(j)} change de poste`, `Après une saison de travail, ${nomJ(j)} passe de ${D.POSTES[de].nom.toLowerCase()} à ${D.POSTES[j.poste].nom.toLowerCase()}. Il est sur le banc : à toi de le placer.`, 'staff');
+    }
+  }
+  return 1.5 * A.n;
+}
+/* courbe de la saison : la note au poste de chaque joueur, une fois par semaine */
+function noterCourbes(M, c){
+  const S = c.courbes && c.courbes.saison === M.saison ? c.courbes : (c.courbes = {saison:M.saison, n:{}});
+  for (const id of c.effectif){ const j = M.joueurs[id]; if (!j) continue; const L = S.n[id] || (S.n[id] = []); L.push(Math.round(Q().note(j, j.poste) * 10) / 10); if (L.length > 60) L.shift(); }
+  for (const id of Object.keys(S.n)) if (!c.effectif.includes(id)) delete S.n[id];
+}
+
 /* jauges pour l'écran : progression, fatigue, risque de blessure, cohésion (0-100) */
 function apercu(M, c, p, S){
   const e = effets(M, c, p, S), prog = Object.values(e.mix).reduce((s, v) => s + v, 0) / 5 * ENT.intensite[e.int - 1];
@@ -437,6 +540,6 @@ Object.assign(QMC, {
 /* l'expérience du manager : causeries plus efficaces (motivation) ; les jeunes progressent plus vite via effets().jeunes */
 if (root.QMH){ const ca = root.QMH.causerie; root.QMH.causerie = (M, X, eq, ton, moment) => { const r = ca(M, X, eq, ton, moment); const p = M.manager && M.manager.profil; if (p){ p.xp.causeries = (p.xp.causeries || 0) + 1; if (r && typeof r.delta === 'number') r.delta = Math.round(r.delta * (1 + eff(M, 'mot') * 0.04) * 100) / 100; } return r; };
   const eh = root.QMH.envoyerHibou; root.QMH.envoyerHibou = (M, o) => { const r = eh(M, o); const p = M.manager && M.manager.profil; if (p && r && r.ok) p.xp.transferts = (p.xp.transferts || 0) + 1; return r; }; }
-root.QMG = {SEANCES, SEANCE, JOURS, ATELIERS, MODELES, plan, programmeDe, programmeAuto, definirSemaine, definirModele, modeAuto, effets, programme, apercu, fatigueTitulaires,
+root.QMG = {SEANCES_ANCIENNES, maitrise, apresEntrainement, bonusMatch, CAPACITES, ROLE_ATTRS, SEM_POSTE, bonusFocus, focusDe, cibleFocus, focusActifs, definirFocus, apresFocus, noterCourbes, SEANCES, SEANCE, JOURS, ATELIERS, MODELES, plan, programmeDe, programmeAuto, definirSemaine, definirModele, modeAuto, effets, programme, apercu, fatigueTitulaires,
   ATTR_MGR, profil, repartir, modifierProfil, att, eff, RECORDS, RECORD, records, initRecords, reunion, proposer, accepterOffre, chiffrer, offreInitiale, prefPresident, PHILOS, PALIERS, TXT_OBJ, noterAchat, lancerMission, arreterMission, missions:M => G(M).missions, MAX_MISSIONS, PROFILS, candidats, rapports:M => G(M).rapports || {}};
 })(typeof window !== 'undefined' ? window : globalThis);

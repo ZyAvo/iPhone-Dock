@@ -1,4 +1,4 @@
-// mon-ecran-version: 541572d2
+// mon-ecran-version: 976209d6
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -298,6 +298,46 @@ function vueRecrutement(){
   ${scene ? sceneHTML('recrutement') : ''}
   <details class="sc-detail"${scene ? '' : ' open'}><summary>Tous les écrans du recrutement</summary><div class="carte"><div class="liste">${liens.map(([v, nm, x]) => `<button class="el" data-act="vue" data-v="${v}"><div class="t"><b>${nm}</b><span>${x}</span></div><span class="d mut">›</span></button>`).join('')}</div></div></details>`;
 }
+/* ============================== v127 : progression des joueurs et entraînement individuel ============================== */
+const NOMS_FOCUS = F => !F ? 'Aucun' : F.t === 'cap' ? ((G().CAPACITES.find(x => x[0] === F.k) || [])[1] || F.k) : F.t === 'role' ? 'Rôle : ' + ((D.ROLES[F.p] || []).find(x => x[0] === F.k) || [0, F.k])[1].toLowerCase() : 'Nouveau poste : ' + D.POSTES[F.k].nom.toLowerCase();
+function courbe(L){
+  if (!L || L.length < 2) return '<span class="mut petit">—</span>';
+  const mn = Math.min(...L) - 1, mx = Math.max(...L) + 1, w = 72, h = 22, pts = L.map((v, i) => `${(i / (L.length - 1) * w).toFixed(1)},${(h - (v - mn) / (mx - mn) * h).toFixed(1)}`).join(' ');
+  const d = L[L.length - 1] - L[0];
+  return `<svg class="courbe" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${d > 0 ? 'var(--bon)' : d < 0 ? 'var(--mauvais)' : 'var(--ink-faint)'}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+}
+function vueProgression(){
+  const M_ = M(), c = moi(), Gm = G(), nb = Gm.bonusFocus(c), pris = c.effectif.filter(id => Gm.focusDe(M_.joueurs[id] || {}).length > 1).length;
+  const C = c.courbes && c.courbes.saison === M_.saison ? c.courbes.n : {};
+  const L = c.effectif.map(id => M_.joueurs[id]).filter(Boolean).sort((a, b) => 'PBAG'.indexOf(a.poste) - 'PBAG'.indexOf(b.poste) || QM_().note(b, b.poste) - QM_().note(a, a.poste));
+  VUE.innerHTML = `<div><h1 class="grand">Progression des joueurs</h1><p class="sous">Un focus par joueur · focus bonus ${pris} / ${nb} (Aire d'envol niveau ${C_().niv(c, 'aire')})</p></div>
+  <div class="carte"><div class="liste">${L.map(j => { const F = Gm.focusDe(j), n = QM_().note(j, j.poste), cb = C[j.id], d = cb && cb.length > 1 ? Math.round((cb[cb.length - 1] - cb[0]) * 10) / 10 : 0;
+    return `<button class="el" data-act="focusJ" data-j="${j.id}">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))} <span class="mut">${j.age} ans</span></b>
+      <span>${F.length ? F.map(x => `<span class="badge${x.t === 'poste' ? ' tit' : ''}">${esc(NOMS_FOCUS({...x, p:j.poste}))}</span>`).join(' ') : '<span class="mut">Aucun focus</span>'}${j.reconv ? ` · ${j.reconv.sem} / ${Gm.SEM_POSTE} sem.` : ''}${j.bless ? ' · <span style="color:var(--mauvais)">blessé</span>' : ''}</span></div>
+      <span class="d" style="display:flex;align-items:center;gap:8px">${courbe(cb)}<b style="min-width:2.2em;text-align:right">${n}</b><span class="petit" style="min-width:2.6em;color:${d > 0 ? 'var(--bon)' : d < 0 ? 'var(--mauvais)' : 'var(--ink-faint)'}">${d > 0 ? '+' : ''}${String(d).replace('.', ',')}</span></span></button>`; }).join('')}</div></div>
+  <div class="carte aide"><h2>Repères</h2><p><b>Focus.</b> Les attributs choisis progressent bien plus vite (×1,8), les autres un peu moins (×0,9) ; chaque focus ajoute un peu de fatigue chaque semaine.</p>
+    <p><b>Focus bonus.</b> Un deuxième focus pour certains joueurs : 1 place avec l'Aire d'envol au niveau 2, 2 au niveau 3, 3 au niveau 4, 5 au niveau 5.</p>
+    <p><b>Nouveau poste.</b> Il faut une saison entière d'entraînement (${Gm.SEM_POSTE} semaines sans blessure) ; le joueur travaille déjà les attributs de son futur poste, puis il en change.</p>
+    <p><b>Courbe.</b> La note au poste chaque semaine depuis le début de la saison.</p></div>`;
+}
+const QM_ = () => window.QM, C_ = () => window.QMC;
+function ficheFocus(jid, msg){
+  const M_ = M(), j = M_.joueurs[jid], Gm = G(), F = Gm.focusDe(j), c = moi();
+  const choix = rang => { const cur = F[rang], on = x => cur && cur.t === x.t && cur.k === x.k ? ' on' : '';
+    const L = [...Gm.CAPACITES.filter(x => j.poste === 'G' || (x[3] || []).length === 0).map(x => ({t:'cap', k:x[0], n:x[1]})),
+      ...(D.ROLES[j.poste] || []).map(x => ({t:'role', k:x[0], n:'Rôle : ' + x[1].toLowerCase()})),
+      ...['P', 'B', 'A', 'G'].filter(p => p !== j.poste).map(p => ({t:'poste', k:p, n:'Devenir ' + D.POSTES[p].nom.toLowerCase()}))];
+    return `<div class="chips" style="flex-wrap:wrap;overflow:visible">${rang === 0 || cur ? `<button class="chip${cur ? '' : ' on'}" data-act="focusPose" data-j="${jid}" data-r="${rang}" data-t="" data-k="">Aucun</button>` : ''}${L.map(x => `<button class="chip${on(x)}" data-act="focusPose" data-j="${jid}" data-r="${rang}" data-t="${x.t}" data-k="${x.k}">${esc(x.n)}</button>`).join('')}</div>`; };
+  const nb = Gm.bonusFocus(c), pris = c.effectif.filter(id => id !== jid && Gm.focusDe(M_.joueurs[id] || {}).length > 1).length;
+  feuille(`${teteF(esc(nomJ(j)), `${D.POSTES[j.poste].nom} · ${j.age} ans · note ${QM_().note(j, j.poste)}`, avatarDe(j))}
+    ${msg ? `<p style="color:var(--mauvais);margin:0 0 8px">${esc(msg)}</p>` : ''}
+    ${j.reconv ? `<p style="margin:0 0 8px">Apprend le poste de <b>${D.POSTES[j.reconv.p].nom.toLowerCase()}</b> : ${j.reconv.sem} / ${Gm.SEM_POSTE} semaines.</p>${jauge(j.reconv.sem / Gm.SEM_POSTE * 100, 'Nouveau poste', 'var(--accent)')}` : ''}
+    <h4 class="sous-t">Focus principal</h4>${choix(0)}
+    <h4 class="sous-t">Focus bonus <span class="mut petit" style="text-transform:none;letter-spacing:0">· ${Math.max(0, nb - pris)} place${nb - pris > 1 ? 's' : ''} libre${nb - pris > 1 ? 's' : ''} sur ${nb}</span></h4>${F[0] ? (F[1] || pris < nb ? choix(1) : `<p class="petit mut">Plus de place : ${nb ? 'monte l\'Aire d\'envol ou libère un autre joueur' : 'il faut l\'Aire d\'envol au niveau 2'}.</p>`) : '<p class="petit mut">Choisis d\'abord son focus principal.</p>'}
+    <p class="petit mut" style="margin:10px 0 0">Changer de poste remet à zéro l'apprentissage d'un nouveau poste.</p>`);
+}
+ACT.focusJ = d => ficheFocus(d.j);
+ACT.focusPose = d => { const r = G().definirFocus(M(), d.j, +d.r, d.t ? {t:d.t, k:d.k} : null); if (r.ok){ sauver(); rendre(); } ficheFocus(d.j, r.ok ? '' : r.txt); };
 function vueDirection(){
   const M_ = M(), mg = M_.manager, c = moi(), o = mg.objectif, p = G() ? G().profil(M_) : null, ct = p && p.contrat;
   const CL = window.QM.classement(M_, c.ligue), pos = CL.findIndex(r => r.id === c.id) + 1;
@@ -786,8 +826,9 @@ ACT.calVoirMois = d => { U.calMois = +d.i; U.calMode = 'mois'; rendre(); scrollT
 ACT.cal = d => { U.calMode = d.c === 'tout' ? 'saison' : 'mois'; rendre(); };
 
 /* ============================== Entraînement programmable ============================== */
-const ICO_S = {physique:'🏃', vol:'🧹', balle:'🔴', tactique:'🧠', match:'📋', recup:'🛁'};
-const icoS = s => ICO_S[s] ? V.entrImg(s, 'eimg') : '';   // v115 : images de la Série 5 (les émojis restent pour les menus déroulants)
+const ICO_S = {physique:'🏃', vol:'🧹', balle:'🔴', technique:'🔴', cohesion:'🤝', tactique:'🧠', match:'📋', recup:'🛁'};
+const IMG_S = {technique:'balle', cohesion:'jour-match'};   // v127 : nouvelles séances, images de la Série 5 en attendant les leurs
+const icoS = s => ICO_S[s] ? V.entrImg(IMG_S[s] || s, 'eimg') : '';   // v115 : images de la Série 5 (les émojis restent pour les menus déroulants)
 const nomS = k => (G().SEANCE[k] || [])[1] || k;
 const nomInt = i => (D.INTENSITES.find(x => x[0] === i) || [0, 'Normale'])[1];
 function jaugesProg(c, p, S){
@@ -795,6 +836,13 @@ function jaugesProg(c, p, S){
   return `<div class="jauges-prog">${[['progression', 'Progression', 'var(--bon)'], ['fatigue', 'Fatigue', 'var(--moyen)'], ['risque', 'Risque de blessure', 'var(--mauvais)'], ['cohesion', 'Cohésion', 'var(--accent)']].map(([k, n, col]) => `<div><span class="petit">${n}</span>${jauge(a[k], n, col)}</div>`).join('')}</div>`;
 }
 const jourChips = p => `<div class="jours">${p.jours.map((s, i) => `<span class="jour s-${s}"><small>${G().JOURS[i]}</small><b aria-hidden="true">${icoS(s)}</b><em>${nomS(s)}</em></span>`).join('')}</div>`;
+/* v127 : maîtrise tactique (carte partagée par l'Entraînement et la Tactique) */
+function carteMaitrise(M_, c){
+  const m = G().maitrise(M_, c), v = Math.round(m.v), b = ((m.v - 60) / 100 * 5);
+  return `<div class="carte"><h2>Maîtrise tactique <span class="mut">${v} %</span></h2>${jauge(v, 'Maîtrise tactique', 'var(--accent)')}
+    <p class="petit mut" style="margin:8px 0 0">${v >= 90 ? 'Ton système est récité par cœur.' : v >= 70 ? 'L\'équipe connaît bien ton système.' : v >= 45 ? 'Les automatismes se mettent en place.' : 'Les joueurs découvrent ton système.'} En match : ${b >= 0 ? '+' : ''}${b.toFixed(1).replace('.', ',')} %. L'apprentissage tactique la fait monter ; changer ton système la fait baisser.</p></div>`;
+}
+Z.carteMaitrise = carteMaitrise;
 function vueEntrainement(){
   const M_ = M(), c = moi(), Gm = G(), P = Gm.plan(c), k0 = M_.semaine, S0 = window.QM.semaine(M_), p0 = Gm.programmeDe(M_, c, k0);
   const atel = p => `<div class="ateliers">${['P', 'B', 'A', 'G'].map(po => { const a = Gm.ATELIERS[po].find(x => x[0] === (p.ateliers || {})[po]) || Gm.ATELIERS[po][0]; return `<span>${posteB(po)}${V.entrImg(po + '-' + a[0], 'eimg')}${a[1]}</span>`; }).join('')}</div>`;
@@ -810,12 +858,15 @@ function vueEntrainement(){
       ${jourChips(p0)}${atel(p0)}${jaugesProg(c, p0, S0)}
       <p class="petit mut" style="margin:8px 0 10px">Fatigue moyenne des titulaires : <b style="color:var(--ink)">${fat} %</b> · cohésion ${Math.round(c.cohesion)} %</p>
       <button class="btn plein" data-act="progEditer" data-k="${k0}">Programmer cette semaine</button></div>
+    ${carteMaitrise(M_, c)}
+    <div class="carte"><h2>Entraînement individuel</h2><p class="petit mut" style="margin:0 0 10px">Un focus par joueur (une capacité, un rôle ou un nouveau poste), et des focus bonus avec l'Aire d'envol.</p><button class="btn sec plein" data-act="vue" data-v="progression">Progression des joueurs</button></div>
     ${P.auto ? '' : `<div class="carte"><h2>Ta semaine type</h2><p style="margin:0 0 8px"><b>${esc(P.modele.nom || 'Semaine type')}</b> · ${nomInt(P.modele.int).toLowerCase()}</p>${jourChips(P.modele)}<button class="btn sec plein" style="margin-top:10px" data-act="progEditer" data-k="modele">Modifier la semaine type</button></div>`}
   </div><div>
     <div class="carte"><h2>Semaines à venir</h2><div class="liste">${avenir.slice(1).map(k => { const S = M_.calendrier[k], p = Gm.programmeDe(M_, c, k);
       return `<button class="el" data-act="progEditer" data-k="${k}"><div class="t"><b>${fmtDate(S.date)} · ${esc(quoi(S))}</b><span>${esc(p.nom || 'Programme')} · ${nomInt(p.int).toLowerCase()} · <span class="ico-s">${p.jours.map(s => icoS(s)).join('')}</span></span></div><span class="d">${p.auto ? '<span class="badge">adjoint</span>' : '<span class="badge tit">toi</span>'}</span></button>`; }).join('') || '<p class="mut">Fin de saison.</p>'}</div></div>
     <div class="carte aide"><h2>Repères</h2>
-      <p><b>Séances.</b> Physique : vitesse, endurance, force (bien plus efficace en préparation d'août). Vol : pilotage, virages, piqués. Balle : passes, tirs, frappes, arrêts. Tactique : lecture du jeu et cohésion. Mise en place : un peu de tout avant le match. Récupération : la fatigue baisse, pas de progrès.</p>
+      <p><b>Séances.</b> ${G().SEANCES.map(x => `${x[1]} : ${x[2].charAt(0).toLowerCase() + x[2].slice(1)}.`).join(' ')}</p>
+      <p><b>Maîtrise tactique.</b> Les joueurs apprennent ton système (dispositions, batteurs, zone, passes) : à 100 %, +2 % en match ; à 0 %, −3 %. Changer un élément du système en fait perdre 12 %.</p>
       <p><b>Ateliers.</b> Chaque poste travaille un groupe d'attributs en plus (+35 %).</p>
       <p><b>Intensité.</b> Plus haute, on progresse plus vite, mais la fatigue et le risque de blessure montent.</p></div>
   </div></div>`;
@@ -825,7 +876,7 @@ function ficheProg(){
   const M_ = M(), c = moi(), Gm = G(), p = PROG.p, k = PROG.k, S = k === 'modele' ? window.QM.semaine(M_) : M_.calendrier[k];
   feuille(`${teteF(k === 'modele' ? 'Semaine type' : `Semaine du ${fmtDate(S.date)}`, k === 'modele' ? 'S\'applique quand tu prépares toi-même' : 'Programme de la semaine')}
     <h4 class="sous-t">Partir d'un modèle</h4><div class="chips">${Object.entries(Gm.MODELES).map(([id, x]) => `<button class="chip ${p.nom === x.nom ? 'on' : ''}" data-act="progModele" data-m="${id}">${x.nom}</button>`).join('')}</div>
-    <h4 class="sous-t">Séances</h4><div class="seances">${p.jours.map((s, i) => `<label class="seance"><span>${Gm.JOURS[i]}</span>${icoS(s)}<select data-chg="seance" data-i="${i}">${Gm.SEANCES.map(x => `<option value="${x[0]}" ${x[0] === s ? 'selected' : ''}>${x[1]}</option>`).join('')}</select></label>`).join('')}</div>
+    <h4 class="sous-t">Séances</h4><div class="seances">${p.jours.map((s, i) => `<label class="seance"><span>${Gm.JOURS[i]}</span>${icoS(s)}<select data-chg="seance" data-i="${i}">${[...Gm.SEANCES, ...Gm.SEANCES_ANCIENNES.filter(x => x[0] === s)].map(x => `<option value="${x[0]}" ${x[0] === s ? 'selected' : ''}>${x[1]}</option>`).join('')}</select></label>`).join('')}</div>
     <h4 class="sous-t">Intensité</h4><div class="seg">${D.INTENSITES.map(([v, n]) => `<button data-act="progInt" data-v="${v}" class="${p.int === v ? 'on' : ''}">${n}</button>`).join('')}</div>
     <h4 class="sous-t">Ateliers par poste</h4><div class="seances">${['P', 'B', 'A', 'G'].map(po => `<label class="seance"><span>${posteB(po)}</span>${V.entrImg(po + '-' + ((p.ateliers || {})[po] || Gm.ATELIERS[po][0][0]), 'eimg')}<select data-chg="atelier" data-p="${po}">${Gm.ATELIERS[po].map(a => `<option value="${a[0]}" ${(p.ateliers || {})[po] === a[0] ? 'selected' : ''}>${a[1]}</option>`).join('')}</select></label>`).join('')}</div>
     <h4 class="sous-t">Effets attendus</h4>${jaugesProg(c, p, S)}
@@ -858,7 +909,7 @@ function MENU(){
   const M_ = M(), mg = M_.manager, cl = !!mg.club, nl = nonLus(), ouvert = cl && C.mercatoOuvert(window.QM.semaine(M_));
   const G_ = [
     ['Mon club', [['accueil', 'Accueil', '🏠'], ['boite', 'Boîte de réception', '✉️', nl || ''], ['calendrier', 'Calendrier', '📅', '', 1]]],
-    ['Équipe', [['equipe', 'Le vestiaire', '🚪', '', 1], ['effectif', 'Effectif', '👥', '', 1], ['tactique', 'Tactique', '🧭', '', 1], ['entrainement', 'Entraînement', '🏃', '', 1], ['vestiaire', 'Vestiaire et mentorat', '🛋️', '', 1], ['formation', 'Poudlard (formation)', '🎓', '', 1], ...(mg.selection ? [['selection', 'Sélection', '🏆']] : [])]],
+    ['Équipe', [['equipe', 'Le vestiaire', '🚪', '', 1], ['effectif', 'Effectif', '👥', '', 1], ['tactique', 'Tactique', '🧭', '', 1], ['entrainement', 'Entraînement', '🏃', '', 1], ['progression', 'Progression des joueurs', '📈', '', 1], ['vestiaire', 'Vestiaire et mentorat', '🛋️', '', 1], ['formation', 'Poudlard (formation)', '🎓', '', 1], ...(mg.selection ? [['selection', 'Sélection', '🏆']] : [])]],
     ['Recrutement', [['recrutement', 'Le bureau', '🗂️', '', 1], ['mercato', 'Mercato', '🦉', ouvert ? '●' : '', 1], ['clubs', 'Clubs et joueurs', '🔭'], ['staff', 'Staff', '🧙', '', 1]]],
     ['Domaine', [['club', 'Carte du domaine', '🏰', '', 1], ['direction', 'Bureau du président', '🏛️', '', 1], ['finances', 'Finances et banque', '💰', '', 1], ['stade', 'Stade et tribunes', '🏟️', '', 1], ['boutique', 'Bazar', '🛍️', '', 1], ['partenaires', 'Partenaires', '🤝', '', 1], ['domaine', 'Bâtiments', '🧱', '', 1], ['trophees', 'Salle des trophées', '🏆', '', 1]]],
     ['Compétitions', [['classements', 'Classements', '📊']]],
@@ -899,6 +950,6 @@ addEventListener('keydown', e => { if (e.key === 'Escape') fermerTiroir(); });
 Z.apresRendu = majMenu;
 
 /* ============================== Enregistrement ============================== */
-Object.assign(VUES, {recrutement:vueRecrutement, equipe:vueEquipe, club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});
+Object.assign(VUES, {progression:vueProgression, recrutement:vueRecrutement, equipe:vueEquipe, club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});
 if (Z.M && Z.M.manager) rendre(); else majMenu();
 })();

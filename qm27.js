@@ -1,4 +1,4 @@
-// mon-ecran-version: 921dfdb6
+// mon-ecran-version: fa62f1d5
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -256,7 +256,7 @@ function equipeClub(M, clubId){
   const c = club.compo; if (!c.roles) rolesAuto(M, c, true);
   return {id:clubId, nom:club.nom, sigle:club.sigle, couleurs:club.couleurs, tactique:completerTactique({...club.tactique}), balai:root.QMB ? root.QMB.balaiDe(club) : D.BALAIS.find(b => b.id === club.balai) || D.BALAIS[0],
           P:c.P.slice(), B:c.B.slice(), A:c.A.slice(), G:c.G.slice(), banc:c.banc.slice(), rep:club.rep, roles:{...c.roles}, cap:c.cap, pen:c.pen,
-          cohesion:club.cohesion ?? 70, usure:club.usure ?? 100};
+          cohesion:club.cohesion ?? 70, usure:club.usure ?? 100, ...(root.QMG && root.QMG.bonusMatch ? root.QMG.bonusMatch(M, club) : {})};   // v127 : maîtrise tactique, mise en place
 }
 function selection(M, nat){
   const L = Object.values(M.joueurs).filter(j => j.nat === nat && !j.bless && j.club && !j.acad), pris = new Set();   // v85 : ni agents libres ni jeunes du centre
@@ -310,7 +310,8 @@ function moyP(L, w){ let s = 0, n = 0; L.forEach((v, i) => { s += v * w[i]; n +=
 function forces(X, eq){
   const e = X.e[eq], T = e.tactique, b = e.balai;
   const us = 0.8 + 0.2 * (e.usure ?? 100) / 100;                                   // v84 : balais usés
-  const coh = 0.97 + (e.cohesion ?? 70) / 100 * 0.06;                              // v84 : cohésion de l'équipe
+  const coh = (0.97 + (e.cohesion ?? 70) / 100 * 0.06)                              // v84 : cohésion de l'équipe
+    * (1 + ((e.maitrise ?? 60) - 60) / 100 * 0.05) * (1 + (e.mep || 0));   // v127 : maîtrise tactique (60 % neutre, 100 % +2 %, 0 % −3 %) et mise en place
   const dom = ((eq === 0 && X.domicile) ? EQ.domicile + (e.domBonus || 0) : 1) * X.jour[eq] * coh * (1 + (e.forceBonus || 0));   // v88 : dragon de pierre, carte du ciel
   const wA = e.P.map(id => ({meneur:1.6, finisseur:0.8, harceleur:0.8}[role(X, eq, id)] || 1));
   const wD = e.P.map(id => ({harceleur:1.6, finisseur:0.7}[role(X, eq, id)] || 1));
