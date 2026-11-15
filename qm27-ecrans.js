@@ -1,4 +1,4 @@
-// mon-ecran-version: adb3c569
+// mon-ecran-version: 36bf9aa8
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -157,7 +157,8 @@ const TENTE = [570, 465, 735, 864], CHOPES_Z = [626, 614, 732, 724];
 const VIF = `<span class="sc-vif" aria-hidden="true"><span class="sc-vif-c"><svg viewBox="0 0 44 24"><defs><radialGradient id="vifOr" cx="38%" cy="34%" r="70%"><stop offset="0" stop-color="#fff6c4"/><stop offset=".45" stop-color="#f1c232"/><stop offset="1" stop-color="#8a5a08"/></radialGradient></defs>
   <g class="aile g"><path d="M18 11 C10 2 2 3 1 7 C3 9 9 11 18 13Z" fill="#fbf8ec" fill-opacity=".9" stroke="#c9b98a" stroke-width=".6"/></g>
   <g class="aile d"><path d="M26 11 C34 2 42 3 43 7 C41 9 35 11 26 13Z" fill="#fbf8ec" fill-opacity=".9" stroke="#c9b98a" stroke-width=".6"/></g>
-  <circle cx="22" cy="12.5" r="5" fill="url(#vifOr)" stroke="#7a5006" stroke-width=".5"/></svg></span></span>`;
+  <circle cx="22" cy="12.5" r="5" fill="url(#vifOr)" stroke="#7a5006" stroke-width=".5"/>
+  <g class="reflet"><path d="M20.3 6.2 L21 9.6 L24.4 10.3 L21 11 L20.3 14.4 L19.6 11 L16.2 10.3 L19.6 9.6Z" fill="#fff"/><circle cx="20.3" cy="10.3" r="1.2" fill="#fff"/></g></svg></span></span>`;   // v138 : un éclat de lumière de temps en temps
 const LETTRE = [110, 880, 345, 990], reunionDe = M_ => G() && G().reunion(M_);
 const SCENES = {
   direction:{fond:'scenes/bureau-fond', v:4, ratio:1536 / 1024, l:1024, h:1536, objets:[
@@ -242,8 +243,8 @@ const SCENES = {
   /* v134 : l'entrée du stade, images A (repos), B (la gobeline tend un billet), C (les chopes trinquent) ; la tente blanc et gris est teinte aux
      couleurs du club ; le prix des places s'écrit sur le panneau ; le vif d'or vole derrière la grille et les piliers (avant : premier plan détouré
      d'après Qwen-Image-Layered) ; « vivant » : la gobeline et l'enseigne s'animent d'elles-mêmes de temps en temps */
-  entree:{fond:'scenes/entree-fond', v:5, ratio:1536 / 1024, l:1024, h:1536, avant:'scenes/entree-avant', vif:true,
-    ciel:'scenes/entree-ciel', cielH:720, lanternes:[[133, 305], [892, 305]], veilleuses:[[690, 795, .8]], lumieres:[[56, 735, 193, 946, .45]], nuit:true, objets:[
+  entree:{fond:'scenes/entree-fond', v:6, ratio:1536 / 1024, l:1024, h:1536, avant:'scenes/entree-avant', vif:true,
+    ciel:'scenes/entree-ciel', cielH:720, lanternes:[[133, 305], [892, 305]], lumieres:[[56, 735, 193, 946, .45]], objets:[
     {id:'pelouse', zone:[322, 470, 724, 1028], anim:'fixe', nom:'Le stade', vue:'accueil'},
     {id:'panneau', zone:[62, 503, 232, 646], anim:'fixe', muet:true, nom:'Prix des places', act:'scBillet',
       textes:[[() => 'La place', 'left:14%;top:24%;width:72%;height:18%', 'sc-grave sc-pt'], [(M_, c) => eurT(c.prix), 'left:8%;top:44%;width:84%;height:38%', 'sc-grave', [3.4, 22]]]},
@@ -305,15 +306,12 @@ function sceneHTML(l){
     return `<button class="sc-obj sc-${o.anim}${o.zone ? ' sc-zone' : ''}${o.vivant ? ' sc-vivant v' + o.vivant : ''}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="${pos}${vars}" aria-label="${esc(nom)}">${corps}${html}${textes}${o.muet ? '' : `<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(nom)}</span>`}</button>`;
   };
   const avant = (S.vif ? VIF : '') + (S.avant ? `<img class="sc-avant" src="${src(S.avant)}" alt="" draggable="false">` : '');   // v134
-  /* v136 : la brume ne passe qu'à travers le masque du ciel ; lueur des lanternes ; le soir et la nuit selon l'heure (?heure=22 pour essayer) */
+  /* v136 : la brume ne passe qu'à travers le masque du ciel ; lueur des lanternes (v138 : le mode soir et nuit est retiré, toujours le jour) */
   const masque = S.ciel ? `url(${src(S.ciel)})` : '';
   const ciel = S.ciel ? `<div class="sc-ciel" aria-hidden="true" style="height:${(S.cielH / S.h * 100).toFixed(3)}%;-webkit-mask-image:${masque};mask-image:${masque}"><i class="sc-brume a" style="background-image:url(${src('scenes/brume')})"></i><i class="sc-brume b" style="background-image:url(${src('scenes/brume')})"></i></div>` : '';
-  const hr = +(new URLSearchParams(location.search).get('heure') ?? new Date().getHours());
-  const moment = !S.nuit ? '' : hr >= 21 || hr < 6 ? ' nuit' : hr >= 18 || hr < 8 ? ' soir' : '';
-  const apres = (S.nuit ? '<i class="sc-nuit" aria-hidden="true"></i>' : '') + (S.lanternes || []).map(([x, y], k) => `<i class="sc-lanterne l${k % 2}" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%"></i>`).join('')
-    + (S.lumieres || []).map(([x0, y0, x1, y1, o]) => `<i class="sc-lumiere" aria-hidden="true" style="left:${(x0 / S.l * 100).toFixed(2)}%;top:${(y0 / S.h * 100).toFixed(2)}%;width:${((x1 - x0) / S.l * 100).toFixed(2)}%;height:${((y1 - y0) / S.h * 100).toFixed(2)}%;--o:${o}"></i>`).join('')   // v137
-    + (S.veilleuses || []).map(([x, y, o]) => `<i class="sc-veille" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%;--o:${o}"></i>`).join('');   // le soir : le guichet et le comptoir de la buvette éclairés
-  return `<div class="scene${moment}" style="aspect-ratio:${1 / S.ratio}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${ciel}${avant}${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}${apres}</div>
+  const apres = (S.lanternes || []).map(([x, y], k) => `<i class="sc-lanterne l${k % 2}" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%"></i>`).join('')
+    + (S.lumieres || []).map(([x0, y0, x1, y1, o]) => `<i class="sc-lumiere" aria-hidden="true" style="left:${(x0 / S.l * 100).toFixed(2)}%;top:${(y0 / S.h * 100).toFixed(2)}%;width:${((x1 - x0) / S.l * 100).toFixed(2)}%;height:${((y1 - y0) / S.h * 100).toFixed(2)}%;--o:${o}"></i>`).join('');   // v137
+  return `<div class="scene" style="aspect-ratio:${1 / S.ratio}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${ciel}${avant}${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}${apres}</div>
     <p class="petit mut sc-aide">Touche un objet de la pièce.</p>`;
 }
 /* au toucher : l'animation joue une fois, puis le sous-menu s'ouvre */
