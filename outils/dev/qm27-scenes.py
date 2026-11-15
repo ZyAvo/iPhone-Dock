@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 1d91780e
+# mon-ecran-version: 877f7936
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -137,6 +137,10 @@ RETOUCHES['federation'] = {'zones':{'tout':[0, 0, 1024, 1536]}, 'pieces':[('tout
 CHOPES = (679, 669, 45)
 RETOUCHES['entree'] = {'zones':{'gobeline':[12, 760, 238, 978], 'chopes':[626, 614, 732, 724], 'tente':[570, 465, 735, 864]},
                        'pieces':[('gobeline', 'B'), ('chopes', 'C')],
+                       # v134 : ChatGPT a légèrement redessiné le guichet dans B : recalage LOCAL (sur la pierre et la marquise autour de la niche, sans
+                       # la gobeline), et on ne pose que l'intérieur de la niche (le sombre de A, bouché ligne à ligne jusqu'à l'appui) : la fenêtre reste celle de A
+                       'locaux':{'gobeline':{'region':[0, 640, 262, 1060], 'sans':[[60, 770, 190, 950]]}},
+                       'interieurs':{'gobeline':{'boite':[40, 725, 210, 960], 'vmax':105, 'ymax':944, 'marge':2}},
                        'gris':[('tente', 'A', 130, [CHOPES, [640, 772, 735, 864], [668, 716, 735, 772]], {'calque':1}), ('chopes', 'C', 130, [CHOPES], {'calque':1})],
                        'avant':{'calque':3, 'fer':[[232, 230, 322, 1150], [724, 236, 804, 1150]],
                                 'plein':[[30, 135, 238, 1190], [782, 135, 1000, 1190], [0, 452, 56, 1190], [972, 452, 1024, 1190], [0, 1030, 1024, 1536]],
@@ -248,9 +252,29 @@ for lieu, R in RETOUCHES.items():
             mt = sorted(cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).match(db, da), key=lambda x: x.distance)[:1500]
             T, inl = cv2.estimateAffinePartial2D(np.float32([kb[m.queryIdx].pt for m in mt]), np.float32([ka[m.trainIdx].pt for m in mt]), method=cv2.RANSAC, ransacReprojThreshold=2)
             regs[im] = cv2.warpAffine(b, T, (1024, 1536), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE); print(f'  image {im} recalée ({int(inl.sum())} points)')
-        x0, y0, x1, y1 = R['zones'][obj]; p = regs[im][y0:y1, x0:x1]
-        al = np.zeros(p.shape[:2], np.float32); al[0 if y0 == 0 else FONDU:p.shape[0] if y1 >= 1536 else -FONDU, 0 if x0 == 0 else FONDU:p.shape[1] if x1 >= 1024 else -FONDU] = 1
-        al = cv2.GaussianBlur(al, (0, 0), FONDU / 2.2)   # v131 : pas de fondu le long des bords de l'image (rien à raccorder)
+        x0, y0, x1, y1 = R['zones'][obj]; src_ = regs[im]
+        if obj in R.get('locaux', {}):   # v134 : recalage propre à cet objet, sur son voisinage seulement
+            L = R['locaux'][obj]; mk = np.zeros((1536, 1024), np.uint8); rx0, ry0, rx1, ry1 = L['region']; mk[ry0:ry1, rx0:rx1] = 255
+            for sx0, sy0, sx1, sy1 in L.get('sans', []): mk[sy0:sy1, sx0:sx1] = 0
+            b = cv2.resize(cv2.imread(os.path.join(A, f'{lieu}-{im}.png')), (1024, 1536), interpolation=cv2.INTER_AREA)
+            kl, dl = orb.detectAndCompute(cv2.cvtColor(a, cv2.COLOR_BGR2GRAY), mk); kb, db = orb.detectAndCompute(cv2.cvtColor(b, cv2.COLOR_BGR2GRAY), None)
+            mt = sorted(cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).match(db, dl), key=lambda x: x.distance)[:1500]
+            T, inl = cv2.estimateAffinePartial2D(np.float32([kb[m.queryIdx].pt for m in mt]), np.float32([kl[m.trainIdx].pt for m in mt]), method=cv2.RANSAC, ransacReprojThreshold=2)
+            src_ = cv2.warpAffine(b, T, (1024, 1536), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE); print(f'  {obj}-{im} recalé localement ({int(inl.sum())} points)')
+        p = src_[y0:y1, x0:x1]
+        if obj in R.get('interieurs', {}):   # v134 : seulement l'intérieur sombre de la niche (pris dans A), pas de rectangle
+            I = R['interieurs'][obj]; bx0, by0, bx1, by1 = I['boite']; hv = cv2.cvtColor(a, cv2.COLOR_BGR2HSV)[by0:by1, bx0:bx1, 2]
+            n, lab, st, _ = cv2.connectedComponentsWithStats((hv < I['vmax']).astype(np.uint8)); cm = lab == 1 + np.argmax(st[1:, 4])
+            mm = np.zeros((1536, 1024), bool)
+            for yy in range(cm.shape[0]):
+                if by0 + yy > I['ymax']: break
+                xs = np.nonzero(cm[yy])[0]
+                if len(xs): mm[by0 + yy, bx0 + xs.min():bx0 + xs.max() + 1] = True
+            mm = cv2.dilate(mm.astype(np.uint8), np.ones((2 * I['marge'] + 1,) * 2, np.uint8)).astype(np.float32)
+            al = cv2.GaussianBlur(mm, (0, 0), 1.2)[y0:y1, x0:x1]
+        else:
+            al = np.zeros(p.shape[:2], np.float32); al[0 if y0 == 0 else FONDU:p.shape[0] if y1 >= 1536 else -FONDU, 0 if x0 == 0 else FONDU:p.shape[1] if x1 >= 1024 else -FONDU] = 1
+            al = cv2.GaussianBlur(al, (0, 0), FONDU / 2.2)   # v131 : pas de fondu le long des bords de l'image (rien à raccorder)
         rgba = np.dstack([cv2.cvtColor(p, cv2.COLOR_BGR2RGB), (al * 255).astype(np.uint8)])
         Image.fromarray(rgba, 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-{im}.webp'), 'WEBP', quality=86, method=6)
         tailles[f'{lieu}-{obj}-{im}'] = [x0, y0, x1, y1]

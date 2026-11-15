@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="81e23ca0">
+<meta name="mon-ecran-version" content="1fa86461">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -779,9 +779,9 @@ html.desk .scene{max-width:min(560px, calc((100vh - 170px) * .667))}
   .sc-vif{animation:sc-vol 17s ease-in-out infinite}.sc-vif-c{display:block;animation:sc-vif-ondule .9s ease-in-out infinite}
   .sc-vif .aile.g{animation:sc-aile-g .13s linear infinite}.sc-vif .aile.d{animation:sc-aile-d .13s linear infinite}
   .sc-lueur::before{animation:sc-lueur-lente 6s ease-in-out infinite}.sc-lueur.joue::before{animation:sc-lueur 1.4s ease-in-out}
-  .sc-vivant.v1:not(.joue) .b{animation:sc-vivant 9s linear 2s infinite}.sc-vivant.v2:not(.joue) .b{animation:sc-vivant 11s linear 6s infinite}
+  .sc-vivant.v1:not(.joue):not(:hover) .b{animation:sc-vivant 9s linear 2s infinite}.sc-vivant.v2:not(.joue):not(:hover) .b{animation:sc-vivant 11s linear 6s infinite}   /* le cycle s'efface au survol et au toucher */
 }
-@media (hover:hover) and (prefers-reduced-motion: no-preference){.sc-lueur:hover::before{animation:sc-lueur 1.4s ease-in-out infinite}.sc-vivant:hover .b{animation:none}}
+@media (hover:hover) and (prefers-reduced-motion: no-preference){.sc-lueur:hover::before{animation:sc-lueur 1.4s ease-in-out infinite}}
 @media (prefers-reduced-motion: reduce){.sc-vif{display:none}}
 /* v124 : l'ardoise du Bazar, écrite à la craie */
 .sc-html{position:absolute;pointer-events:none;display:flex;flex-direction:column;justify-content:flex-start}

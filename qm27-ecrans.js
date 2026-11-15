@@ -1,4 +1,4 @@
-// mon-ecran-version: 7f7aa161
+// mon-ecran-version: d5246dfb
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -242,7 +242,7 @@ const SCENES = {
   /* v134 : l'entrée du stade, images A (repos), B (la gobeline tend un billet), C (les chopes trinquent) ; la tente blanc et gris est teinte aux
      couleurs du club ; le prix des places s'écrit sur le panneau ; le vif d'or vole derrière la grille et les piliers (avant : premier plan détouré
      d'après Qwen-Image-Layered) ; « vivant » : la gobeline et l'enseigne s'animent d'elles-mêmes de temps en temps */
-  entree:{fond:'scenes/entree-fond', v:3, ratio:1536 / 1024, l:1024, h:1536, avant:'scenes/entree-avant', vif:true, objets:[
+  entree:{fond:'scenes/entree-fond', v:4, ratio:1536 / 1024, l:1024, h:1536, avant:'scenes/entree-avant', vif:true, objets:[
     {id:'pelouse', zone:[322, 470, 724, 1028], anim:'fixe', nom:'Le stade', vue:'accueil'},
     {id:'panneau', zone:[62, 503, 232, 646], anim:'fixe', muet:true, nom:'Prix des places', act:'scBillet',
       textes:[[() => 'La place', 'left:14%;top:24%;width:72%;height:18%', 'sc-grave sc-pt'], [(M_, c) => eurT(c.prix), 'left:8%;top:44%;width:84%;height:38%', 'sc-grave', [3.4, 22]]]},
