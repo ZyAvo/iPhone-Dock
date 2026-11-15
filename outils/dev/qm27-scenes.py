@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 27ce5dce
+# mon-ecran-version: 1d91780e
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -130,6 +130,37 @@ RETOUCHES['hall'] = {'zones':{'hiboux':[0, 40, 410, 1085], 'calendrier':[620, 26
 RETOUCHES['federation'] = {'zones':{'tout':[0, 0, 1024, 1536]}, 'pieces':[('tout', 'B')]}
 
 # v124 : le Bazar ; l'ardoise s'efface (B), et une couche « articles » = les tissus rouge et jaune des rayons, recoloriés aux couleurs du club
+# v134 : l'entrée du stade. A (repos), B (la gobeline tend un billet), C (les chopes de l'enseigne trinquent). La tente est peinte en BLANC et
+# GRIS ANTHRACITE (sorti bleu marine) : couches « gris » détourées dans sa silhouette (calque 1 de Qwen-Image-Layered), sans l'enseigne (cercle)
+# ni le comptoir et ses chopes d'étain. « avant » = le premier plan (piliers, grille, guichet…) détouré d'après le calque 3 de Qwen, pour que
+# le vif d'or vole DERRIÈRE la grille et les piliers. Calques de Qwen : <dossier>/entree-calques/<n>.png (512 × 768, agrandis ×2).
+CHOPES = (679, 669, 45)
+RETOUCHES['entree'] = {'zones':{'gobeline':[12, 760, 238, 978], 'chopes':[626, 614, 732, 724], 'tente':[570, 465, 735, 864]},
+                       'pieces':[('gobeline', 'B'), ('chopes', 'C')],
+                       'gris':[('tente', 'A', 130, [CHOPES, [640, 772, 735, 864], [668, 716, 735, 772]], {'calque':1}), ('chopes', 'C', 130, [CHOPES], {'calque':1})],
+                       'avant':{'calque':3, 'fer':[[232, 230, 322, 1150], [724, 236, 804, 1150]],
+                                'plein':[[30, 135, 238, 1190], [782, 135, 1000, 1190], [0, 452, 56, 1190], [972, 452, 1024, 1190], [0, 1030, 1024, 1536]],
+                                'vide':[[560, 460, 724, 866]], 'haut':1060}}
+
+def calque_qwen(lieu, n):
+    import cv2
+    f = os.path.join(A, f'{lieu}-calques', f'{n}.png')
+    if not os.path.exists(f): return None
+    q = np.asarray(Image.open(f).convert('RGBA'))[..., 3].astype(np.float32) / 255
+    return np.clip((cv2.resize(q, (1024, 1536), interpolation=cv2.INTER_CUBIC) - .3) / .4, 0, 1)
+
+def couche_avant(a, al, R):
+    """Le premier plan : calque de Qwen agrandi ; dans la grille (« fer »), seuls le fer vert-de-gris, l'or des pointes et le très sombre restent
+    (le ciel et la pelouse entre les barreaux redeviennent transparents) ; « plein » : opaque (piliers, murs, dallage) ; « vide » : transparent."""
+    import cv2
+    h = cv2.cvtColor(a, cv2.COLOR_BGR2HSV).astype(int); H, S, V = h[..., 0], h[..., 1], h[..., 2]
+    fer = (((H >= 75) & (H <= 102) & (S > 45)) | ((H >= 10) & (H <= 34) & (S > 90) & (V > 110)) | (V < 75)).astype(np.uint8)
+    fer = cv2.morphologyEx(fer, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
+    for x0, y0, x1, y1 in R['fer']: al[y0:y1, x0:x1] *= cv2.GaussianBlur(fer[y0:y1, x0:x1].astype(np.float32), (0, 0), .6)
+    for x0, y0, x1, y1 in R['plein']: al[y0:y1, x0:x1] = 1
+    for x0, y0, x1, y1 in R['vide']: al[y0:y1, x0:x1] = 0
+    return np.dstack([cv2.cvtColor(a, cv2.COLOR_BGR2RGB), (al * 255).astype(np.uint8)])[:R['haut']]
+
 RETOUCHES['boutique'] = {'zones':{'ardoise':[285, 728, 745, 1325]}, 'pieces':[('ardoise', 'B')],   # v128 : la couche « articles » recoloriée est retirée (« couches_v124 » n'est plus lu)
                          'couches_v124':[('articles', [0, 110, 1004, 1040],
                                      [[0, 110, 236, 572], [236, 272, 392, 702], [0, 636, 272, 1036], [625, 178, 812, 552], [808, 446, 1004, 752], [652, 556, 802, 752]],
@@ -173,15 +204,23 @@ def couche_masque(a, c, sans):
 # v131 : les tissus BLANC et GRIS d'une zone, détourés par la couleur (pas par le masque magenta : ChatGPT l'a dessiné décalé et incomplet).
 # Sous la lumière chaude, le « blanc » et le « gris » restent peu saturés (S ≈ 100-150) alors que pierre, bois, laiton et bougies flambent (S > 170).
 # La couche a la taille de la zone (transparente ailleurs) : l'écran la pose sur l'objet et la teint (QMV.colorierGris, data-prod="gris:…").
-def couche_grise(img, zone, smax, sans):
+# v134 : silh = silhouette de l'objet (calque de Qwen-Image-Layered, 1024 × 1536, 0 à 1) : on ne garde que le peu saturé DANS l'objet
+# (le ciel pâle et les arbres derrière la tente de l'entrée sont aussi peu saturés) ; « sans » accepte aussi des cercles (cx, cy, r)
+def couche_grise(img, zone, smax, sans, silh=None):
     import cv2
     x0, y0, x1, y1 = zone; z = img[y0:y1, x0:x1]; hsv = cv2.cvtColor(z, cv2.COLOR_BGR2HSV).astype(int)
     m = ((hsv[..., 1] < smax) & (hsv[..., 2] > 25)).astype(np.uint8)
-    for bx0, by0, bx1, by1 in sans: m[max(0, by0 - y0):max(0, by1 - y0), max(0, bx0 - x0):max(0, bx1 - x0)] = 0
+    if silh is not None: m &= (silh[y0:y1, x0:x1] > .5).astype(np.uint8)
+    ex = np.zeros(m.shape, bool)
+    for b in sans:
+        if len(b) == 3:
+            yy, xx = np.mgrid[y0:y1, x0:x1]; ex |= (xx - b[0]) ** 2 + (yy - b[1]) ** 2 <= b[2] ** 2; continue
+        bx0, by0, bx1, by1 = b; ex[max(0, by0 - y0):max(0, by1 - y0), max(0, bx0 - x0):max(0, bx1 - x0)] = True
+    m[ex] = 0
     m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8)); m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((7, 7), np.uint8))
     n, lab, st, _ = cv2.connectedComponentsWithStats(m)
-    m = nd.binary_fill_holes(np.isin(lab, [k for k in range(1, n) if st[k, 4] > 1500])).astype(np.float32)
-    return z, cv2.GaussianBlur(m, (0, 0), 0.7)
+    m = nd.binary_fill_holes(np.isin(lab, [k for k in range(1, n) if st[k, 4] > 1500])); m[ex] = False   # v134 : le bouchage des trous ne rend pas ce qu'on a écarté (l'enseigne)
+    return z, cv2.GaussianBlur(m.astype(np.float32), (0, 0), 0.7)
 
 def seule_echarpe(img, sans, plusieurs=False):
     import cv2
@@ -224,10 +263,15 @@ for lieu, R in RETOUCHES.items():
         z, al = couche_tissus(a, cadre, boites, sans)
         Image.fromarray(np.dstack([cv2.cvtColor(jaunir(z), cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{nom}-A-seule.webp'), 'WEBP', quality=88, method=6)
         tailles[f'{lieu}-{nom}'] = cadre
-    for obj, im, smax, sans in R.get('gris', []):
-        z, al = couche_grise(a if im == 'A' else regs[im], R['zones'][obj], smax, sans)
+    for obj, im, smax, sans, *opt in R.get('gris', []):
+        silh = calque_qwen(lieu, opt[0]['calque']) if opt and 'calque' in opt[0] else None
+        z, al = couche_grise(a if im == 'A' else regs[im], R['zones'][obj], smax, sans, silh)
         Image.fromarray(np.dstack([cv2.cvtColor(z, cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-gris-{im}.webp'), 'WEBP', quality=88, method=6)
         print(f'  couche grise {obj}-{im} : {int((al > 0.5).sum())} px')
+    if 'avant' in R and calque_qwen(lieu, R['avant']['calque']) is not None:
+        rgba = couche_avant(a, calque_qwen(lieu, R['avant']['calque']), R['avant'])
+        Image.fromarray(rgba, 'RGBA').save(os.path.join(O, f'{lieu}-avant.webp'), 'WEBP', quality=84, method=6)
+        tailles[f'{lieu}-avant'] = [0, 0, 1024, R['avant']['haut']]; print(f'  premier plan {lieu}-avant : {rgba.shape[1]} × {rgba.shape[0]}')
     for obj, im, sans in R.get('seules', []):
         x0, y0, x1, y1 = R['zones'][obj]; p = (a if im == 'A' else regs[im])[y0:y1, x0:x1]; al = seule_echarpe(p, sans, obj == 'robes')
         Image.fromarray(np.dstack([cv2.cvtColor(jaunir(p), cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-{im}-seule.webp'), 'WEBP', quality=88, method=6)

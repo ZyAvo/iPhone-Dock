@@ -1,4 +1,4 @@
-// mon-ecran-version: a04bca12
+// mon-ecran-version: cc5e2ec5
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -186,7 +186,7 @@ function barre(){
   NAV.hidden = !on; document.body.classList.toggle('sans-nav', !on);
   if (!on) return;
   const T = M.manager.club ? [['accueil', 'Accueil'], ['effectif', 'Effectif'], ['tactique', 'Tactique'], ['club', 'Club'], ['plus', 'Plus']] : [['accueil', 'Accueil'], ['plus', 'Plus']];
-  const actif = ['classements', 'sauvegardes', 'aide', 'calendrier', 'carriere', 'boite', 'profil', 'clubs', 'clubFiche'].includes(U.vue) ? 'plus' : ['entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'selection', 'direction', 'vestiaire', 'domaine', 'boutique', 'partenaires', 'trophees'].includes(U.vue) ? 'club' : U.vue;
+  const actif = ['classements', 'sauvegardes', 'aide', 'calendrier', 'carriere', 'boite', 'profil', 'clubs', 'clubFiche'].includes(U.vue) ? 'plus' : ['entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'selection', 'direction', 'vestiaire', 'domaine', 'boutique', 'buvette', 'entree', 'partenaires', 'trophees'].includes(U.vue) ? 'club' : U.vue;
   const nl = M.boite.filter(m => !m.lu).length;
   NAV.querySelector('.in').innerHTML = T.map(([k, n]) => `<button data-act="vue" data-v="${k}" class="${actif === k ? 'on' : ''}" ${actif === k ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24">${ICO[k]}</svg>${n}${k === 'plus' && nl ? `<i class="pastille-nav" aria-label="${nl} message${nl > 1 ? 's' : ''} non lu${nl > 1 ? 's' : ''}">${nl > 9 ? '9+' : nl}</i>` : ''}</button>`).join('');
 }
@@ -206,7 +206,7 @@ function rendre(){
 function rendreVue(){
   entete(); barre();
   if (!M || !M.manager) return vueDemarrage();
-  const besoinClub = ['progression', 'recrutement', 'equipe', 'vestiaire', 'effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier', 'domaine', 'boutique', 'partenaires', 'trophees', 'direction'];
+  const besoinClub = ['buvette', 'entree', 'progression', 'recrutement', 'equipe', 'vestiaire', 'effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier', 'domaine', 'boutique', 'partenaires', 'trophees', 'direction'];
   if (!M.manager.club && besoinClub.includes(U.vue)) U.vue = 'accueil';
   if (!M.manager.club && U.vue === 'accueil') return vueChomage();
   if (U.vue === 'selection' && !M.manager.selection) U.vue = 'accueil';
@@ -1077,7 +1077,7 @@ function vueFormation(){
 const B = window.QMB;
 const POS_DOM = {infirmerie:[62, 56], salle:[140, 50], bureau:[210, 44], formation:[280, 50], voliere:[358, 56], divination:[52, 166], aire:[368, 166],
   trophees:[62, 272], residence:[140, 280], buvettes:[210, 288], boutique:[280, 280], hangar:[358, 272]};
-const VUE_BAT = {stade:'stade', boutique:'boutique', formation:'formation', entrainement:'entrainement', balais:'vestiaire', tactique:'tactique', mercato:'mercato', trophees:'trophees'};
+const VUE_BAT = {stade:'stade', boutique:'boutique', buvette:'buvette', formation:'formation', entrainement:'entrainement', balais:'vestiaire', tactique:'tactique', mercato:'mercato', trophees:'trophees'};
 const nomBat = k => k === 'bureau' ? 'Bureau du président' : (B.BAT[k] || [])[1] || k;
 const pips = n => `<span class="pips" aria-label="niveau ${n} sur 5">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
 const coutEntretien = (c, k) => ((E.inst[k] || E.bat[k] || {}).entretien || 0) * C.niv(c, k);
@@ -1247,6 +1247,27 @@ function vueBoutique(){
     <p class="petit mut" style="margin:8px 0 0">Les produits portent les couleurs du club. Prix bas : un peu moins de recettes, des supporters ravis. Prix haut : plus de recettes, des supporters qui râlent. Chaque niveau du Bazar ajoute une place en rayon.</p></div>`;
   V.colorierProduits(VUE, c);   // v111
   if (scene) Z_().ardoiseDefile();
+}
+/* v133 : la buvette du stade (tente aux chopes de l'entrée) : la carte et ses prix, comme les produits du Bazar */
+function vueBuvette(){
+  const c = B.assurer(M), d = c.dom, dispo = B.carteDispo(c), act = B.carteActive(c), lib = {bas:'Bas', normal:'Normal', haut:'Haut'};
+  const aff = Math.round(c.stade * C.remplissage(M, c, {rep:60})), tot = B.recettesBuvette(c, aff), mult = B.multCarte(c);
+  const scene = Z_() && Z_().sceneDispo('buvette');
+  VUE.innerHTML = `<div><h1 class="grand">La buvette</h1><p class="sous">Taverne du stade niveau ${C.niv(c, 'buvettes')} · ${act.length} / ${B.placesCarte(c)} à la carte · environ ${eur(tot)} par match à domicile</p></div>
+  ${scene ? Z_().sceneHTML('buvette') : ''}
+  <div class="carte" id="carteBuvette"><h2>La carte</h2><div class="liste">${D.CARTE.map(p => { const ok = !p[4] || B.a(c, p[4]), st = d.carte[p[0]] || {actif:false, prix:'normal'};
+    if (!ok) return `<div class="el" style="opacity:.55"><span class="buv-ico" aria-hidden="true">${p[5]}</span><div class="t"><b>🔒 ${esc(p[1])}</b><span>Débloqué par ${esc(B.AMEL[p[4]].nom)} (${esc(nomBat(B.AMEL[p[4]].bat))}, niveau ${B.AMEL[p[4]].niv})</span></div></div>`;
+    const on = act.some(x => x[0] === p[0]);
+    return `<div class="el prod"><span class="buv-ico" aria-hidden="true">${p[5]}</span><label class="interr"><input type="checkbox" data-chg="carte" data-p="${p[0]}" ${st.actif ? 'checked' : ''} aria-label="${esc(p[1])} à la carte"><span></span></label>
+      <div class="t"><b>${esc(p[1])}</b><span>${'★'.repeat(Math.round(p[2] * 3))} · ${eur(p[3] * B.PRIX[st.prix].p)} · ${on ? '≈ ' + eur(tot * B.partCarte(c, p[0])) + ' / match' : 'pas à la carte'}</span></div>
+      <div class="seg mini">${['bas', 'normal', 'haut'].map(v => `<button data-act="prixCarte" data-p="${p[0]}" data-v="${v}" class="${st.prix === v ? 'on' : ''}">${lib[v]}</button>`).join('')}</div></div>`; }).join('')}</div>
+    <p class="petit mut" style="margin:8px 0 0">Plus la carte est longue, plus les spectateurs consomment, de moins en moins à chaque article ajouté. Prix bas : un peu moins de recettes, des supporters ravis. Prix haut : plus de recettes, des supporters qui râlent. Une carte vide les fâche. Chaque niveau de la Taverne ajoute une place à la carte.</p></div>
+  <div class="carte"><h2>La Taverne du stade</h2>
+    <div class="ligne" style="justify-content:space-between"><span>Niveau</span><b>${C.niv(c, 'buvettes')} / 5</b></div><div class="sep"></div>
+    <div class="ligne" style="justify-content:space-between"><span>Effet de la carte</span><b>${mult >= 1 ? '+' : '−'}${Math.abs(Math.round((mult - 1) * 100))} %</b></div><div class="sep"></div>
+    <div class="ligne" style="justify-content:space-between"><span>Restauration cette saison</span><b>${eur((c.fin && c.fin.saison && c.fin.saison.rec.restauration) || 0)}</b></div>
+    <p class="petit mut" style="margin:8px 0 0">Estimation pour environ ${aff.toLocaleString('fr-FR')} spectateurs, contre un adversaire moyen.${B.a(c, 'ouverte') ? ' La taverne reste ouverte en semaine : elle sert aussi les jours sans match.' : ''}</p>
+    <div class="btns" style="margin-top:10px"><button class="btn sec" data-act="batiment" data-b="buvettes">Améliorer la taverne</button><button class="btn sec" data-act="vue" data-v="entree">Entrée du stade</button></div></div>`;
 }
 function vuePartenaires(){
   const c = B.assurer(M), d = c.dom, sp = d.sponsor, pl = B.placesPanneaux(c);
@@ -1711,7 +1732,7 @@ function finDuMatch(){
   toast(fin.semaineFinie ? 'Journée terminée · résultats dans le calendrier' : m.ligue === 'eu' ? 'Match européen terminé · place au championnat' : 'Match de sélection terminé · place au match du club');
 }
 
-Object.assign(VUES, {vestiaire:vueVestiaire, domaine:vueDomaine, boutique:vueBoutique, partenaires:vuePartenaires, trophees:vueTrophees, carriere:vueCarriere, stade:vueStade, formation:vueFormation, selection:vueSelection, accueil:vueAccueil, tactique:vueTactique, classements:vueClassements, sauvegardes:vueSauvegardes, aide:vueAide, match:vueMatch,
+Object.assign(VUES, {vestiaire:vueVestiaire, domaine:vueDomaine, boutique:vueBoutique, buvette:vueBuvette, partenaires:vuePartenaires, trophees:vueTrophees, carriere:vueCarriere, stade:vueStade, formation:vueFormation, selection:vueSelection, accueil:vueAccueil, tactique:vueTactique, classements:vueClassements, sauvegardes:vueSauvegardes, aide:vueAide, match:vueMatch,
   mercato:vueMercato, finances:vueFinances, staff:vueStaff});   // v91 : club, effectif, calendrier, plus, entraînement… dans qm27-ecrans.js
 
 /* ---------- Actions ---------- */
@@ -1830,6 +1851,7 @@ const ACT = {
   ameliorer:d => { const c = club(M.manager.club), cout = C.coutTravaux(c, d.b); if (!confirm(`${nomBat(d.b)} : passer au niveau ${C.niv(c, d.b) + 1} pour ${eurT(cout)} ?`)) return; const r = B.lancer(M, d.b); toast(r.msg); if (r.ok){ sauver(); fermerFeuille(); rendre(); } },
   amel:d => { const r = B.choisirAmel(M, d.a); toast(r.msg); if (r.ok){ sauver(); const k = B.AMEL[d.a].bat; rendre(); ficheBat(k); } },
   tribune:d => { const c = club(M.manager.club); if (c.travaux.some(t => t.type === 'stade')) return toast('Des travaux sont déjà en cours au stade.'); if (!confirm(`Agrandir la tribune ${({N:'nord', S:'sud', E:'est', O:'ouest'})[d.c]} de ${E.stade.tranche.toLocaleString('fr-FR')} places pour ${eurT(C.coutTravaux(c, 'stade'))} ?`)) return; const r = B.lancer(M, 'stade', d.c); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
+  prixCarte:d => { const r = B.reglerCarte(M, d.p, 'prix', d.v); if (!r.ok) return toast(r.msg); sauver(); rendre(); },   // v133
   prixProduit:d => { const r = B.reglerProduit(M, d.p, 'prix', d.v); if (!r.ok) return toast(r.msg); sauver(); rendre(); },
   sponsor:d => { const r = B.signerSponsor(M, +d.i); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
   signerPanneau:d => { const r = B.signerPanneau(M, +d.i); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
@@ -1873,6 +1895,7 @@ document.addEventListener('change', e => {
   if (t.dataset.chg === 'presse'){ REG.presse = t.checked; regler(); }
   if (t.dataset.chg === 'presseN'){ REG.presseN = +t.value; regler(); }
   if (t.dataset.chg === 'triche' && M){ HH().etat(M).triche = t.checked; sauver(); toast(t.checked ? 'Paris et pots-de-vin activés pour cette partie' : 'Désactivés'); }
+  if (t.dataset.chg === 'carte'){ const r = B.reglerCarte(M, t.dataset.p, 'actif', t.checked); if (!r.ok){ t.checked = !t.checked; toast(r.msg); return; } sauver(); rendre(); return; }   // v133
   if (t.dataset.chg === 'produit'){ const r = B.reglerProduit(M, t.dataset.p, 'actif', t.checked); if (!r.ok){ t.checked = !t.checked; toast(r.msg); return; } sauver(); rendre(); return; }
   if (t.dataset.chg === 'poste'){ placerSlot(ctxCompo(), t.dataset.j, t.value || null); return; }
   if (t.dataset.chg === 'mercF'){ const k = t.dataset.k; MERC[k] = t.type === 'checkbox' ? t.checked : ['nat', 'attr'].includes(k) ? t.value : +t.value; if (k === 'ageMin' && MERC.age < MERC.ageMin) MERC.age = 99; garderMerc(); return; }

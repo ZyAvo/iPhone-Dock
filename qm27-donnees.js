@@ -1,4 +1,4 @@
-// mon-ecran-version: c8d7b57f
+// mon-ecran-version: 8903db6f
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -394,9 +394,9 @@ const BATIMENTS = [
   ['boutique', 'Bazar du club', 'bazar', 'Recettes de la boutique (×0,85 au niveau 1, ×1,45 au niveau 5) et un produit de plus en rayon par niveau.', 'boutique',
     [['hibou', 'Vente par hibou', 'La boutique vend aussi les semaines sans match à domicile (+25 %).'], ['atelier', 'Atelier de maillots', 'Nouveau produit : maillots éditions spéciales.']],
     [['echarpes', 'Écharpes qui changent de couleur', 'Nouveau produit vedette.'], ['chocolat', 'Vifs d\'or en chocolat', 'Nouveau produit vedette.']]],
-  ['buvettes', 'Taverne du stade', 'taverne', 'Recettes de restauration par spectateur (×0,85 au niveau 1, ×1,45 au niveau 5).', null,
-    [['chaudron', 'Chaudron géant', 'Restauration +15 %.'], ['ouverte', 'Taverne ouverte en semaine', 'Recettes même sans match à domicile.']],
-    [['hydromel', 'Hydromel maison', 'Restauration +15 %, les supporters adorent.'], ['banquets', 'Banquets d\'après-match', 'Recettes VIP après les victoires à domicile.']]],
+  ['buvettes', 'Taverne du stade', 'taverne', 'Recettes de restauration par spectateur (×0,85 au niveau 1, ×1,45 au niveau 5) et une place de plus à la carte de la buvette par niveau.', 'buvette',
+    [['chaudron', 'Chaudron géant', 'Restauration +15 % et le ragoût à la carte de la buvette.'], ['ouverte', 'Taverne ouverte en semaine', 'Recettes même sans match à domicile.']],
+    [['hydromel', 'Hydromel maison', 'Restauration +15 %, l\'hydromel à la carte de la buvette, les supporters adorent.'], ['banquets', 'Banquets d\'après-match', 'Recettes VIP après les victoires à domicile.']]],
   ['formation', 'Pensionnat des jeunes ailes', 'pensionnat', 'Centre de formation : plus de jeunes chaque été, et de meilleurs.', 'formation',
     [['dortoirs', 'Dortoirs agrandis', '2 places de plus au centre.'], ['terrain', 'Terrain miniature', 'Les jeunes du centre progressent 25 % plus vite.']],
     [['detection', 'Réseau de détection dans les écoles', 'Chaque été, un des nouveaux est un prodige.'], ['bourses', 'Bourses d\'études', 'Un jeune de plus chaque été.']]],
@@ -444,6 +444,13 @@ const PRODUITS = [
   ['balai', 'Balais miniatures', 0.8, 25, null], ['chapeau', 'Chapeaux pointus', 0.7, 20, null], ['fanion', 'Fanions et drapeaux', 0.6, 8, null],
   ['edition', 'Maillots éditions spéciales', 1.1, 90, 'atelier'], ['echarpe2', 'Écharpes qui changent de couleur', 1.4, 35, 'echarpes'], ['choco', 'Vifs d\'or en chocolat', 1.2, 6, 'chocolat'],
 ];
+/* v133 : la carte de la buvette du stade : [clé, nom, attrait, prix de base (unités internes : 5 = 1 Gallion), amélioration qui le débloque, emoji] ;
+   les quatre premiers sont à la carte au départ (ils donnent exactement les recettes de restauration d'avant la v133) */
+const CARTE = [
+  ['biere', 'Bière au beurre', 1.3, 2, null, '🍺'], ['citrouille', 'Jus de citrouille', 0.8, 1.2, null, '🎃'], ['tourte', 'Tourtes à la citrouille', 1, 2.5, null, '🥧'],
+  ['the', 'Thé fumant des tribunes', 0.6, 0.8, null, '🍵'], ['grenouilles', 'Grenouilles en chocolat', 0.9, 1.5, null, '🐸'], ['marrons', 'Marrons grillés au feu de dragon', 0.7, 1, null, '🌰'],
+  ['ragout', 'Ragoût du chaudron géant', 1.2, 3.5, 'chaudron', '🍲'], ['hydromel', 'Hydromel maison', 1.4, 4, 'hydromel', '🍯'],
+];
 /* v88 : partenaires inventés (sponsor maillot et panneaux) */
 const SPONSORS = ['Balais Aquilon', 'Chocolaterie Lune d\'Or', 'La Gazette du Soir', 'Chaudrons Martel', 'Hydromel Brasse-Brume', 'Plumes & Parchemins', 'Thés de la Pythie',
   'Potions Mirabelle', 'Fromagerie des Trois Lunes', 'Assurances Paratonnerre', 'Bottes de Sept Lieues', 'Sorbets Givre-Doux', 'Lunettes Œil-de-Lynx', 'Cheminée Express',
@@ -468,5 +475,5 @@ const ROLES = {
 const FOCUS = [['technique', 'Technique', ['Vol', 'Balle', 'Gardien']], ['physique', 'Physique', ['Physique']], ['tactique', 'Tactique', ['Mental']], ['repos', 'Repos', []]];
 const INTENSITES = [[1, 'Légère'], [2, 'Normale'], [3, 'Intense']];
 
-root.QMD = {NOMS_CLUBS, VILLES_LANGUES, LANGUES_NOMS, TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
+root.QMD = {NOMS_CLUBS, VILLES_LANGUES, LANGUES_NOMS, TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, CARTE, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
 })(typeof window !== 'undefined' ? window : globalThis);

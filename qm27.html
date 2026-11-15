@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="bc05db0f">
+<meta name="mon-ecran-version" content="81e23ca0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -693,6 +693,8 @@ img.tro{width:64px;height:64px;object-fit:contain}
 .trophees .tr.ancien img.tro{filter:grayscale(.55) brightness(.9);opacity:.85}
 .palm-i:has(.pr-ico){display:grid;grid-template-columns:32px auto;column-gap:7px;align-items:center}.palm-i .pr-ico{width:32px;height:32px;object-fit:contain;grid-row:1 / span 2}
 .el.prod .prod-img{width:46px;height:46px;object-fit:contain;flex:none}
+.el.prod .buv-ico{width:46px;height:46px;flex:none;display:grid;place-items:center;font-size:30px;line-height:1}   /* v133 : la carte de la buvette */
+.el .buv-ico{width:46px;flex:none;text-align:center;font-size:30px;line-height:1}
 /* v115 : Série 5 — postes, entraînement, sponsors, vitrine */
 .poste.pi{background:transparent;border-color:transparent;padding:0}.poste.pi img,.ps.pi img{width:100%;height:100%;object-fit:contain;display:block}
 .avp > .poste.pi{background:var(--card);border-color:var(--line);padding:1px}
@@ -758,6 +760,29 @@ html.desk .scene{max-width:min(560px, calc((100vh - 170px) * .667))}
   .sc-respire:hover .sc-toile .av{transform-origin:50% 100%;animation:sc-respire 1.8s ease-in-out infinite}
 }
 .sc-decor{pointer-events:none}
+/* v134 : l'entrée du stade : premier plan détouré, vif d'or entre les deux, plan qui s'illumine, objets « vivants » */
+.sc-avant{position:absolute;left:0;top:0;width:100%;height:auto;pointer-events:none;user-select:none}
+.sc-vif{position:absolute;left:0;top:0;width:4.6cqw;margin:-1.3cqw 0 0 -2.3cqw;pointer-events:none;translate:12.7cqw 32cqw;filter:drop-shadow(0 0 .6cqw rgba(255,214,90,.85))}
+.sc-vif svg{display:block;width:100%;height:auto;overflow:visible}.sc-vif .aile{transform-box:fill-box}.sc-vif .aile.g{transform-origin:100% 60%}.sc-vif .aile.d{transform-origin:0 60%}
+.sc-pt{font-size:1.5cqw;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.sc-lueur::before{content:'';position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;opacity:0;background:radial-gradient(ellipse 39% 36% at 50% 49%,rgba(255,214,110,0) 52%,rgba(255,214,110,.9) 76%,rgba(255,214,110,0) 100%)}
+@keyframes sc-vol{0%{translate:12.7cqw 32cqw}6%{translate:41cqw 29.3cqw}14%{translate:46.9cqw 54.7cqw}22%{translate:39.1cqw 85.9cqw}28%{translate:51.8cqw 90.8cqw}
+  34%{translate:53.2cqw 68.4cqw}40%{translate:63.5cqw 41cqw}46%{translate:75.2cqw 50.8cqw}52%,58%{translate:87.9cqw 42cqw}62%{translate:85.9cqw 24.4cqw}66%{translate:68.4cqw 22.5cqw}
+  72%{translate:45.9cqw 45.9cqw}78%{translate:50.8cqw 62.5cqw}84%{translate:32.2cqw 74.2cqw}90%{translate:26.4cqw 68.4cqw}96%{translate:12.7cqw 58.6cqw}100%{translate:12.7cqw 32cqw}}
+@keyframes sc-vif-ondule{0%,100%{transform:translateY(0)}50%{transform:translateY(-.5cqw)}}
+@keyframes sc-aile-g{0%,100%{transform:rotate(14deg) scaleY(.75)}50%{transform:rotate(-26deg) scaleY(1)}}
+@keyframes sc-aile-d{0%,100%{transform:rotate(-14deg) scaleY(.75)}50%{transform:rotate(26deg) scaleY(1)}}
+@keyframes sc-lueur{0%,100%{opacity:0}25%,75%{opacity:1}50%{opacity:.35}}
+@keyframes sc-lueur-lente{0%,70%,100%{opacity:0}85%{opacity:.5}}
+@keyframes sc-vivant{0%,82%{opacity:0}84%,95%{opacity:1}97%,100%{opacity:0}}
+@media (prefers-reduced-motion: no-preference){
+  .sc-vif{animation:sc-vol 17s ease-in-out infinite}.sc-vif-c{display:block;animation:sc-vif-ondule .9s ease-in-out infinite}
+  .sc-vif .aile.g{animation:sc-aile-g .13s linear infinite}.sc-vif .aile.d{animation:sc-aile-d .13s linear infinite}
+  .sc-lueur::before{animation:sc-lueur-lente 6s ease-in-out infinite}.sc-lueur.joue::before{animation:sc-lueur 1.4s ease-in-out}
+  .sc-vivant.v1:not(.joue) .b{animation:sc-vivant 9s linear 2s infinite}.sc-vivant.v2:not(.joue) .b{animation:sc-vivant 11s linear 6s infinite}
+}
+@media (hover:hover) and (prefers-reduced-motion: no-preference){.sc-lueur:hover::before{animation:sc-lueur 1.4s ease-in-out infinite}.sc-vivant:hover .b{animation:none}}
+@media (prefers-reduced-motion: reduce){.sc-vif{display:none}}
 /* v124 : l'ardoise du Bazar, écrite à la craie */
 .sc-html{position:absolute;pointer-events:none;display:flex;flex-direction:column;justify-content:flex-start}
 .ard-page{display:none;transition:opacity .45s}.ard-page.on{display:block}.efface .ard-page.on{opacity:0}

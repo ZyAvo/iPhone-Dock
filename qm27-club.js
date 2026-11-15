@@ -1,4 +1,4 @@
-// mon-ecran-version: 9fd4f251
+// mon-ecran-version: 255f8f1f
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -217,7 +217,7 @@ function finances(M, S){
       if (m.dom === c.id){
         const aff = Math.round(c.stade * remplissage(M, c, club(M, m.ext)));
         const bq = QB() ? QB() : null;
-        compter(c, 'rec', 'billetterie', aff * c.prix * (1 + (bq ? bq.bonus(c, 'billetterie') : 0))); compter(c, 'rec', 'restauration', aff * (ECO.repasBase + c.rep / 60) * multInst(c, 'buvettes') * (1 + (bq ? bq.bonus(c, 'resto') : 0)));
+        compter(c, 'rec', 'billetterie', aff * c.prix * (1 + (bq ? bq.bonus(c, 'billetterie') : 0))); compter(c, 'rec', 'restauration', aff * (ECO.repasBase + c.rep / 60) * multInst(c, 'buvettes') * (1 + (bq ? bq.bonus(c, 'resto') : 0)) * (bq && bq.multCarte ? bq.multCarte(c) : 1));   // v133 : carte de la buvette
         if (m.res && estJoueur(M, c.id)) m.res.affluence = aff;
       } else compter(c, 'dep', 'deplacements', ECO.deplacement);
     }

@@ -1,4 +1,4 @@
-// mon-ecran-version: 8d0c50d5
+// mon-ecran-version: b8c686dd
 /* QM27 (v88, lot 5) — le domaine du club : bâtiments sorciers (niveaux 1 à 5 et améliorations au choix aux niveaux 3 et 5),
    stade en quatre tribunes, Bazar (produits et prix), sponsor maillot et panneaux à négocier, supporters, emprunt à la Banque des Gobelins,
    salle des trophées et palmarès, petits événements. Sans affichage : expose window.QMB (bonus lus par le moteur) et complète window.QMC.
@@ -101,6 +101,7 @@ function assurer(M){
     signerSponsor(M, 0, true);
     for (let i = 0; i < Math.min(placesPanneaux(c), c.dom.offresPanneaux.length) - 1; i++) signerPanneau(M, 0, true);
   }
+  if (!c.dom.carte){ c.dom.carte = {}; for (const p of D.CARTE.slice(0, 4)) c.dom.carte[p[0]] = {actif:true, prix:'normal'}; }   // v133 : la carte de la buvette
   const t = c.dom.trib, tot = t.N + t.S + t.E + t.O;
   if (tot !== c.stade){ t[c.dom.cote] = Math.max(0, t[c.dom.cote] + c.stade - tot); }
   return c;
@@ -242,7 +243,7 @@ function finances(M, c, S, m, aff){
   /* loges, banquets, taverne ouverte */
   if (dom && a(c, 'loges')) QMC.compter(c, 'rec', 'vip', c.rep * 450);
   if (dom && gagne && a(c, 'banquets')) QMC.compter(c, 'rec', 'vip', c.rep * 300);
-  if (!dom && a(c, 'ouverte')) QMC.compter(c, 'rec', 'restauration', c.stade * 0.12 * (EQ.eco.repasBase + c.rep / 60) * QMC.multInst(c, 'buvettes'));
+  if (!dom && a(c, 'ouverte')) QMC.compter(c, 'rec', 'restauration', c.stade * 0.12 * (EQ.eco.repasBase + c.rep / 60) * QMC.multInst(c, 'buvettes') * multCarte(c));
   /* emprunt */
   if (d.pret){ const x = Math.min(d.pret.hebdo, d.pret.reste); QMC.compter(c, 'dep', 'pret', x); d.pret.reste -= x;
     if (d.pret.reste <= 0){ d.pret = null; Q().message(M, 'Emprunt remboursé', 'La Banque des Gobelins a reçu la dernière échéance. Le club ne lui doit plus rien.', 'pres'); } }
@@ -255,6 +256,7 @@ function supportersSemaine(M, c, S){
     if (m.res.vif === k) v += 0.5; }
   const ref = Math.round(6 + c.rep / 10); v -= Math.max(0, c.prix / ref - 1) * 3; v += Math.max(0, 1 - c.prix / ref) * 1.5;
   for (const [id, st] of Object.entries(d.produits)) if (st.actif && D.PRODUITS.some(p => p[0] === id)) v += PRIX[st.prix].supp;
+  if (d.carte){ const act = carteActive(c); for (const p of act) v += PRIX[d.carte[p[0]].prix].supp; if (!act.length) v -= 0.3; }   // v133 : la buvette
   if (a(c, 'hydromel')) v += 0.2;
   if (a(c, 'legendes') && M.semaine % 4 === 0) v += 1;
   const avant = d.supp; d.supp = Math.round(borne(d.supp + v, 0, 100) * 10) / 10;
@@ -299,6 +301,37 @@ function apresSaison(M){
   if (!c.dom.sponsor && c.dom.offresSponsor.length) Q().message(M, 'Un sponsor à choisir', 'Le maillot n\'a pas de sponsor pour la saison qui commence. Trois offres attendent (Domaine › Bureau du président › Partenaires).', 'pres');
 }
 
+/* ---------- v133 : la buvette du stade, sa carte et ses prix (même règle de prix que le Bazar) ---------- */
+const carteDispo = c => D.CARTE.filter(p => !p[4] || a(c, p[4]));
+const placesCarte = c => 3 + niv(c, 'buvettes');   // 4 au niveau 1 : la carte de départ y tient toujours
+const ATTRAIT_CARTE = D.CARTE.slice(0, 4).reduce((s, p) => s + p[2], 0);
+const carteActive = c => c && c.dom && c.dom.carte ? carteDispo(c).filter(p => c.dom.carte[p[0]] && c.dom.carte[p[0]].actif).slice(0, placesCarte(c)) : [];
+/* multiplicateur des recettes de restauration : 1 avec la carte de départ au prix normal, 0 sans rien à la carte ;
+   prix bas ou haut comme au Bazar, rendements décroissants quand la carte s'allonge ; 1 pour les clubs de l'ordinateur */
+function multCarte(c){
+  if (!c || !c.dom || !c.dom.carte) return 1;
+  const act = carteActive(c), att = act.reduce((s, p) => s + p[2], 0); if (!att) return 0;
+  const brut = act.reduce((s, p) => { const x = PRIX[c.dom.carte[p[0]].prix] || PRIX.normal; return s + p[2] * x.p * x.v; }, 0);
+  return brut / att * Math.pow(att / ATTRAIT_CARTE, 0.6);
+}
+/* part d'un article dans les recettes (pour l'écran) */
+function partCarte(c, id){
+  const act = carteActive(c), p = act.find(x => x[0] === id); if (!p) return 0;
+  const w = q => { const x = PRIX[c.dom.carte[q[0]].prix] || PRIX.normal; return q[2] * x.p * x.v; };
+  const tot = act.reduce((s, q) => s + w(q), 0); return tot ? w(p) / tot : 0;
+}
+/* recettes de la buvette pour un match à domicile devant aff spectateurs */
+const recettesBuvette = (c, aff) => aff * (EQ.eco.repasBase + c.rep / 60) * QMC.multInst(c, 'buvettes') * (1 + bonus(c, 'resto')) * multCarte(c);
+function reglerCarte(M, id, champ, v){
+  const c = assurer(M), p = D.CARTE.find(x => x[0] === id); if (!p || (p[4] && !a(c, p[4]))) return {ok:false, msg:'Pas encore à la carte.'};
+  const st = c.dom.carte[id] = c.dom.carte[id] || {actif:false, prix:'normal'};
+  if (champ === 'actif'){
+    if (v && !st.actif && Object.entries(c.dom.carte).filter(([k, s]) => s.actif && carteDispo(c).some(q => q[0] === k)).length >= placesCarte(c)) return {ok:false, msg:`Carte pleine : ${placesCarte(c)} articles au niveau ${niv(c, 'buvettes')} de la Taverne.`};
+    st.actif = !!v;
+  } else if (champ === 'prix' && PRIX[v]) st.prix = v;
+  return {ok:true};
+}
+
 /* ---------- Branchements ---------- */
 const base = {nouveauClub:QMC.nouveauClub, initMonde:QMC.initMonde, semaine:QMC.semaine, avantSaison:QMC.avantSaison, apresSaison:QMC.apresSaison, migrer:QMC.migrer, apresChoixClub:QMC.apresChoixClub};
 function completer4(M, v){
@@ -317,5 +350,6 @@ Object.assign(QMC, {
 });
 root.QMB = {bonus, ajusterBlessure, multProgression, balaiDe, bonusMatch, bonusAffluence, finances, assurer, coutBat, lancer, amelEnAttente, choisirAmel, potion,
   signerSponsor, signerPanneau, retirerPanneau, placesPanneaux, reglerProduit, produitsDispo, placesRayon, recettesBazar, recetteProduit, PRIX,
+  carteDispo, placesCarte, carteActive, multCarte, partCarte, recettesBuvette, reglerCarte,
   emprunter, rembourser, plafondPret, tauxPret, titres, visites, rang, BAT, AMEL, a};
 })(typeof window !== 'undefined' ? window : globalThis);

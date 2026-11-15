@@ -1,4 +1,4 @@
-// mon-ecran-version: c54d1ad3
+// mon-ecran-version: 7f7aa161
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -17,7 +17,7 @@ const plur = (n, s, p) => `${n} ${n > 1 ? (p || s + 's') : s}`;
 const LIEUX = {
   poudlard:{nom:'Poudlard', sous:'Centre de formation', x:80, y:124, e:1.2},
   direction:{nom:'Tour du directeur', sous:'Président, contrat, profil', x:290, y:128, e:1.15},
-  stade:{nom:'Stade', sous:'Tactique, tribunes, Bazar', x:180, y:200, e:1.35, py:40},
+  stade:{nom:'Stade', sous:'Entrée, tribunes, buvette, Bazar', x:180, y:200, e:1.35, py:40},
   vestiaire:{nom:'Vestiaire', sous:'Effectif, ambiance', x:62, y:268, e:1.3},
   voliere:{nom:'Volière', sous:'Mercato, recrutement', x:300, y:264, e:1.3},
   technique:{nom:'Zone technique', sous:'Entraînement, staff', x:74, y:364, e:1.25},
@@ -29,7 +29,7 @@ function destinations(l){
   const amb = Hm ? Hm.ambiance(M_, c) : 60, ouvert = C.mercatoOuvert(Z.M && window.QM.semaine(M_));
   return {
     vestiaire:[['effectif', 'Effectif', `${c.effectif.length} joueurs · vues Général, Contrats, Physique, Saison`], ['vestiaire', 'Ambiance et mentorat', `Ambiance ${amb} / 100 · leaders, clans`]],
-    stade:[['tactique', 'Tactique', 'Composition, dispositions, consignes'], ['stade', 'Stade et tribunes', `${c.stade.toLocaleString('fr-FR')} places`], ['boutique', 'Le Bazar', 'Produits et prix'], ['partenaires', 'Partenaires', c.dom && c.dom.sponsor ? esc(c.dom.sponsor.nom) : 'Sponsor à choisir']],
+    stade:[['entree', 'Entrée du stade', `Billetterie, ${eur(c.prix)} la place`], ['stade', 'Tribunes', `${c.stade.toLocaleString('fr-FR')} places`], ['buvette', 'La buvette', `Taverne niveau ${C.niv(c, 'buvettes')}`], ['tactique', 'Tactique', 'Composition, dispositions, consignes'], ['boutique', 'Le Bazar', 'Produits et prix'], ['partenaires', 'Partenaires', c.dom && c.dom.sponsor ? esc(c.dom.sponsor.nom) : 'Sponsor à choisir']],
     direction:[['direction', 'Bureau du président', `Objectif : ${esc(mg.objectif.txt.toLowerCase())} · confiance ${Math.round(mg.confiance)} %`], ['profil', 'Mon profil', 'Avatar, attributs, contrat'], ['carriere', 'Carrière', `Réputation ${Math.round(mg.rep)} · offres`],
       ...(mg.selection ? [['selection', 'Sélection', `${esc(nat(mg.selection.nat).nom)} · amicaux et ${esc(D.LDN.nom)}`]] : [])],
     voliere:[['mercato', 'Mercato', ouvert ? 'Ouvert' : 'Fermé · agents libres disponibles'], ['clubs', 'Clubs et joueurs', 'Tous les effectifs, missions du recruteur']],
@@ -150,6 +150,14 @@ document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === 
 /* v119 : le bureau du président, méthode des retouches (images A à D de ChatGPT) ; zones en pixels de A (1024 × 1536) */
 /* v132 : une retouche de la pièce entière (1024 × 1536) posée sur un objet de zone z : elle déborde de l'objet pour retomber à sa place */
 const salleB = (k, z) => ['scenes/' + k, 'b', `left:${(-z[0] / (z[2] - z[0]) * 100).toFixed(3)}%;top:${(-z[1] / (z[3] - z[1]) * 100).toFixed(3)}%;width:${(1024 / (z[2] - z[0]) * 100).toFixed(3)}%;height:${(1536 / (z[3] - z[1]) * 100).toFixed(3)}%`];
+/* v134 : un morceau découpé dans la zone z (pixels de A), posé dans un objet de zone Z plus grande (les chopes de l'enseigne dans la tente) */
+const sousZone = (k, cl, z, Z) => ['scenes/' + k, cl, `left:${((z[0] - Z[0]) / (Z[2] - Z[0]) * 100).toFixed(3)}%;top:${((z[1] - Z[1]) / (Z[3] - Z[1]) * 100).toFixed(3)}%;width:${((z[2] - z[0]) / (Z[2] - Z[0]) * 100).toFixed(3)}%;height:${((z[3] - z[1]) / (Z[3] - Z[1]) * 100).toFixed(3)}%`];
+const TENTE = [570, 465, 735, 864], CHOPES_Z = [626, 614, 732, 724];
+/* v134 : le vif d'or de l'entrée du stade, vole entre le fond et le premier plan (S.avant) */
+const VIF = `<span class="sc-vif" aria-hidden="true"><span class="sc-vif-c"><svg viewBox="0 0 44 24"><defs><radialGradient id="vifOr" cx="38%" cy="34%" r="70%"><stop offset="0" stop-color="#fff6c4"/><stop offset=".45" stop-color="#f1c232"/><stop offset="1" stop-color="#8a5a08"/></radialGradient></defs>
+  <g class="aile g"><path d="M18 11 C10 2 2 3 1 7 C3 9 9 11 18 13Z" fill="#fbf8ec" fill-opacity=".9" stroke="#c9b98a" stroke-width=".6"/></g>
+  <g class="aile d"><path d="M26 11 C34 2 42 3 43 7 C41 9 35 11 26 13Z" fill="#fbf8ec" fill-opacity=".9" stroke="#c9b98a" stroke-width=".6"/></g>
+  <circle cx="22" cy="12.5" r="5" fill="url(#vifOr)" stroke="#7a5006" stroke-width=".5"/></svg></span></span>`;
 const LETTRE = [110, 880, 345, 990], reunionDe = M_ => G() && G().reunion(M_);
 const SCENES = {
   direction:{fond:'scenes/bureau-fond', v:4, ratio:1536 / 1024, l:1024, h:1536, objets:[
@@ -231,6 +239,18 @@ const SCENES = {
     {id:'calendrier', zone:[620, 265, 1024, 760], calques:[['scenes/hall-calendrier-B', 'b']], plaque:'d', anim:'bascule', nom:'Calendrier', vue:'calendrier'},
     {id:'livre', zone:[695, 725, 1015, 1420], calques:[['scenes/hall-livre-B', 'b']], plaque:'d', anim:'bascule', nom:'La Gazette', act:'scPresse'},
   ]},
+  /* v134 : l'entrée du stade, images A (repos), B (la gobeline tend un billet), C (les chopes trinquent) ; la tente blanc et gris est teinte aux
+     couleurs du club ; le prix des places s'écrit sur le panneau ; le vif d'or vole derrière la grille et les piliers (avant : premier plan détouré
+     d'après Qwen-Image-Layered) ; « vivant » : la gobeline et l'enseigne s'animent d'elles-mêmes de temps en temps */
+  entree:{fond:'scenes/entree-fond', v:3, ratio:1536 / 1024, l:1024, h:1536, avant:'scenes/entree-avant', vif:true, objets:[
+    {id:'pelouse', zone:[322, 470, 724, 1028], anim:'fixe', nom:'Le stade', vue:'accueil'},
+    {id:'panneau', zone:[62, 503, 232, 646], anim:'fixe', muet:true, nom:'Prix des places', act:'scBillet',
+      textes:[[() => 'La place', 'left:14%;top:24%;width:72%;height:18%', 'sc-grave sc-pt'], [(M_, c) => eurT(c.prix), 'left:8%;top:44%;width:84%;height:38%', 'sc-grave', [3.4, 22]]]},
+    {id:'gobeline', zone:[12, 760, 238, 978], calques:[['scenes/entree-gobeline-B', 'b']], plaque:'g', anim:'bascule', vivant:1, nom:'Billetterie', act:'scBillet'},
+    {id:'plan', zone:[829, 630, 988, 928], plaque:'d', anim:'lueur', nom:'Tribunes', vue:'stade'},
+    {id:'tente', zone:TENTE, calques:[['scenes/entree-tente-gris-A', 'fixe gris'], sousZone('entree-chopes-C', 'b', CHOPES_Z, TENTE), sousZone('entree-chopes-gris-C', 'b gris', CHOPES_Z, TENTE)],
+      plaque:'d', anim:'bascule', vivant:2, nom:'La buvette', vue:'buvette'},
+  ]},
   /* v132 : la Fédération (compétitions) : les quatre bannières des championnats (Avalon, Circé, Yggdrasil, Walpurgis), la coupe, le globe ;
      toute la salle s'anime d'un coup (image B entière, posée sur chaque objet à sa place) */
   federation:{fond:'scenes/federation-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
@@ -281,9 +301,10 @@ function sceneHTML(l){
       : `left:${o.x}%;top:${o.y}%;width:${o.w}%`;
     const html = o.html ? `<div class="sc-html" style="${o.htmlStyle || ''}">${o.html(M_, c)}</div>` : '';
     if (o.decor) return `<div class="sc-obj sc-zone sc-decor" style="${pos}" aria-hidden="true">${corps}</div>`;
-    return `<button class="sc-obj sc-${o.anim}${o.zone ? ' sc-zone' : ''}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="${pos}${vars}" aria-label="${esc(nom)}">${corps}${html}${textes}${o.muet ? '' : `<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(nom)}</span>`}</button>`;
+    return `<button class="sc-obj sc-${o.anim}${o.zone ? ' sc-zone' : ''}${o.vivant ? ' sc-vivant v' + o.vivant : ''}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="${pos}${vars}" aria-label="${esc(nom)}">${corps}${html}${textes}${o.muet ? '' : `<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(nom)}</span>`}</button>`;
   };
-  return `<div class="scene" style="aspect-ratio:${1 / S.ratio}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}</div>
+  const avant = (S.vif ? VIF : '') + (S.avant ? `<img class="sc-avant" src="${src(S.avant)}" alt="" draggable="false">` : '');   // v134
+  return `<div class="scene" style="aspect-ratio:${1 / S.ratio}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${avant}${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}</div>
     <p class="petit mut sc-aide">Touche un objet de la pièce.</p>`;
 }
 /* au toucher : l'animation joue une fois, puis le sous-menu s'ouvre */
@@ -323,7 +344,7 @@ function vueEquipe(){
     ['staff', 'Staff', 'Adjoints, préparateurs et soigneurs'], ['vestiaire', 'Vestiaire et mentorat', 'Ambiance, leaders, mentorat et balais']];
   VUE.innerHTML = `<div><h1 class="grand">L'équipe</h1><p class="sous">Le vestiaire · ${esc(c.nom)}</p></div>
   ${scene ? sceneHTML('equipe') : ''}
-  <details class="sc-detail"${scene ? '' : ' open'}><summary>Tous les écrans de l'équipe</summary><div class="carte"><div class="liste">${liens.map(([v, n, x]) => `<button class="el" data-act="vue" data-v="${v}"><div class="t"><b>${n}</b><span>${x}</span></div><span class="d mut">›</span></button>`).join('')}</div></div></details>`;
+  <details class="sc-detail"${scene ? '' : ' open'}><summary>Tous les écrans de l'équipe</summary><div class="carte"><div class="liste">${liens.map(([v, n, x, act]) => `<button class="el" data-act="${act || 'vue'}" data-v="${v}"><div class="t"><b>${n}</b><span>${x}</span></div><span class="d mut">›</span></button>`).join('')}</div></div></details>`;
   if (scene) V.colorierProduits(VUE, c);   // v131 : les robes blanc et gris aux couleurs du club
 }
 /* v132 : le hall, le salon du manager, la Fédération : la pièce illustrée, et la liste des écrans en dessous (ou seule, sans les images) */
@@ -337,6 +358,15 @@ function vueHall(){
   const c = moi(), n = nonLus();
   vuePiece('hall', 'Le hall', `${esc(c.nom)}${n ? ` · ${plur(n, 'message')} non lu${n > 1 ? 's' : ''}` : ''}`, 'Tous les écrans du hall',
     [['accueil', 'Accueil', 'Le prochain match et les nouvelles'], ['boite', 'Boîte de réception', 'Messages, offres et rapports'], ['calendrier', 'Calendrier', 'Le mois et la saison'], ['classements', 'Classements', 'Championnats, coupes et sélections']]);
+}
+/* v133 : l'entrée du stade (grille, guichet de la gobeline et prix des places, plan du stade, pelouse, tente de la buvette) ;
+   en attendant les images de ChatGPT, la liste des écrans du stade */
+function vueEntree(){
+  const c = moi(), B_ = window.QMB;
+  vuePiece('entree', 'Entrée du stade', `${esc(c.nom)} · ${c.stade.toLocaleString('fr-FR')} places · ${eur(c.prix)} la place`, 'Tous les écrans du stade',
+    [['accueil', 'Le stade', 'Le prochain match et les nouvelles'], ['', 'Billetterie', `Prix des places : ${eur(c.prix)}`, 'scBillet'], ['stade', 'Tribunes', 'Agrandir le stade, tribune par tribune'],
+     ['buvette', 'La buvette', `${B_.carteActive(c).length} / ${B_.placesCarte(c)} à la carte · Taverne niveau ${C.niv(c, 'buvettes')}`]]);
+  if (sceneDispo('entree')) V.colorierProduits(VUE, c);   // v134 : la tente blanc et gris aux couleurs du club
 }
 function vueSalon(){
   const mg = M().manager, c = mg.club ? club(mg.club) : null;
@@ -971,7 +1001,8 @@ function MENU(){
     ['Mon club', [['accueil', 'Accueil', '🏠'], ['hall', 'Le hall', '🏰', '', 1], ['boite', 'Boîte de réception', '✉️', nl || ''], ['calendrier', 'Calendrier', '📅', '', 1]]],
     ['Équipe', [['equipe', 'Le vestiaire', '🚪', '', 1], ['effectif', 'Effectif', '👥', '', 1], ['tactique', 'Tactique', '🧭', '', 1], ['entrainement', 'Entraînement', '🏃', '', 1], ['progression', 'Progression des joueurs', '📈', '', 1], ['vestiaire', 'Vestiaire et mentorat', '🛋️', '', 1], ['formation', 'Poudlard (formation)', '🎓', '', 1], ...(mg.selection ? [['selection', 'Sélection', '🏆']] : [])]],
     ['Recrutement', [['recrutement', 'Le bureau', '🗂️', '', 1], ['mercato', 'Mercato', '🦉', ouvert ? '●' : '', 1], ['clubs', 'Clubs et joueurs', '🔭'], ['staff', 'Staff', '🧙', '', 1]]],
-    ['Domaine', [['club', 'Carte du domaine', '🏰', '', 1], ['direction', 'Bureau du président', '🏛️', '', 1], ['finances', 'Finances et banque', '💰', '', 1], ['stade', 'Stade et tribunes', '🏟️', '', 1], ['boutique', 'Bazar', '🛍️', '', 1], ['partenaires', 'Partenaires', '🤝', '', 1], ['domaine', 'Bâtiments', '🧱', '', 1], ['trophees', 'Salle des trophées', '🏆', '', 1]]],
+    ['Domaine', [['club', 'Carte du domaine', '🏰', '', 1], ['direction', 'Bureau du président', '🏛️', '', 1], ['finances', 'Finances et banque', '💰', '', 1], ['boutique', 'Bazar', '🛍️', '', 1], ['partenaires', 'Partenaires', '🤝', '', 1], ['domaine', 'Bâtiments', '🧱', '', 1], ['trophees', 'Salle des trophées', '🏆', '', 1]]],
+    ['Stade', [['entree', 'Entrée du stade', '🎟️', '', 1], ['stade', 'Tribunes', '🏟️', '', 1], ['buvette', 'La buvette', '🍺', '', 1]]],   // v133
     ['Compétitions', [['federation', 'La Fédération', '🏛️'], ['classements', 'Classements', '📊']]],
     ['Moi', [['salon', 'Mon salon', '🛋️'], ['profil', 'Mon profil', '🧑'], ['carriere', 'Carrière', '🧭']]],
     ['Partie', [['sauvegardes', 'Sauvegardes', '💾'], ['aide', 'Règles et réglages', '⚙️'], ['quitterKiosk', 'Quitter vers KiosK', '⏏︎', '', 0, 1]]],
@@ -1010,6 +1041,6 @@ addEventListener('keydown', e => { if (e.key === 'Escape') fermerTiroir(); });
 Z.apresRendu = majMenu;
 
 /* ============================== Enregistrement ============================== */
-Object.assign(VUES, {hall:vueHall, salon:vueSalon, federation:vueFederation, progression:vueProgression, recrutement:vueRecrutement, equipe:vueEquipe, club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});
+Object.assign(VUES, {entree:vueEntree, hall:vueHall, salon:vueSalon, federation:vueFederation, progression:vueProgression, recrutement:vueRecrutement, equipe:vueEquipe, club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});
 if (Z.M && Z.M.manager) rendre(); else majMenu();
 })();
