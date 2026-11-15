@@ -1,4 +1,4 @@
-// mon-ecran-version: 9fc6a709
+// mon-ecran-version: adb3c569
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -243,7 +243,7 @@ const SCENES = {
      couleurs du club ; le prix des places s'écrit sur le panneau ; le vif d'or vole derrière la grille et les piliers (avant : premier plan détouré
      d'après Qwen-Image-Layered) ; « vivant » : la gobeline et l'enseigne s'animent d'elles-mêmes de temps en temps */
   entree:{fond:'scenes/entree-fond', v:5, ratio:1536 / 1024, l:1024, h:1536, avant:'scenes/entree-avant', vif:true,
-    ciel:'scenes/entree-ciel', cielH:720, lanternes:[[133, 305], [892, 305]], veilleuses:[[122, 795, .4], [690, 795, .8]], nuit:true, objets:[
+    ciel:'scenes/entree-ciel', cielH:720, lanternes:[[133, 305], [892, 305]], veilleuses:[[690, 795, .8]], lumieres:[[56, 735, 193, 946, .45]], nuit:true, objets:[
     {id:'pelouse', zone:[322, 470, 724, 1028], anim:'fixe', nom:'Le stade', vue:'accueil'},
     {id:'panneau', zone:[62, 503, 232, 646], anim:'fixe', muet:true, nom:'Prix des places', act:'scBillet',
       textes:[[() => 'La place', 'left:14%;top:24%;width:72%;height:18%', 'sc-grave sc-pt'], [(M_, c) => eurT(c.prix), 'left:8%;top:44%;width:84%;height:38%', 'sc-grave', [3.4, 22]]]},
@@ -311,6 +311,7 @@ function sceneHTML(l){
   const hr = +(new URLSearchParams(location.search).get('heure') ?? new Date().getHours());
   const moment = !S.nuit ? '' : hr >= 21 || hr < 6 ? ' nuit' : hr >= 18 || hr < 8 ? ' soir' : '';
   const apres = (S.nuit ? '<i class="sc-nuit" aria-hidden="true"></i>' : '') + (S.lanternes || []).map(([x, y], k) => `<i class="sc-lanterne l${k % 2}" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%"></i>`).join('')
+    + (S.lumieres || []).map(([x0, y0, x1, y1, o]) => `<i class="sc-lumiere" aria-hidden="true" style="left:${(x0 / S.l * 100).toFixed(2)}%;top:${(y0 / S.h * 100).toFixed(2)}%;width:${((x1 - x0) / S.l * 100).toFixed(2)}%;height:${((y1 - y0) / S.h * 100).toFixed(2)}%;--o:${o}"></i>`).join('')   // v137
     + (S.veilleuses || []).map(([x, y, o]) => `<i class="sc-veille" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%;--o:${o}"></i>`).join('');   // le soir : le guichet et le comptoir de la buvette éclairés
   return `<div class="scene${moment}" style="aspect-ratio:${1 / S.ratio}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${ciel}${avant}${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}${apres}</div>
     <p class="petit mut sc-aide">Touche un objet de la pièce.</p>`;
