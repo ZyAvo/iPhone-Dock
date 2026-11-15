@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 877f7936
+# mon-ecran-version: 4549399f
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -144,7 +144,9 @@ RETOUCHES['entree'] = {'zones':{'gobeline':[12, 760, 238, 978], 'chopes':[626, 6
                        'gris':[('tente', 'A', 130, [CHOPES, [640, 772, 735, 864], [668, 716, 735, 772]], {'calque':1}), ('chopes', 'C', 130, [CHOPES], {'calque':1})],
                        'avant':{'calque':3, 'fer':[[232, 230, 322, 1150], [724, 236, 804, 1150]],
                                 'plein':[[30, 135, 238, 1190], [782, 135, 1000, 1190], [0, 452, 56, 1190], [972, 452, 1024, 1190], [0, 1030, 1024, 1536]],
-                                'vide':[[560, 460, 724, 866]], 'haut':1060}}
+                                'vide':[[560, 460, 724, 866]], 'haut':1060},
+                       # v136 : le masque du ciel (bleu franc et clair) pour la brume qui le traverse, sans la tente
+                       'ciel':{'haut':720, 'vide':[]}}
 
 def calque_qwen(lieu, n):
     import cv2
@@ -164,6 +166,30 @@ def couche_avant(a, al, R):
     for x0, y0, x1, y1 in R['plein']: al[y0:y1, x0:x1] = 1
     for x0, y0, x1, y1 in R['vide']: al[y0:y1, x0:x1] = 0
     return np.dstack([cv2.cvtColor(a, cv2.COLOR_BGR2RGB), (al * 255).astype(np.uint8)])[:R['haut']]
+
+def couche_ciel(a, R):
+    """v136 : masque du ciel (alpha) : bleu franc et clair (teinte 96-114, saturation > 55, valeur > 215), un pixel rogné et adouci
+    (pas de liseré clair contre la cime des arbres) ; la brume du jeu n'apparaît qu'à travers lui."""
+    import cv2
+    h = cv2.cvtColor(a, cv2.COLOR_BGR2HSV).astype(int)[:R['haut']]
+    m = ((h[..., 0] >= 96) & (h[..., 0] <= 114) & (h[..., 1] > 55) & (h[..., 2] > 215)).astype(np.uint8)
+    for x0, y0, x1, y1 in R['vide']: m[y0:y1, x0:x1] = 0
+    m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8)); m = cv2.erode(m, np.ones((3, 3), np.uint8))
+    al = cv2.GaussianBlur(m.astype(np.float32), (0, 0), 1.2)
+    return np.dstack([np.full(al.shape + (3,), 255, np.uint8), (al * 255).astype(np.uint8)])
+
+def texture_brume(l=1024, h=360, graine=27):
+    """v136 : voiles de brume blanche, raccord sans couture de gauche à droite (bruit périodique), une tuile = deux largeurs de scène."""
+    from scipy import ndimage as nd
+    rng = np.random.default_rng(graine); n = np.zeros((h, l), np.float32)
+    for sig, poids in [(90, 1), (40, .5), (16, .18)]:   # de longs voiles étirés à l'horizontale, peu de détail
+        f = nd.gaussian_filter(rng.standard_normal((h, l)).astype(np.float32), (sig * .3, sig), mode=('nearest', 'wrap'))
+        n += poids * f / f.std()
+    yy = np.linspace(0, 1, h)[:, None]; n += .9 * np.exp(-((yy - .45) / .3) ** 2) - .5   # plus dense au milieu de la bande, rien en haut ni en bas
+    al = np.clip((n + .1) / 2.6, 0, 1) ** 1.5 * .85
+    ombre = np.clip(nd.gaussian_filter(al, 6, mode='wrap') - al, 0, 1)   # dessous des voiles un peu bleuté
+    rgb = np.dstack([255 - 40 * ombre, 255 - 30 * ombre, np.full_like(al, 255)])
+    return np.dstack([rgb, al * 255]).clip(0, 255).astype(np.uint8)
 
 RETOUCHES['boutique'] = {'zones':{'ardoise':[285, 728, 745, 1325]}, 'pieces':[('ardoise', 'B')],   # v128 : la couche « articles » recoloriée est retirée (« couches_v124 » n'est plus lu)
                          'couches_v124':[('articles', [0, 110, 1004, 1040],
@@ -296,6 +322,10 @@ for lieu, R in RETOUCHES.items():
         rgba = couche_avant(a, calque_qwen(lieu, R['avant']['calque']), R['avant'])
         Image.fromarray(rgba, 'RGBA').save(os.path.join(O, f'{lieu}-avant.webp'), 'WEBP', quality=84, method=6)
         tailles[f'{lieu}-avant'] = [0, 0, 1024, R['avant']['haut']]; print(f'  premier plan {lieu}-avant : {rgba.shape[1]} × {rgba.shape[0]}')
+    if 'ciel' in R:   # v136
+        Image.fromarray(couche_ciel(a, R['ciel']), 'RGBA').save(os.path.join(O, f'{lieu}-ciel.webp'), 'WEBP', quality=90, method=6)
+        Image.fromarray(texture_brume(), 'RGBA').save(os.path.join(O, 'brume.webp'), 'WEBP', quality=82, method=6)
+        print(f'  masque du ciel {lieu}-ciel et texture de brume')
     for obj, im, sans in R.get('seules', []):
         x0, y0, x1, y1 = R['zones'][obj]; p = (a if im == 'A' else regs[im])[y0:y1, x0:x1]; al = seule_echarpe(p, sans, obj == 'robes')
         Image.fromarray(np.dstack([cv2.cvtColor(jaunir(p), cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-{im}-seule.webp'), 'WEBP', quality=88, method=6)

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="1fa86461">
+<meta name="mon-ecran-version" content="5a9691bf">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -783,6 +783,26 @@ html.desk .scene{max-width:min(560px, calc((100vh - 170px) * .667))}
 }
 @media (hover:hover) and (prefers-reduced-motion: no-preference){.sc-lueur:hover::before{animation:sc-lueur 1.4s ease-in-out infinite}}
 @media (prefers-reduced-motion: reduce){.sc-vif{display:none}}
+/* v136 : la brume (à travers le masque du ciel), la lueur des lanternes, le soir et la nuit */
+.sc-ciel{position:absolute;left:0;top:0;width:100%;overflow:hidden;pointer-events:none;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+.sc-brume{position:absolute;left:0;top:0;width:400%;height:100%;background-repeat:repeat-x;background-size:50% 100%;transform:translateX(-30%)}
+.sc-brume.a{opacity:.8}.sc-brume.b{opacity:.45;top:-14%;background-position:37% 0;transform:translateX(-12%)}
+@keyframes sc-brume{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+.sc-nuit{position:absolute;inset:0;pointer-events:none;z-index:3;display:none;mix-blend-mode:multiply}
+.scene.soir .sc-nuit{display:block;background:linear-gradient(#8a93c8,#b9a6c2 45%,#c4b8c8)}
+.scene.nuit .sc-nuit{display:block;background:linear-gradient(#141c44,#2a3466 45%,#3a4170)}
+.sc-lanterne{--o:.32;position:absolute;width:13cqw;height:13cqw;margin:-6.5cqw 0 0 -6.5cqw;border-radius:50%;pointer-events:none;z-index:4;mix-blend-mode:screen;opacity:var(--o);
+  background:radial-gradient(closest-side,rgba(255,236,180,.95),rgba(255,206,120,.45) 38%,rgba(255,180,90,0) 100%)}
+.scene.soir .sc-lanterne{--o:.75;width:22cqw;height:22cqw;margin:-11cqw 0 0 -11cqw}
+.scene.nuit .sc-lanterne{--o:1;width:30cqw;height:30cqw;margin:-15cqw 0 0 -15cqw}
+.scene.soir .sc-plaque,.scene.nuit .sc-plaque{z-index:5}
+.sc-veille{display:none;position:absolute;width:20cqw;height:16cqw;margin:-8cqw 0 0 -10cqw;border-radius:50%;pointer-events:none;z-index:4;mix-blend-mode:screen;background:radial-gradient(closest-side,rgba(255,214,140,.55),rgba(255,190,110,.2) 50%,rgba(255,180,90,0))}
+.scene.soir .sc-veille{display:block;opacity:calc(var(--o) * .6)}.scene.nuit .sc-veille{display:block;opacity:var(--o)}
+@keyframes sc-flamme{0%,100%{opacity:var(--o)}18%{opacity:calc(var(--o) * .82)}36%{opacity:calc(var(--o) * 1.06)}55%{opacity:calc(var(--o) * .9)}78%{opacity:calc(var(--o) * 1.1)}}
+@media (prefers-reduced-motion: no-preference){
+  .sc-brume.a{animation:sc-brume 95s linear -30s infinite}.sc-brume.b{animation:sc-brume 160s linear -100s infinite}
+  .sc-lanterne.l0{animation:sc-flamme 3.1s ease-in-out infinite}.sc-lanterne.l1{animation:sc-flamme 2.6s ease-in-out -1.2s infinite}
+}
 /* v124 : l'ardoise du Bazar, écrite à la craie */
 .sc-html{position:absolute;pointer-events:none;display:flex;flex-direction:column;justify-content:flex-start}
 .ard-page{display:none;transition:opacity .45s}.ard-page.on{display:block}.efface .ard-page.on{opacity:0}
