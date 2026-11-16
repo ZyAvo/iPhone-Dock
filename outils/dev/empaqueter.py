@@ -1,4 +1,4 @@
-# mon-ecran-version: d9934bc2
+# mon-ecran-version: 165c3e0e
 # Prépare un lot : marque chaque page/script avec l'empreinte de son contenu, écrit lot.json, fait le zip.
 # Usage : python3 empaqueter.py <dossier> <nom du lot> <zip de sortie> [--sans-essai]
 # v51 : avant tout, « essai à sec » des scripts des tâches (outils/*.mjs lancés sans réseau, outils/*.py compilés) :
@@ -47,12 +47,41 @@ def stamp(path, text):
         i = base.index('\n') + 1; return base[:i] + f'{c} mon-ecran-version: {h}\n' + base[i:], h
     return f'{c} mon-ecran-version: {h}\n' + base, h
 fichiers = {}
+a_marquer = []
 for root, _, files in os.walk(src):
     for f in files:
         p = os.path.join(root, f); rel = os.path.relpath(p, src).replace(os.sep, '/')
         if rel == 'lot.json' or rel.startswith('config/') or not rel.endswith(('.html', '.js', '.mjs', '.py', '.sh', '.yml')): continue   # config/ : réglages de l'utilisateur, pas des fichiers de l'appli
-        t, h = stamp(rel, open(p, encoding='utf-8').read())
-        open(p, 'w', encoding='utf-8').write(t); fichiers[rel] = h
+        a_marquer.append((p, rel))
+# v144 : adresses versionnées : chaque <script src="x.js"> et <link href="x.css"> local des pages, et la liste SHELL du service worker,
+# reçoivent « ?v=<empreinte du fichier> » ; un fichier inchangé garde son adresse (l'iPhone le reprend en mémoire), un fichier modifié
+# change d'adresse et est forcément rechargé. Les scripts sont marqués d'abord, puis les pages et sw.js (qui contiennent les empreintes).
+ADRESSE_RE = re.compile(r'((?:<script src|<link rel="stylesheet" href)=")([\w./-]+\.(?:js|css))(?:\?v=\w+)?(")')
+SHELL_RE = re.compile(r"(const SHELL = \[)([^\]]*)(\])")
+def empreinte(rel):
+    if rel in fichiers: return fichiers[rel]
+    q = os.path.join(src, rel)
+    if not os.path.exists(q) or rel.startswith('config/'): return None
+    return hashlib.sha1(STAMP_RE.sub('', open(q, encoding='utf-8').read()).encode()).hexdigest()[:8]
+def versionner(rel, t):
+    base_dir = os.path.dirname(rel)
+    def r(m):
+        cible = os.path.normpath(os.path.join(base_dir, m.group(2))).replace(os.sep, '/'); h = empreinte(cible)
+        return m.group(1) + m.group(2) + (f'?v={h}' if h else '') + m.group(3)
+    t = ADRESSE_RE.sub(r, t)
+    if rel == 'sw.js':
+        def sh(m):
+            def e(mm):
+                nom = mm.group(1); h = empreinte(nom) if nom.endswith(('.js', '.css')) else None
+                return "'" + nom + (f'?v={h}' if h else '') + "'"
+            return m.group(1) + re.sub(r"'([^'?]+)(?:\?v=\w+)?'", e, m.group(2)) + m.group(3)
+        t = SHELL_RE.sub(sh, t, count=1)
+    return t
+for p, rel in sorted(a_marquer, key=lambda x: x[1].endswith('.html') or x[1] == 'sw.js'):
+    txt = open(p, encoding='utf-8').read()
+    if rel.endswith('.html') or rel == 'sw.js': txt = versionner(rel, txt)
+    t, h = stamp(rel, txt)
+    open(p, 'w', encoding='utf-8').write(t); fichiers[rel] = h
 json.dump({'lot':lot, 'date':datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'), 'fichiers':dict(sorted(fichiers.items())), 'supprimer':SUPPRIMER},
           open(os.path.join(src, 'lot.json'), 'w'), ensure_ascii=False, indent=1)
 if os.path.exists(out): os.remove(out)

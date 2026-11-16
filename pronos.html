@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="23abd817">
+<meta name="mon-ecran-version" content="4b23d25d">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,12 +18,12 @@ img{max-width:100%}
 [hidden]{display:none!important}
 </style>
 <script src="config/config.js"></script>
-<script src="noyau.js"></script>
-<script src="themes.js"></script>
-<script src="synchro.js"></script>
+<script src="noyau.js?v=79ea0556"></script>
+<script src="themes.js?v=76e078a9"></script>
+<script src="synchro.js?v=0ce8808a"></script>
 <script>/* page désactivée dans Réglages › Pages et widgets : on s'arrête là (aucun chargement) */Noyau.accueil.garde('pronos');</script>
 <link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="commun.css">
+<link rel="stylesheet" href="commun.css?v=5b436a95">
 <style>
 /* Layout : en-tête collant en verre (retour, actualiser, titre) ; une carte par source de données
    (résumé coloré en tête, détails dépliables) */
@@ -1589,20 +1589,44 @@ function feterExacts(){
 }
 
 /* ---------- actions ---------- */
+/* v144 : les matchs s'affichent dès que le fichier est chargé (avec le dernier état connu du groupe), sans attendre le serveur
+   des pronos (Apps Script, parfois 10 à 20 s au réveil) ; au-delà de 8 s, bandeau « le serveur tarde », et la page se complète
+   toute seule quand il finit par répondre */
+const DELAI_SERVEUR = 8000;
+let TOUR = 0;
+function etatConnu(){ const c = !SIM && LS.get('pronos:etat', null), me = BASE.moi(); return c && c.e && me && c.g === me.groupe && c.p === me.pseudo ? c : null; }
+function appliquerEtat(e){
+  const me = BASE.moi(), vrai = !SIM && !e.joueurs.includes(me.pseudo) && e.joueurs.find(n => n.toLowerCase() === me.pseudo.toLowerCase());
+  if (vrai) LS.set('pronos:moi', {...me, pseudo:vrai});                           // v63 : « marc » tapé, « Marc » sur le serveur
+  ETAT = e; photosAJour().then(c => { if (c) rendre(); });
+  if (!SIM) LS.set('pronos:etat', {g:BASE.moi().groupe, p:BASE.moi().pseudo, at:Date.now(), e});   // v70 : dernier état gardé (serveur injoignable)
+}
+function etatEchec(e){
+  if (e.message === 'code'){ ETAT = {joueurs:[], pronos:{}}; BASE.effacer(); localStorage.removeItem('pronos:etat'); PANNE = 'Pseudo ou code non reconnu par le serveur : reconnecte-toi.'; return; }   // v55
+  const c = etatConnu();
+  if (c){ ETAT = c.e; PANNE = `Serveur des pronos injoignable : dernier état connu du groupe (${new Date(c.at).toLocaleString('fr-FR', {weekday:'long', hour:'2-digit', minute:'2-digit'})}). Réessaie avec ↻.`; }
+  else { ETAT = {joueurs:[], pronos:{}}; PANNE = 'Serveur des pronos injoignable : les pronos affichés peuvent être incomplets. Réessaie avec ↻.'; }
+}
 async function actualiser(){
+  const tour = ++TOUR;
   $('#refreshBtn').classList.add('spin');
   PANNE = '';
-  try{ await chargerMatchs(); if (BASE.moi()){ try{ ETAT = await BASE.tout(tous()); if (ETAT.err) throw new Error(ETAT.err);
-      const me = BASE.moi(), vrai = !SIM && !ETAT.joueurs.includes(me.pseudo) && ETAT.joueurs.find(n => n.toLowerCase() === me.pseudo.toLowerCase());
-      if (vrai) LS.set('pronos:moi', {...me, pseudo:vrai});                           // v63 : « marc » tapé, « Marc » sur le serveur
-      photosAJour().then(c => { if (c) rendre(); });
-      if (!SIM) LS.set('pronos:etat', {g:BASE.moi().groupe, p:BASE.moi().pseudo, at:Date.now(), e:ETAT}); }   // v70 : dernier état gardé (serveur injoignable)
-    catch(e){ ETAT = {joueurs:[], pronos:{}};
-      if (e.message === 'code'){ BASE.effacer(); localStorage.removeItem('pronos:etat'); PANNE = 'Pseudo ou code non reconnu par le serveur : reconnecte-toi.'; }      // v55 : plus de page vide sans explication
-      else { const c = !SIM && LS.get('pronos:etat', null), me = BASE.moi();                 // v70 : dernier état connu du groupe plutôt qu'un groupe vide
-        if (c && c.e && me && c.g === me.groupe && c.p === me.pseudo){ ETAT = c.e;
-          PANNE = `Serveur des pronos injoignable : dernier état connu du groupe (${new Date(c.at).toLocaleString('fr-FR', {weekday:'long', hour:'2-digit', minute:'2-digit'})}). Réessaie avec ↻.`; }
-        else PANNE = 'Serveur des pronos injoignable : les pronos affichés peuvent être incomplets. Réessaie avec ↻.'; } } }
+  try{
+    await chargerMatchs();
+    if (BASE.moi()){
+      const c = etatConnu(); if (c && !(ETAT.joueurs || []).length) ETAT = c.e;      // v144 : on montre tout de suite les matchs et le dernier état connu
+      rendre();
+      const req = BASE.tout(tous()).then(e => { if (e.err) throw new Error(e.err); return e; });
+      const r = await Promise.race([req.then(e => ({e}), x => ({x})), new Promise(res => setTimeout(() => res({lent:true}), DELAI_SERVEUR))]);
+      if (tour !== TOUR) return;
+      if (r.e) appliquerEtat(r.e);
+      else if (r.x) etatEchec(r.x);
+      else {                                                                          // le serveur tarde : on garde ce qu'on a, on se complète plus tard
+        const c2 = etatConnu();
+        PANNE = `Le serveur des pronos tarde à répondre${c2 ? ` : dernier état connu du groupe (${new Date(c2.at).toLocaleString('fr-FR', {weekday:'long', hour:'2-digit', minute:'2-digit'})})` : ''}. La page se complétera dès qu'il répond.`;
+        req.then(e => { if (tour !== TOUR) return; appliquerEtat(e); PANNE = ''; rendre(); feterExacts(); }, x => { if (tour !== TOUR) return; etatEchec(x); rendre(); });
+      }
+    }
     if (SECTION === 'paris' && BASE.moi() && !SIM) await chargerParis();                 // v60
     else if (BASE.moi() && !SIM) chargerParis().then(() => { if (SECTION === 'accueil' || SECTION === 'paris') rendre(); });   // v62 : résumé de l'accueil
     rendre(); feterExacts();
@@ -1829,7 +1853,7 @@ actualiser().then(() => {                                                    // 
 
 </style>
 <div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
-<script src="commun.js"></script>
+<script src="commun.js?v=fc411b5f"></script>
 <!-- ==FIN TIRER== -->
 </body>
 </html>

@@ -1,4 +1,4 @@
-// mon-ecran-version: 4b7bcd6b
+// mon-ecran-version: 79ea0556
 /* Mon Écran — noyau commun à toutes les pages, et base des futures applis dédiées (iPhone, Android, PC).
    Rien ici ne dépend d'une astuce de Safari : ce qui est propre à « l'iPhone en mode web » est rangé dans Noyau.iphoneWeb,
    et une appli dédiée pourra fournir window.MonEcranNatif (ouvrir un lien, garder la clé…) que le noyau utilisera en priorité.
@@ -462,7 +462,8 @@ const applis = {
    config/accueil.json (classeur, onglet Accueil) + les choix faits sur cet appareil pas encore reportés (pg:…, wg:…, un:…),
    pour que le changement se voie tout de suite ici ; les autres appareils le voient après le report. Sans le catalogue (léger). */
 const PAGES = ['actus', 'sport', 'videos', 'invest', 'cachee', 'pronos', 'ambreval', 'qm27'], TOUJOURS = ['etat', 'reglages'];
-const SUIT = {pronos:'sport', ambreval:'etat', qm27:'etat'};   // v66 : page inconnue d'un classeur plus ancien (pas dans accueil.pages_connues) : suit Sport, comme avant
+const SUIT = {pronos:'sport', ambreval:'etat'};
+const DEFAUT_NON = ['qm27'];   // v144 : pages désactivées par défaut : actives seulement si la configuration les liste (ou un choix fait ici)   // v66 : page inconnue d'un classeur plus ancien (pas dans accueil.pages_connues) : suit Sport, comme avant
 const WIDGETS = ['meteo', 'une', 'invest', 'spotify', 'sport', 'live'];
 const NOMS_PAGES = {actus:'Actus', sport:'Sport', videos:'Vidéos', invest:'Investissements', cachee:'Coffre', pronos:'Pronos', ambreval:'Ambreval', qm27:'QM27', etat:'État des données', reglages:'Réglages'};
 const UNE_CHOIX = 'accueil:une-choix', DISPOSITION = 'accueil:disposition', MUSIQUE = 'musique:source';
@@ -484,6 +485,7 @@ const accueil = {
   page(id){ id = String(id).replace(/^pg:/, ''); if (TOUJOURS.includes(id)) return true;
     const v = attenteOui('pg:' + id); if (v !== undefined) return v === 'Oui';
     const L = config('accueil.pages', null), K = config('accueil.pages_connues', null);
+    if (DEFAUT_NON.includes(id)) return Array.isArray(L) && L.includes(id);
     if (SUIT[id] && Array.isArray(L) && !L.includes(id) && !(Array.isArray(K) && K.includes(id))) return accueil.page(SUIT[id]);
     return actifDans('accueil.pages', id); },
   widget(id){ id = String(id).replace(/^wg:/, '');

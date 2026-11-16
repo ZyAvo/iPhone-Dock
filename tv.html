@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="710b63d8">
+<meta name="mon-ecran-version" content="6c665f42">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TV</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,10 +17,10 @@ img{max-width:100%}
 [hidden]{display:none!important}
 </style>
 <script src="config/config.js"></script>
-<script src="noyau.js"></script>
-<script src="themes.js"></script>
+<script src="noyau.js?v=79ea0556"></script>
+<script src="themes.js?v=76e078a9"></script>
 <link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="commun.css">
+<link rel="stylesheet" href="commun.css?v=5b436a95">
 <style>
 /* Page TV (v44) : lecteur (avec le relais du PC) et liste des chaînes ; styles des zones : tv.js */
 :root{
@@ -125,7 +125,7 @@ html.desk #tvChaines .tv-l{max-height:calc(100vh - 260px)}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 /* Thèmes de couleurs et fond dégradé : themes.js (v42) */
 </style>
-<script src="synchro.js"></script>
+<script src="synchro.js?v=0ce8808a"></script>
 </head>
 <body>
 <header>
@@ -142,11 +142,11 @@ html.desk #tvChaines .tv-l{max-height:calc(100vh - 260px)}
     <section class="tv-z glass" id="tvChaines" aria-label="Chaînes"></section>
   </div>
 </main>
-<script src="tv.js"></script>
+<script src="tv.js?v=0b99e5b5"></script>
 <script>
 /* Page TV : lecteur seulement quand le relais du PC répond (sinon liste des favoris et ouverture dans VLC) */
 TV.monter({lecteur:TV.ios ? null : document.getElementById('tvLecteur'), chaines:document.getElementById('tvChaines')});
 </script>
-<script src="commun.js"></script>
+<script src="commun.js?v=fc411b5f"></script>
 </body>
 </html>

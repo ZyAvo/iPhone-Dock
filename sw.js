@@ -1,4 +1,4 @@
-// mon-ecran-version: 6169ab9e
+// mon-ecran-version: f1d3b640
 /* Mon Écran — mise en mémoire sur l'iPhone pour un démarrage instantané, même sans réseau.
    - Pages (accueil, actus, sport, état) : dernière version si le réseau répond en moins de 1,5 s,
      sinon la version en mémoire tout de suite, mise à jour en arrière-plan (la page se recharge seule
@@ -7,7 +7,8 @@
    - Polices Google : gardées en mémoire.
    Les sites extérieurs (ESPN, Spotify, flux RSS…) ne passent pas par ici. */
 const PAGES = 'pages-v1', DATA = 'donnees-v1', FONTS = 'polices-v1', IMAGES = 'images-v4';   // v93 : illustrations de QM27 ; v108 : v2, les images redécoupées (mêmes noms) sont rechargées une fois ; v123 : v3, les fonds de scène refaits (banque, bureau) ; v129 : v4, icônes et emblèmes refaits sous les mêmes noms
-const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'pronos.html', 'reglages.html', 'tv.html', 'ambreval.html', 'ambreval.js', 'ambreval-art.js', 'ambreval-ui.js', 'qm27.html', 'qm27.js', 'qm27-donnees.js', 'qm27-club.js', 'qm27-carriere.js', 'qm27-domaine.js', 'qm27-vestiaire.js', 'qm27-presse.js', 'qm27-tactique.js', 'qm27-bureau.js', 'qm27-prix.js', 'qm27-europe.js', 'qm27-nations.js', 'qm27-visuel.js', 'qm27-ui.js', 'qm27-ecrans.js', 'qm27-stats.js', 'noyau.js', 'themes.js', 'tv.js', 'match.js', 'synchro.js', 'commun.js', 'commun.css', 'polices/Geist-Variable.woff2', 'manifest.json', 'manifest-pronos.json', 'apple-touch-icon.png', 'icone-192.png', 'icone-512.png'];
+// v144 : QM27 n'est plus mis en mémoire à l'installation : ses fichiers ne sont chargés (et gardés) qu'à l'ouverture du jeu
+const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'pronos.html', 'reglages.html', 'tv.html', 'ambreval.html', 'ambreval.js?v=1d607614', 'ambreval-art.js?v=5c94a7fe', 'ambreval-ui.js?v=386fbf91', 'noyau.js?v=79ea0556', 'themes.js?v=76e078a9', 'tv.js?v=0b99e5b5', 'match.js?v=ed101192', 'synchro.js?v=0ce8808a', 'commun.js?v=fc411b5f', 'commun.css?v=5b436a95', 'polices/Geist-Variable.woff2', 'manifest.json', 'manifest-pronos.json', 'apple-touch-icon.png', 'icone-192.png', 'icone-512.png'];
 
 self.addEventListener('install', e => {
   // v70 : la police va dans la réserve des polices, là où elle est cherchée ensuite (avant : retéléchargée au 2e passage)
@@ -20,7 +21,7 @@ self.addEventListener('activate', e => {
 });
 
 const isPage = (req, url) => req.mode === 'navigate' || /\.html$|\/$|\/(noyau|themes|synchro|tv|match|commun|ambreval|ambreval-art|ambreval-ui|qm27|qm27-donnees|qm27-club|qm27-carriere|qm27-domaine|qm27-vestiaire|qm27-bureau|qm27-prix|qm27-europe|qm27-visuel|qm27-ui|qm27-ecrans|qm27-stats)\.js$|\/commun\.css$|\/config\/config\.js$/.test(url.pathname);   // noyau.js, themes.js, synchro.js : même règle que les pages
-const pageKey = url => { const p = url.pathname.replace(/\/$/, '/index.html'); return new URL(p, url.origin).href; };   // sans « ?code=… » etc.
+const pageKey = url => { const p = url.pathname.replace(/\/$/, '/index.html'), v = url.searchParams.get('v'); return new URL(p, url.origin).href + (v ? '?v=' + v : ''); };   // sans « ?code=… » etc. ; v144 : avec « ?v=<empreinte> » (adresses versionnées par empaqueter.py)
 
 /* Pages : réseau d'abord s'il répond vite (1,5 s), sinon la version en mémoire (affichage immédiat),
    mise à jour en arrière-plan puis avis à la page si elle a changé */
@@ -32,6 +33,7 @@ async function pageFirstFromCache(e, url){
     if (r && r.ok && r.type === 'basic'){
       const txt = await r.clone().text();
       await cache.put(key, r.clone());
+      if (url.searchParams.get('v')){ const nu = key.split('?')[0]; for (const k of await cache.keys()) if (k.url.split('?')[0] === nu && k.url !== key) cache.delete(k); }   // v144 : les anciennes versions du même fichier
       if (st.fromCache && old !== null && old !== txt){          // la page affichée vient de la mémoire et une nouvelle version existe
         const all = await self.clients.matchAll({type:'window', includeUncontrolled:true});
         all.forEach(c => { if (pageKey(new URL(c.url)) === key) c.postMessage({type:'nouvelle-version'}); });
