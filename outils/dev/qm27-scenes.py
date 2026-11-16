@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 1ab42532
+# mon-ecran-version: e6e98879
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -194,6 +194,7 @@ def couche_ciel(a, R):
     import cv2
     if R.get('regle') == 'nuit':
         H, W = a.shape[:2]; bm = bord_nuit(a, R['haut']); m = (np.arange(R['haut'])[:, None] < bm[None, :]).astype(np.uint8)
+        for P in R.get('sans', []): cv2.fillPoly(m, [np.array(P, np.int32)], 0)   # v150 : zones gardées hors du ciel (polygones)
         m = cv2.erode(m, np.ones((2 * R.get('rogne', 6) + 1,) * 2, np.uint8)); al = cv2.GaussianBlur(m.astype(np.float32), (0, 0), 2)
         return np.dstack([np.full(al.shape + (3,), 255, np.uint8), (al * 255).astype(np.uint8)])
     h = cv2.cvtColor(a, cv2.COLOR_BGR2HSV).astype(int)[:R['haut']]
@@ -214,6 +215,40 @@ def rechauffer(img, C):
     w = yy * gris * (1 - bleu); g = np.array(C['gain'], np.float32)[::-1]
     if 'bord' in C: w = w * np.clip((np.arange(H)[:, None] - C['bord'][None, :] - 4) / 10, 0, 1)   # rien au-dessus du haut des murs
     return np.clip(f * (1 + w[..., None] * (g - 1)), 0, 255).astype(np.uint8)
+
+def couche_nuages(a, ciel_al, N, l, h):
+    """v150 : gros nuages qui passent devant la lune : des nuages PEINTS de l'image A, détourés (plus clairs que le ciel de leur ligne, bleutés,
+    sans étoiles ni lune, dans le masque du ciel, bords adoucis), puis posés agrandis (et retournés au besoin) sur une tuile transparente de
+    la largeur de la scène × la bande du ciel, qui se raccorde de gauche à droite. N = {'boites':[[x0, y0, x1, y1]], 'poses':[(i, x, y, k, miroir)],
+    'lune':(x, y, r)} ; tuile rendue à moitié de sa taille."""
+    import cv2
+    from scipy import ndimage as nd
+    H, W = a.shape[:2]; cm = np.zeros((H, W), np.float32); cm[:ciel_al.shape[0]] = ciel_al
+    yy, xx = np.mgrid[0:H, 0:W]; lx, ly, lr = N['lune']; dl = np.sqrt((xx - lx) ** 2 + (yy - ly) ** 2)
+    hors_lune = np.clip((dl - lr) / (lr * .8), 0, 1)
+    def extraire(x0, y0, x1, y1):
+        cc = a[y0:y1, x0:x1].astype(np.float32); hsv = cv2.cvtColor(a[y0:y1, x0:x1], cv2.COLOR_BGR2HSV).astype(np.float32); v = cc.mean(2)
+        m = (cm[y0:y1, x0:x1] > .5) & (hors_lune[y0:y1, x0:x1] > .99)
+        ciel = np.array([np.percentile(v[i][m[i]], 20) if m[i].any() else np.nan for i in range(v.shape[0])]); ciel = np.nan_to_num(ciel, nan=np.nanmedian(ciel))[:, None]
+        al = np.clip((v - ciel - 5) / 55, 0, 1) * np.clip(1.25 - hsv[..., 1] / 255, 0, 1)
+        op = nd.grey_opening(al, size=(9, 9)); et = al > op + .3; al[et] = op[et]   # les étoiles
+        al = al * cm[y0:y1, x0:x1] * (((hsv[..., 0] >= 95) & (hsv[..., 0] <= 135)) | (hsv[..., 1] < 40))
+        al = np.clip((al - .14) / .86, 0, 1)
+        lab, n = nd.label(al > .05); t = nd.sum(al > .05, lab, range(1, n + 1)); al = al * nd.binary_dilation(np.isin(lab, 1 + np.nonzero(t > 1500)[0]), iterations=3)
+        al = np.clip(nd.gaussian_filter(al, .9) * 1.35, 0, 1) * hors_lune[y0:y1, x0:x1]
+        fy = np.clip(np.minimum(np.arange(al.shape[0]), al.shape[0] - 1 - np.arange(al.shape[0])) / 40, 0, 1); fx = np.clip(np.minimum(np.arange(al.shape[1]), al.shape[1] - 1 - np.arange(al.shape[1])) / 40, 0, 1)
+        al = al * fy[:, None] * fx[None, :]
+        sk = np.array([[np.percentile(cc[i, :, k], 20) for k in range(3)] for i in range(cc.shape[0])])[:, None, :]
+        col = np.clip((cc - sk * (1 - al[..., None] / 1.35)) / np.maximum(al[..., None] / 1.35, .08), 0, 255)
+        return Image.fromarray(np.dstack([col[..., ::-1], al * 255]).astype(np.uint8), 'RGBA')
+    nuages = [extraire(*b) for b in N['boites']]; T = Image.new('RGBA', (l, h), (0, 0, 0, 0))
+    for i, x, y, k, miroir in N['poses']:
+        im = nuages[i].resize((int(nuages[i].width * k), int(nuages[i].height * k)), Image.LANCZOS)
+        if miroir: im = im.transpose(Image.FLIP_LEFT_RIGHT)
+        for dx in (-l, 0, l):
+            px = int(x - im.width / 2 + dx)
+            if -im.width < px < l: T.alpha_composite(im, (px, int(y - im.height / 2)))
+    return T.resize((l // 2, h // 2), Image.LANCZOS)
 
 def texture_brume(l=1024, h=360, graine=27):
     """v136 : voiles de brume blanche, raccord sans couture de gauche à droite (bruit périodique), une tuile = deux largeurs de scène."""
@@ -250,7 +285,11 @@ RETOUCHES['stade'] = {'taille':(3072, 1800),
 RETOUCHES['grandesalle'] = {'taille':(3072, 2048), 'chaud':{'y0':840, 'y1':1280, 'gain':(1.22, 1.06, .8), 'smax':.45},
     'zones':{'porte':[0, 730, 324, 1210], 'gazette':[30, 1160, 530, 1430], 'estrade':[1100, 480, 1990, 1200], 'hiboux':[2470, 590, 2968, 1280]},
     'pieces':[('porte', 'F'), ('gazette', 'D'), ('estrade', 'B'), ('hiboux', 'C')],
-    'ciel':{'regle':'nuit', 'haut':560, 'rogne':8}}
+    'ciel':{'regle':'nuit', 'haut':560, 'rogne':8,
+            # v150 : le parapet bleuté des murs de côté reste hors du ciel (les nuages qui passent glissaient dessus)
+            'sans':[[(0, 0), (160, 0), (400, 262), (690, 398), (690, 560), (0, 560)], [(2935, 0), (3072, 0), (3072, 560), (2340, 560), (2345, 392), (2625, 300)]],
+            # v150 : deux nuages peints de A (le nuage voisin de la lune et la longue traînée de gauche), agrandis : ils passent devant la lune
+            'nuages':{'boites':[[1620, 230, 2200, 440], [330, 90, 1230, 440]], 'poses':[(0, 700, 220, 1.7, False), (1, 2150, 230, 1.15, True)], 'lune':(2226, 206, 140)}}}
 
 # v143 : le hall du château (remplace l'ancien hall) : B porte de l'infirmerie entrouverte, C double porte de la grande salle ouverte et bannières au vent,
 # D lueur et vapeur vertes du sous-sol, E grande bannière qui ondule et lustre plus brillant ; la grande bannière blanc et gris (A et E) est teinte.
@@ -405,6 +444,9 @@ for lieu, R in RETOUCHES.items():
         tailles[f'{lieu}-avant'] = [0, 0, W, R['avant']['haut']]; print(f'  premier plan {lieu}-avant : {rgba.shape[1]} × {rgba.shape[0]}')
     if 'ciel' in R:   # v136
         Image.fromarray(couche_ciel(a_brut, R['ciel']), 'RGBA').save(os.path.join(O, f'{lieu}-ciel.webp'), 'WEBP', quality=90, method=6)
+        if R['ciel'].get('nuages'):   # v150
+            cie = couche_ciel(a_brut, R['ciel'])[..., 3].astype(np.float32) / 255
+            couche_nuages(a_brut, cie, R['ciel']['nuages'], W, R['ciel']['haut']).save(os.path.join(O, f'{lieu}-nuages.webp'), 'WEBP', quality=86, method=6); print('  gros nuages', f'{lieu}-nuages')
         Image.fromarray(texture_brume(), 'RGBA').save(os.path.join(O, 'brume.webp'), 'WEBP', quality=82, method=6)
         print(f'  masque du ciel {lieu}-ciel et texture de brume')
     for obj, im, sans in R.get('seules', []):

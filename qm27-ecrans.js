@@ -1,4 +1,4 @@
-// mon-ecran-version: b8cb4e11
+// mon-ecran-version: 91218493
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -232,14 +232,27 @@ function etoilesHTML(S){
 /* v149 : la grande salle ; zones de toucher (les retouches, plus grandes, passent par sousZone) */
 const PORTE_GS = [80, 750, 300, 1200], GAZETTE_GS = [30, 1170, 524, 1800], ESTRADE_GS = [1100, 480, 1990, 1320], HIBOUX_GS = [2540, 640, 2968, 1280];
 /* v149 : le haut du classement à la craie (tableau noir de la grande salle, coordonnées de la scène 3072 × 2048) : les cinq premiers, ou les
-   quatre premiers puis le club du joueur s'il est plus bas ; le club du joueur en doré */
+   quatre premiers puis le club du joueur s'il est plus bas ; le club du joueur en doré.
+   v150 : en perspective : le tableau est un trapèze (côtés verticaux, haut qui descend vers la droite) ; chaque texte est posé au point (u, v)
+   du tableau (0-1 en largeur et en hauteur), sa ligne penchée comme les bords (skewY) et sa taille réglée sur la hauteur du tableau à cet endroit */
+const TAB_GS = {g:450, d:882, hg:838, hd:928, bg:1178, bd:1178};
+function craieP(u, v){
+  const T = TAB_GS, x = T.g + (T.d - T.g) * u, haut = T.hg + (T.hd - T.hg) * u, bas = T.bg + (T.bd - T.bg) * u;
+  const pente = ((T.hd - T.hg) * (1 - v) + (T.bd - T.bg) * v) / (T.d - T.g), k = (bas - haut) / (T.bg - T.hg);
+  return [x, haut + (bas - haut) * v, Math.atan(pente) * 180 / Math.PI, k];
+}
+function craieTexte(u, v, t, taille, cl, ancre, largeur){
+  const [x, y, a, k] = craieP(u, v);
+  const lg = largeur && t.length * taille * .5 > largeur ? ` textLength="${largeur.toFixed(0)}" lengthAdjust="spacingAndGlyphs"` : '';
+  return `<text class="${cl}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) skewY(${a.toFixed(2)}) scale(${k.toFixed(3)})" style="font-size:${taille}px;text-anchor:${ancre}"${lg}>${esc(t)}</text>`;
+}
 function craieClassement(M_, c){
   if (!c || !c.ligue || !M_.tables || !M_.tables[c.ligue]) return '';
   const CL = window.QM.classement(M_, c.ligue), moiI = CL.findIndex(r => r.id === c.id);
   const rangs = moiI < 5 ? CL.slice(0, 5).map((r, i) => [i, r]) : [...CL.slice(0, 4).map((r, i) => [i, r]), [moiI, CL[moiI]]];
-  const lignes = rangs.map(([i, r], k) => { const y = 925 + k * 56, mien = r.id === c.id, t = `${i + 1}. ${club(r.id).nom}`;
-    return `<text class="${mien ? 'mien' : ''}" x="480" y="${y}"${t.length > 19 ? ' textLength="315" lengthAdjust="spacingAndGlyphs"' : ''}>${esc(t)}</text><text class="pts${mien ? ' mien' : ''}" x="850" y="${y}">${r.pts}</text>`; }).join('');
-  return `<svg class="sc-craie sc-ecrit liste" viewBox="410 770 510 460" preserveAspectRatio="none" aria-hidden="true"><text class="titre" x="665" y="866">${esc(M_.ligues[c.ligue].court || 'Classement')}</text>${lignes}</svg>`;
+  const lignes = rangs.map(([i, r], n) => { const v = .33 + n * .145, mien = r.id === c.id ? 'mien' : '';
+    return craieTexte(.07, v, `${i + 1}. ${club(r.id).nom}`, 30, mien, 'start', 285) + craieTexte(.93, v, String(r.pts), 30, `pts ${mien}`, 'end'); }).join('');
+  return `<svg class="sc-craie sc-ecrit liste" viewBox="410 770 510 460" preserveAspectRatio="none" aria-hidden="true">${craieTexte(.5, .16, M_.ligues[c.ligue].court || 'Classement', 27, 'titre', 'middle')}${lignes}</svg>`;
 }
 /* v149 : l'almanach : les dates des quatre prochains matchs du club, qui s'élèvent du livre au survol */
 function datesAlmanach(M_){
@@ -335,7 +348,7 @@ const SCENES = {
   /* v149 : la grande salle en panorama, sous un plafond enchanté de nuit (étoiles qui scintillent, nuages qui passent devant la lune, bougies
      flottantes) ; torches vacillantes ; le haut du classement écrit à la craie ; l'almanach : halo doré et dates des prochains matchs qui
      s'élèvent en fumée dorée. Ordre des objets = ordre d'empilement */
-  grandesalle:{fond:'scenes/grandesalle-fond', v:1, ratio:2048 / 3072, l:3072, h:2048, pano:true, panoNom:'toute la salle', nuit:true, ciel:'scenes/grandesalle-ciel', cielH:560,
+  grandesalle:{fond:'scenes/grandesalle-fond', v:2, nuages:'scenes/grandesalle-nuages', ratio:2048 / 3072, l:3072, h:2048, pano:true, panoNom:'toute la salle', nuit:true, ciel:'scenes/grandesalle-ciel', cielH:560,
     lanternes:[[70, 860, .42, 'bougie'], [364, 926, .36, 'bougie'], [1070, 996, .32, 'bougie'], [2004, 1000, .32, 'bougie'], [2322, 980, .36, 'bougie'], [2996, 860, .42, 'bougie'], [2226, 206, 2.8, 'lune']],
     flottantes:[[260, 620, 1.15], [470, 420, .9], [650, 700, 1], [820, 330, .75], [980, 560, .8], [1160, 300, .65], [1240, 640, .62], [1330, 430, .6], [1500, 280, .55], [1660, 400, .55],
       [1820, 300, .6], [1880, 640, .62], [1990, 450, .65], [2150, 560, .75], [2380, 380, .8], [2560, 520, .9], [2760, 330, .95], [2900, 640, 1.15]],
@@ -443,8 +456,8 @@ function sceneHTML(l){
   const avant = (S.vif ? (typeof S.vif === 'string' ? VIF.replace('class="sc-vif"', `class="sc-vif ${S.vif}"`) : VIF) : '') + (S.avant ? `<img class="sc-avant" src="${src(S.avant)}" alt="" draggable="false">` : '');   // v134
   /* v136 : la brume ne passe qu'à travers le masque du ciel ; lueur des lanternes (v138 : le mode soir et nuit est retiré, toujours le jour) */
   const masque = S.ciel ? `url(${src(S.ciel)})` : '';
-  const ciel = S.ciel ? `<div class="sc-ciel${S.nuit ? ' nuit' : ''}" aria-hidden="true" style="height:${(S.cielH / S.h * 100).toFixed(3)}%;-webkit-mask-image:${masque};mask-image:${masque}">${S.nuit ? etoilesHTML(S) : ''}<i class="sc-brume a" style="background-image:url(${src('scenes/brume')})"></i><i class="sc-brume b" style="background-image:url(${src('scenes/brume')})"></i></div>` : '';
-  const apres = tableauxHTML(S, src) + (S.fantomes ? fantomesHTML(S.fantomes) : '') + (S.lanternes || []).map(([x, y, t, ty, co], k) => `<i class="sc-lanterne l${k % 2}${ty ? ' ' + ty : ''}" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%${t ? ';--t:' + t : ''}${co ? ';--c:' + co : ''}${ty ? `;animation-delay:-${(k * .73).toFixed(2)}s` : ''}"></i>`).join('')
+  const ciel = S.ciel ? `<div class="sc-ciel${S.nuit ? ' nuit' : ''}" aria-hidden="true" style="height:${(S.cielH / S.h * 100).toFixed(3)}%;-webkit-mask-image:${masque};mask-image:${masque}">${S.nuit ? etoilesHTML(S) : ''}${S.nuages ? `<i class="sc-nuages" style="background-image:url(${src(S.nuages)})"></i>` : ''}<i class="sc-brume a" style="background-image:url(${src('scenes/brume')})"></i><i class="sc-brume b" style="background-image:url(${src('scenes/brume')})"></i></div>` : '';
+  const apres = tableauxHTML(S, src) + (S.fantomes ? fantomesHTML(S.fantomes) : '') + (S.lanternes || []).map(([x, y, t, ty, co], k) => `<i class="sc-lanterne l${k % 2}${ty ? ' ' + ty : ''}" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%${t ? ';--t:' + t : ''}${co ? ';--c:' + co : ''}${ty && ty !== 'lune' ? `;animation-delay:-${(k * .73).toFixed(2)}s` : ''}"></i>`).join('')
     + (S.rayons || []).map(([x0, y0, x1, y1, poly]) => `<i class="sc-rayon" aria-hidden="true" style="left:${(x0 / S.l * 100).toFixed(2)}%;top:${(y0 / S.h * 100).toFixed(2)}%;width:${((x1 - x0) / S.l * 100).toFixed(2)}%;height:${((y1 - y0) / S.h * 100).toFixed(2)}%;--poly:polygon(${poly})"><b class="sc-flou"><i class="sc-faisceau"></i></b><i class="sc-grains"><i class="sc-poussiere"></i></i></i>`).join('')   // v148
     + (S.lumieres || []).map(([x0, y0, x1, y1, o]) => `<i class="sc-lumiere" aria-hidden="true" style="left:${(x0 / S.l * 100).toFixed(2)}%;top:${(y0 / S.h * 100).toFixed(2)}%;width:${((x1 - x0) / S.l * 100).toFixed(2)}%;height:${((y1 - y0) / S.h * 100).toFixed(2)}%;--o:${o}"></i>`).join('');   // v137
   const flottantes = (S.flottantes || []).map(([x, y, t], k) => `<i class="sc-cierge" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%;--s:${t};--d:${(6 + (k * 1.37) % 4).toFixed(2)}s;animation-delay:-${(k * .9).toFixed(1)}s"></i>`).join('');   // v149
