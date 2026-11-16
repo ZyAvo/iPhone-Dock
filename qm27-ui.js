@@ -1,4 +1,4 @@
-// mon-ecran-version: 55cd2f6d
+// mon-ecran-version: 177a76ef
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -186,7 +186,7 @@ function barre(){
   NAV.hidden = !on; document.body.classList.toggle('sans-nav', !on);
   if (!on) return;
   const T = M.manager.club ? [['accueil', 'Accueil'], ['effectif', 'Effectif'], ['tactique', 'Tactique'], ['club', 'Club'], ['plus', 'Plus']] : [['accueil', 'Accueil'], ['plus', 'Plus']];
-  const actif = ['classements', 'sauvegardes', 'aide', 'calendrier', 'carriere', 'boite', 'profil', 'clubs', 'clubFiche'].includes(U.vue) ? 'plus' : ['entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'selection', 'direction', 'vestiaire', 'domaine', 'boutique', 'buvette', 'entree', 'partenaires', 'trophees'].includes(U.vue) ? 'club' : U.vue;
+  const actif = ['classements', 'sauvegardes', 'aide', 'calendrier', 'carriere', 'boite', 'profil', 'clubs', 'clubFiche'].includes(U.vue) ? 'plus' : ['entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'selection', 'direction', 'vestiaire', 'domaine', 'boutique', 'buvette', 'entree', 'hall', 'bureaux', 'grandesalle', 'soussol', 'partenaires', 'trophees'].includes(U.vue) ? 'club' : U.vue;
   const nl = M.boite.filter(m => !m.lu).length;
   NAV.querySelector('.in').innerHTML = T.map(([k, n]) => `<button data-act="vue" data-v="${k}" class="${actif === k ? 'on' : ''}" ${actif === k ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24">${ICO[k]}</svg>${n}${k === 'plus' && nl ? `<i class="pastille-nav" aria-label="${nl} message${nl > 1 ? 's' : ''} non lu${nl > 1 ? 's' : ''}">${nl > 9 ? '9+' : nl}</i>` : ''}</button>`).join('');
 }
@@ -206,7 +206,7 @@ function rendre(){
 function rendreVue(){
   entete(); barre();
   if (!M || !M.manager) return vueDemarrage();
-  const besoinClub = ['buvette', 'entree', 'progression', 'recrutement', 'equipe', 'vestiaire', 'effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier', 'domaine', 'boutique', 'partenaires', 'trophees', 'direction'];
+  const besoinClub = ['buvette', 'entree', 'bureaux', 'grandesalle', 'soussol', 'progression', 'recrutement', 'equipe', 'vestiaire', 'effectif', 'tactique', 'club', 'entrainement', 'mercato', 'finances', 'staff', 'stade', 'formation', 'calendrier', 'domaine', 'boutique', 'partenaires', 'trophees', 'direction'];
   if (!M.manager.club && besoinClub.includes(U.vue)) U.vue = 'accueil';
   if (!M.manager.club && U.vue === 'accueil') return vueChomage();
   if (U.vue === 'selection' && !M.manager.selection) U.vue = 'accueil';

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: df3d299b
+# mon-ecran-version: b24290a7
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -207,6 +207,13 @@ RETOUCHES['stade'] = {'taille':(3072, 1800),
             ('fanions', 'A', 0, [], {'regle':'tissu', 'aire':150})],
     'avant':{'calque':3, 'fer':[], 'plein':[], 'vide':[], 'haut':1500},
     'ciel':{'haut':1000, 'vide':[]}}
+
+# v143 : le hall du château (remplace l'ancien hall) : B porte de l'infirmerie entrouverte, C double porte de la grande salle ouverte et bannières au vent,
+# D lueur et vapeur vertes du sous-sol, E grande bannière qui ondule et lustre plus brillant ; la grande bannière blanc et gris (A et E) est teinte.
+RETOUCHES['chateau'] = {'zones':{'infirmerie':[62, 635, 292, 960], 'salle':[725, 530, 1000, 975], 'soussol':[0, 960, 320, 1360],
+                                 'escalier':[330, 0, 700, 960], 'banniere':[440, 170, 590, 612]},
+                        'pieces':[('infirmerie', 'B'), ('salle', 'C'), ('soussol', 'D'), ('escalier', 'E')],
+                        'gris':[('banniere', 'A', 95, [], {'aire':400}), ('banniere', 'E', 95, [], {'aire':400})]}   # blanc chaud ici : seuil de saturation simple
 
 RETOUCHES['boutique'] = {'zones':{'ardoise':[285, 728, 745, 1325]}, 'pieces':[('ardoise', 'B')],   # v128 : la couche « articles » recoloriée est retirée (« couches_v124 » n'est plus lu)
                          'couches_v124':[('articles', [0, 110, 1004, 1040],

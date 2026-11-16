@@ -1,4 +1,4 @@
-// mon-ecran-version: 45992696
+// mon-ecran-version: 107ff514
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -177,6 +177,7 @@ function afficheStade(M_){
 }
 const actionStade = M_ => { const S = window.QM.semaine(M_); return !S || S.type === 'bilan' ? 'saisonSuivante' : window.QM.matchDuJoueur(M_) ? 'preparer' : 'continuer'; };
 const dernierStade = M_ => { const d = M_.dernierMatch; return d ? `Dernier : ${nomEqS(d.dom, d.sixn)} ${d.score[0]}–${d.score[1]} ${nomEqS(d.ext, d.sixn)}` : ''; };
+const ESC_CH = [330, 0, 700, 960], BAN_CH = [440, 170, 590, 612];   // v143 : l'escalier du hall et sa grande bannière
 const LETTRE = [110, 880, 345, 990], reunionDe = M_ => G() && G().reunion(M_);
 const SCENES = {
   direction:{fond:'scenes/bureau-fond', v:4, ratio:1536 / 1024, l:1024, h:1536, objets:[
@@ -251,17 +252,19 @@ const SCENES = {
     {id:'balais', zone:[575, 940, 1024, 1475], calques:[['scenes/pensionnat-balais-B', 'b']], plaque:'d', anim:'bascule', nom:'Progression des joueurs', vue:'progression'},
   ]},
   /* v132 : le hall d'entrée du club */
-  hall:{fond:'scenes/hall-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
-    {id:'tableau', zone:[410, 250, 728, 760], anim:'bascule', nom:'Classement', act:'scLigue', args:{lg:null}},
-    {id:'hiboux', zone:[0, 40, 410, 1085], calques:[['scenes/hall-hiboux-B', 'b']], plaque:'g', anim:'bascule', vue:'boite',
-      nom:() => { const n = nonLus(); return n ? `Boîte de réception (${n})` : 'Boîte de réception'; }},
-    {id:'calendrier', zone:[620, 265, 1024, 760], calques:[['scenes/hall-calendrier-B', 'b']], plaque:'d', anim:'bascule', nom:'Calendrier', vue:'calendrier'},
-    {id:'livre', zone:[695, 725, 1015, 1420], calques:[['scenes/hall-livre-B', 'b']], plaque:'d', anim:'bascule', nom:'La Gazette', act:'scPresse'},
+  /* v143 : le hall du château (remplace l'ancien hall, ses images hall-* ne servent plus) : escalier → bureaux, double porte → grande salle,
+     porte de gauche → infirmerie, escalier du bas → sous-sol ; la grande bannière blanc et gris est teinte aux couleurs du club */
+  hall:{fond:'scenes/chateau-fond', v:1, ratio:1536 / 1024, l:1024, h:1536, lanternes:[[327, 690, .55], [694, 690, .55], [58, 1170, .5]], objets:[
+    {id:'escalier', zone:ESC_CH, calques:[sousZone('chateau-banniere-gris-A', 'fixe gris', BAN_CH, ESC_CH), ['scenes/chateau-escalier-E', 'b'], sousZone('chateau-banniere-gris-E', 'b gris', BAN_CH, ESC_CH)],
+      anim:'bascule', vivant:2, nom:'Les bureaux', vue:'bureaux'},
+    {id:'salle', zone:[725, 530, 1000, 975], calques:[['scenes/chateau-salle-C', 'b']], plaque:'d', anim:'bascule', nom:'La grande salle', vue:'grandesalle'},
+    {id:'soussol', zone:[0, 960, 320, 1360], calques:[['scenes/chateau-soussol-D', 'b']], plaque:'g', anim:'bascule', vivant:1, nom:'Le sous-sol', vue:'soussol'},
+    {id:'infirmerie', zone:[62, 635, 292, 960], calques:[['scenes/chateau-infirmerie-B', 'b']], plaque:'g', anim:'bascule', nom:'L\'infirmerie', act:'batiment', args:{b:'infirmerie'}},   // après le sous-sol : son étiquette passe au-dessus
   ]},
   /* v139 : le stade, accueil du jeu (panorama : glisser au doigt) ; grille → entrée, échoppe → Bazar, tente → buvette, tableau des scores →
      préparer le match ou semaine suivante (le prochain match y est écrit), tunnel → vestiaire, portail du château → hall ;
      tissus blanc et gris teints aux couleurs du club ; le vif d'or passe derrière les perches des anneaux */
-  accueil:{fond:'scenes/stade-fond', v:1, ratio:1800 / 3072, l:3072, h:1800, pano:true, avant:'scenes/stade-avant', vif:'stade',
+  accueil:{fond:'scenes/stade-fond', v:3, ratio:1800 / 3072, l:3072, h:1800, pano:true, avant:'scenes/stade-avant', vif:'stade',
     ciel:'scenes/stade-ciel', cielH:1000, lanternes:[[1682, 1219, .45], [1894, 1219, .45], [2567, 1122, .6], [2924, 1122, .6]], objets:[
     {id:'grille', zone:[0, 750, 372, 1252], anim:'fixe', plaque:'g', nom:'Entrée du stade', vue:'entree'},
     {id:'fanions', zone:[1100, 985, 2480, 1082], decor:true, calques:[['scenes/stade-fanions-gris-A', 'fixe gris']]},
@@ -275,7 +278,7 @@ const SCENES = {
               [M_ => afficheStade(M_).a, 'left:12%;top:69%;width:76%;height:8%', 'sc-tab sc-tab-a', [2.8, 100]],
               [M_ => dernierStade(M_), 'left:12%;top:78%;width:76%;height:7%', 'sc-tab sc-tab-p', [2.4, 120]]]},
     {id:'tunnel', zone:[1600, 1100, 2056, 1380], calques:[['scenes/stade-tunnel-C', 'b']], anim:'bascule', nom:'Le vestiaire', vue:'equipe'},
-    {id:'portail', zone:[2525, 895, 2975, 1350], calques:[['scenes/stade-portail-B', 'b']], anim:'bascule', plaque:'d', nom:'Le château', vue:'hall'},
+    {id:'portail', zone:[2525, 895, 2975, 1350], calques:[['scenes/stade-portail-B', 'b']], anim:'bascule', plaque:'d', nom:'Le château', vue:'hall'},   // v143 : vers le hall du château
   ]},
   /* v134 : l'entrée du stade, images A (repos), B (la gobeline tend un billet), C (les chopes trinquent) ; la tente blanc et gris est teinte aux
      couleurs du club ; le prix des places s'écrit sur le panneau ; le vif d'or vole derrière la grille et les piliers (avant : premier plan détouré
@@ -339,7 +342,7 @@ function sceneHTML(l){
     const pos = o.zone ? `left:${o.zone[0] / S.l * 100}%;top:${o.zone[1] / S.h * 100}%;width:${(o.zone[2] - o.zone[0]) / S.l * 100}%;height:${(o.zone[3] - o.zone[1]) / S.h * 100}%`
       : `left:${o.x}%;top:${o.y}%;width:${o.w}%`;
     const html = o.html ? `<div class="sc-html" style="${o.htmlStyle || ''}">${o.html(M_, c)}</div>` : '';
-    if (o.decor) return `<div class="sc-obj sc-zone sc-decor" style="${pos}" aria-hidden="true">${corps}</div>`;
+    if (o.decor) return `<div class="sc-obj sc-zone sc-decor" style="${pos}" aria-hidden="true">${corps}${html}</div>`;   // v140 : un décor peut porter du HTML (le blason)
     return `<button class="sc-obj sc-${o.anim}${o.zone ? ' sc-zone' : ''}${o.vivant ? ' sc-vivant v' + o.vivant : ''}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="${pos}${vars}" aria-label="${esc(nom)}">${corps}${html}${textes}${o.muet ? '' : `<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(nom)}</span>`}</button>`;
   };
   const avant = (S.vif ? (typeof S.vif === 'string' ? VIF.replace('class="sc-vif"', `class="sc-vif ${S.vif}"`) : VIF) : '') + (S.avant ? `<img class="sc-avant" src="${src(S.avant)}" alt="" draggable="false">` : '');   // v134
@@ -398,12 +401,31 @@ function vuePiece(l, titre, sous, resume, liens){
   const scene = sceneDispo(l);
   VUE.innerHTML = `<div><h1 class="grand">${titre}</h1><p class="sous">${sous}</p></div>
   ${scene ? sceneHTML(l) : ''}
-  <details class="sc-detail"${scene ? '' : ' open'}><summary>${resume}</summary><div class="carte"><div class="liste">${liens.map(([v, n, x]) => `<button class="el" data-act="vue" data-v="${v}"><div class="t"><b>${n}</b><span>${x}</span></div><span class="d mut">›</span></button>`).join('')}</div></div></details>`;
+  <details class="sc-detail"${scene ? '' : ' open'}><summary>${resume}</summary><div class="carte"><div class="liste">${liens.map(([v, n, x, act, b]) => `<button class="el" data-act="${act || 'vue'}" data-v="${v}"${b ? ` data-b="${b}"` : ''}><div class="t"><b>${n}</b><span>${x}</span></div><span class="d mut">›</span></button>`).join('')}</div></div></details>`;
 }
-function vueHall(){
+function vueHall(){   // v143 : le hall du château
   const c = moi(), n = nonLus();
-  vuePiece('hall', 'Le hall', `${esc(c.nom)}${n ? ` · ${plur(n, 'message')} non lu${n > 1 ? 's' : ''}` : ''}`, 'Tous les écrans du hall',
-    [['accueil', 'Accueil', 'Le prochain match et les nouvelles'], ['boite', 'Boîte de réception', 'Messages, offres et rapports'], ['calendrier', 'Calendrier', 'Le mois et la saison'], ['classements', 'Classements', 'Championnats, coupes et sélections']]);
+  vuePiece('hall', 'Le hall du château', `${esc(c.nom)}${n ? ` · ${plur(n, 'message')} non lu${n > 1 ? 's' : ''}` : ''}`, 'Toutes les portes du hall',
+    [['bureaux', 'Les bureaux', 'À l\'étage : le manager, le président, le recrutement, les jeunes'], ['grandesalle', 'La grande salle', 'Fédération, Gazette, courrier, classements'],
+     ['', 'L\'infirmerie', 'Les blessés et les soins', 'batiment', 'infirmerie'], ['soussol', 'Le sous-sol', 'Les potions'], ['accueil', 'Le stade', 'Ressortir vers le terrain']]);
+  if (sceneDispo('hall')) V.colorierProduits(VUE, c);   // la grande bannière aux couleurs du club
+}
+/* v143 : les pièces derrière le hall, en attendant leurs scènes */
+function vueBureaux(){
+  vuePiece('bureaux', 'Les bureaux', 'À l\'étage du château', 'Les portes du couloir',
+    [['salon', 'Mon bureau', 'Le manager : profil, carrière, trophées'], ['direction', 'Bureau du président', 'Confiance, objectifs, finances'],
+     ['recrutement', 'Bureau du recrutement', 'Joueurs suivis, mercato, staff'], ['formation', 'La salle des jeunes', 'Le pensionnat et ses espoirs'], ['hall', 'Redescendre', 'Le hall du château']]);
+}
+function vueGrandeSalle(){
+  const n = nonLus();
+  vuePiece('grandesalle', 'La grande salle', 'Compétitions, presse et courrier', 'Les tables de la grande salle',
+    [['federation', 'La Fédération', 'Championnats, coupes et sélections'], ['', 'La Gazette', 'La presse et les rumeurs', 'scPresse'], ['boite', 'Le courrier', n ? `${plur(n, 'message')} non lu${n > 1 ? 's' : ''}` : 'Messages, offres et rapports'],
+     ['classements', 'Classements', 'Tous les championnats'], ['calendrier', 'Calendrier', 'Le mois et la saison'], ['hall', 'Retour au hall', 'Le hall du château']]);
+}
+function vueSoussol(){
+  const c = moi(), B_ = window.QMB, apo = B_.a(c, 'apothicaire'), dispo = (M().tic || 0) - (c.dom ? c.dom.potion || -99 : -99) >= 4;
+  vuePiece('soussol', 'Le sous-sol', apo ? `Apothicaire attitré · potion de forme ${dispo ? 'disponible (fiche du joueur)' : 'en préparation'}` : 'Chaudrons froids : il faut l\'apothicaire attitré (infirmerie niveau 5)', 'Les étagères du sous-sol',
+    [['', 'L\'infirmerie', 'Le bâtiment, ses niveaux et l\'apothicaire', 'batiment', 'infirmerie'], ['effectif', 'L\'effectif', 'Donner la potion à un joueur (sa fiche)'], ['hall', 'Remonter', 'Le hall du château']]);
 }
 /* v133 : l'entrée du stade (grille, guichet de la gobeline et prix des places, plan du stade, pelouse, tente de la buvette) ;
    en attendant les images de ChatGPT, la liste des écrans du stade */
@@ -1044,7 +1066,7 @@ document.addEventListener('change', e => { const t = e.target;
 function MENU(){
   const M_ = M(), mg = M_.manager, cl = !!mg.club, nl = nonLus(), ouvert = cl && C.mercatoOuvert(window.QM.semaine(M_));
   const G_ = [
-    ['Mon club', [['accueil', 'Accueil', '🏠'], ['hall', 'Le hall', '🏰', '', 1], ['boite', 'Boîte de réception', '✉️', nl || ''], ['calendrier', 'Calendrier', '📅', '', 1]]],
+    ['Mon club', [['accueil', 'Accueil', '🏠'], ['hall', 'Le château', '🏰', '', 1], ['grandesalle', 'La grande salle', '🕯️', '', 1], ['boite', 'Boîte de réception', '✉️', nl || ''], ['calendrier', 'Calendrier', '📅', '', 1]]],
     ['Équipe', [['equipe', 'Le vestiaire', '🚪', '', 1], ['effectif', 'Effectif', '👥', '', 1], ['tactique', 'Tactique', '🧭', '', 1], ['entrainement', 'Entraînement', '🏃', '', 1], ['progression', 'Progression des joueurs', '📈', '', 1], ['vestiaire', 'Vestiaire et mentorat', '🛋️', '', 1], ['formation', 'Poudlard (formation)', '🎓', '', 1], ...(mg.selection ? [['selection', 'Sélection', '🏆']] : [])]],
     ['Recrutement', [['recrutement', 'Le bureau', '🗂️', '', 1], ['mercato', 'Mercato', '🦉', ouvert ? '●' : '', 1], ['clubs', 'Clubs et joueurs', '🔭'], ['staff', 'Staff', '🧙', '', 1]]],
     ['Domaine', [['club', 'Carte du domaine', '🏰', '', 1], ['direction', 'Bureau du président', '🏛️', '', 1], ['finances', 'Finances et banque', '💰', '', 1], ['boutique', 'Bazar', '🛍️', '', 1], ['partenaires', 'Partenaires', '🤝', '', 1], ['domaine', 'Bâtiments', '🧱', '', 1], ['trophees', 'Salle des trophées', '🏆', '', 1]]],
@@ -1099,6 +1121,6 @@ Z.sceneStade = () => { try { return sceneDispo('accueil') ? sceneHTML('accueil')
 Z.apresStade = () => { if (VUE.querySelector('.scene')) V.colorierProduits(VUE, moi()); };
 
 /* ============================== Enregistrement ============================== */
-Object.assign(VUES, {entree:vueEntree, hall:vueHall, salon:vueSalon, federation:vueFederation, progression:vueProgression, recrutement:vueRecrutement, equipe:vueEquipe, club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});
+Object.assign(VUES, {entree:vueEntree, hall:vueHall, bureaux:vueBureaux, grandesalle:vueGrandeSalle, soussol:vueSoussol, salon:vueSalon, federation:vueFederation, progression:vueProgression, recrutement:vueRecrutement, equipe:vueEquipe, club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});
 if (Z.M && Z.M.manager) rendre(); else majMenu();
 })();
