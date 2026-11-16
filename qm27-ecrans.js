@@ -1,4 +1,4 @@
-// mon-ecran-version: 1ee33b70
+// mon-ecran-version: fa03d4c7
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -210,6 +210,17 @@ const FANTOMES = [
 ];
 const fantomesHTML = n => Array.from({length:n}, (_, k) => `<i class="sc-fantome f${k}" aria-hidden="true"><i class="sc-fantome-c">${FANTOMES[k % 2]}</i></i>`).join('');
 const LETTRE = [110, 880, 345, 990], reunionDe = M_ => G() && G().reunion(M_);
+/* v147 : le vestiaire ; la porte se touche sur ses battants (la retouche, plus grande, garde la lumière du jour au sol) */
+const PORTE_V = [360, 345, 670, 730], PUPITRE_V = [0, 915, 305, 1330], MALLE_V = [760, 995, 1024, 1400];   // pupitre et malle : l'étiquette sous la zone reste dans l'image
+/* v147 : la composition à la craie sur le tableau du vestiaire (coordonnées de la scène, 1024 × 1536) : gardien devant nos anneaux (à gauche),
+   batteurs sur les ailes, poursuiveurs vers les anneaux adverses, attrapeur en haut ; numéros de maillot */
+const CRAIE_POS = {G:[[785, 392]], B:[[800, 302], [800, 455]], P:[[830, 292], [826, 366], [834, 438]], A:[[813, 256]]};
+function craieCompo(M_, c){
+  const co = c && c.compo; if (!co) return '';
+  const pts = Object.entries(CRAIE_POS).flatMap(([p, L]) => L.map((xy, i) => { const j = M_.joueurs[(co[p] || [])[i]]; return j ? [xy, j.num || p] : null; })).filter(Boolean);
+  return `<svg class="sc-craie" viewBox="705 160 220 370" preserveAspectRatio="none" aria-hidden="true">${pts.map(([[x, y], n]) =>
+    `<circle cx="${x}" cy="${y}" r="11"/><text x="${x}" y="${y + 4.5}">${esc(String(n))}</text>`).join('')}</svg>`;
+}
 const SCENES = {
   direction:{fond:'scenes/bureau-fond', v:4, ratio:1536 / 1024, l:1024, h:1536, objets:[
     {id:'chapeau', zone:[10, 110, 225, 310], calques:[['scenes/bureau-chapeau-B', 'b']], plaque:'g', anim:'parle', nom:'Confiance du président', act:'scConfiance'},
@@ -237,17 +248,19 @@ const SCENES = {
     {id:'etiquette', zone:[343, 612, 417, 668], anim:'fixe', muet:true, nom:'Prix des places', act:'scBillet', textes:[[(M_, c) => eurT(c.prix), 'left:6%;top:18%;width:88%;height:64%;transform:rotate(-1deg)', 'sc-encre', [1.9, 12]]]},
     {id:'gobelin', zone:[388, 632, 676, 850], calques:[['scenes/banque-gobelin-B', 'b']], anim:'bascule', nom:'Banque des Gobelins', act:'scGobelin'},
   ]},
-  /* v121 : le vestiaire (page Équipe) façon FM98, images A (repos), B (tout bouge), C (tableau couvert) ; vue: = écran ouvert directement */
-  equipe:{fond:'scenes/equipe-fond', v:3, ratio:1536 / 1024, l:1024, h:1536, objets:[
-    {id:'robes', zone:[0, 285, 350, 740], calques:[['scenes/equipe-robes-gris-A', 'fixe gris'], ['scenes/equipe-robes-B', 'b'], ['scenes/equipe-robes-gris-B', 'b gris']], plaque:'g', anim:'bascule', nom:'Effectif', vue:'effectif'},   // v131 : robes blanc et gris teintes aux couleurs du club
-    {id:'couloir', zone:[395, 360, 565, 680], calques:[['scenes/equipe-couloir-B', 'b']], anim:'parle', act:'scCouloir',
+  /* v121 : le vestiaire (page Équipe) façon FM98 ; v147 : repeint en lumière chaude, une retouche par objet (B robes, C portes du tunnel,
+     D plume, E balais, F mannequin, G malle, H potions) ; le tableau noir montre la vraie composition à la craie ; bougies et lanterne vacillent.
+     Ordre des objets = ordre d'empilement : la grande pièce des portes (la lumière du jour coule jusqu'au mannequin) passe sous le mannequin */
+  equipe:{fond:'scenes/equipe-fond', v:4, ratio:1536 / 1024, l:1024, h:1536, lanternes:[[75, 112, .32], [272, 228, .26], [950, 112, .32], [511, 182, .6]], objets:[
+    {id:'porte', zone:PORTE_V, calques:[sousZone('equipe-porte-C', 'b', [330, 340, 730, 1080], PORTE_V)], anim:'bascule', act:'scCouloir',
       nom:M_ => { const m = window.QM.matchDuJoueur(M_); return m && !m.res ? 'Préparer le match' : 'Aucun match cette semaine'; }},
-    {id:'potions', zone:[915, 55, 1024, 600], calques:[['scenes/equipe-potions-B', 'b']], plaque:'d', anim:'bascule', nom:'Infirmerie', act:'scBlesses'},
-    {id:'tableau', zone:[670, 155, 922, 492], calques:[['scenes/equipe-tableau-B', 'f2'], ['scenes/equipe-tableau-C', 'f3']], anim:'porte', nom:'Tactique', vue:'tactique'},
-    {id:'balais', zone:[665, 466, 952, 892], calques:[['scenes/equipe-balais-B', 'b']], anim:'bascule', nom:'Balais', act:'scBalais'},
-    {id:'journal', zone:[0, 975, 322, 1210], calques:[['scenes/equipe-journal-B', 'b']], plaque:'g', anim:'bascule', nom:'Staff', vue:'staff'},
-    {id:'souaffle', zone:[400, 790, 600, 1060], calques:[['scenes/equipe-souaffle-B', 'b']], anim:'bascule', nom:'Progression des joueurs', act:'scProgression'},
-    {id:'malle', zone:[700, 840, 1024, 1480], calques:[['scenes/equipe-malle-B', 'b']], plaque:'d', anim:'bascule', nom:'Entraînement', vue:'entrainement'},
+    {id:'tableau', zone:[705, 160, 925, 530], anim:'bascule', nom:'Tactique', vue:'tactique', html:(M_, c) => craieCompo(M_, c), htmlStyle:'left:0;top:0;width:100%;height:100%'},
+    {id:'potions', zone:[908, 225, 1024, 535], calques:[['scenes/equipe-potions-H', 'b']], plaque:'d', anim:'bascule', nom:'Infirmerie', act:'scBlesses'},
+    {id:'balais', zone:[700, 515, 1024, 950], calques:[['scenes/equipe-balais-E', 'b']], plaque:'d', anim:'bascule', nom:'Balais', act:'scBalais'},
+    {id:'robes', zone:[0, 370, 385, 835], calques:[['scenes/equipe-robes-gris-A', 'fixe gris'], ['scenes/equipe-robes-B', 'b'], ['scenes/equipe-robes-gris-B', 'b gris']], plaque:'g', anim:'bascule', nom:'Effectif', vue:'effectif'},
+    {id:'mannequin', zone:[375, 720, 655, 1060], calques:[['scenes/equipe-mannequin-F', 'b']], anim:'bascule', nom:'Entraînement', vue:'entrainement'},
+    {id:'pupitre', zone:PUPITRE_V, calques:[sousZone('equipe-plume-D', 'b', [35, 1105, 300, 1305], PUPITRE_V)], plaque:'g', anim:'bascule', nom:'Staff', vue:'staff'},
+    {id:'malle', zone:MALLE_V, calques:[sousZone('equipe-malle-G', 'b', [755, 985, 1024, 1510], MALLE_V)], plaque:'d', anim:'bascule', nom:'Progression des joueurs', act:'scProgression'},
   ]},
   /* v122 : le bureau du recrutement, images A (repos) et B (tout bouge) ; args = paramètres passés à l'action (onglet du mercato) */
   recrutement:{fond:'scenes/recrutement-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[

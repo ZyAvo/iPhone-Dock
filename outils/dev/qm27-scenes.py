@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: b24290a7
+# mon-ecran-version: 209fa173
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -109,11 +109,12 @@ RETOUCHES['bureau'] = {'zones':{'chapeau':[10, 110, 225, 310], 'echarpe':[800, 2
                         # v131 : bureau repeint, écharpe BLANC et GRIS (A au repos, B qui ondule) ; couche « gris » teinte aux couleurs du club (on écarte la bougie)
                         'gris':[('echarpe', 'A', 172, [[795, 530, 828, 615]]), ('echarpe', 'B', 172, [[795, 530, 828, 615]])]}
 
-RETOUCHES['equipe'] = {'zones':{'robes':[0, 285, 350, 740], 'couloir':[395, 360, 565, 680], 'tableau':[670, 155, 922, 492], 'balais':[665, 466, 952, 892],
-                                 'potions':[915, 55, 1024, 600], 'journal':[0, 975, 322, 1210], 'souaffle':[400, 790, 600, 1060], 'malle':[700, 840, 1024, 1480]},
-                        'pieces':[('robes', 'B'), ('couloir', 'B'), ('tableau', 'B'), ('tableau', 'C'), ('balais', 'B'), ('potions', 'B'), ('journal', 'B'), ('souaffle', 'B'), ('malle', 'B')],
-                        # v121 : le vestiaire ; v131 : repeint avec des robes BLANC et GRIS (A au repos, B au vent, un seul cognard reste dans la malle),
-                        # couches « gris » teintes aux couleurs du club
+# v147 : le vestiaire repeint (lumière chaude) : A (repos), B robes au vent, C portes du tunnel grandes ouvertes, D la plume écrit,
+# E balais en l'air, F mannequin frappé et souafle qui s'élève, G cognards qui tirent sur leurs sangles, H potions qui brillent ;
+# robes BLANC et ANTHRACITE (A et B), couches « gris » teintes aux couleurs du club (le cuir des gants et ceintures, saturé, reste)
+RETOUCHES['equipe'] = {'zones':{'robes':[0, 370, 385, 835], 'porte':[330, 340, 730, 1080], 'plume':[35, 1105, 300, 1305], 'balais':[700, 515, 1024, 950],
+                                 'mannequin':[375, 720, 655, 1060], 'malle':[755, 985, 1024, 1510], 'potions':[908, 225, 1024, 535]},
+                        'pieces':[('robes', 'B'), ('porte', 'C'), ('plume', 'D'), ('balais', 'E'), ('mannequin', 'F'), ('malle', 'G'), ('potions', 'H')],
                         'gris':[('robes', 'A', 150, []), ('robes', 'B', 150, [])]}
 
 RETOUCHES['recrutement'] = {'zones':{'portraits':[40, 125, 435, 498], 'dossiers':[80, 495, 300, 820], 'sorciere':[330, 400, 690, 780], 'hibou':[745, 340, 1024, 790],
