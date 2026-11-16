@@ -1,4 +1,4 @@
-// mon-ecran-version: 107ff514
+// mon-ecran-version: 1ee33b70
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -178,6 +178,37 @@ function afficheStade(M_){
 const actionStade = M_ => { const S = window.QM.semaine(M_); return !S || S.type === 'bilan' ? 'saisonSuivante' : window.QM.matchDuJoueur(M_) ? 'preparer' : 'continuer'; };
 const dernierStade = M_ => { const d = M_.dernierMatch; return d ? `Dernier : ${nomEqS(d.dom, d.sixn)} ${d.score[0]}–${d.score[1]} ${nomEqS(d.ext, d.sixn)}` : ''; };
 const ESC_CH = [330, 0, 700, 960], BAN_CH = [440, 170, 590, 612];   // v143 : l'escalier du hall et sa grande bannière
+/* v145 : tableaux vivants : la toile (quadrilatère pris sur l'image) est recopiée du fond, puis respire lentement (léger zoom et glissement),
+   des nuages y passent et un oiseau la traverse de temps en temps ; tout reste découpé dans la toile (clip-path) */
+function tableauxHTML(S, src){
+  return (S.tableaux || []).map((q, k) => {
+    const xs = q.map(p => p[0]), ys = q.map(p => p[1]), x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(...xs) - x0, h = Math.max(...ys) - y0;
+    const poly = q.map(([x, y]) => `${((x - x0) / w * 100).toFixed(1)}% ${((y - y0) / h * 100).toFixed(1)}%`).join(',');
+    const fond = `background-image:url(${src(S.fond)});background-size:${(S.l / w * 100).toFixed(2)}% ${(S.h / h * 100).toFixed(2)}%;background-position:${(x0 / (S.l - w) * 100).toFixed(3)}% ${(y0 / (S.h - h) * 100).toFixed(3)}%`;
+    return `<i class="sc-tableau t${k}" aria-hidden="true" style="left:${(x0 / S.l * 100).toFixed(2)}%;top:${(y0 / S.h * 100).toFixed(2)}%;width:${(w / S.l * 100).toFixed(2)}%;height:${(h / S.h * 100).toFixed(2)}%;clip-path:polygon(${poly})">`
+      + `<b class="sc-toile-v" style="${fond}"></b><b class="sc-toile-n" style="background-image:url(${src('scenes/brume')})"></b>`
+      + `<svg class="sc-oiseau" viewBox="0 0 20 8"><path d="M1 5 Q5 0 10 5 Q15 0 19 5" fill="none" stroke="#2a2a3a" stroke-width="1.4" stroke-linecap="round"/></svg></i>`;
+  }).join('');
+}
+/* v145 : deux fantômes translucides sortent de la porte fermée de l'infirmerie en la traversant et filent vers le bas à droite */
+/* deux silhouettes nacrées et translucides (un gentilhomme à fraise, une dame en robe longue), le bas du corps se perd en volutes */
+const DEG_F = id => `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f8ff" stop-opacity=".92"/><stop offset=".45" stop-color="#dfe9fb" stop-opacity=".7"/><stop offset="1" stop-color="#c7d6f2" stop-opacity="0"/></linearGradient>`;
+const FANTOMES = [
+  `<svg viewBox="0 0 64 112"><defs>${DEG_F('fdg0')}</defs><g fill="url(#fdg0)" stroke="#ffffff" stroke-opacity=".45" stroke-width=".6">
+    <path d="M22 30 C16 34 14 44 16 56 C18 70 22 84 20 98 C26 92 28 104 33 96 C38 106 40 92 46 98 C42 84 46 68 47 56 C49 44 47 34 41 30Z"/>
+    <path d="M22 33 C14 36 8 30 6 22 C9 25 12 28 16 29" stroke-linecap="round"/><path d="M42 34 C50 40 52 50 50 56 C48 50 45 46 41 44"/>
+    <ellipse cx="31.5" cy="28" rx="13" ry="4.2"/><circle cx="31.5" cy="16" r="8"/>
+    <path d="M24.5 19 C26 26 37 26 38.5 19 C36 22 27 22 24.5 19Z" fill="#eef3ff" fill-opacity=".8"/></g>
+    <g fill="#33405f" opacity=".5"><ellipse cx="28.5" cy="14.5" rx="1.4" ry="1.8"/><ellipse cx="34.5" cy="14.5" rx="1.4" ry="1.8"/><path d="M29 20 Q31.5 21.5 34 20" stroke="#33405f" stroke-width=".8" fill="none"/></g>
+    <path d="M24 40 L39 40 M23 47 L40 47" stroke="#ffffff" stroke-opacity=".35" stroke-width=".8"/></svg>`,
+  `<svg viewBox="0 0 64 112"><defs>${DEG_F('fdg1')}</defs><g fill="url(#fdg1)" stroke="#ffffff" stroke-opacity=".45" stroke-width=".6">
+    <path d="M24 9 C18 14 17 30 13 44 C17 40 20 34 23 30Z" opacity=".8"/>
+    <path d="M27 26 C24 34 25 40 26 44 C18 56 12 72 14 92 C20 86 22 100 28 92 C33 102 36 90 41 96 C44 86 50 90 52 84 C50 66 44 54 38 44 C39 40 40 34 37 26Z"/>
+    <path d="M27 30 C20 36 18 46 22 52" stroke-linecap="round" fill="none"/><path d="M37 30 C44 34 48 42 46 48" stroke-linecap="round" fill="none"/>
+    <circle cx="32" cy="16" r="7.4"/><path d="M24.6 15 C24 6 40 4 39.6 15 C38 9 27 9 24.6 15Z" fill="#eef3ff" fill-opacity=".85"/></g>
+    <g fill="#33405f" opacity=".45"><ellipse cx="29.4" cy="16" rx="1.2" ry="1.6"/><ellipse cx="34.6" cy="16" rx="1.2" ry="1.6"/><path d="M30.4 20.4 Q32 21.4 33.6 20.4" stroke="#33405f" stroke-width=".7" fill="none"/></g></svg>`,
+];
+const fantomesHTML = n => Array.from({length:n}, (_, k) => `<i class="sc-fantome f${k}" aria-hidden="true"><i class="sc-fantome-c">${FANTOMES[k % 2]}</i></i>`).join('');
 const LETTRE = [110, 880, 345, 990], reunionDe = M_ => G() && G().reunion(M_);
 const SCENES = {
   direction:{fond:'scenes/bureau-fond', v:4, ratio:1536 / 1024, l:1024, h:1536, objets:[
@@ -254,7 +285,8 @@ const SCENES = {
   /* v132 : le hall d'entrée du club */
   /* v143 : le hall du château (remplace l'ancien hall, ses images hall-* ne servent plus) : escalier → bureaux, double porte → grande salle,
      porte de gauche → infirmerie, escalier du bas → sous-sol ; la grande bannière blanc et gris est teinte aux couleurs du club */
-  hall:{fond:'scenes/chateau-fond', v:1, ratio:1536 / 1024, l:1024, h:1536, lanternes:[[327, 690, .55], [694, 690, .55], [58, 1170, .5]], objets:[
+  hall:{fond:'scenes/chateau-fond', v:1, ratio:1536 / 1024, l:1024, h:1536, lanternes:[[327, 690, .55], [694, 690, .55], [58, 1170, .5]],
+    tableaux:[[[73, 157], [153, 207], [154, 372], [72, 343]], [[870, 207], [952, 142], [953, 360], [870, 392]]], fantomes:2, objets:[
     {id:'escalier', zone:ESC_CH, calques:[sousZone('chateau-banniere-gris-A', 'fixe gris', BAN_CH, ESC_CH), ['scenes/chateau-escalier-E', 'b'], sousZone('chateau-banniere-gris-E', 'b gris', BAN_CH, ESC_CH)],
       anim:'bascule', vivant:2, nom:'Les bureaux', vue:'bureaux'},
     {id:'salle', zone:[725, 530, 1000, 975], calques:[['scenes/chateau-salle-C', 'b']], plaque:'d', anim:'bascule', nom:'La grande salle', vue:'grandesalle'},
@@ -349,7 +381,7 @@ function sceneHTML(l){
   /* v136 : la brume ne passe qu'à travers le masque du ciel ; lueur des lanternes (v138 : le mode soir et nuit est retiré, toujours le jour) */
   const masque = S.ciel ? `url(${src(S.ciel)})` : '';
   const ciel = S.ciel ? `<div class="sc-ciel" aria-hidden="true" style="height:${(S.cielH / S.h * 100).toFixed(3)}%;-webkit-mask-image:${masque};mask-image:${masque}"><i class="sc-brume a" style="background-image:url(${src('scenes/brume')})"></i><i class="sc-brume b" style="background-image:url(${src('scenes/brume')})"></i></div>` : '';
-  const apres = (S.lanternes || []).map(([x, y, t], k) => `<i class="sc-lanterne l${k % 2}" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%${t ? ';--t:' + t : ''}"></i>`).join('')
+  const apres = tableauxHTML(S, src) + (S.fantomes ? fantomesHTML(S.fantomes) : '') + (S.lanternes || []).map(([x, y, t], k) => `<i class="sc-lanterne l${k % 2}" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%${t ? ';--t:' + t : ''}"></i>`).join('')
     + (S.lumieres || []).map(([x0, y0, x1, y1, o]) => `<i class="sc-lumiere" aria-hidden="true" style="left:${(x0 / S.l * 100).toFixed(2)}%;top:${(y0 / S.h * 100).toFixed(2)}%;width:${((x1 - x0) / S.l * 100).toFixed(2)}%;height:${((y1 - y0) / S.h * 100).toFixed(2)}%;--o:${o}"></i>`).join('');   // v137
   const sc = `<div class="scene${S.pano ? ' pano' : ''}" style="aspect-ratio:${1 / S.ratio}${S.pano ? ';--pr:' + (1 / S.ratio).toFixed(4) : ''}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${ciel}${avant}${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}${apres}</div>`;
   /* v139 : panorama : défilement latéral au doigt, sans flèches ; il s'ouvre au centre (ou là où on l'avait laissé) */

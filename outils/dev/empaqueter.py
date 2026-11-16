@@ -1,10 +1,15 @@
-# mon-ecran-version: 165c3e0e
+# mon-ecran-version: 6964c8d6
 # Prépare un lot : marque chaque page/script avec l'empreinte de son contenu, écrit lot.json, fait le zip.
-# Usage : python3 empaqueter.py <dossier> <nom du lot> <zip de sortie> [--sans-essai]
+# Usage : python3 empaqueter.py <dossier> <nom du lot> <zip de sortie> [--sans-essai] [--base <dossier déjà déposé>]
+# v145 : --base <dossier> (par exemple une copie de origin/main) : le zip ne contient que les fichiers nouveaux ou différents de ce dossier,
+# plus lot.json (qui garde les empreintes de TOUS les fichiers). La tâche « Mise à jour » recopie le zip par-dessus le dépôt sans rien
+# effacer d'autre (les retraits passent par « supprimer » de lot.json) : un lot partiel suffit.
 # v51 : avant tout, « essai à sec » des scripts des tâches (outils/*.mjs lancés sans réseau, outils/*.py compilés) :
 # un script qui ne passe plus sa phase de chargement (fonction déplacée, repère introuvable, erreur de syntaxe) bloque le lot.
 import sys, os, re, json, hashlib, zipfile, datetime, shutil, subprocess, tempfile
-args = [a for a in sys.argv[1:] if not a.startswith('--')]
+argv = sys.argv[1:]; base = None
+if '--base' in argv: i = argv.index('--base'); base = argv[i + 1]; del argv[i:i + 2]
+args = [a for a in argv if not a.startswith('--')]
 src, lot, out = args[0], args[1], args[2]
 
 def essai_a_sec(src):
@@ -85,8 +90,18 @@ for p, rel in sorted(a_marquer, key=lambda x: x[1].endswith('.html') or x[1] == 
 json.dump({'lot':lot, 'date':datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'), 'fichiers':dict(sorted(fichiers.items())), 'supprimer':SUPPRIMER},
           open(os.path.join(src, 'lot.json'), 'w'), ensure_ascii=False, indent=1)
 if os.path.exists(out): os.remove(out)
+def pareil(rel):
+    if not base: return False
+    q = os.path.join(base, rel)
+    if not os.path.isfile(q): return False
+    a, b = os.path.join(src, rel), q
+    if os.path.getsize(a) != os.path.getsize(b): return False
+    with open(a, 'rb') as fa, open(b, 'rb') as fb: return fa.read() == fb.read()
+mis, gardes = 0, 0
 with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
     for root, _, files in os.walk(src):
         for f in files:
-            p = os.path.join(root, f); z.write(p, os.path.relpath(p, src))
-print(lot, len(fichiers), 'fichiers marqués →', out)
+            p = os.path.join(root, f); rel = os.path.relpath(p, src).replace(os.sep, '/')
+            if rel != 'lot.json' and pareil(rel): gardes += 1; continue
+            z.write(p, rel); mis += 1
+print(lot, len(fichiers), 'fichiers marqués →', out, f'({mis} fichiers dans le zip' + (f', {gardes} inchangés laissés de côté)' if base else ')'))

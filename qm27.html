@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="8ec21f25">
+<meta name="mon-ecran-version" content="4f3d0bf7">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -793,6 +793,32 @@ html.desk .scene{max-width:min(560px, calc((100vh - 170px) * .667))}
 }
 @media (hover:hover) and (prefers-reduced-motion: no-preference){.sc-lueur:hover::before{animation:sc-lueur 1.4s ease-in-out infinite}}
 @media (prefers-reduced-motion: reduce){.sc-vif{display:none}}
+/* v145 : hall du château : tableaux vivants et fantômes */
+.sc-tableau{position:absolute;overflow:hidden;pointer-events:none;z-index:1}
+.sc-toile-v{position:absolute;inset:0;background-repeat:no-repeat;transform-origin:50% 60%}
+.sc-toile-n{position:absolute;left:0;top:0;width:400%;height:55%;background-repeat:repeat-x;background-size:25% 100%;opacity:.55;mix-blend-mode:screen}
+.sc-oiseau{position:absolute;left:0;top:18%;width:16%;opacity:0}
+.sc-fantome{position:absolute;left:0;top:0;width:calc(11cqw * var(--k));margin:calc(-10cqw * var(--k)) 0 0 calc(-5.5cqw * var(--k));pointer-events:none;z-index:6;opacity:0;
+  filter:drop-shadow(0 0 calc(1.2cqw * var(--k)) rgba(200,220,255,.9))}
+.sc-fantome.f1{width:calc(10cqw * var(--k))}.sc-fantome svg{display:block;width:100%;height:auto}
+@keyframes sc-toile{0%{transform:scale(1) translate(0,0)}50%{transform:scale(1.07) translate(-2%,1%)}100%{transform:scale(1.03) translate(2%,-1%)}}
+@keyframes sc-toile-n{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+@keyframes sc-oiseau{0%,78%{opacity:0;transform:translate(-30%,0)}80%{opacity:.9}84%{transform:translate(260%,-40%)}88%{transform:translate(480%,10%)}90%,100%{opacity:0;transform:translate(640%,-20%)}}
+@keyframes sc-fantome-0{0%,19%,100%{opacity:0;translate:17cqw 80cqw;scale:.55}
+  1.5%{opacity:.18;translate:17.5cqw 79cqw;scale:.7}3%{opacity:.42;translate:24cqw 82cqw;scale:.9}6%{translate:38cqw 92cqw;scale:1}9%{translate:46cqw 106cqw}
+  12%{translate:62cqw 112cqw}15%{opacity:.38;translate:76cqw 126cqw}18%{opacity:0;translate:93cqw 144cqw;scale:1.25}}
+@keyframes sc-fantome-1{0%,19%,100%{opacity:0;translate:17cqw 74cqw;scale:.55}
+  1.5%{opacity:.15;translate:17cqw 74cqw;scale:.7}3.5%{opacity:.36;translate:22cqw 73cqw;scale:.9}7%{translate:34cqw 86cqw;scale:1}10.5%{translate:52cqw 98cqw}
+  14%{translate:68cqw 104cqw}16.5%{opacity:.32;translate:82cqw 120cqw}18.8%{opacity:0;translate:98cqw 136cqw;scale:1.2}}
+@keyframes sc-fantome-ondule{0%,100%{transform:rotate(-4deg) skewX(-3deg) translateY(0)}50%{transform:rotate(5deg) skewX(4deg) translateY(calc(-.8cqw * var(--k)))}}
+@media (prefers-reduced-motion: no-preference){
+  .sc-toile-v{animation:sc-toile 26s ease-in-out infinite alternate}.t1 .sc-toile-v{animation-duration:31s;animation-delay:-9s}
+  .sc-toile-n{animation:sc-toile-n 70s linear infinite}.t1 .sc-toile-n{animation-duration:90s;animation-delay:-40s}
+  .sc-oiseau{animation:sc-oiseau 23s linear 4s infinite}.t1 .sc-oiseau{animation-duration:29s;animation-delay:15s}
+  .sc-fantome.f0{animation:sc-fantome-0 30s ease-in-out 3s infinite}.sc-fantome.f1{animation:sc-fantome-1 30s ease-in-out 4.5s infinite}   /* v146 : toutes les 30 s, passage d'environ 5,5 s, plus transparents */
+  .sc-fantome-c{display:block;animation:sc-fantome-ondule 2.4s ease-in-out infinite}.f1 .sc-fantome-c{animation-duration:2s}
+}
+@media (prefers-reduced-motion: reduce){.sc-fantome,.sc-oiseau{display:none}}
 /* v139 : le stade : tableau des scores (lettres dorées lumineuses), vol du vif d'or entre les anneaux, brume plus lente sur le panorama */
 .stade-accueil{margin:0 0 14px}.sc-tab{color:#f6d77c;font-weight:800;letter-spacing:.01em;text-shadow:0 0 calc(.8cqw * var(--k)) rgba(255,205,90,.75),0 1px 0 rgba(0,0,0,.6)}
 .sc-tab-p{font-weight:650;color:#e9d9a8;opacity:.9}.sc-tab-a{color:#fff2c4;text-transform:uppercase;letter-spacing:.08em}
@@ -1085,7 +1111,7 @@ html.desk .er{cursor:grab}
 <script src="qm27-nations.js?v=66d46995"></script>
 <script src="qm27-visuel.js?v=475e9f0c"></script>
 <script src="qm27-ui.js?v=177a76ef"></script>
-<script src="qm27-ecrans.js?v=107ff514"></script>
+<script src="qm27-ecrans.js?v=1ee33b70"></script>
 <script src="qm27-stats.js?v=044932c6"></script>
 <script src="commun.js?v=fc411b5f"></script>
 </body>
