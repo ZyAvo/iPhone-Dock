@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="7ddba51a">
+<meta name="mon-ecran-version" content="0f93d746">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -846,6 +846,31 @@ html.desk .scene{max-width:min(560px, calc((100vh - 170px) * .667))}
   .sc-brume.a{animation:sc-brume 95s linear -30s infinite}.sc-brume.b{animation:sc-brume 160s linear -100s infinite}
   .sc-lanterne.l0{animation:sc-flamme 3.1s ease-in-out infinite}.sc-lanterne.l1{animation:sc-flamme 2.6s ease-in-out -1.2s infinite}
 }
+/* v148 : lumières vivantes du vestiaire : bougies qui dansent (éclat et taille irréguliers), lanterne qui respire, fioles qui luisent chacune
+   de sa couleur, rayon de jour qui entre par la porte du tunnel avec sa poussière en suspension */
+.sc-lanterne.bougie{--o:.85}
+.sc-lanterne.lanterne{--o:.8}
+.sc-lanterne.fiole{--o:.8;background:radial-gradient(closest-side,rgba(255,255,255,.55),rgba(var(--c),.75) 22%,rgba(var(--c),.3) 55%,rgba(var(--c),0) 100%)}
+/* le faisceau est découpé (clip-path) dans un parent flouté : bords doux ; la poussière, découpée à part, reste nette */
+.sc-rayon{position:absolute;pointer-events:none;z-index:3;mix-blend-mode:screen;opacity:.55}
+.sc-flou,.sc-grains,.sc-faisceau{position:absolute;inset:0}.sc-flou{filter:blur(calc(1.1cqw * var(--k)))}
+.sc-faisceau,.sc-grains{clip-path:var(--poly);-webkit-clip-path:var(--poly);overflow:hidden}
+.sc-faisceau{background:linear-gradient(rgba(255,247,220,.7),rgba(255,238,195,.3) 45%,rgba(255,230,180,0) 100%)}
+.sc-poussiere{position:absolute;left:0;top:0;width:100%;height:200%;opacity:.7;
+  background-image:radial-gradient(circle,rgba(255,250,232,.95) 0 calc(.16cqw * var(--k)),transparent calc(.3cqw * var(--k))),radial-gradient(circle,rgba(255,250,232,.8) 0 calc(.12cqw * var(--k)),transparent calc(.24cqw * var(--k))),radial-gradient(circle,rgba(255,250,232,.7) 0 calc(.1cqw * var(--k)),transparent calc(.2cqw * var(--k)));
+  background-size:calc(9cqw * var(--k)) calc(11cqw * var(--k)),calc(13cqw * var(--k)) calc(7cqw * var(--k)),calc(17cqw * var(--k)) calc(19cqw * var(--k));background-position:0 0,calc(4cqw * var(--k)) calc(3cqw * var(--k)),calc(7.3cqw * var(--k)) calc(11.1cqw * var(--k))}
+@keyframes sc-bougie{0%,100%{opacity:var(--o);transform:scale(1)}11%{opacity:calc(var(--o) * .68);transform:scale(.9) translateX(-3%)}23%{opacity:calc(var(--o) * 1.08);transform:scale(1.05)}
+  38%{opacity:calc(var(--o) * .8);transform:scale(.94) translateX(3%)}52%{opacity:var(--o);transform:scale(1.07)}67%{opacity:calc(var(--o) * .72);transform:scale(.92) translateX(-2%)}84%{opacity:calc(var(--o) * 1.1);transform:scale(1.03)}}
+@keyframes sc-lanterne{0%,100%{opacity:var(--o);transform:scale(1)}30%{opacity:calc(var(--o) * .86);transform:scale(.96)}50%{opacity:calc(var(--o) * 1.12);transform:scale(1.06)}72%{opacity:calc(var(--o) * .92);transform:scale(.98)}}
+@keyframes sc-fiole{from{opacity:calc(var(--o) * .35);transform:scale(.85)}to{opacity:var(--o);transform:scale(1.1)}}
+@keyframes sc-rayon{0%,100%{opacity:.42}50%{opacity:.68}}
+@keyframes sc-poussiere{from{transform:translate(0,0)}to{transform:translate(-4%,-50%)}}
+@media (prefers-reduced-motion: no-preference){
+  .sc-lanterne.bougie{animation:sc-bougie 1.9s ease-in-out infinite}.sc-lanterne.bougie.l1{animation-duration:2.3s}
+  .sc-lanterne.lanterne{animation:sc-lanterne 4.2s ease-in-out infinite}
+  .sc-lanterne.fiole{animation:sc-fiole 2.8s ease-in-out infinite alternate}.sc-lanterne.fiole.l1{animation-duration:3.6s}
+  .sc-rayon{animation:sc-rayon 9s ease-in-out infinite}.sc-poussiere{animation:sc-poussiere 38s linear infinite}
+}
 /* v124 : l'ardoise du Bazar, écrite à la craie */
 .sc-html{position:absolute;pointer-events:none;display:flex;flex-direction:column;justify-content:flex-start}
 /* v147 : la composition à la craie sur le tableau du vestiaire */
@@ -1116,7 +1141,7 @@ html.desk .er{cursor:grab}
 <script src="qm27-nations.js?v=66d46995"></script>
 <script src="qm27-visuel.js?v=475e9f0c"></script>
 <script src="qm27-ui.js?v=177a76ef"></script>
-<script src="qm27-ecrans.js?v=fa03d4c7"></script>
+<script src="qm27-ecrans.js?v=4e103b1e"></script>
 <script src="qm27-stats.js?v=044932c6"></script>
 <script src="commun.js?v=fc411b5f"></script>
 </body>

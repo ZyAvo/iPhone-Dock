@@ -1,4 +1,4 @@
-// mon-ecran-version: fa03d4c7
+// mon-ecran-version: 4e103b1e
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -211,6 +211,7 @@ const FANTOMES = [
 const fantomesHTML = n => Array.from({length:n}, (_, k) => `<i class="sc-fantome f${k}" aria-hidden="true"><i class="sc-fantome-c">${FANTOMES[k % 2]}</i></i>`).join('');
 const LETTRE = [110, 880, 345, 990], reunionDe = M_ => G() && G().reunion(M_);
 /* v147 : le vestiaire ; la porte se touche sur ses battants (la retouche, plus grande, garde la lumière du jour au sol) */
+const matchAJouer = M_ => { const m = window.QM.matchDuJoueur(M_); return !!(m && !m.res); };
 const PORTE_V = [360, 345, 670, 730], PUPITRE_V = [0, 915, 305, 1330], MALLE_V = [760, 995, 1024, 1400];   // pupitre et malle : l'étiquette sous la zone reste dans l'image
 /* v147 : la composition à la craie sur le tableau du vestiaire (coordonnées de la scène, 1024 × 1536) : gardien devant nos anneaux (à gauche),
    batteurs sur les ailes, poursuiveurs vers les anneaux adverses, attrapeur en haut ; numéros de maillot */
@@ -251,9 +252,12 @@ const SCENES = {
   /* v121 : le vestiaire (page Équipe) façon FM98 ; v147 : repeint en lumière chaude, une retouche par objet (B robes, C portes du tunnel,
      D plume, E balais, F mannequin, G malle, H potions) ; le tableau noir montre la vraie composition à la craie ; bougies et lanterne vacillent.
      Ordre des objets = ordre d'empilement : la grande pièce des portes (la lumière du jour coule jusqu'au mannequin) passe sous le mannequin */
-  equipe:{fond:'scenes/equipe-fond', v:4, ratio:1536 / 1024, l:1024, h:1536, lanternes:[[75, 112, .32], [272, 228, .26], [950, 112, .32], [511, 182, .6]], objets:[
-    {id:'porte', zone:PORTE_V, calques:[sousZone('equipe-porte-C', 'b', [330, 340, 730, 1080], PORTE_V)], anim:'bascule', act:'scCouloir',
-      nom:M_ => { const m = window.QM.matchDuJoueur(M_); return m && !m.res ? 'Préparer le match' : 'Aucun match cette semaine'; }},
+  equipe:{fond:'scenes/equipe-fond', v:4, ratio:1536 / 1024, l:1024, h:1536, lanternes:[[75, 112, .32, 'bougie'], [272, 228, .26, 'bougie'], [950, 112, .32, 'bougie'], [511, 182, .6, 'lanterne'],
+    [960, 352, .2, 'fiole', '255,70,60'], [990, 350, .2, 'fiole', '90,235,90'], [957, 458, .2, 'fiole', '80,140,255'], [990, 458, .2, 'fiole', '210,90,255']],
+    rayons:[[330, 700, 770, 1110, '26% 0, 58% 0, 90% 100%, 6% 100%']], objets:[   // v148 : bougies, lanterne, fioles et rayon du jour par la porte du tunnel
+    {id:'porte', zone:PORTE_V, calques:[sousZone('equipe-porte-C', 'b', [330, 340, 730, 1080], PORTE_V)], anim:'bascule',
+      actF:M_ => matchAJouer(M_) ? 'scCouloir' : 'vue', args:{v:'accueil'},   // v148 : un match à jouer → sa préparation ; sinon retour au stade
+      nom:M_ => matchAJouer(M_) ? 'Préparer le match' : 'Le stade'},
     {id:'tableau', zone:[705, 160, 925, 530], anim:'bascule', nom:'Tactique', vue:'tactique', html:(M_, c) => craieCompo(M_, c), htmlStyle:'left:0;top:0;width:100%;height:100%'},
     {id:'potions', zone:[908, 225, 1024, 535], calques:[['scenes/equipe-potions-H', 'b']], plaque:'d', anim:'bascule', nom:'Infirmerie', act:'scBlesses'},
     {id:'balais', zone:[700, 515, 1024, 950], calques:[['scenes/equipe-balais-E', 'b']], plaque:'d', anim:'bascule', nom:'Balais', act:'scBalais'},
@@ -394,7 +398,8 @@ function sceneHTML(l){
   /* v136 : la brume ne passe qu'à travers le masque du ciel ; lueur des lanternes (v138 : le mode soir et nuit est retiré, toujours le jour) */
   const masque = S.ciel ? `url(${src(S.ciel)})` : '';
   const ciel = S.ciel ? `<div class="sc-ciel" aria-hidden="true" style="height:${(S.cielH / S.h * 100).toFixed(3)}%;-webkit-mask-image:${masque};mask-image:${masque}"><i class="sc-brume a" style="background-image:url(${src('scenes/brume')})"></i><i class="sc-brume b" style="background-image:url(${src('scenes/brume')})"></i></div>` : '';
-  const apres = tableauxHTML(S, src) + (S.fantomes ? fantomesHTML(S.fantomes) : '') + (S.lanternes || []).map(([x, y, t], k) => `<i class="sc-lanterne l${k % 2}" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%${t ? ';--t:' + t : ''}"></i>`).join('')
+  const apres = tableauxHTML(S, src) + (S.fantomes ? fantomesHTML(S.fantomes) : '') + (S.lanternes || []).map(([x, y, t, ty, co], k) => `<i class="sc-lanterne l${k % 2}${ty ? ' ' + ty : ''}" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%${t ? ';--t:' + t : ''}${co ? ';--c:' + co : ''}${ty ? `;animation-delay:-${(k * .73).toFixed(2)}s` : ''}"></i>`).join('')
+    + (S.rayons || []).map(([x0, y0, x1, y1, poly]) => `<i class="sc-rayon" aria-hidden="true" style="left:${(x0 / S.l * 100).toFixed(2)}%;top:${(y0 / S.h * 100).toFixed(2)}%;width:${((x1 - x0) / S.l * 100).toFixed(2)}%;height:${((y1 - y0) / S.h * 100).toFixed(2)}%;--poly:polygon(${poly})"><b class="sc-flou"><i class="sc-faisceau"></i></b><i class="sc-grains"><i class="sc-poussiere"></i></i></i>`).join('')   // v148
     + (S.lumieres || []).map(([x0, y0, x1, y1, o]) => `<i class="sc-lumiere" aria-hidden="true" style="left:${(x0 / S.l * 100).toFixed(2)}%;top:${(y0 / S.h * 100).toFixed(2)}%;width:${((x1 - x0) / S.l * 100).toFixed(2)}%;height:${((y1 - y0) / S.h * 100).toFixed(2)}%;--o:${o}"></i>`).join('');   // v137
   const sc = `<div class="scene${S.pano ? ' pano' : ''}" style="aspect-ratio:${1 / S.ratio}${S.pano ? ';--pr:' + (1 / S.ratio).toFixed(4) : ''}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${ciel}${avant}${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}${apres}</div>`;
   /* v139 : panorama : défilement latéral au doigt, sans flèches ; il s'ouvre au centre (ou là où on l'avait laissé) */
