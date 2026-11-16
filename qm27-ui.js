@@ -1,4 +1,4 @@
-// mon-ecran-version: cc5e2ec5
+// mon-ecran-version: 55cd2f6d
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -329,7 +329,8 @@ function vueAccueil(){
   const deb = Math.max(0, Math.min(CL.length - 5, i - 2)), part = CL.slice(deb, deb + 5);
   const nonLus = M.boite.filter(m => !m.lu), boite = (nonLus.length ? nonLus : M.boite).slice(0, 4);
   const dernier = M.dernierMatch;
-  VUE.innerHTML = `${window.QMU && QMU.reunionCarte ? QMU.reunionCarte(M) : ''}<div class="cols"><div>
+  const stade = window.QMU && QMU.sceneStade ? QMU.sceneStade() : '';   // v139 : la scène du stade en tête de l'accueil
+  VUE.innerHTML = `${window.QMU && QMU.reunionCarte ? QMU.reunionCarte(M) : ''}${stade ? `<div class="stade-accueil">${stade}</div>` : ''}<div class="cols"><div>
     ${prochain}
     ${dernier ? `<div class="carte"><h2>Dernier match</h2><button class="el" data-act="voirDernier">${blason(dernier.dom, 'p', dernier.sixn)}<div class="t"><b>${esc(nomEq(dernier.dom, dernier.sixn))} ${dernier.score[0]}–${dernier.score[1]} ${esc(nomEq(dernier.ext, dernier.sixn))}</b><span>${dernier.resume}</span></div>${blason(dernier.ext, 'p', dernier.sixn)}</button></div>` : ''}
     <div class="carte"><h2>Boîte de réception ${nonLus.length ? `<span class="badge neuf">${nonLus.length} non lu${nonLus.length > 1 ? 's' : ''}</span>` : ''}<button data-act="boite">Tout voir</button></h2>${boite.length ? boite.map(msgHTML).join('') : '<p class="mut">Rien pour l\'instant.</p>'}</div>
@@ -344,6 +345,7 @@ function vueAccueil(){
       <div class="sep"></div><div class="ligne" style="justify-content:space-between"><span>Bilan de la saison</span><b>${mg.bilan.g} V · ${mg.bilan.n} N · ${mg.bilan.p} D</b></div></div>
     <div class="carte"><h2>${esc(M.ligues[c.ligue].nom)} <button data-act="vue" data-v="classements">Classement</button></h2>${tableHTML(part, c.ligue, true, deb)}</div>
   </div></div>`;
+  if (stade && QMU.apresStade) QMU.apresStade();
 }
 const msgHTML = m => `<button class="msg ${m.lu ? '' : 'neuf'}" data-act="lireMsg" data-id="${m.id}"><b>${pieces(esc(m.titre))}</b><p>${pieces(esc(String(m.corps).length > 160 ? String(m.corps).slice(0, 160) + '…' : m.corps))}</p></button>`;
 

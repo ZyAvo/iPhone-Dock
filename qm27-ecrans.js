@@ -1,4 +1,4 @@
-// mon-ecran-version: 36bf9aa8
+// mon-ecran-version: 45992696
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -159,6 +159,24 @@ const VIF = `<span class="sc-vif" aria-hidden="true"><span class="sc-vif-c"><svg
   <g class="aile d"><path d="M26 11 C34 2 42 3 43 7 C41 9 35 11 26 13Z" fill="#fbf8ec" fill-opacity=".9" stroke="#c9b98a" stroke-width=".6"/></g>
   <circle cx="22" cy="12.5" r="5" fill="url(#vifOr)" stroke="#7a5006" stroke-width=".5"/>
   <g class="reflet"><path d="M20.3 6.2 L21 9.6 L24.4 10.3 L21 11 L20.3 14.4 L19.6 11 L16.2 10.3 L19.6 9.6Z" fill="#fff"/><circle cx="20.3" cy="10.3" r="1.2" fill="#fff"/></g></svg></span></span>`;   // v138 : un éclat de lumière de temps en temps
+/* v139 : le stade (accueil du jeu), panorama 3072 × 1800 ; le tableau des scores affiche le prochain match et lance la suite */
+const TENTE_ST = [735, 790, 1140, 1310], CHOPES_ST = [858, 985, 1018, 1142], ECHOPPE_ST = [345, 985, 740, 1372];
+const nomEqS = (id, sx) => sx ? nat(id).nom : club(id).nom;
+function afficheStade(M_){
+  const QM_ = window.QM, S = QM_.semaine(M_);
+  if (!S) return {h:'Saison terminée', t:'', a:'Lancer la saison suivante ›'};
+  if (S.type === 'bilan') return {h:`Fin de la saison ${lab(M_.saison)}`, t:'', a:`Lancer la saison ${lab(M_.saison + 1)} ›`};
+  const m = QM_.matchDuJoueur(M_);
+  if (m){
+    const sx = m.ligue === 'sixn', eu = m.ligue === 'eu';
+    const comp = eu ? (window.QME ? window.QME.NOM : 'Coupe') : sx ? D.TOURNOI.court : `${M_.ligues[m.ligue].court} · Journée ${S.journee}`;
+    return {h:`${comp} · ${fmtDate(m.date || S.date)}`, t:`${nomEqS(m.dom, sx)} – ${nomEqS(m.ext, sx)}`, a:'Préparer le match ›'};
+  }
+  const titre = S.type === 'prepa' ? `Préparation · semaine ${S.semaine}` : S.type === 'sixn' ? D.TOURNOI.court : S.type === 'europe' && window.QME ? `Finale de la ${window.QME.NOM}` : 'Semaine sans match';
+  return {h:fmtDate(S.date), t:titre, a:'Semaine suivante ›'};
+}
+const actionStade = M_ => { const S = window.QM.semaine(M_); return !S || S.type === 'bilan' ? 'saisonSuivante' : window.QM.matchDuJoueur(M_) ? 'preparer' : 'continuer'; };
+const dernierStade = M_ => { const d = M_.dernierMatch; return d ? `Dernier : ${nomEqS(d.dom, d.sixn)} ${d.score[0]}–${d.score[1]} ${nomEqS(d.ext, d.sixn)}` : ''; };
 const LETTRE = [110, 880, 345, 990], reunionDe = M_ => G() && G().reunion(M_);
 const SCENES = {
   direction:{fond:'scenes/bureau-fond', v:4, ratio:1536 / 1024, l:1024, h:1536, objets:[
@@ -240,6 +258,25 @@ const SCENES = {
     {id:'calendrier', zone:[620, 265, 1024, 760], calques:[['scenes/hall-calendrier-B', 'b']], plaque:'d', anim:'bascule', nom:'Calendrier', vue:'calendrier'},
     {id:'livre', zone:[695, 725, 1015, 1420], calques:[['scenes/hall-livre-B', 'b']], plaque:'d', anim:'bascule', nom:'La Gazette', act:'scPresse'},
   ]},
+  /* v139 : le stade, accueil du jeu (panorama : glisser au doigt) ; grille → entrée, échoppe → Bazar, tente → buvette, tableau des scores →
+     préparer le match ou semaine suivante (le prochain match y est écrit), tunnel → vestiaire, portail du château → hall ;
+     tissus blanc et gris teints aux couleurs du club ; le vif d'or passe derrière les perches des anneaux */
+  accueil:{fond:'scenes/stade-fond', v:1, ratio:1800 / 3072, l:3072, h:1800, pano:true, avant:'scenes/stade-avant', vif:'stade',
+    ciel:'scenes/stade-ciel', cielH:1000, lanternes:[[1682, 1219, .45], [1894, 1219, .45], [2567, 1122, .6], [2924, 1122, .6]], objets:[
+    {id:'grille', zone:[0, 750, 372, 1252], anim:'fixe', plaque:'g', nom:'Entrée du stade', vue:'entree'},
+    {id:'fanions', zone:[1100, 985, 2480, 1082], decor:true, calques:[['scenes/stade-fanions-gris-A', 'fixe gris']]},
+    {id:'echoppe', zone:ECHOPPE_ST, calques:[['scenes/stade-echoppe-gris-A', 'fixe gris'], ['scenes/stade-echoppe-E', 'b'], ['scenes/stade-echoppe-gris-E', 'b gris']],
+      anim:'bascule', vivant:1, nom:'Le Bazar', vue:'boutique'},
+    {id:'tente', zone:TENTE_ST, calques:[['scenes/stade-tente-gris-A', 'fixe gris'], sousZone('stade-chopes-D', 'b', CHOPES_ST, TENTE_ST), sousZone('stade-chopes-gris-D', 'b gris', CHOPES_ST, TENTE_ST)],
+      anim:'bascule', vivant:2, nom:'La buvette', vue:'buvette'},
+    {id:'tableau', zone:[1169, 296, 2231, 696], anim:'tableau', nom:M_ => afficheStade(M_).a.replace(' ›', ''), actF:actionStade,
+      textes:[[M_ => afficheStade(M_).h, 'left:12%;top:41%;width:76%;height:9%', 'sc-tab sc-tab-p', [3, 110]],
+              [M_ => afficheStade(M_).t, 'left:12%;top:51%;width:76%;height:17%', 'sc-tab', [6.5, 115]],
+              [M_ => afficheStade(M_).a, 'left:12%;top:69%;width:76%;height:8%', 'sc-tab sc-tab-a', [2.8, 100]],
+              [M_ => dernierStade(M_), 'left:12%;top:78%;width:76%;height:7%', 'sc-tab sc-tab-p', [2.4, 120]]]},
+    {id:'tunnel', zone:[1600, 1100, 2056, 1380], calques:[['scenes/stade-tunnel-C', 'b']], anim:'bascule', nom:'Le vestiaire', vue:'equipe'},
+    {id:'portail', zone:[2525, 895, 2975, 1350], calques:[['scenes/stade-portail-B', 'b']], anim:'bascule', plaque:'d', nom:'Le château', vue:'hall'},
+  ]},
   /* v134 : l'entrée du stade, images A (repos), B (la gobeline tend un billet), C (les chopes trinquent) ; la tente blanc et gris est teinte aux
      couleurs du club ; le prix des places s'écrit sur le panneau ; le vif d'or vole derrière la grille et les piliers (avant : premier plan détouré
      d'après Qwen-Image-Layered) ; « vivant » : la gobeline et l'enseigne s'animent d'elles-mêmes de temps en temps */
@@ -296,7 +333,7 @@ function sceneHTML(l){
       : `${o.img ? `<img class="sc-base"${o.club ? ' data-prod="scene"' : ''} src="${src(o.img)}" alt="" draggable="false">` : ''}${(o.calques || []).map(([k, cl, st]) => `<img class="sc-c ${cl}"${o.club && /-seule$/.test(k) ? ` data-prod="scene:${k}"` : / gris$/.test(cl) ? ` data-prod="gris:${k}"` : ''} src="${src(k)}" alt="" draggable="false"${st ? ` style="${st}"` : ''}>`).join('')}`;
     const vars = o.vars ? Object.entries(o.vars(M_, c)).map(([k, v]) => `;${k}:${v}`).join('') : '';
     /* taille = [corps max, largeur en cqw × caractères] : le texte rétrécit pour tenir */
-    const textes = (o.textes || []).map(([fn, st, cl, taille]) => { const t = String(fn(M_, c)), fs = taille ? `;font-size:${Math.min(taille[0], taille[1] / Math.max(1, t.length)).toFixed(2)}cqw` : '';
+    const textes = (o.textes || []).map(([fn, st, cl, taille]) => { const t = String(fn(M_, c)), fs = taille ? `;font-size:calc(${Math.min(taille[0], taille[1] / Math.max(1, t.length)).toFixed(2)}cqw * var(--k))` : '';
       return `<span class="sc-txt ${cl || ''}" style="${st}${fs}">${esc(t)}</span>`; }).join('');
     const nom = typeof o.nom === 'function' ? o.nom(M_, c) : o.nom;
     const pos = o.zone ? `left:${o.zone[0] / S.l * 100}%;top:${o.zone[1] / S.h * 100}%;width:${(o.zone[2] - o.zone[0]) / S.l * 100}%;height:${(o.zone[3] - o.zone[1]) / S.h * 100}%`
@@ -305,21 +342,23 @@ function sceneHTML(l){
     if (o.decor) return `<div class="sc-obj sc-zone sc-decor" style="${pos}" aria-hidden="true">${corps}</div>`;
     return `<button class="sc-obj sc-${o.anim}${o.zone ? ' sc-zone' : ''}${o.vivant ? ' sc-vivant v' + o.vivant : ''}" data-act="scObjet" data-l="${l}" data-o="${o.id}" style="${pos}${vars}" aria-label="${esc(nom)}">${corps}${html}${textes}${o.muet ? '' : `<span class="sc-plaque${o.plaque ? ' ' + o.plaque : ''}">${esc(nom)}</span>`}</button>`;
   };
-  const avant = (S.vif ? VIF : '') + (S.avant ? `<img class="sc-avant" src="${src(S.avant)}" alt="" draggable="false">` : '');   // v134
+  const avant = (S.vif ? (typeof S.vif === 'string' ? VIF.replace('class="sc-vif"', `class="sc-vif ${S.vif}"`) : VIF) : '') + (S.avant ? `<img class="sc-avant" src="${src(S.avant)}" alt="" draggable="false">` : '');   // v134
   /* v136 : la brume ne passe qu'à travers le masque du ciel ; lueur des lanternes (v138 : le mode soir et nuit est retiré, toujours le jour) */
   const masque = S.ciel ? `url(${src(S.ciel)})` : '';
   const ciel = S.ciel ? `<div class="sc-ciel" aria-hidden="true" style="height:${(S.cielH / S.h * 100).toFixed(3)}%;-webkit-mask-image:${masque};mask-image:${masque}"><i class="sc-brume a" style="background-image:url(${src('scenes/brume')})"></i><i class="sc-brume b" style="background-image:url(${src('scenes/brume')})"></i></div>` : '';
-  const apres = (S.lanternes || []).map(([x, y], k) => `<i class="sc-lanterne l${k % 2}" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%"></i>`).join('')
+  const apres = (S.lanternes || []).map(([x, y, t], k) => `<i class="sc-lanterne l${k % 2}" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%${t ? ';--t:' + t : ''}"></i>`).join('')
     + (S.lumieres || []).map(([x0, y0, x1, y1, o]) => `<i class="sc-lumiere" aria-hidden="true" style="left:${(x0 / S.l * 100).toFixed(2)}%;top:${(y0 / S.h * 100).toFixed(2)}%;width:${((x1 - x0) / S.l * 100).toFixed(2)}%;height:${((y1 - y0) / S.h * 100).toFixed(2)}%;--o:${o}"></i>`).join('');   // v137
-  return `<div class="scene" style="aspect-ratio:${1 / S.ratio}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${ciel}${avant}${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}${apres}</div>
-    <p class="petit mut sc-aide">Touche un objet de la pièce.</p>`;
+  const sc = `<div class="scene${S.pano ? ' pano' : ''}" style="aspect-ratio:${1 / S.ratio}${S.pano ? ';--pr:' + (1 / S.ratio).toFixed(4) : ''}"><img class="sc-fond" src="${src(S.fond)}" alt="" draggable="false">${ciel}${avant}${S.objets.filter(o => !o.si || o.si(M_, c)).map(obj).join('')}${apres}</div>`;
+  /* v139 : panorama : défilement latéral au doigt, sans flèches ; il s'ouvre au centre (ou là où on l'avait laissé) */
+  return (S.pano ? `<div class="sc-pano" data-l="${l}">${sc}</div>` : sc) + `<p class="petit mut sc-aide">${S.pano ? '<span class="pano-tel">Fais glisser l\'image pour voir tout le stade. </span>Touche un objet pour y aller.' : 'Touche un objet de la pièce.'}</p>`;
 }
 /* au toucher : l'animation joue une fois, puis le sous-menu s'ouvre */
 ACT.scObjet = (d, b) => {
   const o = (SCENES[d.l] || {objets:[]}).objets.find(x => x.id === d.o); if (!o) return;
   const el = b || document.querySelector(`.sc-obj[data-o="${d.o}"]`), calme = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (el && !calme){ el.classList.remove('joue'); void el.offsetWidth; el.classList.add('joue'); clearTimeout(el._joue); el._joue = setTimeout(() => el.classList.remove('joue'), 1700); }   // v119 : l'objet revient au repos (le coffre se referme)
-  setTimeout(() => { if (o.vue){ fermerFeuille(); aller(o.vue); } else if (ACT[o.act]) ACT[o.act]({...d, ...(o.args || {})}); }, calme ? 0 : 520);
+  const act = o.actF ? o.actF(M()) : o.act;   // v139 : action qui dépend du moment (le tableau des scores)
+  setTimeout(() => { if (o.vue){ fermerFeuille(); aller(o.vue); } else if (ACT[act]) ACT[act]({...d, ...(o.args || {})}); }, calme ? 0 : 520);
 };
 const humeurPresident = mg => mg.confiance >= 70 ? 'Le président est ravi.' : mg.confiance >= 45 ? 'Le président est serein.' : mg.confiance >= 25 ? 'Le président s\'impatiente.' : 'Le président doute sérieusement de toi.';
 ACT.scConfiance = () => { const M_ = M(), mg = M_.manager, c = moi(), o = mg.objectif, CL = window.QM.classement(M_, c.ligue), pos = CL.findIndex(r => r.id === c.id) + 1;
@@ -1045,7 +1084,19 @@ ACT.menu = () => {
 };
 ACT.fermerTiroir = fermerTiroir;
 addEventListener('keydown', e => { if (e.key === 'Escape') fermerTiroir(); });
-Z.apresRendu = majMenu;
+/* v139 : les panoramas s'ouvrent centrés, puis gardent leur position d'un rendu à l'autre */
+const PANO_X = {};
+function panoramas(){
+  for (const el of document.querySelectorAll('.sc-pano:not([data-ok])')){
+    el.dataset.ok = 1; const l = el.dataset.l, max = el.scrollWidth - el.clientWidth;
+    if (max > 0) el.scrollLeft = PANO_X[l] ?? max / 2;
+    el.addEventListener('scroll', () => { PANO_X[l] = el.scrollLeft; }, {passive:true});
+  }
+}
+Z.apresRendu = () => { majMenu(); panoramas(); };
+/* v139 : l'accueil affiche la scène du stade en tête (vueAccueil, qm27-ui.js) */
+Z.sceneStade = () => { try { return sceneDispo('accueil') ? sceneHTML('accueil') : ''; } catch(e){ return ''; } };
+Z.apresStade = () => { if (VUE.querySelector('.scene')) V.colorierProduits(VUE, moi()); };
 
 /* ============================== Enregistrement ============================== */
 Object.assign(VUES, {entree:vueEntree, hall:vueHall, salon:vueSalon, federation:vueFederation, progression:vueProgression, recrutement:vueRecrutement, equipe:vueEquipe, club:vueClubCarte, direction:vueDirection, profil:vueProfil, trophees:vueTrophees, boite:vueBoite, plus:vuePlus, effectif:vueEffectif, clubs:vueClubs, clubFiche:vueClubFiche, calendrier:vueCalendrier, entrainement:vueEntrainement});

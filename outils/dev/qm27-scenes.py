@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 4549399f
+# mon-ecran-version: df3d299b
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -10,6 +10,8 @@ v118 — méthode des RETOUCHES (bien meilleure) : ChatGPT peint la pièce compl
 retouche dans la même conversation (images B, C… : seuls les objets changent). Chaque retouche est recalée sur A (ORB + similitude), puis
 on découpe autour de chaque objet un rectangle aux bords fondus, avec son vrai décor : <lieu>-<objet>-<image>.webp, posé à sa place exacte.
 RETOUCHES[lieu] = {'zones': {objet: [x0, y0, x1, y1] dans A (1024 × 1536)}, 'pieces': [(objet, image)]}.
+v139 : RETOUCHES[lieu]['taille'] = (largeur, hauteur) pour une autre taille que 1024 × 1536 (le stade en panorama paysage) ;
+les calques de Qwen sont agrandis à cette taille.
 Usage : python3 outils/dev/qm27-scenes.py <dossier des planches> [dossier de sortie, défaut images/qm27/scenes]"""
 import sys, os, json
 import numpy as np
@@ -153,7 +155,7 @@ def calque_qwen(lieu, n):
     f = os.path.join(A, f'{lieu}-calques', f'{n}.png')
     if not os.path.exists(f): return None
     q = np.asarray(Image.open(f).convert('RGBA'))[..., 3].astype(np.float32) / 255
-    return np.clip((cv2.resize(q, (1024, 1536), interpolation=cv2.INTER_CUBIC) - .3) / .4, 0, 1)
+    return np.clip((cv2.resize(q, (W, H), interpolation=cv2.INTER_CUBIC) - .3) / .4, 0, 1)
 
 def couche_avant(a, al, R):
     """Le premier plan : calque de Qwen agrandi ; dans la grille (« fer »), seuls le fer vert-de-gris, l'or des pointes et le très sombre restent
@@ -190,6 +192,21 @@ def texture_brume(l=1024, h=360, graine=27):
     ombre = np.clip(nd.gaussian_filter(al, 6, mode='wrap') - al, 0, 1)   # dessous des voiles un peu bleuté
     rgb = np.dstack([255 - 40 * ombre, 255 - 30 * ombre, np.full_like(al, 255)])
     return np.dstack([rgb, al * 255]).clip(0, 255).astype(np.uint8)
+
+# v139 : le stade, panorama paysage : image A de ChatGPT 1536 × 1024, recadrée en haut (0-900) puis agrandie ×2 (qm27-agrandir.py) : 3072 × 1800 ;
+# B portail du château ouvert, C tunnel illuminé, D chopes qui trinquent, E écharpes au vent et balais qui flottent (chacune refaite depuis A).
+# Tissus blanc et anthracite (tente, articles de l'échoppe, fanions de la balustrade) détourés par la règle « tissu » ; premier plan = les trois
+# perches et leurs anneaux (calque 3 de Qwen) : le vif d'or passe derrière ; le ciel pour la brume.
+CHOPES_ST = (937, 1062, 71)
+RETOUCHES['stade'] = {'taille':(3072, 1800),
+    'zones':{'grille':[0, 750, 372, 1252], 'echoppe':[345, 985, 740, 1372], 'tente':[735, 790, 1140, 1310], 'chopes':[858, 985, 1018, 1142],
+             'tunnel':[1600, 1100, 2056, 1380], 'portail':[2525, 895, 2975, 1350], 'fanions':[1100, 985, 2480, 1082]},
+    'pieces':[('portail', 'B'), ('tunnel', 'C'), ('chopes', 'D'), ('echoppe', 'E')],
+    'gris':[('tente', 'A', 0, [CHOPES_ST, [850, 1150, 1030, 1310]], {'regle':'tissu', 'aire':8000}), ('chopes', 'D', 0, [CHOPES_ST], {'regle':'tissu', 'aire':200}),
+            ('echoppe', 'A', 0, [[470, 1180, 560, 1225]], {'regle':'tissu', 'aire':300, 'blanc':(50, 160)}), ('echoppe', 'E', 0, [[470, 1180, 560, 1225]], {'regle':'tissu', 'aire':300, 'blanc':(50, 160)}),
+            ('fanions', 'A', 0, [], {'regle':'tissu', 'aire':150})],
+    'avant':{'calque':3, 'fer':[], 'plein':[], 'vide':[], 'haut':1500},
+    'ciel':{'haut':1000, 'vide':[]}}
 
 RETOUCHES['boutique'] = {'zones':{'ardoise':[285, 728, 745, 1325]}, 'pieces':[('ardoise', 'B')],   # v128 : la couche « articles » recoloriée est retirée (« couches_v124 » n'est plus lu)
                          'couches_v124':[('articles', [0, 110, 1004, 1040],
@@ -236,10 +253,14 @@ def couche_masque(a, c, sans):
 # La couche a la taille de la zone (transparente ailleurs) : l'écran la pose sur l'objet et la teint (QMV.colorierGris, data-prod="gris:…").
 # v134 : silh = silhouette de l'objet (calque de Qwen-Image-Layered, 1024 × 1536, 0 à 1) : on ne garde que le peu saturé DANS l'objet
 # (le ciel pâle et les arbres derrière la tente de l'entrée sont aussi peu saturés) ; « sans » accepte aussi des cercles (cx, cy, r)
-def couche_grise(img, zone, smax, sans, silh=None):
+# v139 : regle='tissu' : seulement le blanc franc (S < 32, V > 180) et l'anthracite (sombre bleu-gris : V < 125, teinte 95-135, S < 140),
+# pas la pierre beige ni le bois sombre (teinte 8-20) ;
+# aire : taille minimale d'un morceau gardé (petits fanions)
+def couche_grise(img, zone, smax, sans, silh=None, regle=None, aire=1500, blanc=(32, 180)):
     import cv2
     x0, y0, x1, y1 = zone; z = img[y0:y1, x0:x1]; hsv = cv2.cvtColor(z, cv2.COLOR_BGR2HSV).astype(int)
-    m = ((hsv[..., 1] < smax) & (hsv[..., 2] > 25)).astype(np.uint8)
+    if regle == 'tissu': m = (((hsv[..., 1] < blanc[0]) & (hsv[..., 2] > blanc[1])) | ((hsv[..., 2] < 125) & (hsv[..., 2] > 20) & (hsv[..., 0] >= 95) & (hsv[..., 0] <= 135) & (hsv[..., 1] < 140))).astype(np.uint8)
+    else: m = ((hsv[..., 1] < smax) & (hsv[..., 2] > 25)).astype(np.uint8)
     if silh is not None: m &= (silh[y0:y1, x0:x1] > .5).astype(np.uint8)
     ex = np.zeros(m.shape, bool)
     for b in sans:
@@ -249,7 +270,7 @@ def couche_grise(img, zone, smax, sans, silh=None):
     m[ex] = 0
     m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8)); m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((7, 7), np.uint8))
     n, lab, st, _ = cv2.connectedComponentsWithStats(m)
-    m = nd.binary_fill_holes(np.isin(lab, [k for k in range(1, n) if st[k, 4] > 1500])); m[ex] = False   # v134 : le bouchage des trous ne rend pas ce qu'on a écarté (l'enseigne)
+    m = nd.binary_fill_holes(np.isin(lab, [k for k in range(1, n) if st[k, 4] > aire])); m[ex] = False   # v134 : le bouchage des trous ne rend pas ce qu'on a écarté (l'enseigne)
     return z, cv2.GaussianBlur(m.astype(np.float32), (0, 0), 0.7)
 
 def seule_echarpe(img, sans, plusieurs=False):
@@ -268,30 +289,31 @@ for lieu, R in RETOUCHES.items():
     fA = os.path.join(A, f'{lieu}-A.png')
     if not os.path.exists(fA): continue
     import cv2
-    a = cv2.imread(fA); a = cv2.resize(a, (1024, 1536), interpolation=cv2.INTER_AREA)
+    W, H = R.get('taille', (1024, 1536))   # v139 : taille propre au lieu (le stade en panorama paysage)
+    a = cv2.imread(fA); a = cv2.resize(a, (W, H), interpolation=cv2.INTER_AREA)
     cv2.imwrite(os.path.join(O, f'{lieu}-fond.webp'), a, [cv2.IMWRITE_WEBP_QUALITY, 82]); print(lieu, 'fond (image A) ok')
     orb = cv2.ORB_create(6000); ka, da = orb.detectAndCompute(cv2.cvtColor(a, cv2.COLOR_BGR2GRAY), None); regs = {}
     for obj, im in R['pieces']:
         if im not in regs:
-            b = cv2.resize(cv2.imread(os.path.join(A, f'{lieu}-{im}.png')), (1024, 1536), interpolation=cv2.INTER_AREA)
+            b = cv2.resize(cv2.imread(os.path.join(A, f'{lieu}-{im}.png')), (W, H), interpolation=cv2.INTER_AREA)
             kb, db = orb.detectAndCompute(cv2.cvtColor(b, cv2.COLOR_BGR2GRAY), None)
             mt = sorted(cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).match(db, da), key=lambda x: x.distance)[:1500]
             T, inl = cv2.estimateAffinePartial2D(np.float32([kb[m.queryIdx].pt for m in mt]), np.float32([ka[m.trainIdx].pt for m in mt]), method=cv2.RANSAC, ransacReprojThreshold=2)
-            regs[im] = cv2.warpAffine(b, T, (1024, 1536), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE); print(f'  image {im} recalée ({int(inl.sum())} points)')
+            regs[im] = cv2.warpAffine(b, T, (W, H), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE); print(f'  image {im} recalée ({int(inl.sum())} points)')
         x0, y0, x1, y1 = R['zones'][obj]; src_ = regs[im]
         if obj in R.get('locaux', {}):   # v134 : recalage propre à cet objet, sur son voisinage seulement
-            L = R['locaux'][obj]; mk = np.zeros((1536, 1024), np.uint8); rx0, ry0, rx1, ry1 = L['region']; mk[ry0:ry1, rx0:rx1] = 255
+            L = R['locaux'][obj]; mk = np.zeros((H, W), np.uint8); rx0, ry0, rx1, ry1 = L['region']; mk[ry0:ry1, rx0:rx1] = 255
             for sx0, sy0, sx1, sy1 in L.get('sans', []): mk[sy0:sy1, sx0:sx1] = 0
-            b = cv2.resize(cv2.imread(os.path.join(A, f'{lieu}-{im}.png')), (1024, 1536), interpolation=cv2.INTER_AREA)
+            b = cv2.resize(cv2.imread(os.path.join(A, f'{lieu}-{im}.png')), (W, H), interpolation=cv2.INTER_AREA)
             kl, dl = orb.detectAndCompute(cv2.cvtColor(a, cv2.COLOR_BGR2GRAY), mk); kb, db = orb.detectAndCompute(cv2.cvtColor(b, cv2.COLOR_BGR2GRAY), None)
             mt = sorted(cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).match(db, dl), key=lambda x: x.distance)[:1500]
             T, inl = cv2.estimateAffinePartial2D(np.float32([kb[m.queryIdx].pt for m in mt]), np.float32([kl[m.trainIdx].pt for m in mt]), method=cv2.RANSAC, ransacReprojThreshold=2)
-            src_ = cv2.warpAffine(b, T, (1024, 1536), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE); print(f'  {obj}-{im} recalé localement ({int(inl.sum())} points)')
+            src_ = cv2.warpAffine(b, T, (W, H), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE); print(f'  {obj}-{im} recalé localement ({int(inl.sum())} points)')
         p = src_[y0:y1, x0:x1]
         if obj in R.get('interieurs', {}):   # v134 : seulement l'intérieur sombre de la niche (pris dans A), pas de rectangle
             I = R['interieurs'][obj]; bx0, by0, bx1, by1 = I['boite']; hv = cv2.cvtColor(a, cv2.COLOR_BGR2HSV)[by0:by1, bx0:bx1, 2]
             n, lab, st, _ = cv2.connectedComponentsWithStats((hv < I['vmax']).astype(np.uint8)); cm = lab == 1 + np.argmax(st[1:, 4])
-            mm = np.zeros((1536, 1024), bool)
+            mm = np.zeros((H, W), bool)
             for yy in range(cm.shape[0]):
                 if by0 + yy > I['ymax']: break
                 xs = np.nonzero(cm[yy])[0]
@@ -299,13 +321,13 @@ for lieu, R in RETOUCHES.items():
             mm = cv2.dilate(mm.astype(np.uint8), np.ones((2 * I['marge'] + 1,) * 2, np.uint8)).astype(np.float32)
             al = cv2.GaussianBlur(mm, (0, 0), 1.2)[y0:y1, x0:x1]
         else:
-            al = np.zeros(p.shape[:2], np.float32); al[0 if y0 == 0 else FONDU:p.shape[0] if y1 >= 1536 else -FONDU, 0 if x0 == 0 else FONDU:p.shape[1] if x1 >= 1024 else -FONDU] = 1
+            al = np.zeros(p.shape[:2], np.float32); al[0 if y0 == 0 else FONDU:p.shape[0] if y1 >= H else -FONDU, 0 if x0 == 0 else FONDU:p.shape[1] if x1 >= W else -FONDU] = 1
             al = cv2.GaussianBlur(al, (0, 0), FONDU / 2.2)   # v131 : pas de fondu le long des bords de l'image (rien à raccorder)
         rgba = np.dstack([cv2.cvtColor(p, cv2.COLOR_BGR2RGB), (al * 255).astype(np.uint8)])
         Image.fromarray(rgba, 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-{im}.webp'), 'WEBP', quality=86, method=6)
         tailles[f'{lieu}-{obj}-{im}'] = [x0, y0, x1, y1]
     if lieu in MASQUES and os.path.exists(os.path.join(A, f'{lieu}-{MASQUES[lieu]["image"]}.png')):
-        Q = MASQUES[lieu]; cm = cv2.resize(cv2.imread(os.path.join(A, f'{lieu}-{Q["image"]}.png')), (1024, 1536), interpolation=cv2.INTER_NEAREST)
+        Q = MASQUES[lieu]; cm = cv2.resize(cv2.imread(os.path.join(A, f'{lieu}-{Q["image"]}.png')), (W, H), interpolation=cv2.INTER_NEAREST)
         z, al, cadre = couche_masque(a, cm, Q['sans'])
         Image.fromarray(np.dstack([cv2.cvtColor(z, cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{Q["nom"]}.webp'), 'WEBP', quality=88, method=6)
         tailles[f'{lieu}-{Q["nom"]}'] = cadre; print(f'  couche {Q["nom"]} (masque {Q["image"]}) : cadre {cadre}')
@@ -315,13 +337,14 @@ for lieu, R in RETOUCHES.items():
         tailles[f'{lieu}-{nom}'] = cadre
     for obj, im, smax, sans, *opt in R.get('gris', []):
         silh = calque_qwen(lieu, opt[0]['calque']) if opt and 'calque' in opt[0] else None
-        z, al = couche_grise(a if im == 'A' else regs[im], R['zones'][obj], smax, sans, silh)
+        o_ = opt[0] if opt else {}
+        z, al = couche_grise(a if im == 'A' else regs[im], R['zones'][obj], smax, sans, silh, o_.get('regle'), o_.get('aire', 1500), o_.get('blanc', (32, 180)))
         Image.fromarray(np.dstack([cv2.cvtColor(z, cv2.COLOR_BGR2RGB), (np.clip(al, 0, 1) * 255).astype(np.uint8)]), 'RGBA').save(os.path.join(O, f'{lieu}-{obj}-gris-{im}.webp'), 'WEBP', quality=88, method=6)
         print(f'  couche grise {obj}-{im} : {int((al > 0.5).sum())} px')
     if 'avant' in R and calque_qwen(lieu, R['avant']['calque']) is not None:
         rgba = couche_avant(a, calque_qwen(lieu, R['avant']['calque']), R['avant'])
         Image.fromarray(rgba, 'RGBA').save(os.path.join(O, f'{lieu}-avant.webp'), 'WEBP', quality=84, method=6)
-        tailles[f'{lieu}-avant'] = [0, 0, 1024, R['avant']['haut']]; print(f'  premier plan {lieu}-avant : {rgba.shape[1]} × {rgba.shape[0]}')
+        tailles[f'{lieu}-avant'] = [0, 0, W, R['avant']['haut']]; print(f'  premier plan {lieu}-avant : {rgba.shape[1]} × {rgba.shape[0]}')
     if 'ciel' in R:   # v136
         Image.fromarray(couche_ciel(a, R['ciel']), 'RGBA').save(os.path.join(O, f'{lieu}-ciel.webp'), 'WEBP', quality=90, method=6)
         Image.fromarray(texture_brume(), 'RGBA').save(os.path.join(O, 'brume.webp'), 'WEBP', quality=82, method=6)
