@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: 209fa173
+# mon-ecran-version: 1ab42532
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -170,16 +170,50 @@ def couche_avant(a, al, R):
     for x0, y0, x1, y1 in R['vide']: al[y0:y1, x0:x1] = 0
     return np.dstack([cv2.cvtColor(a, cv2.COLOR_BGR2RGB), (al * 255).astype(np.uint8)])[:R['haut']]
 
+def bord_nuit(a, haut):
+    """v149 : ligne du haut des murs sous un ciel de nuit, colonne par colonne. Deux lectures : avec les nuages (bleu ou clair peu saturé), qui
+    prend aussi le liseré bleuté du haut des murs ; sans eux (bleu nuit profond, rouge < 52), juste là où il n'y a pas de nuage. Là où les
+    deux s'écartent trop (un nuage posé sur le mur), on garde la première remontée de l'écart habituel."""
+    import cv2
+    from scipy import ndimage as nd
+    H, W = a.shape[:2]; k = W / 1536; f = a.astype(int); b, g, r = f[..., 0], f[..., 1], f[..., 2]
+    hsv = cv2.cvtColor(a, cv2.COLOR_BGR2HSV).astype(int); clair = (hsv[..., 2] > 150) & (hsv[..., 1] < 70)
+    def bord(c, run=int(12 * k)):
+        c = c.copy(); c[haut:] = False; out = np.zeros(W, int)
+        for x in range(W):
+            rr = np.convolve((~c[:, x]).astype(int), np.ones(run, int), 'valid'); out[x] = np.argmax(rr >= run)
+        return nd.median_filter(out, size=int(41 * k) | 1)
+    b1 = bord(((b > r + 25) & (b > g + 8)) | clair); b2 = bord(((b > r + 25) & (b > g + 8) & (r < 52)) | clair)
+    d = b1 - b2; ok = d < int(40 * k); delta = int(np.median(d[ok])) if ok.any() else 0
+    return nd.median_filter(np.where(d > delta + int(15 * k), b1 - delta, b2), size=int(9 * k) | 1)
+
 def couche_ciel(a, R):
     """v136 : masque du ciel (alpha) : bleu franc et clair (teinte 96-114, saturation > 55, valeur > 215), un pixel rogné et adouci
-    (pas de liseré clair contre la cime des arbres) ; la brume du jeu n'apparaît qu'à travers lui."""
+    (pas de liseré clair contre la cime des arbres) ; la brume du jeu n'apparaît qu'à travers lui.
+    v149 : regle 'nuit' (plafond enchanté de la grande salle) : tout ce qui est au-dessus du haut des murs (bord_nuit), rogné de `rogne` px."""
     import cv2
+    if R.get('regle') == 'nuit':
+        H, W = a.shape[:2]; bm = bord_nuit(a, R['haut']); m = (np.arange(R['haut'])[:, None] < bm[None, :]).astype(np.uint8)
+        m = cv2.erode(m, np.ones((2 * R.get('rogne', 6) + 1,) * 2, np.uint8)); al = cv2.GaussianBlur(m.astype(np.float32), (0, 0), 2)
+        return np.dstack([np.full(al.shape + (3,), 255, np.uint8), (al * 255).astype(np.uint8)])
     h = cv2.cvtColor(a, cv2.COLOR_BGR2HSV).astype(int)[:R['haut']]
     m = ((h[..., 0] >= 96) & (h[..., 0] <= 114) & (h[..., 1] > 55) & (h[..., 2] > 215)).astype(np.uint8)
     for x0, y0, x1, y1 in R['vide']: m[y0:y1, x0:x1] = 0
     m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8)); m = cv2.erode(m, np.ones((3, 3), np.uint8))
     al = cv2.GaussianBlur(m.astype(np.float32), (0, 0), 1.2)
     return np.dstack([np.full(al.shape + (3,), 255, np.uint8), (al * 255).astype(np.uint8)])
+
+def rechauffer(img, C):
+    """v149 : réchauffe la pierre grise du haut des murs : gains R, V, B pondérés par la hauteur (plein au-dessus de y0, rien sous y1) et par
+    le gris (couleurs franches, bleu du ciel, des vitraux et du liseré de lune intacts). Appliqué de la même façon à A et aux retouches."""
+    import cv2
+    H, W = img.shape[:2]; f = img.astype(np.float32)
+    yy = np.clip((C['y1'] - np.arange(H)) / (C['y1'] - C['y0']), 0, 1)[:, None]
+    gris = np.clip(1 - cv2.cvtColor(img, cv2.COLOR_BGR2HSV)[..., 1].astype(np.float32) / 255 / C['smax'], 0, 1)
+    bleu = np.clip((f[..., 0] - f[..., 2] - 8) / 25, 0, 1)
+    w = yy * gris * (1 - bleu); g = np.array(C['gain'], np.float32)[::-1]
+    if 'bord' in C: w = w * np.clip((np.arange(H)[:, None] - C['bord'][None, :] - 4) / 10, 0, 1)   # rien au-dessus du haut des murs
+    return np.clip(f * (1 + w[..., None] * (g - 1)), 0, 255).astype(np.uint8)
 
 def texture_brume(l=1024, h=360, graine=27):
     """v136 : voiles de brume blanche, raccord sans couture de gauche à droite (bruit périodique), une tuile = deux largeurs de scène."""
@@ -208,6 +242,15 @@ RETOUCHES['stade'] = {'taille':(3072, 1800),
             ('fanions', 'A', 0, [], {'regle':'tissu', 'aire':150})],
     'avant':{'calque':3, 'fer':[], 'plein':[], 'vide':[], 'haut':1500},
     'ciel':{'haut':1000, 'vide':[]}}
+
+# v149 : la grande salle, panorama paysage sous un plafond enchanté de nuit : A de ChatGPT 1536 × 1024 agrandie ×2 (qm27-agrandir.py) : 3072 × 2048 ;
+# B bannières au vent et éclat sur la coupe, C hibou qui déploie ses ailes et lettre qui s'envole, D la Gazette s'ouvre, F porte entrouverte sur le
+# couloir (E, l'almanach aux pages en éventail, écartée : le jeu fait le halo et les dates qui s'élèvent). Pierre du haut des murs réchauffée
+# (`chaud`), ciel de nuit au-dessus du haut des murs (`ciel` règle « nuit ») pour les étoiles, les nuages et les bougies flottantes.
+RETOUCHES['grandesalle'] = {'taille':(3072, 2048), 'chaud':{'y0':840, 'y1':1280, 'gain':(1.22, 1.06, .8), 'smax':.45},
+    'zones':{'porte':[0, 730, 324, 1210], 'gazette':[30, 1160, 530, 1430], 'estrade':[1100, 480, 1990, 1200], 'hiboux':[2470, 590, 2968, 1280]},
+    'pieces':[('porte', 'F'), ('gazette', 'D'), ('estrade', 'B'), ('hiboux', 'C')],
+    'ciel':{'regle':'nuit', 'haut':560, 'rogne':8}}
 
 # v143 : le hall du château (remplace l'ancien hall) : B porte de l'infirmerie entrouverte, C double porte de la grande salle ouverte et bannières au vent,
 # D lueur et vapeur vertes du sous-sol, E grande bannière qui ondule et lustre plus brillant ; la grande bannière blanc et gris (A et E) est teinte.
@@ -299,11 +342,18 @@ for lieu, R in RETOUCHES.items():
     import cv2
     W, H = R.get('taille', (1024, 1536))   # v139 : taille propre au lieu (le stade en panorama paysage)
     a = cv2.imread(fA); a = cv2.resize(a, (W, H), interpolation=cv2.INTER_AREA)
+    a_brut = a   # v149 : la pierre réchauffée, mais jamais le ciel (le bord des murs est lu sur l'image d'origine)
+    if 'chaud' in R:
+        Cc = dict(R['chaud'])
+        if R.get('ciel', {}).get('regle') == 'nuit': Cc['bord'] = bord_nuit(a_brut, R['ciel']['haut'])
+        chaud = lambda im: rechauffer(im, Cc)
+    else: chaud = lambda im: im
+    a = chaud(a)
     cv2.imwrite(os.path.join(O, f'{lieu}-fond.webp'), a, [cv2.IMWRITE_WEBP_QUALITY, 82]); print(lieu, 'fond (image A) ok')
     orb = cv2.ORB_create(6000); ka, da = orb.detectAndCompute(cv2.cvtColor(a, cv2.COLOR_BGR2GRAY), None); regs = {}
     for obj, im in R['pieces']:
         if im not in regs:
-            b = cv2.resize(cv2.imread(os.path.join(A, f'{lieu}-{im}.png')), (W, H), interpolation=cv2.INTER_AREA)
+            b = chaud(cv2.resize(cv2.imread(os.path.join(A, f'{lieu}-{im}.png')), (W, H), interpolation=cv2.INTER_AREA))
             kb, db = orb.detectAndCompute(cv2.cvtColor(b, cv2.COLOR_BGR2GRAY), None)
             mt = sorted(cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).match(db, da), key=lambda x: x.distance)[:1500]
             T, inl = cv2.estimateAffinePartial2D(np.float32([kb[m.queryIdx].pt for m in mt]), np.float32([ka[m.trainIdx].pt for m in mt]), method=cv2.RANSAC, ransacReprojThreshold=2)
@@ -312,7 +362,7 @@ for lieu, R in RETOUCHES.items():
         if obj in R.get('locaux', {}):   # v134 : recalage propre à cet objet, sur son voisinage seulement
             L = R['locaux'][obj]; mk = np.zeros((H, W), np.uint8); rx0, ry0, rx1, ry1 = L['region']; mk[ry0:ry1, rx0:rx1] = 255
             for sx0, sy0, sx1, sy1 in L.get('sans', []): mk[sy0:sy1, sx0:sx1] = 0
-            b = cv2.resize(cv2.imread(os.path.join(A, f'{lieu}-{im}.png')), (W, H), interpolation=cv2.INTER_AREA)
+            b = chaud(cv2.resize(cv2.imread(os.path.join(A, f'{lieu}-{im}.png')), (W, H), interpolation=cv2.INTER_AREA))
             kl, dl = orb.detectAndCompute(cv2.cvtColor(a, cv2.COLOR_BGR2GRAY), mk); kb, db = orb.detectAndCompute(cv2.cvtColor(b, cv2.COLOR_BGR2GRAY), None)
             mt = sorted(cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).match(db, dl), key=lambda x: x.distance)[:1500]
             T, inl = cv2.estimateAffinePartial2D(np.float32([kb[m.queryIdx].pt for m in mt]), np.float32([kl[m.trainIdx].pt for m in mt]), method=cv2.RANSAC, ransacReprojThreshold=2)
@@ -354,7 +404,7 @@ for lieu, R in RETOUCHES.items():
         Image.fromarray(rgba, 'RGBA').save(os.path.join(O, f'{lieu}-avant.webp'), 'WEBP', quality=84, method=6)
         tailles[f'{lieu}-avant'] = [0, 0, W, R['avant']['haut']]; print(f'  premier plan {lieu}-avant : {rgba.shape[1]} × {rgba.shape[0]}')
     if 'ciel' in R:   # v136
-        Image.fromarray(couche_ciel(a, R['ciel']), 'RGBA').save(os.path.join(O, f'{lieu}-ciel.webp'), 'WEBP', quality=90, method=6)
+        Image.fromarray(couche_ciel(a_brut, R['ciel']), 'RGBA').save(os.path.join(O, f'{lieu}-ciel.webp'), 'WEBP', quality=90, method=6)
         Image.fromarray(texture_brume(), 'RGBA').save(os.path.join(O, 'brume.webp'), 'WEBP', quality=82, method=6)
         print(f'  masque du ciel {lieu}-ciel et texture de brume')
     for obj, im, sans in R.get('seules', []):

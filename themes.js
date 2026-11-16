@@ -1,4 +1,4 @@
-// mon-ecran-version: 76e078a9
+// mon-ecran-version: f9d69091
 /* Mon Écran — thèmes de couleurs (v42), communs à toutes les pages.
    Chargé dans <head> juste après noyau.js : applique le thème et le mode choisis dans État avant l'affichage,
    écrit les couleurs du thème et le fond dégradé (calque fixe : sur iPhone, Safari ignore « background-attachment:fixed »
@@ -291,7 +291,7 @@ function poserPolice(id){
     if (!P.fichier){ delete d.dataset.police; st.textContent = ''; return; }
     d.dataset.police = P.id;
     st.textContent = `@font-face{font-family:"${NOMS_POL[P.id]}";src:url(polices/${P.fichier}) format("woff2");font-weight:${P.poids};font-style:normal;font-display:swap}\n`
-      + `:root[data-police="${P.id}"] :is(h1,h2,.grand):not(header *),:root[data-police="${P.id}"] .sc-plaque{font-family:${P.famille};${P.ajust || ''}}`;   // pas les titres d'en-tête (hauteur fixe) ; v132 : les étiquettes des pièces illustrées aussi
+      + `:root[data-police="${P.id}"] :is(h1,h2,.grand):not(header *),:root[data-police="${P.id}"] :is(.sc-plaque,.sc-ecrit){font-family:${P.famille};${P.ajust || ''}}`;   // pas les titres d'en-tête (hauteur fixe) ; v132 : les étiquettes des pièces illustrées aussi ; v149 : et les écritures des scènes (.sc-ecrit)
   }catch(e){}
 }
 

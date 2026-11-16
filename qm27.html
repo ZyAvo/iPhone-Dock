@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="0f93d746">
+<meta name="mon-ecran-version" content="47b5a61d">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,7 +18,7 @@ body{margin:0;font-size:14px}
 <script src="config/config.js"></script>
 <script src="noyau.js?v=79ea0556"></script>
 <script>/* page désactivée : on s'arrête là */Noyau.accueil.garde('qm27');</script>
-<script src="themes.js?v=76e078a9"></script>
+<script src="themes.js?v=f9d69091"></script>
 <link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="commun.css?v=5b436a95">
 <style>
@@ -871,6 +871,42 @@ html.desk .scene{max-width:min(560px, calc((100vh - 170px) * .667))}
   .sc-lanterne.fiole{animation:sc-fiole 2.8s ease-in-out infinite alternate}.sc-lanterne.fiole.l1{animation-duration:3.6s}
   .sc-rayon{animation:sc-rayon 9s ease-in-out infinite}.sc-poussiere{animation:sc-poussiere 38s linear infinite}
 }
+/* v149 : la grande salle. Ciel de nuit : nuages (la brume) plus discrets, étoiles qui scintillent ; bougies flottantes qui montent et
+   descendent doucement, flamme qui danse ; halo de la lune ; classement à la craie ; almanach : halo doré et dates qui s'élèvent en fumée */
+.sc-ciel.nuit .sc-brume.a{opacity:.2}.sc-ciel.nuit .sc-brume.b{opacity:.08}
+.sc-etoiles{position:absolute;left:0;top:0;width:100%;height:100%}.sc-etoiles circle{fill:#fff}.sc-etoiles .b circle{fill:#dce6ff}.sc-etoiles .c circle{fill:#fff6dc}
+.sc-etoiles .a{opacity:.75}.sc-etoiles .b{opacity:.5}.sc-etoiles .c{opacity:.9}
+@keyframes sc-scintille{0%,100%{opacity:.85}50%{opacity:.18}}
+.sc-lanterne.lune{--o:.55;background:radial-gradient(closest-side,rgba(225,235,255,0) 31%,rgba(215,228,255,.6) 35%,rgba(195,212,255,.18) 60%,rgba(190,210,255,0) 100%)}
+@keyframes sc-lune{0%,100%{opacity:var(--o)}50%{opacity:calc(var(--o) * 1.35)}}
+.sc-cierge{position:absolute;z-index:4;pointer-events:none;width:calc(1.1cqw * var(--k) * var(--s));height:calc(4.6cqw * var(--k) * var(--s));margin-left:calc(-.55cqw * var(--k) * var(--s));
+  border-radius:30% 30% 10% 10%/7% 7% 3% 3%;background:linear-gradient(90deg,#c9bb9b,#fbf4e2 40%,#ebe1c8 70%,#b9aa8a);box-shadow:inset 0 calc(.4cqw * var(--k) * var(--s)) calc(.3cqw * var(--k) * var(--s)) rgba(255,214,140,.55)}
+.sc-cierge::before{content:'';position:absolute;left:50%;bottom:96%;width:100%;height:170%;transform:translateX(-50%);transform-origin:50% 100%;border-radius:50% 50% 45% 45%/65% 65% 35% 35%;
+  background:radial-gradient(ellipse 50% 60% at 50% 72%,#fff 0 22%,#ffeaa8 40%,#ffb444 68%,rgba(255,150,40,0) 100%)}
+.sc-cierge::after{content:'';position:absolute;left:50%;top:-30%;width:calc(10cqw * var(--k) * var(--s));height:calc(10cqw * var(--k) * var(--s));transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,206,125,.62),rgba(255,190,100,.2) 50%,rgba(255,180,90,0));mix-blend-mode:screen}
+@keyframes sc-flotte{0%,100%{transform:translateY(0)}50%{transform:translateY(calc(-1.6cqw * var(--k)))}}
+@keyframes sc-meche{from{transform:translateX(-50%) scaleY(.86) skewX(-3deg)}to{transform:translateX(-50%) scaleY(1.1) skewX(3deg)}}
+.sc-craie.liste text{text-anchor:start;font-size:34px}.sc-craie.liste text.pts{text-anchor:end}.sc-craie.liste text.titre{text-anchor:middle;font-size:30px;opacity:.8;letter-spacing:.06em}
+.sc-craie text.mien{fill:#f5d98e}
+.sc-html .sc-halo{position:absolute;left:4%;top:-8%;width:92%;height:86%;border-radius:50%;mix-blend-mode:screen;opacity:.22;transition:opacity .4s;
+  background:radial-gradient(closest-side,rgba(255,216,125,.62),rgba(255,192,92,.24) 55%,rgba(255,180,80,0))}
+.sc-zone.joue .sc-halo{opacity:1}@media (hover:hover){.sc-zone:hover .sc-halo{opacity:1}}
+.sc-dates{position:absolute;inset:0}
+.sc-dates span{position:absolute;left:calc(34% + var(--i) * 11%);top:2%;transform:translate(-50%,0);white-space:nowrap;font-weight:750;font-size:calc(4.2cqw * var(--k));color:#ffd36a;opacity:0;
+  text-shadow:0 0 calc(.25cqw * var(--k)) rgba(70,32,0,.95),0 0 calc(.6cqw * var(--k)) rgba(70,32,0,.6),0 0 calc(1.6cqw * var(--k)) rgba(255,180,60,.85),0 0 calc(3.2cqw * var(--k)) rgba(255,170,60,.45)}
+.sc-zone.joue .sc-dates span{opacity:1;transform:translate(-50%,calc(var(--i) * -6cqw * var(--k)))}@media (hover:hover){.sc-zone:hover .sc-dates span{opacity:1;transform:translate(-50%,calc(var(--i) * -6cqw * var(--k)))}}
+@keyframes sc-date{0%{opacity:0;transform:translate(-50%,0) scale(.92);filter:blur(0)}14%{opacity:1;filter:blur(0)}55%{opacity:.9;filter:blur(.4px)}
+  100%{opacity:0;transform:translate(-50%,calc(-26cqw * var(--k))) scale(1.18);filter:blur(5px)}}
+@keyframes sc-halo{0%,100%{opacity:.16}50%{opacity:.34}}
+@media (prefers-reduced-motion: no-preference){
+  .sc-etoiles .a{animation:sc-scintille 3.8s ease-in-out infinite}.sc-etoiles .b{animation:sc-scintille 5.3s ease-in-out -2s infinite}.sc-etoiles .c{animation:sc-scintille 2.2s ease-in-out -1s infinite}
+  .sc-lanterne.lune{animation:sc-lune 9s ease-in-out infinite}
+  .sc-cierge{animation:sc-flotte var(--d, 7s) ease-in-out infinite}.sc-cierge::before{animation:sc-meche .7s ease-in-out infinite alternate}
+  .sc-html .sc-halo{animation:sc-halo 4.5s ease-in-out infinite}.sc-zone.joue .sc-halo{animation:none}
+  .sc-zone.joue .sc-dates span{animation:sc-date 3.2s ease-out calc(var(--i) * .55s) infinite both}
+}
+@media (prefers-reduced-motion: no-preference) and (hover:hover){.sc-zone:hover .sc-halo{animation:none}.sc-zone:hover .sc-dates span{animation:sc-date 3.2s ease-out calc(var(--i) * .55s) infinite both}}
 /* v124 : l'ardoise du Bazar, écrite à la craie */
 .sc-html{position:absolute;pointer-events:none;display:flex;flex-direction:column;justify-content:flex-start}
 /* v147 : la composition à la craie sur le tableau du vestiaire */
@@ -1141,7 +1177,7 @@ html.desk .er{cursor:grab}
 <script src="qm27-nations.js?v=66d46995"></script>
 <script src="qm27-visuel.js?v=475e9f0c"></script>
 <script src="qm27-ui.js?v=177a76ef"></script>
-<script src="qm27-ecrans.js?v=4e103b1e"></script>
+<script src="qm27-ecrans.js?v=b8cb4e11"></script>
 <script src="qm27-stats.js?v=044932c6"></script>
 <script src="commun.js?v=fc411b5f"></script>
 </body>
