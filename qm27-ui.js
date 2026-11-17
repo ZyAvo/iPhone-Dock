@@ -1,4 +1,4 @@
-// mon-ecran-version: a7d1b268
+// mon-ecran-version: fc9a26c6
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -507,15 +507,18 @@ function impactTxt(d, adv){
   if (d.fatigue) parts.push(`fatigue ${nb1(d.fatigue)} %`);
   return `<p class="imp ${d.ecart > 3 ? 'b' : d.ecart < -3 ? 'm' : ''}">${adv ? 'Contre ' + esc(adv) + ' : ' : ''}${parts.join(' · ')} → écart attendu <b>${nb0(d.ecart)} pts</b></p>`;
 }
+/* v152 : maîtrise de l'option choisie (consignes du système de jeu) */
+const moChip = (o, k, v) => { const x = o.mo ? o.mo(k, v) : null; return x == null ? '' : `<span class="fx mo ${x >= 70 ? 'b' : x < 45 ? 'm' : ''}" title="Maîtrise de cette option">Maîtrise ${x} %</span>`; };
 function consRow(T, k, act, o){
   const c = TT().CONS_PAR[k], ouvert = o.ouvert === k;
   const det = !ouvert ? '' : `<div class="cs-det"><p class="petit">${esc(c[3])}</p>${c[4].map(([v, l, , chiffre]) => { const on = String(T[k]) === String(v);
     return `<div class="cs-opt${on ? ' on' : ''}"><div class="ligne"><b style="flex:1">${esc(l)}</b>${on ? '<span class="badge tit">Choix actuel</span>' : `<button class="btn sec mini" data-act="${act}" data-k="${k}" data-v="${v}">Choisir</button>`}</div>
       <div class="cs-fx">${fxChips(k, v) || '<span class="fx">Référence</span>'}</div><p class="petit mut" style="margin:3px 0 0">${esc(chiffre)}</p>
+      ${o.mo && o.mo(k, v) != null ? `<p class="petit mo-l">Maîtrise de l'option <b>${o.mo(k, v)} %</b>${!on && o.cout ? ` · plan joué ${nb1(o.cout(k, v))} %` : ''}${o.plan && String(o.plan[k]) === String(v) ? ' · <span class="mut">valeur du plan</span>' : ''}</p>` : ''}
       ${o.prev && !on ? impactTxt(o.prev.opts[k] && o.prev.opts[k][v], o.adv) : ''}${o.fit ? o.fit(k, v) : ''}</div>`; }).join('')}</div>`;
   return `<div class="cs${ouvert ? ' ouvert' : ''}"><button class="cs-l" data-act="infoCons" data-k="${k}" data-a="${act}" aria-expanded="${ouvert}" title="${esc(c[1])} : explications et effets">${COURT_CONS[k]}<i aria-hidden="true">${ouvert ? '−' : 'i'}</i></button>
-    <div class="seg mini" role="group" aria-label="${esc(c[1])}">${c[4].map(([v, l]) => `<button data-act="${act}" data-k="${k}" data-v="${v}" class="${String(T[k]) === String(v) ? 'on' : ''}" aria-pressed="${String(T[k]) === String(v)}">${COURT_OPT[v] || l}</button>`).join('')}</div>
-    ${!ouvert && fxChips(k, T[k]) ? `<div class="cs-fx">${fxChips(k, T[k])}</div>` : ''}${det}</div>`;
+    <div class="seg mini" role="group" aria-label="${esc(c[1])}">${c[4].map(([v, l]) => `<button data-act="${act}" data-k="${k}" data-v="${v}" class="${String(T[k]) === String(v) ? 'on' : ''}${o.plan && String(o.plan[k]) === String(v) ? ' pl' : ''}" aria-pressed="${String(T[k]) === String(v)}"${o.plan && String(o.plan[k]) === String(v) ? ' title="Valeur du plan"' : ''}>${COURT_OPT[v] || l}</button>`).join('')}</div>
+    ${!ouvert && (fxChips(k, T[k]) || moChip(o, k, T[k])) ? `<div class="cs-fx">${moChip(o, k, T[k])}${fxChips(k, T[k])}</div>` : ''}${det}</div>`;
 }
 function consignesHTML(T, act, liste, o){
   if (!TT()) return '';
@@ -675,11 +678,12 @@ function vueTactique(){
   const A = TT() ? TT().adequationCompo(M, K, T) : {}; U.fitMap = A;
   const nbN = n => Object.values(A).filter(a => a && a.niveau === n).length;
   /* prochain adversaire et prévision de l'adjoint (calculées avec le moteur, sans hasard) */
-  let pm = null, R = null, P = null; try { pm = TT() && TT().prochainMatch(M); if (pm){ R = TT().rapport(M, pm.m, pm.S); const cx = TT().contexteMatch(M, pm.m, pm.S); P = cx && TT().prevoir(cx, T); } } catch (e){ console.warn('QM27 tactique', e); }
+  let pm = null, R = null, P = null; try { pm = TT() && TT().prochainMatch(M); if (pm){ R = TT().rapport(M, pm.m, pm.S); const cx = TT().contexteMatch(M, pm.m, pm.S); P = cx && plansPrev(cx, TT().prevoir(cx, T), 'plan'); } } catch (e){ console.warn('QM27 tactique', e); }
   avecPanneau(() => { VUE.innerHTML = `<div><h1 class="grand">Tactique</h1><p class="sous">Note moyenne <b>${moy}</b> · <span title="Adéquation des titulaires">adaptés <i class="fit bon"></i> ${nbN('bon')} <i class="fit moyen"></i> ${nbN('moyen')} <i class="fit faible"></i> ${nbN('faible')}</span>${notes.length < 7 ? ` · <span style="color:var(--moyen)">${7 - notes.length} place${7 - notes.length > 1 ? 's' : ''} libre${7 - notes.length > 1 ? 's' : ''}</span>` : ''}${window.QMG && QMG.maitrise ? ` · <span title="Maîtrise tactique : les séances d'apprentissage tactique la font monter, changer ton système la fait baisser">maîtrise <b>${Math.round(QMG.maitrise(M, c).v)} %</b></span>` : ''}</p></div>
   ${compoHTML(ctx)}
   <div class="cols tac-cols"><div>
-    <div class="carte cons-c"><h2>Consignes <span class="mut petit">touche un libellé pour ses effets</span></h2>${consignesHTML(T, 'consigne', null, {prev:P, adv:R && R.adv.nom, fit:fitOption(K, T)})}</div>
+    ${plansHTML(false)}
+    <div class="carte cons-c"><h2>Consignes <span class="mut petit">touche un libellé pour ses effets</span></h2>${consignesHTML(T, 'consigne', null, {prev:P, adv:R && R.adv.nom, fit:fitOption(K, T), ...optsMaitrise(T)})}</div>
     <div class="carte"><h2>Rôles et capitaine</h2><div class="liste compacte">${SLOTS_T.map(x => { const id = lireSlot(K, x), j = M.joueurs[id]; if (!j) return '';
       const Ro = (D.ROLES[x[0]] || []).find(r => r[0] === (K.roles || {})[id]), a = A[id];
       return `<button class="el" data-act="role" data-j="${id}" data-p="${x[0]}">${posteB(x[0])}<div class="t"><b>${pastille(a)} ${esc(court(j))}${K.cap === id ? ' <span class="badge tit">C</span>' : ''} <span class="mut" style="font-weight:400">· ${Ro ? esc(Ro[1]) : 'rôle ?'}</span></b><span>${a && a.raisons.length ? (a.niveau === 'bon' ? 'À surveiller : ' : '') + esc(a.raisons[0]) : a && a.plus.length ? esc(a.plus[0]) : 'À l\'aise dans ce qu\'on lui demande'}</span></div><span class="d mut">›</span></button>`; }).join('')}</div></div>
@@ -688,13 +692,53 @@ function vueTactique(){
     ${P ? previsionHTML(P, R, 'consigne') : ''}
   </div></div>`; });
 }
+/* v152 : plans de jeu (presets) et maîtrise tactique par option */
+const GG = () => window.QMG && window.QMG.presets ? window.QMG : null;
+const moiC = () => M && M.manager && M.manager.club ? club(M.manager.club) : null;
+const pc0 = x => Math.round(x) + ' %';
+/* options de consRow pour mon club : maîtrise de chaque option, coût d'un changement, valeurs du plan actif */
+function optsMaitrise(T){
+  const G_ = GG(), c = moiC(); if (!G_ || !c) return {};
+  const L = G_.presets(M, c); T = QM.completerTactique({...T});
+  return {mo:(k, v) => G_.maitriseOption(M, c, k, v), cout:(k, v) => G_.coutChangement(M, c, T, k, /^\d$/.test(String(v)) ? +v : v), plan:L[c.presetActif].T};
+}
+function plansHTML(avant){
+  const G_ = GG(), c = moiC(); if (!G_ || !c) return '';
+  const L = G_.presets(M, c), a = c.presetActif, T = QM.completerTactique({...c.tactique}), ec = G_.ecartsPreset(M, c);
+  const mt = G_.maitrisePlan(M, c, T), mp = G_.maitrisePlan(M, c, L[a].T), act = avant ? 'planAvant' : 'plan';
+  return `<div class="carte plans"><h2>Plans de jeu <span class="mut petit">maîtrise du plan joué <b>${pc0(mt)}</b></span></h2>
+    <div class="plans-l" role="group" aria-label="Plans de jeu">${L.map((p, i) => `<button class="plan${i === a ? ' on' : ''}" data-act="${act}" data-i="${i}" aria-pressed="${i === a}"><b>${esc(p.nom)}</b><span>${pc0(G_.maitrisePlan(M, c, p.T))}</span></button>`).join('')}</div>
+    ${ec.length ? `<p class="petit" style="margin:8px 0 0"><b>Retouches</b> sur « ${esc(L[a].nom)} » : ${ec.map(([k, vp, v]) => `${esc(COURT_CONS[k].toLowerCase())} ${esc(nomOpt(k, v).toLowerCase())} <span class="mut">(plan : ${esc(nomOpt(k, vp).toLowerCase())})</span>`).join(', ')}${Math.abs(mt - mp) >= 0.5 ? ` · maîtrise ${pc0(mp)} → <b>${pc0(mt)}</b>` : ' · sans effet sur la maîtrise'}.</p>
+      <div class="btns" style="margin-top:8px">${avant ? '' : `<button class="btn sec" data-act="planEnregistrer">Enregistrer dans « ${esc(L[a].nom)} »</button>`}<button class="btn sec" data-act="planRevenir" data-x="${avant ? 1 : ''}">Revenir au plan</button></div>`
+      : `<p class="petit mut" style="margin:8px 0 0">Tu joues « ${esc(L[a].nom)} » tel qu'il est enregistré.${avant ? '' : ' Change une consigne pour le retoucher, puis enregistre-le ou reviens au plan.'}</p>`}
+    ${avant ? '' : `<div style="margin-top:8px"><button class="btn sec mini" data-act="planNom" data-i="${a}">Renommer « ${esc(L[a].nom)} »</button></div>`}
+    <p class="petit mut" style="margin:8px 0 0">La maîtrise se compte option par option : une retouche ne coûte que l'écart sur l'option changée. Le rythme, le risque, l'engagement, les cognards, l'attrapeur et le gardien sont libres.</p></div>`;
+}
+/* la prévision complétée : coût en maîtrise de chaque piste, et ce que donnerait chacun des autres plans */
+function plansPrev(ctx, P, act){
+  const G_ = GG(), c = moiC(); if (!G_ || !c || !P || !ctx) return P;
+  const L = G_.presets(M, c), T = QM.completerTactique({...ctx.X.e[ctx.k].tactique});
+  for (const x of P.conseils) x.mt = G_.coutChangement(M, c, T, x.k, x.v);
+  P.plans = L.map((p, i) => { if (i === c.presetActif && !G_.ecartsPreset(M, c).length) return null; const v = TT().estimerX(ctx.X, ctx.k, p.T);
+    return {i, nom:p.nom, mt:G_.maitrisePlan(M, c, p.T), d:v.ecart - P.base.ecart, actif:i === c.presetActif}; }).filter(Boolean);
+  P.planAct = act; return P;
+}
+/* v152 : fréquence d'une consigne dans leur jeu habituel, et portrait de leur entraîneur */
+const fq = (R, k) => R.hab && R.hab.freq && R.hab.freq[k] && R.hab.freq[k][1] > 1 ? ` <span class="mut">(${R.hab.freq[k][0]}/${R.hab.freq[k][1]})</span>` : '';
+function styleCoach(C){
+  const L = [C.lecture >= 0.65 ? 'Leur entraîneur lit bien ses adversaires et ajuste souvent son plan.' : C.lecture <= 0.35 ? 'Leur entraîneur ajuste rarement son plan à l\'adversaire.' : 'Leur entraîneur ajuste parfois son plan à l\'adversaire.'];
+  if (C.prudence >= 0.65) L.push('Il se replie volontiers contre plus fort.'); else if (C.prudence <= 0.3) L.push('Il ne recule devant personne.');
+  if (C.fidele >= 0.7) L.push('Il tient à ses idées.');
+  return L.join(' ');
+}
 /* v96 : le prochain adversaire vu par l'adjoint */
 function adversaireHTML(R, T){
   const To = R.T, no = (k, v) => nomOpt(k, v).toLowerCase(), barre = (l, a, b) => { const m = Math.max(a, b, 1);
     return `<div class="rf"><span>${esc(l)}</span><div class="rf-b"><i class="n" style="width:${a / m * 100}%"></i><i class="e" style="width:${b / m * 100}%"></i></div><b class="${a >= b + 0.5 ? 'bon' : b >= a + 0.5 ? 'mauvais' : ''}">${String(a).replace('.', ',')} / ${String(b).replace('.', ',')}</b></div>`; };
   return `<div class="carte adv"><h2>Prochain adversaire <span class="mut petit">${R.dom ? 'à l\'extérieur' : 'à domicile'}</span></h2>
     <div class="ligne" style="gap:10px;margin-bottom:8px">${blason(R.adv.id, 'p')}<div style="flex:1;min-width:0"><b>${esc(R.adv.nom)}</b><div class="petit mut">${R.rang}${R.rang === 1 ? 'er' : 'e'} sur ${R.nb} · forme ${R.forme.join(' ') || '—'} · ${D.METEOS[R.meteo] ? D.METEOS[R.meteo].ico + ' ' + D.METEOS[R.meteo].nom.toLowerCase() : ''}</div></div></div>
-    <p class="petit" style="margin:0 0 8px"><b>Leur jeu :</b> ${no('sans', QM.sansDe(To))} sans le souafle, attaque ${To.zone === 'axe' ? 'par l\'axe' : To.zone === 'couloirs' ? 'par les couloirs' : 'de loin'}, batteurs en ${no('batSans', To.batSans)}, cognards sur ${no('cible', To.cible)}, jeu ${no('agressivite', To.agressivite)}, gardien ${To.gardien === 'sortie' ? 'qui sort' : 'sur sa ligne'}.</p>
+    <p class="petit" style="margin:0 0 4px"><b>Leur jeu habituel${R.hab && R.hab.n ? ` (${R.hab.n} dernier${R.hab.n > 1 ? 's' : ''} match${R.hab.n > 1 ? 's' : ''})` : ' (pas encore vus : d\'après leur style)'} :</b> ${no('sans', QM.sansDe(To))}${fq(R, 'sans')} sans le souafle, attaque ${To.zone === 'axe' ? 'par l\'axe' : To.zone === 'couloirs' ? 'par les couloirs' : 'de loin'}${fq(R, 'zone')}, batteurs en ${no('batSans', To.batSans)}${fq(R, 'batSans')}, cognards sur ${no('cible', To.cible)}${fq(R, 'cible')}, jeu ${['calme', 'normal', 'dur'][(+To.agressivite || 2) - 1]}, attrapeur « ${no('attrapeur', To.attrapeur)} »${fq(R, 'attrapeur')}, gardien ${To.gardien === 'sortie' ? 'qui sort' : 'sur sa ligne'}${fq(R, 'gardien')}.</p>
+    ${R.coach ? `<p class="petit mut" style="margin:0 0 8px">${esc(styleCoach(R.coach))} Ce n'est qu'une tendance : il peut changer son plan pour ce match.</p>` : ''}
     <div class="rfs"><div class="rf-leg"><span><i class="n"></i>nous</span><span><i class="e"></i>eux</span></div>${R.lignes.map(([l, a, b]) => barre(l, a, b)).join('')}</div>
     <p class="petit" style="margin:8px 0"><b>À surveiller :</b> ${R.cles.map(x => `${esc(court(x.j))} (${D.POSTES[x.j.poste].nom.toLowerCase()}, ${x.n})`).join(', ')}</p>
     ${R.conseils.length ? `<div class="conseils">${R.conseils.map(([t, k, v]) => `<div class="cs-c"><span>${esc(t)}</span>${k && String(T[k]) !== String(v) ? `<button class="btn sec mini" data-act="consigne" data-k="${k}" data-v="${v}">Appliquer</button>` : ''}</div>`).join('')}</div>` : ''}</div>`;
@@ -704,7 +748,8 @@ function previsionHTML(P, R, act, live){
   const b = P.base, m = (n, l) => `<div><b>${n}</b><span>${l}</span></div>`;
   return `<div class="carte prev"><h2>${live ? 'Pistes de l\'adjoint' : 'Prévision'}${R ? ` <span class="mut petit">contre ${esc(R.adv.nom)}</span>` : ''}</h2>
     ${live ? '' : `<div class="prev-g">${m('≈ ' + Math.round(b.pour), 'buts marqués')}${m('≈ ' + Math.round(b.contre), 'buts encaissés')}${m(Math.round(b.vif) + ' %', 'vif d\'or pour nous')}${m(Math.round(b.possession) + ' %', 'possession')}${m('≈ ' + Math.round(b.duree) + ' min', 'durée')}${m(nb0(b.ecart) + ' pts', 'écart attendu')}</div>`}
-    ${P.conseils.length ? `${live ? '' : '<h4 class="sous-t">Pistes</h4>'}<div class="conseils">${P.conseils.map(x => `<div class="cs-c"><span><b>${esc(COURT_CONS[x.k])} : ${esc(nomOpt(x.k, x.v))}</b> · écart ${nb0(x.ecart)} pts (buts ${nb1(x.pour)}, encaissés ${nb1(x.contre)}${x.fatigue ? ', fatigue ' + nb1(x.fatigue) + ' %' : ''})</span><button class="btn sec mini" data-act="${act}" data-k="${x.k}" data-v="${x.v}">Appliquer</button></div>`).join('')}</div>` : '<p class="petit mut" style="margin:6px 0 0">Aucun changement simple ne rapporte nettement plus : ton plan tient la route.</p>'}
+    ${P.conseils.length ? `${live ? '' : '<h4 class="sous-t">Pistes</h4>'}<div class="conseils">${P.conseils.map(x => `<div class="cs-c"><span><b>${esc(COURT_CONS[x.k])} : ${esc(nomOpt(x.k, x.v))}</b> · écart ${nb0(x.ecart)} pts (buts ${nb1(x.pour)}, encaissés ${nb1(x.contre)}${x.fatigue ? ', fatigue ' + nb1(x.fatigue) + ' %' : ''})</span><button class="btn sec mini" data-act="${act}" data-k="${x.k}" data-v="${x.v}">Appliquer</button></div>${x.mt ? `<p class="petit mut cs-mt">${x.mt <= -3 ? 'Remaniement' : 'Retouche'} : maîtrise du plan joué ${nb1(x.mt)} %${x.mt <= -3 ? ', option peu travaillée' : ''}</p>` : ''}`).join('')}</div>` : '<p class="petit mut" style="margin:6px 0 0">Aucun changement simple ne rapporte nettement plus : ton plan tient la route.</p>'}
+    ${P.plans && P.plans.length && P.planAct ? `<h4 class="sous-t">Changer de plan</h4><div class="conseils">${P.plans.map(x => `<div class="cs-c"><span><b>${esc(x.nom)}</b>${x.actif ? ' tel qu\'enregistré' : ''} · maîtrise ${pc0(x.mt)} · écart ${nb0(x.d)} pts</span><button class="btn sec mini" data-act="${x.actif ? 'planRevenir' : P.planAct}" data-i="${x.i}" data-x="${P.planAct === 'planAvant' ? 1 : ''}">${x.actif ? 'Revenir' : 'Passer'}</button></div>`).join('')}</div>` : ''}
     <p class="petit mut" style="margin:8px 0 0">${live ? 'Effet estimé sur le reste du match, joueurs fatigués compris.' : 'Calculé avec les règles du match pour ces deux équipes, sans le hasard du jour : l\'écart réel varie beaucoup d\'un match à l\'autre (vif d\'or).'}</p></div>`;
 }
 /* touche sur un joueur du terrain ou du banc */
@@ -1619,8 +1664,8 @@ function avantMatchHTML(){
   const moi = X.joueur, e = X.e[moi], T = e.tactique;
   const ch = (X.changements || []).filter(([a, b]) => M.joueurs[b]).map(([a, b]) => M.joueurs[a] ? `${court(M.joueurs[a])} → ${court(M.joueurs[b])}` : `${court(M.joueurs[b])} (poste vide)`).join(', ');
   const A = TT() ? TT().adequationCompo(M, {P:e.P, B:e.B, A:e.A, G:e.G, roles:e.roles || {}}, QM.completerTactique(T)) : {};
-  let R = null, P = null; if (!X.sixn && TT()) try { const m = QM.matchDuJoueur(M); R = TT().rapport(M, m); P = prevoirLive(X.joueur); } catch (er){ console.warn('QM27 avant-match', er); }
-  return `${divinationHTML()}${R ? adversaireHTML(R, QM.completerTactique(T)).replace(/data-act="consigne"/g, 'data-act="consigneAvant"') : ''}${P ? previsionHTML(P, R, 'consigneAvant') : ''}${causerieHTML('avant')}${parisHTML()}<div class="carte"><h2>Ta composition <button data-act="vue" data-v="${X.sixn ? 'selection' : 'tactique'}">Modifier</button></h2>
+  let R = null, P = null; if (!X.sixn && TT()) try { const m = QM.matchDuJoueur(M); R = TT().rapport(M, m); P = prevoirLive(X.joueur, true); } catch (er){ console.warn('QM27 avant-match', er); }
+  return `${divinationHTML()}${R ? adversaireHTML(R, QM.completerTactique(T)).replace(/data-act="consigne"/g, 'data-act="consigneAvant"') : ''}${!X.sixn ? plansHTML(true) : ''}${P ? previsionHTML(P, R, 'consigneAvant') : ''}${causerieHTML('avant')}${parisHTML()}<div class="carte"><h2>Ta composition <button data-act="vue" data-v="${X.sixn ? 'selection' : 'tactique'}">Modifier</button></h2>
     ${ch ? `<p class="petit" style="margin:0 0 8px;color:var(--moyen)">Remplacés (blessure ou sélection) : ${esc(ch)}</p>` : ''}
     <div class="liste">${['P', 'B', 'A', 'G'].flatMap(p => e[p].map(id => { const j = M.joueurs[id], a = A[id]; return `<div class="el">${posteB(p)}<div class="t"><b>${pastille(a)} ${flag(j.nat)} ${esc(nomJ(j))}</b><span>Forme ${j.forme} · fatigue ${j.fat} %${a && a.raisons.length ? ' · ' + esc(a.raisons[0]) : ''}</span></div><span class="note ${classeNote(QM.note(j, p))}">${QM.note(j, p)}</span></div>`; })).join('')}</div>
     <p class="petit mut" style="margin:8px 0 0">Attrapeur : ${esc(nomOpt('attrapeur', T.attrapeur))} · rythme ${esc(nomOpt('rythme', T.rythme))} · avec le souafle : ${esc(nomOpt('avec', T.avec).toLowerCase())}, par ${esc(nomOpt('zone', T.zone).toLowerCase())} · sans : ${esc(nomOpt('sans', QM.sansDe(T)).toLowerCase())}</p></div>
@@ -1635,10 +1680,11 @@ function analyseHTML(){
   return `<div class="carte analyse"><h2>Analyse de l'adjoint</h2><ul class="an">${X.analyse.map(([t, txt]) => `<li class="${t}">${esc(txt)}</li>`).join('')}</ul></div>`;
 }
 /* prévision sur le match en cours ou à venir (X), forme du jour neutralisée */
-function prevoirLive(k){
+function prevoirLive(k, avant){
   if (!TT() || !X) return null;
-  const jour = X.jour; X.jour = [1, 1];
-  try { return TT().prevoir({X, k}, QM.completerTactique({...X.e[k].tactique})); } finally { X.jour = jour; }
+  /* v152 : avant le coup d'envoi, l'adjoint ne connaît que leur jeu habituel (pendant le match, on voit leur tactique) */
+  const jour = X.jour, To = X.e[1 - k].tactique, cache = avant && X.attendue; X.jour = [1, 1]; if (cache) X.e[1 - k].tactique = QM.completerTactique({...X.attendue});
+  try { const ctx = {X, k}, P = TT().prevoir(ctx, QM.completerTactique({...X.e[k].tactique})); return X.sixn ? P : plansPrev(ctx, P, avant ? 'planAvant' : null); } finally { X.jour = jour; if (cache) X.e[1 - k].tactique = To; }
 }
 function apresMatchHTML(){
   const moi = X.joueur, S = X.stats, N = QM.notesMatch(X), r = X.score[moi] - X.score[1 - moi];
@@ -1710,7 +1756,7 @@ function rendreTempsMort(){
   feuille(`${teteF('Temps mort', `${X.rempl[moi]} changement${X.rempl[moi] > 1 ? 's' : ''} libre${X.rempl[moi] > 1 ? 's' : ''} · ${Math.floor(X.t / 60)}e minute`)}
     ${conseils().filter(c => c[1]).length ? `<div class="carte adj"><h2>L'adjoint</h2>${conseils().filter(c => c[1]).map(c => `<div class="ligne" style="gap:10px;margin-bottom:8px"><span style="flex:1">${esc(c[0])}</span><button class="btn sec" data-act="consigneLive" data-k="${c[1]}" data-v="${c[2]}">Appliquer</button></div>`).join('')}</div>` : ''}
     ${(() => { let P = null; try { P = prevoirLive(moi); } catch (er){} return P ? previsionHTML(P, null, 'consigneLive', true) : ''; })()}
-    <div class="carte cons-c" style="margin-top:10px"><h2>Consignes</h2>${consignesHTML(QM.completerTactique(e.tactique), 'consigneLive', ['rythme', 'risque', 'agressivite', 'passes', 'avec', 'batAvec', 'zone', 'sans', 'batSans', 'cible', 'attrapeur'], {fit:fitOption({P:e.P, B:e.B, A:e.A, G:e.G, roles:e.roles || {}}, e.tactique)})}</div>
+    <div class="carte cons-c" style="margin-top:10px"><h2>Consignes</h2>${consignesHTML(QM.completerTactique(e.tactique), 'consigneLive', ['rythme', 'risque', 'agressivite', 'passes', 'avec', 'batAvec', 'zone', 'sans', 'batSans', 'cible', 'attrapeur'], {...(X && !X.sixn ? optsMaitrise(e.tactique) : {}), fit:fitOption({P:e.P, B:e.B, A:e.A, G:e.G, roles:e.roles || {}}, e.tactique)})}</div>
     <div class="carte" style="margin-top:10px"><h2>${sel ? 'Qui entre ?' : 'Remplacement : qui sort ?'}</h2><div class="liste">
     ${sel ? (e.banc || []).map(id => { const j = M.joueurs[id]; const p = ['P', 'B', 'A', 'G'].find(q => e[q].includes(sel)); return `<button class="el" data-act="entre" data-j="${id}">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}</b><span>Note au poste ${QM.note(j, p)} · fatigue ${Math.round(X.fat[id] || 0)} %</span></div></button>`; }).join('') || '<p class="mut">Plus personne sur le banc.</p>'
       : tit.map(([p, id]) => { const j = M.joueurs[id]; return `<button class="el" data-act="sort" data-j="${id}" ${X.rempl[moi] <= 0 ? 'disabled style="opacity:.5"' : ''}>${posteB(p)}<div class="t"><b>${esc(nomJ(j))}</b><span>Fatigue ${Math.round(X.fat[id])} %</span></div></button>`; }).join('')}
@@ -1793,6 +1839,16 @@ const ACT = {
   consigne:d => { const T = club(M.manager.club).tactique; T[d.k] = /^\d$/.test(d.v) ? +d.v : d.v; sauver(); rendre(); },
   consigneAvant:d => { const v = /^\d$/.test(d.v) ? +d.v : d.v; if (X && !X.sixn) club(M.manager.club).tactique[d.k] = v; if (X) X.e[X.joueur].tactique[d.k] = v; sauver(); rendre(); toast('Consigne appliquée'); },
   infoCons:d => { U.infoCons = U.infoCons && U.infoCons[0] === d.a && U.infoCons[1] === d.k ? null : [d.a, d.k]; if (d.a === 'consigneLive') rendreTempsMort(); else rendre(); },
+  /* v152 : plans de jeu */
+  plan:d => { const G_ = GG(); if (!G_) return; G_.choisirPreset(M, +d.i); sauver(); rendre(); toast(`Plan « ${club(M.manager.club).presets[+d.i].nom} »`); },
+  planAvant:d => { const G_ = GG(), c = moiC(); if (!G_ || !c) return; G_.choisirPreset(M, +d.i); if (X && !X.sixn) X.e[X.joueur].tactique = QM.completerTactique(JSON.parse(JSON.stringify(c.tactique))); sauver(); rendre(); toast(`Plan « ${c.presets[+d.i].nom} » pour ce match`); },
+  planRevenir:d => { const G_ = GG(), c = moiC(); if (!G_ || !c) return; G_.choisirPreset(M, c.presetActif); if (d.x && X && !X.sixn) X.e[X.joueur].tactique = QM.completerTactique(JSON.parse(JSON.stringify(c.tactique))); sauver(); rendre(); toast('Retour au plan enregistré'); },
+  planEnregistrer:() => { const G_ = GG(), c = moiC(); if (!G_ || !c) return; G_.enregistrerPreset(M); sauver(); rendre(); toast(`« ${c.presets[c.presetActif].nom} » enregistré`); },
+  planNom:d => { const c = moiC(); if (!c || !GG()) return; const i = +d.i, p = GG().presets(M, c)[i];
+    feuille(`${teteF('Renommer le plan', 'Un nom court, par exemple « Bloc bas » ou « Contre les gros »')}<input class="champ" id="nomPlan" maxlength="18" value="${esc(p.nom)}" autocomplete="off" style="width:100%;box-sizing:border-box"><div style="height:10px"></div><button class="btn plein" data-act="planNomOk" data-i="${i}">Enregistrer le nom</button>`);
+    setTimeout(() => { const n = document.getElementById('nomPlan'); if (n){ n.focus(); n.select(); } }, 60); },
+  planNomOk:d => { const n = document.getElementById('nomPlan'); if (n && GG()) GG().renommerPreset(M, +d.i, n.value); fermerFeuille(); sauver(); rendre(); },
+  travailPlan:d => { if (!GG()) return; GG().choisirTravail(M, d.v); sauver(); rendre(); },
   consigneLive:d => { const T = X.e[X.joueur].tactique; T[d.k] = /^\d$/.test(d.v) ? +d.v : d.v; rendreTempsMort(); },
   sort:d => { U.live.sortant = d.j; rendreTempsMort(); },
   entre:d => { const ok = QM.remplacer(X, X.joueur, U.live.sortant, d.j, false); U.live.sortant = null;

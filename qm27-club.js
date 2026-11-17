@@ -1,4 +1,4 @@
-// mon-ecran-version: 255f8f1f
+// mon-ecran-version: baa0a5b6
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -191,6 +191,7 @@ function entrainement(M, S, r){
     }
     c.cohesion = borne(c.cohesion + 1 + (P ? P.coh : moi ? tactique * 0.5 : 0.5) + (QB() ? QB().bonus(c, 'cohesion') : 0), 30, 100);
     if (P && root.QMG.apresEntrainement){ root.QMG.apresEntrainement(M, c, P); root.QMG.noterCourbes(M, c); }   // v127 : maîtrise tactique, mise en place, courbes de la saison
+    else if (!moi && root.QMG && root.QMG.entrainementIA) root.QMG.entrainementIA(M, c);   // v152 : l'ordinateur rode ses plans
   }
   for (const id of M.libres){ const j = M.joueurs[id]; if (j){ progression(M, j, FOCUS_IA[M.semaine % 3], 1, 8, 8, r, null); } }
 }

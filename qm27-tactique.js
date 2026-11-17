@@ -1,4 +1,4 @@
-// mon-ecran-version: c55fb853
+// mon-ecran-version: 37135330
 /* QM27 (v96) — analyse tactique, sans affichage. Expose window.QMT. Chargé après qm27.js (et les modules du club).
    - EFFETS : ce que change chaque consigne (lu dans le moteur, qm27.js › pas, vifDor), en tendances de −2 à +2.
    - adequation : un joueur est-il fait pour sa place, son rôle et les consignes demandées ? (vert / orange / rouge, avec les raisons)
@@ -139,6 +139,8 @@ function equipesPrevues(M, m, T){
     if (M.clubs[camp].compo) Q().verifierCompo(M, camp); else M.clubs[camp].compo = Q().compoAuto(M, camp);
     const E = Q().equipesPour(M, m), k = m.dom === camp ? 0 : 1;
     if (T) E[k].tactique = Q().completerTactique({...E[k].tactique, ...T});
+    /* v152 : l'adjoint ne connaît pas la tactique du jour de l'adversaire, seulement son jeu habituel */
+    if (root.QMG && root.QMG.attendue){ const adv = M.clubs[E[1 - k].id]; if (adv){ E[1 - k].tactique = Q().completerTactique({...root.QMG.attendue(M, adv)}); delete E[1 - k].notesIA; } }
     return {E, k};
   } finally { for (const id of ids) M.clubs[id].compo = garde[id]; }
 }
@@ -164,7 +166,8 @@ function rapport(M, m, Sem){
   if (To.agressivite === 3) conseils.push(['Ils jouent dur : attends-toi à des penalties, vérifie ton tireur.', null, null]);
   if (To.gardien === 'sortie' && Tn.passes !== 'court') conseils.push(['Leur gardien sort beaucoup : le jeu court le prend à revers.', 'passes', 'court']);
   if (nous.G < eux.G - 1 && Tn.gardien === 'sortie') conseils.push(['Notre gardien n\'est pas un spécialiste des sorties : reste aux anneaux.', 'gardien', 'anneaux']);
-  return {adv, m, dom:m.dom === adv.id, T:To, forme:T ? T.forme.slice() : [], rang:CL.findIndex(l => l.id === adv.id) + 1, nb:CL.length, cles, lignes, conseils:conseils.slice(0, 5), meteo:X.meteo};
+  const hab = root.QMG && root.QMG.habitude ? root.QMG.habitude(M, adv) : null, co = root.QMG && root.QMG.coach ? root.QMG.coach(M, adv) : null;
+  return {adv, m, dom:m.dom === adv.id, T:To, hab, coach:co, forme:T ? T.forme.slice() : [], rang:CL.findIndex(l => l.id === adv.id) + 1, nb:CL.length, cles, lignes, conseils:conseils.slice(0, 5), meteo:X.meteo};
 }
 
 /* ---------- L'adjoint joue le match en coulisses ---------- */
@@ -258,6 +261,9 @@ function analyse(M, X){
   if (S[k].tirs) { const p = Math.round(S[k].buts / S[k].tirs * 100), pa = S[o].tirs ? Math.round(S[o].buts / S[o].tirs * 100) : 0;
     if (S[k].buts > xb + 2) L.push(['bon', `Finition au-dessus des attentes (${p} % de réussite) : nos tireurs étaient dans un grand jour.`]);
     else if (S[k].buts < xb - 2) L.push(['mauvais', `Finition en dessous des attentes (${p} % de réussite contre ${pa} % en face).`]); }
+  if (X.attendue){ const A = X.attendue, chg = ['sans', 'zone', 'avec', 'attrapeur', 'gardien'].filter(c => String(A[c]) !== String(To[c]));
+    if (chg.length) L.push(['info', `Ils ont changé leur jeu habituel : ${chg.map(c => `${(CONS_PAR[c] || [, c])[1].toLowerCase()} ${nomO(c, To[c])} (d'habitude ${nomO(c, A[c])})`).join(', ')}.`]);
+    else L.push(['info', 'Ils ont joué comme d\'habitude : le rapport de l\'adjoint était juste.']); }
   const sd = Q().sansDe(To), cz = Q().CONTRE[sd];
   if (T.zone === cz) L.push(['bon', `Attaquer ${T.zone === 'axe' ? 'par l\'axe' : T.zone === 'couloirs' ? 'par les couloirs' : 'de loin'} contre leur ${nomO('sans', sd)} : bonne lecture, nos tirs étaient mieux placés.`]);
   else L.push(['mauvais', `Leur ${nomO('sans', sd)} craignait ${cz === 'axe' ? 'l\'axe' : cz === 'couloirs' ? 'les couloirs' : 'les tirs de loin'} ; on a attaqué ${T.zone === 'axe' ? 'par l\'axe' : T.zone === 'couloirs' ? 'par les couloirs' : 'de loin'}.`]);
@@ -279,5 +285,5 @@ function analyse(M, X){
   return L;
 }
 
-root.QMT = {contexteMatch, estimerX, prevoir, AXES, CONS, CONS_PAR, option, effets, adequation, adequationCompo, ROLE_ATTR, DEMANDE, prochainMatch, equipesPrevues, rapport, simuler, resumeSim, variantes, analyse};
+root.QMT = {ecart, BASE, contexteMatch, estimerX, prevoir, AXES, CONS, CONS_PAR, option, effets, adequation, adequationCompo, ROLE_ATTR, DEMANDE, prochainMatch, equipesPrevues, rapport, simuler, resumeSim, variantes, analyse};
 })(typeof window !== 'undefined' ? window : globalThis);

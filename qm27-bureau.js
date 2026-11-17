@@ -1,4 +1,4 @@
-// mon-ecran-version: c1f5c0ad
+// mon-ecran-version: 6ed496f7
 /* QM27 (v91, lot 8) — le bureau du manager, sans affichage. Expose window.QMG et complète window.QMC. Chargé après qm27-vestiaire.js.
    Entraînement programmable : programme de la semaine en 5 séances (lundi-vendredi), intensité, ateliers par poste, modèles,
    préparation physique d'avant-saison ; l'adjoint planifie tout seul si on le laisse faire.
@@ -102,27 +102,195 @@ function effets(M, c, p, S){
 /* lu par l'entraînement (qm27-club.js) pour le club du joueur */
 function programme(M, c, S){ return effets(M, c, programmeDe(M, c, M.semaine), S); }
 /* ================= v127 : maîtrise tactique, mise en place, entraînement individuel ================= */
-/* la maîtrise porte sur le système de jeu : dispositions avec et sans le souafle, batteurs, zone, passes (pas le rythme ni la prise de risque) */
-const SYSTEME = ['passes', 'sans', 'avec', 'batAvec', 'batSans', 'zone'];
+/* ================= v152 : maîtrise par élément, plans de jeu (presets), managers de l'ordinateur ================= */
+/* La maîtrise porte sur le système de jeu : chaque option (« sans:pressing », « zone:couloirs »…) a sa propre maîtrise, de 0 à 100.
+   La maîtrise d'une tactique = moyenne pondérée des options qu'elle utilise (EQ.maitrise.poids) : changer une option ne coûte que
+   l'écart sur cette option, rien n'est remis à zéro. Le rythme, la prise de risque, l'agressivité, la cible des cognards, l'attrapeur
+   et le gardien sont des consignes du jour : libres, sans maîtrise. */
+const MT = EQ.maitrise, SYSTEME = Object.keys(MT.poids);
+const OPTIONS = {passes:['court', 'long'], sans:['pressing', 'zone', 'repli'], avec:['triangle', 'ligne', 'pointe'], batAvec:['escorte', 'devant'], batSans:['protection', 'harcelement'], zone:['axe', 'couloirs', 'loin']};
+const CLES_T = ['rythme', 'risque', 'agressivite', 'passes', 'sans', 'avec', 'batAvec', 'batSans', 'zone', 'cible', 'attrapeur', 'gardien'];
+const r1 = x => Math.round(x * 10) / 10;
+const tac = T => Q().completerTactique({...(T || {})});
+const pareil = (a, b) => String(a) === String(b);
+function carteVide(v0, T, v){ const el = {}; for (const k of SYSTEME) for (const o of OPTIONS[k]) el[k + ':' + o] = v0; if (T) for (const k of SYSTEME) el[k + ':' + T[k]] = v; return el; }
+/* maîtrise du club (créée ou convertie depuis l'ancienne forme {v, T} d'avant v152) ; m.v = maîtrise de la tactique actuelle */
 function maitrise(M, c){
-  if (!c.maitrise){ c.maitrise = {v:60, T:SYSTEME.map(k => (c.tactique || {})[k] || '')}; }
-  return c.maitrise;
+  let m = c.maitrise;
+  if (!m || !m.el){ const T = tac(c.tactique), v = m && typeof m.v === 'number' ? m.v : MT.depart;
+    m = c.maitrise = {el:carteVide(Math.min(MT.autre, v), T, v)}; }   // avant v152 : une seule maîtrise pour tout le système
+  for (const k of SYSTEME) for (const o of OPTIONS[k]) if (m.el[k + ':' + o] == null) m.el[k + ':' + o] = MT.autre;
+  m.v = r1(Q().maitriseDe(m.el, tac(c.tactique)));
+  return m;
 }
-/* après la semaine d'entraînement du club du joueur : changements de système (chaque élément changé fait perdre 12 % de la maîtrise),
-   apprentissage de la semaine, mise en place pour le prochain match, moral des séances de cohésion */
+const maitrisePlan = (M, c, T) => r1(Q().maitriseDe(maitrise(M, c).el, tac(T)));
+const maitriseOption = (M, c, k, o) => SYSTEME.includes(k) ? Math.round(maitrise(M, c).el[k + ':' + o] ?? MT.autre) : null;
+/* coût en maîtrise d'un changement de consigne (négatif = perte), sur la tactique T */
+const coutChangement = (M, c, T, k, o) => SYSTEME.includes(k) ? r1(maitrisePlan(M, c, {...T, [k]:o}) - maitrisePlan(M, c, T)) : 0;
+
+/* --- plans de jeu du joueur : 3 presets enregistrables --- */
+const PRESETS_DEFAUT = T => [
+  {nom:'Plan A', T:tac(T)},
+  {nom:'Bloc bas', T:tac({...T, sans:'repli', batSans:'protection', batAvec:'escorte', passes:'court', avec:'triangle', risque:1, rythme:2})},
+  {nom:'Pressing', T:tac({...T, sans:'pressing', batSans:'harcelement', batAvec:'devant', passes:'long', avec:'ligne', zone:'couloirs', rythme:3})}];
+function presets(M, c){
+  if (!c.presets || c.presets.length !== 3){ c.presets = PRESETS_DEFAUT(tac(c.tactique)); c.presetActif = 0; }
+  if (!(c.presetActif >= 0 && c.presetActif < 3)) c.presetActif = 0;
+  if (c.presetTravail == null) c.presetTravail = 'actif';
+  return c.presets;
+}
+/* consignes où la tactique actuelle s'écarte du preset actif : [[clé, valeur du preset, valeur actuelle]] */
+function ecartsPreset(M, c){ const P = presets(M, c)[c.presetActif].T, T = tac(c.tactique); return CLES_T.filter(k => !pareil(P[k], T[k])).map(k => [k, P[k], T[k]]); }
+function choisirPreset(M, i){ const c = monClub(M); if (!c || !(i >= 0 && i < 3)) return; presets(M, c); c.presetActif = i; c.tactique = tac(copie(c.presets[i].T)); }
+function enregistrerPreset(M, i){ const c = monClub(M); if (!c) return; presets(M, c); if (i == null) i = c.presetActif; c.presets[i].T = tac(copie(c.tactique)); c.presetActif = i; }
+function renommerPreset(M, i, nom){ const c = monClub(M); if (!c) return; presets(M, c); nom = String(nom || '').trim().slice(0, 18); if (nom) c.presets[i].nom = nom; }
+function choisirTravail(M, v){ const c = monClub(M); if (!c) return; presets(M, c); c.presetTravail = v === 'tous' || v === 'actif' ? v : (+v >= 0 && +v < 3 ? +v : 'actif'); }
+/* plan(s) travaillé(s) à l'entraînement : [[tactique, part du gain]] */
+function plansTravailles(M, c){
+  const P = presets(M, c), t = c.presetTravail;
+  if (t === 'tous') return P.map(p => [p.T, 0.55]);
+  const i = t === 'actif' ? c.presetActif : t; return [[P[i].T, 1]];
+}
+/* apprentissage d'une semaine : options du (des) plan(s) travaillé(s) au plein gain, options des autres plans et de la tactique du moment
+   au gain secondaire, options oubliées qui s'érodent doucement (jusqu'au plancher) */
+function apprendre(el, plans, autres, g){
+  const vise = {}, vu = new Set();
+  for (const [T, part] of plans) for (const k of SYSTEME){ const o = k + ':' + T[k]; vise[o] = Math.max(vise[o] || 0, part); }
+  for (const T of autres) for (const k of SYSTEME) vu.add(k + ':' + T[k]);
+  for (const o of Object.keys(el)){
+    const v = el[o], frein = Math.max(0, 1 - v / 115);
+    if (vise[o]) el[o] = Math.min(100, v + g * vise[o] * frein);
+    else if (vu.has(o)) el[o] = Math.min(100, v + g * MT.secondaire * frein);
+    else if (v > MT.plancher) el[o] = Math.max(MT.plancher, v - MT.erosion);
+    el[o] = r1(el[o]);
+  }
+}
+/* après la semaine d'entraînement du club du joueur : apprentissage, mise en place pour le prochain match, moral des séances de cohésion */
 function apresEntrainement(M, c, P){
-  const m = maitrise(M, c), T = SYSTEME.map(k => (c.tactique || {})[k] || ''), ch = T.filter((x, i) => x !== m.T[i]).length;
-  if (ch){ const avant = m.v; m.v = Math.round(m.v * Math.max(0.4, 1 - 0.12 * ch)); m.T = T;
-    if (avant - m.v >= 4) Q().message(M, 'Nouveau système de jeu', `Tu as changé ${ch} élément${ch > 1 ? 's' : ''} de ton système : la maîtrise tactique passe de ${avant} à ${m.v} %. Les séances d'apprentissage tactique la font remonter.`, 'staff'); }
-  m.v = Math.round(Math.min(100, m.v + P.maitrise * (1 - m.v / 115)) * 10) / 10;
+  const m = maitrise(M, c), L = presets(M, c);
+  apprendre(m.el, plansTravailles(M, c), [...L.map(p => p.T), tac(c.tactique)], P.maitrise);
+  m.v = r1(Q().maitriseDe(m.el, tac(c.tactique)));
   c.mep = P.mep ? {k:M.semaine + 1, v:P.mep} : null;
   if (P.moral) for (const id of c.effectif){ const j = M.joueurs[id]; if (j) j.moral = Math.min(100, j.moral + P.moral * (j.moral < 60 ? 1 : 0.5)); }
 }
-/* bonus de match (lu par equipeClub) : maîtrise 60 % = neutre, 100 % = +2 %, 0 % = −3 % ; mise en place la semaine du match */
+/* bonus de match (lu par equipeClub) : carte de maîtrise (le moteur calcule celle du plan joué, même après un changement au temps mort) ;
+   mise en place la semaine du match (club du joueur) */
 function bonusMatch(M, c){
-  if (!estJoueur(M, c)) return {maitrise:60, mep:0};
-  const m = maitrise(M, c); return {maitrise:m.v, mep:c.mep && c.mep.k === M.semaine ? c.mep.v : 0};
+  const m = maitrise(M, c);
+  return {mEl:{...m.el}, mep:estJoueur(M, c) && c.mep && c.mep.k === M.semaine ? c.mep.v : 0};
 }
+
+/* --- les tactiques jouées, match après match (ce que les adjoints de tous les clubs observent) --- */
+const HIST_K = ['sans', 'avec', 'zone', 'passes', 'batAvec', 'batSans', 'rythme', 'risque', 'agressivite', 'cible', 'attrapeur', 'gardien'], HIST_N = 8;
+/* une tactique jouée = 12 chiffres (rang de chaque valeur dans HIST_O) : sauvegarde légère */
+const HIST_O = {...OPTIONS, rythme:[1, 2, 3], risque:[1, 2, 3], agressivite:[1, 2, 3], cible:['poursuiveur', 'attrapeur', 'gardien'], attrapeur:['gagnant', 'chasse', 'marquage'], gardien:['anneaux', 'sortie']};
+const coder = T => HIST_K.map(k => Math.max(0, HIST_O[k].findIndex(o => pareil(o, T[k])))).join('');
+const decoder = h => Object.fromEntries(HIST_K.map((k, i) => [k, HIST_O[k][+h[i]] ?? HIST_O[k][0]]));
+function noterTactique(M, m, X){
+  if (!X || m.ligue === 'sixn') return;
+  for (const k of [0, 1]){ const c = M.clubs[X.e[k].id]; if (!c) continue; const T = tac(X.e[k].tactique);
+    (c.histT = c.histT || []).push(coder(T)); if (c.histT.length > HIST_N) c.histT.splice(0, c.histT.length - HIST_N); }
+}
+/* le jeu habituel d'un club : pour chaque consigne, la valeur la plus jouée et sa fréquence ({T, freq:{clé:[n, sur]}, n}) */
+function habitude(M, c){
+  const H = (c.histT || []).map(h => typeof h === 'string' ? decoder(h) : {}), T = {}, freq = {};
+  const base = !estJoueur(M, c) && c.plansIA ? plansDe(M, c)[0] : tac(c.tactique);
+  HIST_K.forEach((k, i) => {
+    if (!H.length){ T[k] = base[k]; return; }
+    const n = {}; for (const h of H) n[h[k]] = (n[h[k]] || 0) + 1;
+    const [v, x] = Object.entries(n).sort((a, b) => b[1] - a[1])[0]; T[k] = /^\d$/.test(v) ? +v : v; freq[k] = [x, H.length];
+  });
+  return {T:tac({...base, ...T}), freq, n:H.length};
+}
+
+/* --- managers de l'ordinateur : un style, des plans adaptés à l'effectif, des choix de match plus ou moins justes --- */
+const NOMS_STYLE = {pressing:'pressing', zone:'défense de zone', repli:'bloc bas'};
+function coach(M, c){
+  if (c.coach) return c.coach;
+  const r = rng(M, 'coach', c.id, c.coachN || 0), base = borne(0.25 + (c.rep - 40) / 90, 0.15, 0.85);
+  const pref = {}; for (const k of SYSTEME) if (r() < 0.45) pref[k] = r.choix(OPTIONS[k]);   // ses idées : quelques options qu'il aime
+  c.coach = {pref, rythme:r.choix([1, 2, 2, 3]), agr:r.choix([1, 2, 2, 3]), risque:r.choix([1, 2, 2, 3]),
+    lecture:r1(borne(base + r.gauss() * 0.15, 0.1, 0.95)),   // lit-il bien l'adversaire ?
+    prudence:r1(borne(0.5 + r.gauss() * 0.22, 0.05, 0.95)), // se replie-t-il contre plus fort ?
+    erreur:r1(borne(0.55 - base * 0.5 + r.gauss() * 0.12, 0.05, 0.6)), // ses choix à côté de la plaque
+    fidele:r1(borne(0.5 + r.gauss() * 0.2, 0.1, 0.9))};     // tient-il à son plan ?
+  return c.coach;
+}
+/* convenance d'une option pour un groupe de joueurs (écart moyen des attributs demandés au niveau du poste) */
+function convient(M, ids, k, o){
+  const QT = root.QMT; if (!QT || !QT.DEMANDE || !QT.ecart) return 0; const d = QT.DEMANDE[k] && QT.DEMANDE[k][o]; if (!d) return 0;
+  const L = ids.map(([id, p]) => [M.joueurs[id], p]).filter(([j, p]) => j && d[0].includes(p));
+  return L.length ? L.reduce((s, [j, p]) => s + QT.ecart(j, p, d[1]), 0) / L.length : 0;
+}
+const idsCompo = K => K ? ['P', 'B', 'A', 'G'].flatMap(p => (K[p] || []).map(id => [id, p])) : [];
+/* convenance moyenne de chaque option sur tous les clubs (une fois par saison) : un club choisit ce qui lui va MIEUX qu'aux autres */
+let NORMES = null;
+function normes(M){
+  const cle = M.graine + ':' + M.saison; if (NORMES && NORMES.cle === cle) return NORMES.v;
+  const v = {}, L = Object.values(M.clubs).map(c => idsCompo(c.compo)).filter(x => x.length);
+  for (const k of SYSTEME) for (const o of OPTIONS[k]) v[k + ':' + o] = L.length ? L.reduce((t, ids) => t + convient(M, ids, k, o), 0) / L.length : 0;
+  NORMES = {cle, v}; return v;
+}
+/* les plans d'un club de l'ordinateur, gardés en 12 chiffres chacun */
+const plansDe = (M, c) => { if (!c.plansIA || typeof c.plansIA[0] !== 'string') construirePlans(M, c); return c.plansIA.map(h => tac(decoder(h))); };
+/* les trois plans d'un club de l'ordinateur : son style (selon ses idées et son effectif), un plan prudent, un plan offensif */
+function construirePlans(M, c){
+  const K = c.compo || Q().compoAuto(M, c.id), ids = idsCompo(K), C = coach(M, c), r = rng(M, 'plans', c.id, M.saison, c.coachN || 0);
+  const N = normes(M), choisir = (k, bonus) => OPTIONS[k].map(o => [o, (C.pref[k] === o ? 1 : 0) + (convient(M, ids, k, o) - (N[k + ':' + o] || 0)) * 0.8 + (bonus[o] || 0) + r.gauss() * C.erreur]).sort((a, b) => b[1] - a[1])[0][0];
+  const g = M.joueurs[(K.G || [])[0]], sortie = g && g.g ? Q().ga(g, 'sor') - Q().ga(g, 'arr') : -3;
+  const T0 = tac({rythme:C.rythme, risque:C.risque, agressivite:C.agr, cible:r.choix(['poursuiveur', 'poursuiveur', 'attrapeur', 'gardien']), attrapeur:'gagnant', gardien:sortie >= 1 ? 'sortie' : 'anneaux'});
+  for (const k of SYSTEME) T0[k] = choisir(k, {});
+  const T1 = tac({...T0, risque:1, rythme:Math.max(1, T0.rythme - 1), agressivite:Math.min(2, T0.agressivite)}); T1.sans = choisir('sans', {repli:1.2, zone:0.6}); T1.batSans = 'protection'; T1.batAvec = 'escorte';
+  const T2 = tac({...T0, risque:3, rythme:3}); T2.sans = choisir('sans', {pressing:1.2}); T2.batSans = choisir('batSans', {harcelement:0.8}); T2.zone = choisir('zone', {loin:0.4, couloirs:0.4});
+  c.plansIA = [T0, T1, T2].map(coder);
+  /* maîtrise : son plan est bien rodé, les deux autres un peu moins */
+  const m = c.maitrise && c.maitrise.el ? c.maitrise : (c.maitrise = {el:carteVide(MT.autre)});
+  const v0 = borne(52 + C.lecture * 22 + (c.rep - 60) * 0.25 + r.gauss() * 6, 45, 92);
+  for (const k of SYSTEME){ m.el[k + ':' + T0[k]] = Math.max(m.el[k + ':' + T0[k]] || 0, r1(v0));
+    for (const T of [T1, T2]) m.el[k + ':' + T[k]] = Math.max(m.el[k + ':' + T[k]] || 0, r1(v0 - 12)); }
+  c.tactique = tac(copie(T0));
+  return [T0, T1, T2];
+}
+/* entraînement de l'ordinateur : il travaille son plan principal, un peu les deux autres */
+function entrainementIA(M, c){
+  if (estJoueur(M, c)) return; const L = plansDe(M, c);
+  const m = maitrise(M, c), C = coach(M, c);
+  apprendre(m.el, [[L[0], 1]], L.slice(1), MT.ia * (0.8 + C.lecture * 0.4));
+}
+/* note d'attrapeur et de gardien (pour juger un remplaçant) */
+const noteS = j => j ? Q().note(j, 'A') / 5 : 0, noteG = j => j ? Q().note(j, 'G') / 5 : 0;   // sur 20
+const meilleur = (M, c, poste, f) => Math.max(0, ...c.effectif.map(id => M.joueurs[id]).filter(j => j && j.poste === poste).map(f));
+/* la tactique d'un club de l'ordinateur pour ce match (tirage propre au match : identique pour la radio, la prévision et le match) ;
+   e : son équipe telle qu'alignée, adv / eAdv : l'adversaire. Renvoie {T, notes} (notes : ce qu'il a changé, pour l'analyse). */
+function tactiqueMatch(M, c, e, adv, eAdv, m){
+  const L = plansDe(M, c), C = coach(M, c), r = rng(M, 'tacIA', m.id, c.id), notes = [];
+  const ecartRep = (adv.rep || 60) - c.rep;
+  let i = 0;
+  if (ecartRep > 8 && r() < C.prudence * (0.5 + ecartRep / 30)){ i = 1; notes.push('plan prudent contre plus fort'); }
+  else if (ecartRep < -8 && r() < (1 - C.prudence) * (0.4 + -ecartRep / 40)){ i = 2; notes.push('plan offensif contre plus faible'); }
+  const T = L[i];
+  /* lecture de l'adversaire (son jeu habituel) : viser la faille de sa défense, protéger la nôtre */
+  const H = habitude(M, adv).T, cz = Q().CONTRE[Q().sansDe(H)];
+  if (T.zone !== cz && r() < C.lecture * (1 - C.fidele * 0.5)){ T.zone = cz; notes.push('zone d\'attaque contre leur défense'); }
+  if (Q().CONTRE[T.sans] === H.zone && r() < C.lecture * 0.7){ T.sans = H.zone === 'axe' ? 'repli' : H.zone === 'couloirs' ? 'pressing' : 'zone'; notes.push('défense contre leur zone d\'attaque'); }
+  /* l'effectif du jour : titulaires absents, joueurs usés */
+  const g = M.joueurs[(e.G || [])[0]], s = M.joueurs[(e.A || [])[0]], so = M.joueurs[((eAdv || {}).A || [])[0]];
+  if (g && meilleur(M, c, 'G', noteG) - noteG(g) > 1.5){ if (T.gardien === 'sortie') T.gardien = 'anneaux'; if (r() < 0.6 + C.lecture * 0.3){ T.batSans = 'protection'; } notes.push('gardien remplaçant : prudence devant les anneaux'); }
+  else if (g && T.gardien === 'sortie' && g.g && Q().ga(g, 'sor') < 10) T.gardien = 'anneaux';
+  if (s && so && noteS(so) - noteS(s) > 1.3 && r() < C.lecture){ if (r() < 0.5) T.attrapeur = 'marquage'; else T.cible = 'attrapeur'; notes.push('leur attrapeur est plus fort'); }
+  else if (s && meilleur(M, c, 'A', noteS) - noteS(s) > 1.5 && r() < C.lecture){ T.attrapeur = 'marquage'; notes.push('attrapeur remplaçant : marquage'); }
+  const P = (e.P || []).map(id => M.joueurs[id]).filter(Boolean), ch = P.length ? P.reduce((t, j) => t + (j.charge || 0), 0) / P.length : 0;
+  if (ch >= 55 && r() < 0.4 + C.lecture * 0.4){ if (T.rythme === 3) T.rythme = 2; if (T.sans === 'pressing') T.sans = 'zone'; notes.push('poursuiveurs fatigués : on ralentit'); }
+  /* et parfois un choix à côté */
+  if (r() < C.erreur * 0.35){ const k = r.choix(SYSTEME); T[k] = r.choix(OPTIONS[k]); }
+  return {T:tac(T), notes};
+}
+/* ce que l'adjoint attend de l'adversaire pour la prévision (son jeu habituel, pas sa vraie tactique du jour) */
+const attendue = (M, c) => habitude(M, c).T;
+/* changement d'entraîneur d'un club de l'ordinateur (le joueur part, l'ordinateur reprend la main) */
+function nouvelEntraineur(M, c){ c.coachN = (c.coachN || 0) + 1; delete c.coach; delete c.presets; construirePlans(M, c); }
+/* en début de saison : les plans des clubs de l'ordinateur suivent leur nouvel effectif */
+function plansSaison(M){ for (const c of Object.values(M.clubs)) if (!estJoueur(M, c)) construirePlans(M, c); }
 const estJoueur = (M, c) => M.manager && M.manager.club === c.id;
 
 /* entraînement individuel : un focus par joueur ; focus bonus (un deuxième) selon l'Aire d'envol ; nouveau poste sur au moins une saison */
@@ -528,6 +696,8 @@ Object.assign(QMC, {
     }
   },
   migrer(M){ const v = M.v || 1; base.migrer(M); initRecords(M); if (M.manager) profil(M);
+    if (M.manager && v < 11){ const U = monClub(M); if (U){ maitrise(M, U); presets(M, U); }
+      Q().message(M, 'QM27 : plans de jeu et maîtrise tactique', 'Tu as maintenant trois plans de jeu enregistrables (écran Tactique) : ton système actuel est devenu « Plan A », et deux plans de départ t\'attendent (« Bloc bas » et « Pressing ») que tu peux régler, renommer et enregistrer. La maîtrise se compte désormais option par option : changer une consigne ne coûte que l\'écart sur cette option, rien n\'est remis à zéro. Les séances d\'apprentissage tactique travaillent le plan choisi dans l\'Entraînement. La maîtrise pèse plus en match (environ 7 victoires sur 100 entre un plan maîtrisé à 30 % et à 90 %). En face, chaque entraîneur a son style, adapte son plan à son effectif, à ses absents et à ce qu\'il sait de toi, avec plus ou moins de réussite : ton adjoint ne connaît plus que leur jeu habituel.', 'staff'); }
     if (M.manager && v < 10) Q().message(M, 'QM27 : plus de marge pour recruter', `Les droits TV augmentent, surtout pour les petits clubs : recettes plus fortes et plafond de masse salariale relevé (${QMC.euros(monClub(M) ? monClub(M).masseMax : 0)} par semaine pour ton club). Une belle saison fait aussi monter la réputation du club plus vite (jusqu'à +6). Les âges des joueurs et les retraites sont plus réguliers d'une saison à l'autre. Nouveau : les installations s'usent. À la fin de chaque saison, un bâtiment peut perdre un niveau, d'autant plus souvent qu'il est haut (rien au niveau 1, 2 % au niveau 2, jusqu'à 14 % au niveau 5) : il faut réinvestir pour rester au sommet. Et chaque club a une stature : sa réputation revient doucement vers elle, mais des saisons brillantes la font monter pour de bon.`, 'pres');
     if (M.manager && v < 9) Q().message(M, 'QM27 : nouveau taux des Gallions, recruteur et causeries', 'Le Gallion suit maintenant le canon (environ 5 livres) : 1 Gallion = 17 Mornilles = 493 Noises. Tes finances n\'ont pas changé, seul l\'affichage change : une place vaut 2 ou 3 Gallions, ton budget se compte en centaines de milliers de Gallions. Clubs et joueurs › Recherche par profil : le recruteur cherche un attrapeur, un batteur, des jeunes, des bonnes affaires… et t\'envoie un rapport chaque mois. Dix discours pour les causeries, vitesse ×0,5 et statistiques en direct pendant les matchs. Nouveau : la réunion de début de saison avec le président (objectif, philosophie, enveloppe des transferts et masse salariale, à négocier) ; tu peux la tenir dès maintenant pour cette saison.', 'staff');
     if (M.manager && v < 8) Q().message(M, 'QM27 : Gallions, presse et carrières', 'La monnaie des sorciers arrive : Gallions (or), Mornilles (argent) et Noises (bronze). 1 Gallion = 17 Mornilles, 1 Mornille = 29 Noises. Les conférences de presse passent à trois questions, posées par plusieurs médias selon le match et la saison ; chaque réponse a un ton et des effets (groupe, joueur, président, supporters, réputation, relation avec la presse). Les notes ne gonflent plus de saison en saison : les potentiels trop généreux ont été ramenés à un niveau réaliste, et les salaires des stars montent moins vite au-dessus de 75. Les clubs gardent désormais leurs meilleurs joueurs en fin de contrat. Chaque fiche joueur a son historique de carrière (à partir de cette saison).', 'club');
@@ -540,6 +710,6 @@ Object.assign(QMC, {
 /* l'expérience du manager : causeries plus efficaces (motivation) ; les jeunes progressent plus vite via effets().jeunes */
 if (root.QMH){ const ca = root.QMH.causerie; root.QMH.causerie = (M, X, eq, ton, moment) => { const r = ca(M, X, eq, ton, moment); const p = M.manager && M.manager.profil; if (p){ p.xp.causeries = (p.xp.causeries || 0) + 1; if (r && typeof r.delta === 'number') r.delta = Math.round(r.delta * (1 + eff(M, 'mot') * 0.04) * 100) / 100; } return r; };
   const eh = root.QMH.envoyerHibou; root.QMH.envoyerHibou = (M, o) => { const r = eh(M, o); const p = M.manager && M.manager.profil; if (p && r && r.ok) p.xp.transferts = (p.xp.transferts || 0) + 1; return r; }; }
-root.QMG = {SEANCES_ANCIENNES, maitrise, apresEntrainement, bonusMatch, CAPACITES, ROLE_ATTRS, SEM_POSTE, bonusFocus, focusDe, cibleFocus, focusActifs, definirFocus, apresFocus, noterCourbes, SEANCES, SEANCE, JOURS, ATELIERS, MODELES, plan, programmeDe, programmeAuto, definirSemaine, definirModele, modeAuto, effets, programme, apercu, fatigueTitulaires,
+root.QMG = {SEANCES_ANCIENNES, maitrise, apresEntrainement, bonusMatch, SYSTEME, OPTIONS, CLES_T, maitrisePlan, maitriseOption, coutChangement, presets, ecartsPreset, choisirPreset, enregistrerPreset, renommerPreset, choisirTravail, plansTravailles, noterTactique, habitude, coach, construirePlans, plansDe, entrainementIA, tactiqueMatch, attendue, nouvelEntraineur, plansSaison, NOMS_STYLE, CAPACITES, ROLE_ATTRS, SEM_POSTE, bonusFocus, focusDe, cibleFocus, focusActifs, definirFocus, apresFocus, noterCourbes, SEANCES, SEANCE, JOURS, ATELIERS, MODELES, plan, programmeDe, programmeAuto, definirSemaine, definirModele, modeAuto, effets, programme, apercu, fatigueTitulaires,
   ATTR_MGR, profil, repartir, modifierProfil, att, eff, RECORDS, RECORD, records, initRecords, reunion, proposer, accepterOffre, chiffrer, offreInitiale, prefPresident, PHILOS, PALIERS, TXT_OBJ, noterAchat, lancerMission, arreterMission, missions:M => G(M).missions, MAX_MISSIONS, PROFILS, candidats, rapports:M => G(M).rapports || {}};
 })(typeof window !== 'undefined' ? window : globalThis);

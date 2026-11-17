@@ -1,4 +1,4 @@
-// mon-ecran-version: d0e35ad5
+// mon-ecran-version: 395aba88
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -7,7 +7,7 @@
 'use strict';
 const D = root.QMD;
 const EQ = D.EQ;
-const VERSION = 10;   // v113 : droits TV relevés, plafonds de masse salariale recalculés ;   // v94 : potentiels plafonnés (fin de l'inflation des notes), historique de carrière (j.carr) ; v7   // v91 : tournoi pendant le championnat (j.inter), programme d'entraînement, profil du manager, records (qm27-bureau.js) ; v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty ; v90 : vestiaire et mercato (qm27-vestiaire.js)   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
+const VERSION = 11;   // v152 : maîtrise tactique par élément, trois plans de jeu, managers de l'ordinateur ; v113 : droits TV relevés, plafonds de masse salariale recalculés ;   // v94 : potentiels plafonnés (fin de l'inflation des notes), historique de carrière (j.carr) ; v7   // v91 : tournoi pendant le championnat (j.inter), programme d'entraînement, profil du manager, records (qm27-bureau.js) ; v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty ; v90 : vestiaire et mercato (qm27-vestiaire.js)   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
 const C = () => root.QMC;   // gestion du club (qm27-club.js), facultative pour le moteur
 
 /* ---------- Hasard à graine (mulberry32) ---------- */
@@ -306,24 +306,28 @@ const moy = L => L.reduce((s, x) => s + x, 0) / (L.length || 1);
 const ajout = (o, k, v) => { if (o) o[k] = (o[k] || 0) + v; };   // v102 : compteur de stats sans tirage
 const role = (X, eq, id) => (X.e[eq].roles || {})[id];
 const nbRole = (X, eq, poste, r) => X.e[eq][poste].filter(id => role(X, eq, id) === r).length;
+/* v152 : maîtrise du plan qu'une équipe joue (e.mEl : maîtrise de chaque option, « clé:valeur » ; sans carte : e.maitrise ou 60) */
+function maitriseDe(mEl, T){ const P = EQ.maitrise.poids; let s = 0, n = 0; for (const k in P){ const v = mEl[k + ':' + T[k]]; s += P[k] * (v ?? EQ.maitrise.autre); n += P[k]; } return n ? s / n : EQ.maitrise.neutre; }
+const maitriseEquipe = e => e.mEl ? maitriseDe(e.mEl, completerTactique(e.tactique)) : (e.maitrise ?? EQ.maitrise.neutre);
 function moyP(L, w){ let s = 0, n = 0; L.forEach((v, i) => { s += v * w[i]; n += w[i]; }); return n ? s / n : 0; }
 function forces(X, eq){
   const e = X.e[eq], T = e.tactique, b = e.balai;
   const us = 0.8 + 0.2 * (e.usure ?? 100) / 100;                                   // v84 : balais usés
+  const mt = maitriseEquipe(e), km = (mt - EQ.maitrise.neutre) / 100 * EQ.maitrise.force;   // v152 : maîtrise du plan joué, élément par élément
   const coh = (0.97 + (e.cohesion ?? 70) / 100 * 0.06)                              // v84 : cohésion de l'équipe
-    * (1 + ((e.maitrise ?? 60) - 60) / 100 * 0.05) * (1 + (e.mep || 0));   // v127 : maîtrise tactique (60 % neutre, 100 % +2 %, 0 % −3 %) et mise en place
+    * (1 + km) * (1 + (e.mep || 0));   // v127 : mise en place ; v152 : maîtrise tactique (60 % neutre, 90 % +4,2 %, 30 % −4,2 %, plus de ballons perdus quand elle est basse)
   const dom = ((eq === 0 && X.domicile) ? EQ.domicile + (e.domBonus || 0) : 1) * X.jour[eq] * coh * (1 + (e.forceBonus || 0));   // v88 : dragon de pierre, carte du ciel
   const wA = e.P.map(id => ({meneur:1.6, finisseur:0.8, harceleur:0.8}[role(X, eq, id)] || 1));
   const wD = e.P.map(id => ({harceleur:1.6, finisseur:0.7}[role(X, eq, id)] || 1));
   const A = moyP(e.P.map(id => { const j = J(X, id); return ((at(j, 'pas') * 2 + at(j, 'rec') + at(j, 'ctl') * 2 + at(j, 'vis') * 2 + at(j, 'frm') + at(j, 'acc') + at(j, 'equi') + at(j, 'tir')) / 11) * f(X, eq, id); }), wA) * dom + (b.man * us - 6) * 0.12
     + 0.12 * e.P.filter(id => aManie(J(X, id), 'passeur')).length;   // v89 : manie « cherche la passe »
   const Df = moyP(e.P.map(id => { const j = J(X, id); return ((at(j, 'int') * 2 + at(j, 'bou') + at(j, 'ant') * 2 + at(j, 'pla') + at(j, 'vit') + at(j, 'acc')) / 8) * f(X, eq, id); }), wD) * dom;
-  const B = moy(e.B.map(id => { const j = J(X, id); return ((at(j, 'fra') * 3 + at(j, 'pre') * 2 + at(j, 'for') + at(j, 'ant') + at(j, 'agr')) / 8) * f(X, eq, id); })) * (dom > 1 ? 1.02 : 1);
+  const B = moy(e.B.map(id => { const j = J(X, id); return ((at(j, 'fra') * 3 + at(j, 'pre') * 2 + at(j, 'for') + at(j, 'ant') + at(j, 'agr')) / 8) * f(X, eq, id); })) * (dom > 1 ? 1.02 : 1) * (1 + km / 2);
   const g = J(X, e.G[0]);
   const G = g ? ((ga(g, 'arr') * 3 + ga(g, 'cou_a') * 2 + ga(g, 'sor') + at(g, 'ref') * 2 + at(g, 'agi') + at(g, 'pla')) / 10) * f(X, eq, e.G[0]) + (role(X, eq, e.G[0]) === 'ligne' ? 0.6 : 0) + (aManie(g, 'mur') ? 0.35 : 0) : 5;   // (v90 : gMalus = gardien soudoyé, appliqué plus bas)
   const s = J(X, e.A[0]);
   const S = s ? ((at(s, 'vit') * 2 + at(s, 'acc') * 2 + at(s, 'piq') * 2 + at(s, 'acu') * 2 + at(s, 'san') + at(s, 'con') + at(s, 'vir')) / 11) * f(X, eq, e.A[0]) + (b.vit * us - 6) * 0.15 : 5;
-  return {A, D:Df, B, G:G * (1 - (e.gMalus || 0)), S, T};
+  return {A, D:Df, B, G:G * (1 - (e.gMalus || 0)), S, T, mt};
 }
 function tireur(X, eq){
   const e = X.e[eq]; const p = e.P.map(id => { const j = J(X, id); return [id, Math.pow(at(j, 'tir') + at(j, 'pre') * 0.5, 2) * ({finisseur:2.2, meneur:0.7}[role(X, eq, id)] || 1) * (aManie(j, 'loin') ? 1.35 : 1)]; });
@@ -349,7 +353,7 @@ function probas(X, a, Fa, Fd){
   const dBut = (Ta.passes === 'court' ? 0.02 : -0.02) - 0.02 * (Ta.risque - 2) + (sd === 'pressing' ? 0.02 : 0) + (sd === 'repli' ? -0.02 : 0)
     + ({loin:-0.03, couloirs:-0.01, axe:0.02}[za] || 0) + (CONTRE[sd] === za ? 0.03 : 0) + ({ligne:-0.02, pointe:0.03}[av] || 0) + (Td.batSans === 'protection' ? -0.015 : Td.batSans === 'harcelement' ? 0.01 : 0)
     + (Td.gardien === 'sortie' ? 0.03 : 0) + (met === 'vent' || met === 'orage' ? -0.04 * (1 - (e[a].meteoRes || 0)) : 0) + (role(X, d, e[d].G[0]) === 'libero' ? 0.02 : 0);
-  const tourne = 1 - EQ.garde + 0.04 * (Ta.rythme - 2) + (sd === 'pressing' ? 0.05 : sd === 'repli' ? -0.02 : 0) + (met === 'pluie' ? 0.03 : 0) + 0.03 * nbRole(X, d, 'P', 'harceleur')
+  const tourne = 1 - EQ.garde - EQ.maitrise.pertes * ((Fa.mt ?? EQ.maitrise.neutre) - EQ.maitrise.neutre) / 100 + 0.04 * (Ta.rythme - 2) + (sd === 'pressing' ? 0.05 : sd === 'repli' ? -0.02 : 0) + (met === 'pluie' ? 0.03 : 0) + 0.03 * nbRole(X, d, 'P', 'harceleur')
     + ({ligne:-0.03, pointe:0.04}[av] || 0);
   return {pCog, pFaute, pTir, dBut, tourne, sd, za, av};
 }
@@ -536,6 +540,9 @@ function grainePour(M, m){ return melange(M.graine, m.id); }
 function equipesPour(M, m){
   if (m.ligue === 'sixn') return [selection(M, m.dom), selection(M, m.ext)];
   const E = [equipeClub(M, m.dom), equipeClub(M, m.ext)];
+  /* v152 : les clubs de l'ordinateur choisissent leur tactique pour ce match (plan, lecture de l'adversaire, absents, erreurs) */
+  if (root.QMG && root.QMG.tactiqueMatch) E.forEach((e, k) => { const c = M.clubs[e.id]; if (!c || clubJoueur(M) === c.id) return;
+    const R = root.QMG.tactiqueMatch(M, c, e, M.clubs[E[1 - k].id], E[1 - k], m); e.tactique = R.T; e.notesIA = R.notes; e.mEl = {...c.maitrise.el}; });
   if (root.QMB) E.forEach((e, k) => Object.assign(e, root.QMB.bonusMatch(M, M.clubs[e.id], M.clubs[E[1 - k].id])));   // v88 : bonus du domaine
   if (root.QMH) E.forEach(e => Object.assign(e, root.QMH.bonusMatch(M, M.clubs[e.id])));   // v90 : ambiance du vestiaire
   return E;
@@ -555,6 +562,7 @@ function preparerMatch(M, m){
   }
   const X = creerMatch(M, e0, e1, grainePour(M, m), {date:semaine(M).date, domicile:!m.neutre});
   X.idMatch = m.id; X.joueur = m.dom === camp ? 0 : 1; X.changements = faits; X.sixn = m.ligue === 'sixn';
+  if (!X.sixn && root.QMG && root.QMG.attendue) X.attendue = root.QMG.attendue(M, M.clubs[X.e[1 - X.joueur].id]);   // v152 : ce que l'adjoint attendait d'eux
   return X;
 }
 function simulerMatch(M, m){
@@ -596,6 +604,7 @@ function appliquerMatch(M, m, X){
   const camp = campPour(M, m), duJoueur = !!camp && (m.dom === camp || m.ext === camp);
   m.res = duJoueur ? r : {score:r.score, vif:r.vif, duree:r.duree};   // autres matchs : le score suffit (sauvegarde plus légère)
   compter(M, m);
+  if (root.QMG && root.QMG.noterTactique) root.QMG.noterTactique(M, m, X);   // v152 : tactiques jouées (jeu habituel de chaque club)
   const notes = r.notes;
   const club = m.ligue !== 'sixn', enLigue = club && !!M.ligues[m.ligue];   // v104 : la Ligue des Anneaux est un match de club, hors des stats du championnat
   for (const k of [0, 1]){
@@ -754,7 +763,7 @@ function saisonSuivante(M){
       }
     }
     for (const id of club.effectif){ const j = M.joueurs[id]; j.saison = {m:0, b:0, v:0, cog:0, arr:0, notes:0}; j.fat = 0; j.charge = 0; j.forme = 6; j.moral = 60; if (j.bless) j.bless.jours = Math.max(0, j.bless.jours - 60) || null; if (j.bless && !j.bless.jours) j.bless = null; }
-    if (clubJoueur(M) !== club.id){ club.compo = compoAuto(M, club.id); club.tactique = tactiqueIA(r); }
+    if (clubJoueur(M) !== club.id){ club.compo = compoAuto(M, club.id); club.tactique = tactiqueIA(r); if (root.QMG && root.QMG.construirePlans) root.QMG.construirePlans(M, club); }   // v152 : plans selon le nouvel effectif
     else verifierCompo(M, club.id);
   }
   M.saison++; M.semaine = 0;
@@ -869,6 +878,6 @@ root.QM = {nommer, langueNoms, AGE_JEUNE, ligueDe, roundRobin, creerClub, bascul
            semaine, matchDuJoueur, preparerMatch, simulerMatch, creerMatch, equipeClub, selection, pas, jusquAuBout, tempsMort, remplacer, resume, notesMatch,
            terminerSemaine, saisonSuivante, classement, objectif, serialiser, charger, nomJ, message, attente,
            manies, aManie, maniesPour, sansDe, CONTRE, completerTactique,
-           rendement:(X, eq, id) => f(X, eq, id), forces, equipesPour, grainePour, campPour, meteoPour, probas, multFatigue, poidsTireurs, qualiteTir, nbRole, role:(X, eq, id) => role(X, eq, id),   // v96 : analyse tactique (qm27-tactique.js)
+           rendement:(X, eq, id) => f(X, eq, id), forces, maitriseDe, maitriseEquipe, equipesPour, grainePour, campPour, meteoPour, probas, multFatigue, poidsTireurs, qualiteTir, nbRole, role:(X, eq, id) => role(X, eq, id),   // v96 : analyse tactique (qm27-tactique.js)
            meteoPrevue:(M, m, S) => meteoPour(hasard(grainePour(M, m)), S.date)};   // v88 : boule de cristal
 })(typeof window !== 'undefined' ? window : globalThis);

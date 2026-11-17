@@ -1,4 +1,4 @@
-// mon-ecran-version: b3e5b3c9
+// mon-ecran-version: e19b23f8
 /* QM27 (v85, lot 3) — stade et installations, centre de formation, réputation des clubs, carrière du manager
    (offres d'autres clubs, démission, licenciement, sans club) et double poste de sélectionneur pour le Tournoi des Six Emblèmes.
    Sans affichage : complète window.QMC (qm27-club.js) et s'insère dans ses rendez-vous de la semaine et de la saison. */
@@ -151,6 +151,7 @@ function carriereSemaine(M, S, r){
 function quitterClub(M){
   const mg = M.manager, c = club(M, mg.club); if (!c) return;
   c.tactique = Q().tactiqueIA(rng(M, 'ia', c.id, tic(M))); c.compo = Q().compoAuto(M, c.id);
+  if (root.QMG && root.QMG.nouvelEntraineur){ mg.club = null; root.QMG.nouvelEntraineur(M, c); mg.club = c.id; }   // v152 : un nouvel entraîneur, ses idées et ses plans
   c.aVendre = []; c.suivi = []; c.entrainement = QMC.ENT_DEFAUT(); viderAcademie(M, c);
   M.offres = [];
   const p = (mg.postes || []).find(x => x.club === c.id && x.fin == null); if (p) p.fin = M.saison;

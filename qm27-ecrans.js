@@ -1,4 +1,4 @@
-// mon-ecran-version: a44742b5
+// mon-ecran-version: 63bc2223
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -1138,11 +1138,15 @@ function jaugesProg(c, p, S){
   return `<div class="jauges-prog">${[['progression', 'Progression', 'var(--bon)'], ['fatigue', 'Fatigue', 'var(--moyen)'], ['risque', 'Risque de blessure', 'var(--mauvais)'], ['cohesion', 'Cohésion', 'var(--accent)']].map(([k, n, col]) => `<div><span class="petit">${n}</span>${jauge(a[k], n, col)}</div>`).join('')}</div>`;
 }
 const jourChips = p => `<div class="jours">${p.jours.map((s, i) => `<span class="jour s-${s}"><small>${G().JOURS[i]}</small><b aria-hidden="true">${icoS(s)}</b><em>${nomS(s)}</em></span>`).join('')}</div>`;
-/* v127 : maîtrise tactique (carte partagée par l'Entraînement et la Tactique) */
+/* v127 : maîtrise tactique (carte de l'Entraînement) ; v152 : par plan de jeu, choix du plan travaillé */
 function carteMaitrise(M_, c){
-  const m = G().maitrise(M_, c), v = Math.round(m.v), b = ((m.v - 60) / 100 * 5);
-  return `<div class="carte"><h2><img src="${V.IMAGES}icones/maitrise.webp" alt="" width="22" height="22" style="vertical-align:-5px;margin-right:6px">Maîtrise tactique <span class="mut">${v} %</span></h2>${jauge(v, 'Maîtrise tactique', 'var(--accent)')}
-    <p class="petit mut" style="margin:8px 0 0">${v >= 90 ? 'Ton système est récité par cœur.' : v >= 70 ? 'L\'équipe connaît bien ton système.' : v >= 45 ? 'Les automatismes se mettent en place.' : 'Les joueurs découvrent ton système.'} En match : ${b >= 0 ? '+' : ''}${b.toFixed(1).replace('.', ',')} %. L'apprentissage tactique la fait monter ; changer ton système la fait baisser.</p></div>`;
+  const Gm = G(), m = Gm.maitrise(M_, c), L = Gm.presets(M_, c), t = c.presetTravail, v = Math.round(m.v), b = (m.v - 60) / 100 * D.EQ.maitrise.force * 100;
+  const opts = [['actif', 'Plan joué'], ['0', L[0].nom], ['1', L[1].nom], ['2', L[2].nom], ['tous', 'Les trois']];
+  return `<div class="carte"><h2><img src="${V.IMAGES}icones/maitrise.webp" alt="" width="22" height="22" style="vertical-align:-5px;margin-right:6px">Maîtrise tactique <span class="mut">${v} %</span></h2>
+    <div class="plans-m">${L.map((p, i) => { const x = Math.round(Gm.maitrisePlan(M_, c, p.T)); return `<div><span class="petit">${esc(p.nom)}${i === c.presetActif ? ' <span class="badge tit">joué</span>' : ''}</span>${jauge(x, 'Maîtrise de ' + p.nom, 'var(--accent)')}<b class="petit">${x} %</b></div>`; }).join('')}</div>
+    <div class="grp" style="margin-top:10px">Les séances d'apprentissage tactique travaillent</div>
+    <div class="seg mini st-vues" role="group" aria-label="Plan travaillé">${opts.map(([k, n]) => `<button data-act="travailPlan" data-v="${k}" class="${String(t) === k ? 'on' : ''}" aria-pressed="${String(t) === k}">${esc(n)}</button>`).join('')}</div>
+    <p class="petit mut" style="margin:8px 0 0">${v >= 90 ? 'Ton plan joué est récité par cœur.' : v >= 70 ? 'L\'équipe connaît bien ton plan joué.' : v >= 45 ? 'Les automatismes se mettent en place.' : 'Les joueurs découvrent ce plan.'} En match : ${b >= 0 ? '+' : '−'}${Math.abs(b).toFixed(1).replace('.', ',')} % en attaque et en défense. Les options des autres plans progressent un peu moins vite ; une option oubliée s'érode doucement.${t === 'tous' ? ' Travailler les trois plans partage l\'effort (un peu plus de la moitié du gain pour chacun).' : ''}</p></div>`;
 }
 Z.carteMaitrise = carteMaitrise;
 function vueEntrainement(){
@@ -1168,7 +1172,7 @@ function vueEntrainement(){
       return `<button class="el" data-act="progEditer" data-k="${k}"><div class="t"><b>${fmtDate(S.date)} · ${esc(quoi(S))}</b><span>${esc(p.nom || 'Programme')} · ${nomInt(p.int).toLowerCase()} · <span class="ico-s">${p.jours.map(s => icoS(s)).join('')}</span></span></div><span class="d">${p.auto ? '<span class="badge">adjoint</span>' : '<span class="badge tit">toi</span>'}</span></button>`; }).join('') || '<p class="mut">Fin de saison.</p>'}</div></div>
     <div class="carte aide"><h2>Repères</h2>
       <p><b>Séances.</b> ${G().SEANCES.map(x => `${x[1]} : ${x[2].charAt(0).toLowerCase() + x[2].slice(1)}.`).join(' ')}</p>
-      <p><b>Maîtrise tactique.</b> Les joueurs apprennent ton système (dispositions, batteurs, zone, passes) : à 100 %, +2 % en match ; à 0 %, −3 %. Changer un élément du système en fait perdre 12 %.</p>
+      <p><b>Maîtrise tactique.</b> Chaque option du système de jeu (dispositions avec et sans le souafle, batteurs, zone d'attaque, passes) a sa maîtrise ; celle d'un plan est la moyenne de ses options. En match, 60 % est neutre : à 90 %, +4 % en attaque et en défense ; à 30 %, −4 % et plus de ballons perdus (environ 7 victoires sur 100 d'écart). Une retouche ne coûte que l'écart sur l'option changée. Les séances d'apprentissage tactique travaillent le plan choisi ci-dessus.</p>
       <p><b>Ateliers.</b> Chaque poste travaille un groupe d'attributs en plus (+35 %).</p>
       <p><b>Intensité.</b> Plus haute, on progresse plus vite, mais la fatigue et le risque de blessure montent.</p></div>
   </div></div>`;

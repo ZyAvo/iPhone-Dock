@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="67fb9540">
+<meta name="mon-ecran-version" content="1ee47412">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -583,6 +583,16 @@ img.blz:not(.g):not(.p){width:38px;height:38px}
 .cs.ouvert .cs-l i{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .seg.mini{padding:2px;gap:2px;border-radius:9px}.seg.mini button{min-height:28px;font-size:.74rem;border-radius:7px;padding:0 3px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .cs-fx{grid-column:2;display:flex;flex-wrap:wrap;gap:3px}
+/* v152 : plans de jeu, maîtrise des options */
+.plans-l{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.plans-l .plan{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--ink);text-align:left;min-height:48px;cursor:pointer;font:inherit;min-width:0}
+.plans-l .plan b{font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.plans-l .plan span{font-size:.72rem;color:var(--ink-soft)}
+.plans-l .plan.on{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 13%, transparent)}
+.fx.mo{font-weight:700}
+.seg.mini button.pl{box-shadow:inset 0 -2px 0 color-mix(in srgb, var(--accent) 75%, transparent)}
+.mo-l{margin:3px 0 0}.cs-mt{margin:-2px 0 6px}
+.plans-m{display:grid;gap:6px}.plans-m>div{display:grid;grid-template-columns:minmax(90px,1fr) 2fr auto;gap:8px;align-items:center}
 .fx{font-size:.66rem;padding:1px 6px;border-radius:999px;background:rgba(127,127,127,.13);color:var(--ink-soft);white-space:nowrap}
 .fx.b{background:color-mix(in srgb, var(--bon) 15%, transparent);color:var(--bon)}.fx.m{background:color-mix(in srgb, var(--mauvais) 14%, transparent);color:var(--mauvais)}
 .cs-det{grid-column:1/-1;background:var(--card-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:3px}
@@ -1192,21 +1202,21 @@ html.desk .er{cursor:grab}
 <nav class="qm-nav" id="nav" hidden aria-label="Menus du jeu"><div class="in"></div></nav>
 <input type="file" id="fichier" accept=".json,application/json" hidden>
 <script src="synchro.js?v=0ce8808a"></script>
-<script src="qm27-donnees.js?v=8903db6f"></script>
-<script src="qm27.js?v=d0e35ad5"></script>
-<script src="qm27-club.js?v=255f8f1f"></script>
-<script src="qm27-carriere.js?v=b3e5b3c9"></script>
+<script src="qm27-donnees.js?v=c4136271"></script>
+<script src="qm27.js?v=395aba88"></script>
+<script src="qm27-club.js?v=baa0a5b6"></script>
+<script src="qm27-carriere.js?v=e19b23f8"></script>
 <script src="qm27-domaine.js?v=b8c686dd"></script>
 <script src="qm27-vestiaire.js?v=878680d2"></script>
 <script src="qm27-presse.js?v=89e4e7fe"></script>
-<script src="qm27-tactique.js?v=c55fb853"></script>
-<script src="qm27-bureau.js?v=c1f5c0ad"></script>
+<script src="qm27-tactique.js?v=37135330"></script>
+<script src="qm27-bureau.js?v=6ed496f7"></script>
 <script src="qm27-prix.js?v=2df8e974"></script>
 <script src="qm27-europe.js?v=8c9c3f40"></script>
 <script src="qm27-nations.js?v=66d46995"></script>
 <script src="qm27-visuel.js?v=475e9f0c"></script>
-<script src="qm27-ui.js?v=a7d1b268"></script>
-<script src="qm27-ecrans.js?v=a44742b5"></script>
+<script src="qm27-ui.js?v=fc9a26c6"></script>
+<script src="qm27-ecrans.js?v=63bc2223"></script>
 <script src="qm27-stats.js?v=044932c6"></script>
 <script src="commun.js?v=fc411b5f"></script>
 </body>
