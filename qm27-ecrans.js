@@ -1,4 +1,4 @@
-// mon-ecran-version: 91218493
+// mon-ecran-version: a44742b5
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -180,6 +180,20 @@ const dernierStade = M_ => { const d = M_.dernierMatch; return d ? `Dernier : ${
 const ESC_CH = [330, 0, 700, 960], BAN_CH = [440, 170, 590, 612];   // v143 : l'escalier du hall et sa grande bannière
 /* v145 : tableaux vivants : la toile (quadrilatère pris sur l'image) est recopiée du fond, puis respire lentement (léger zoom et glissement),
    des nuages y passent et un oiseau la traverse de temps en temps ; tout reste découpé dans la toile (clip-path) */
+/* v151 : portraits vivants (couloir des bureaux) : la toile, recopiée du fond dans son cadre, respire et penche à peine, chacune à son rythme */
+function portraitsHTML(S, src){
+  return (S.portraits || []).map(([x0, y0, x1, y1], k) => { const w = x1 - x0, h = y1 - y0;
+    const fond = `background-image:url(${src(S.fond)});background-size:${(S.l / w * 100).toFixed(2)}% ${(S.h / h * 100).toFixed(2)}%;background-position:${(x0 / (S.l - w) * 100).toFixed(3)}% ${(y0 / (S.h - h) * 100).toFixed(3)}%`;
+    return `<i class="sc-portrait p${k}" aria-hidden="true" style="left:${(x0 / S.l * 100).toFixed(2)}%;top:${(y0 / S.h * 100).toFixed(2)}%;width:${(w / S.l * 100).toFixed(2)}%;height:${(h / S.h * 100).toFixed(2)}%"><b style="${fond}"></b></i>`; }).join('');
+}
+/* v151 : les rais de soleil peints respirent (masque S.rais tiré de l'image) et la poussière y flotte */
+function raisHTML(S, src){
+  if (!S.rais) return '';
+  const m = `url(${src(S.rais)})`;
+  return `<i class="sc-rais" aria-hidden="true" style="-webkit-mask-image:${m};mask-image:${m}"><i class="sc-poussiere"></i></i>`;
+}
+/* v151 : un nom gravé en doré qui s'allume au survol, posé au point (x, y) de la scène, dans la zone Z de son objet */
+const gravure = (t, x, y, Z) => `<span class="sc-nomgrave sc-ecrit" style="left:${((x - Z[0]) / (Z[2] - Z[0]) * 100).toFixed(2)}%;top:${((y - Z[1]) / (Z[3] - Z[1]) * 100).toFixed(2)}%">${esc(t)}</span>`;
 function tableauxHTML(S, src){
   return (S.tableaux || []).map((q, k) => {
     const xs = q.map(p => p[0]), ys = q.map(p => p[1]), x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(...xs) - x0, h = Math.max(...ys) - y0;
@@ -229,6 +243,8 @@ function etoilesHTML(S){
   const semis = n => Array.from({length:n}, () => `<circle cx="${(h() * S.l).toFixed(0)}" cy="${(h() * S.cielH).toFixed(0)}" r="${(1.6 + h() * h() * 3.4).toFixed(1)}"/>`).join('');
   return `<svg class="sc-etoiles" viewBox="0 0 ${S.l} ${S.cielH}" preserveAspectRatio="none"><g class="a">${semis(70)}</g><g class="b">${semis(70)}</g><g class="c">${semis(18)}</g></svg>`;
 }
+/* v151 : le couloir des bureaux ; zones de toucher (les petites portes montent jusqu'à leur nom gravé) */
+const ESC_B = [0, 1200, 240, 1560], MANAGER_B = [290, 560, 550, 1340], PRESIDENT_B = [1020, 480, 1500, 1340], RECRUT_B = [1690, 560, 2180, 1360], JEUNES_B = [2200, 560, 2640, 1340], ETAGE_B = [2700, 560, 3072, 1390];
 /* v149 : la grande salle ; zones de toucher (les retouches, plus grandes, passent par sousZone) */
 const PORTE_GS = [80, 750, 300, 1200], GAZETTE_GS = [30, 1170, 524, 1800], ESTRADE_GS = [1100, 480, 1990, 1320], HIBOUX_GS = [2540, 640, 2968, 1280];
 /* v149 : le haut du classement à la craie (tableau noir de la grande salle, coordonnées de la scène 3072 × 2048) : les cinq premiers, ou les
@@ -348,6 +364,24 @@ const SCENES = {
   /* v149 : la grande salle en panorama, sous un plafond enchanté de nuit (étoiles qui scintillent, nuages qui passent devant la lune, bougies
      flottantes) ; torches vacillantes ; le haut du classement écrit à la craie ; l'almanach : halo doré et dates des prochains matchs qui
      s'élèvent en fumée dorée. Ordre des objets = ordre d'empilement */
+  /* v151 : le couloir des bureaux en panorama, vu de face. Les petites portes n'ont pas d'étiquette : leur nom s'allume en doré, gravé dans la
+     pierre au-dessus d'elles ; la porte du président garde son étiquette. Escalier du hall à gauche (seulement sa rampe : sa lueur monte au
+     survol), escalier fermé à droite ; rais de soleil qui respirent, portraits vivants, torches */
+  bureaux:{fond:'scenes/bureaux-fond', v:1, ratio:2048 / 3072, l:3072, h:2048, pano:true, panoNom:'tout le couloir', rais:'scenes/bureaux-rais',
+    portraits:[[797, 618, 992, 1042], [1515, 620, 1715, 1042]],
+    lanternes:[[175, 590, .42, 'bougie'], [705, 560, .42, 'bougie'], [1800, 565, .42, 'bougie']],
+    objets:[
+    {id:'escalier', zone:ESC_B, anim:'bascule', plaque:'g', nom:'Redescendre au hall', vue:'hall', html:() => '<i class="sc-lueur-esc"></i>', htmlStyle:'left:0;top:0;width:100%;height:100%'},
+    {id:'manager', zone:MANAGER_B, calques:[sousZone('bureaux-manager-B', 'b', [256, 666, 564, 1400], MANAGER_B)], anim:'bascule', muet:true, nom:'Mon bureau', vue:'salon',
+      html:() => gravure('Manager', 420, 610, MANAGER_B), htmlStyle:'left:0;top:0;width:100%;height:100%'},
+    {id:'president', zone:PRESIDENT_B, calques:[sousZone('bureaux-president-C', 'b', [1016, 500, 1496, 1330], PRESIDENT_B), sousZone('bureaux-tapis-C', 'b', [820, 1320, 1690, 1510], PRESIDENT_B)],
+      anim:'bascule', nom:'Bureau du président', vue:'direction'},
+    {id:'recrutement', zone:RECRUT_B, calques:[sousZone('bureaux-recrutement-D', 'b', [1664, 680, 2200, 1410], RECRUT_B)], anim:'bascule', muet:true, nom:'Bureau du recrutement', vue:'recrutement',
+      html:() => gravure('Recrutement', 2034, 610, RECRUT_B), htmlStyle:'left:0;top:0;width:100%;height:100%'},
+    {id:'jeunes', zone:JEUNES_B, calques:[sousZone('bureaux-jeunes-E', 'b', [2196, 660, 2700, 1600], JEUNES_B)], anim:'bascule', muet:true, nom:'Classe de vol', vue:'formation',
+      html:() => gravure('Classe de vol', 2512, 615, JEUNES_B), htmlStyle:'left:0;top:0;width:100%;height:100%'},
+    {id:'etage', zone:ETAGE_B, anim:'bascule', muet:true, nom:'Étage fermé', act:'scEtage', html:() => gravure('Étage fermé', 2850, 1105, ETAGE_B), htmlStyle:'left:0;top:0;width:100%;height:100%'},
+  ]},
   grandesalle:{fond:'scenes/grandesalle-fond', v:2, nuages:'scenes/grandesalle-nuages', ratio:2048 / 3072, l:3072, h:2048, pano:true, panoNom:'toute la salle', nuit:true, ciel:'scenes/grandesalle-ciel', cielH:560,
     lanternes:[[70, 860, .42, 'bougie'], [364, 926, .36, 'bougie'], [1070, 996, .32, 'bougie'], [2004, 1000, .32, 'bougie'], [2322, 980, .36, 'bougie'], [2996, 860, .42, 'bougie'], [2226, 206, 2.8, 'lune']],
     flottantes:[[260, 620, 1.15], [470, 420, .9], [650, 700, 1], [820, 330, .75], [980, 560, .8], [1160, 300, .65], [1240, 640, .62], [1330, 430, .6], [1500, 280, .55], [1660, 400, .55],
@@ -457,7 +491,7 @@ function sceneHTML(l){
   /* v136 : la brume ne passe qu'à travers le masque du ciel ; lueur des lanternes (v138 : le mode soir et nuit est retiré, toujours le jour) */
   const masque = S.ciel ? `url(${src(S.ciel)})` : '';
   const ciel = S.ciel ? `<div class="sc-ciel${S.nuit ? ' nuit' : ''}" aria-hidden="true" style="height:${(S.cielH / S.h * 100).toFixed(3)}%;-webkit-mask-image:${masque};mask-image:${masque}">${S.nuit ? etoilesHTML(S) : ''}${S.nuages ? `<i class="sc-nuages" style="background-image:url(${src(S.nuages)})"></i>` : ''}<i class="sc-brume a" style="background-image:url(${src('scenes/brume')})"></i><i class="sc-brume b" style="background-image:url(${src('scenes/brume')})"></i></div>` : '';
-  const apres = tableauxHTML(S, src) + (S.fantomes ? fantomesHTML(S.fantomes) : '') + (S.lanternes || []).map(([x, y, t, ty, co], k) => `<i class="sc-lanterne l${k % 2}${ty ? ' ' + ty : ''}" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%${t ? ';--t:' + t : ''}${co ? ';--c:' + co : ''}${ty && ty !== 'lune' ? `;animation-delay:-${(k * .73).toFixed(2)}s` : ''}"></i>`).join('')
+  const apres = tableauxHTML(S, src) + portraitsHTML(S, src) + raisHTML(S, src) + (S.fantomes ? fantomesHTML(S.fantomes) : '') + (S.lanternes || []).map(([x, y, t, ty, co], k) => `<i class="sc-lanterne l${k % 2}${ty ? ' ' + ty : ''}" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%${t ? ';--t:' + t : ''}${co ? ';--c:' + co : ''}${ty && ty !== 'lune' ? `;animation-delay:-${(k * .73).toFixed(2)}s` : ''}"></i>`).join('')
     + (S.rayons || []).map(([x0, y0, x1, y1, poly]) => `<i class="sc-rayon" aria-hidden="true" style="left:${(x0 / S.l * 100).toFixed(2)}%;top:${(y0 / S.h * 100).toFixed(2)}%;width:${((x1 - x0) / S.l * 100).toFixed(2)}%;height:${((y1 - y0) / S.h * 100).toFixed(2)}%;--poly:polygon(${poly})"><b class="sc-flou"><i class="sc-faisceau"></i></b><i class="sc-grains"><i class="sc-poussiere"></i></i></i>`).join('')   // v148
     + (S.lumieres || []).map(([x0, y0, x1, y1, o]) => `<i class="sc-lumiere" aria-hidden="true" style="left:${(x0 / S.l * 100).toFixed(2)}%;top:${(y0 / S.h * 100).toFixed(2)}%;width:${((x1 - x0) / S.l * 100).toFixed(2)}%;height:${((y1 - y0) / S.h * 100).toFixed(2)}%;--o:${o}"></i>`).join('');   // v137
   const flottantes = (S.flottantes || []).map(([x, y, t], k) => `<i class="sc-cierge" aria-hidden="true" style="left:${(x / S.l * 100).toFixed(2)}%;top:${(y / S.h * 100).toFixed(2)}%;--s:${t};--d:${(6 + (k * 1.37) % 4).toFixed(2)}s;animation-delay:-${(k * .9).toFixed(1)}s"></i>`).join('');   // v149

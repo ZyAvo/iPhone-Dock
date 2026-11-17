@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: e6e98879
+# mon-ecran-version: 69715179
 """QM27 (v116) — lieux illustrés façon FM98 : découpe le fond et les objets animés d'un lieu.
 - <lieu>-fond.png (portrait 1024 × 1536) → images/qm27/scenes/<lieu>-fond.webp ;
 - <lieu>-objets.png (planche, fond uni clair, grille cols × rangs) → images/qm27/scenes/<lieu>-<nom>.webp, recadrés au plus juste
@@ -250,6 +250,15 @@ def couche_nuages(a, ciel_al, N, l, h):
             if -im.width < px < l: T.alpha_composite(im, (px, int(y - im.height / 2)))
     return T.resize((l // 2, h // 2), Image.LANCZOS)
 
+def couche_rais(a, P):
+    """v151 : masque (niveaux de gris) des rais de soleil et des halos peints : plus clair que les alentours (passe-haut sur la luminance,
+    flou de `flou` px) et chaud (rouge > bleu) ; adouci. Le jeu y pose une lumière qui respire et la poussière en suspension."""
+    import cv2
+    f = a.astype(np.float32); L = cv2.cvtColor(a, cv2.COLOR_BGR2LAB)[..., 0].astype(np.float32)
+    hp = L - cv2.GaussianBlur(L, (0, 0), P.get('flou', 90))
+    m = np.clip((hp - P.get('seuil', 6)) / 16, 0, 1) * np.clip((f[..., 2] - f[..., 0]) / 40, 0, 1)
+    return (cv2.GaussianBlur(m, (0, 0), P.get('doux', 12)) * 255).astype(np.uint8)
+
 def texture_brume(l=1024, h=360, graine=27):
     """v136 : voiles de brume blanche, raccord sans couture de gauche à droite (bruit périodique), une tuile = deux largeurs de scène."""
     from scipy import ndimage as nd
@@ -290,6 +299,14 @@ RETOUCHES['grandesalle'] = {'taille':(3072, 2048), 'chaud':{'y0':840, 'y1':1280,
             'sans':[[(0, 0), (160, 0), (400, 262), (690, 398), (690, 560), (0, 560)], [(2935, 0), (3072, 0), (3072, 560), (2340, 560), (2345, 392), (2625, 300)]],
             # v150 : deux nuages peints de A (le nuage voisin de la lune et la longue traînée de gauche), agrandis : ils passent devant la lune
             'nuages':{'boites':[[1620, 230, 2200, 440], [330, 90, 1230, 440]], 'poses':[(0, 700, 220, 1.7, False), (1, 2150, 230, 1.15, True)], 'lune':(2226, 206, 140)}}}
+
+# v151 : le couloir des bureaux, panorama vu de face (A de ChatGPT 1536 × 1024 agrandie ×2) : B porte du manager entrouverte, C double porte
+# du président et lumière dorée sur le tapis (C est partie de B : seules ses zones à elle servent), D porte du recrutement et rouleaux qui
+# s'envolent, E porte verte de la classe de vol et balais en l'air ; rais de soleil peints (masque `rais`)
+RETOUCHES['bureaux'] = {'taille':(3072, 2048),
+    'zones':{'manager':[256, 666, 564, 1400], 'president':[1016, 500, 1496, 1330], 'tapis':[820, 1320, 1690, 1510], 'recrutement':[1664, 680, 2200, 1410], 'jeunes':[2196, 660, 2700, 1600]},
+    'pieces':[('manager', 'B'), ('president', 'C'), ('tapis', 'C'), ('recrutement', 'D'), ('jeunes', 'E')],
+    'rais':{'flou':90, 'seuil':6, 'doux':12}}
 
 # v143 : le hall du château (remplace l'ancien hall) : B porte de l'infirmerie entrouverte, C double porte de la grande salle ouverte et bannières au vent,
 # D lueur et vapeur vertes du sous-sol, E grande bannière qui ondule et lustre plus brillant ; la grande bannière blanc et gris (A et E) est teinte.
@@ -442,6 +459,8 @@ for lieu, R in RETOUCHES.items():
         rgba = couche_avant(a, calque_qwen(lieu, R['avant']['calque']), R['avant'])
         Image.fromarray(rgba, 'RGBA').save(os.path.join(O, f'{lieu}-avant.webp'), 'WEBP', quality=84, method=6)
         tailles[f'{lieu}-avant'] = [0, 0, W, R['avant']['haut']]; print(f'  premier plan {lieu}-avant : {rgba.shape[1]} × {rgba.shape[0]}')
+    if 'rais' in R:   # v151 : masque des rais de soleil peints (pour les faire respirer et y faire flotter la poussière)
+        Image.fromarray(couche_rais(a_brut, R['rais']), 'L').resize((W // 2, H // 2), Image.LANCZOS).save(os.path.join(O, f'{lieu}-rais.webp'), 'WEBP', quality=80, method=6); print('  rais de soleil', f'{lieu}-rais')
     if 'ciel' in R:   # v136
         Image.fromarray(couche_ciel(a_brut, R['ciel']), 'RGBA').save(os.path.join(O, f'{lieu}-ciel.webp'), 'WEBP', quality=90, method=6)
         if R['ciel'].get('nuages'):   # v150

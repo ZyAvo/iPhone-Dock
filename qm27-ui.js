@@ -1,4 +1,4 @@
-// mon-ecran-version: 177a76ef
+// mon-ecran-version: a7d1b268
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -1939,6 +1939,7 @@ Object.assign(ACT, {
       ${L.length ? `<div class="carte"><div class="liste">${L.map(j => `<button class="el" data-act="joueur" data-j="${j.id}">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}</b><span>${esc(j.bless.nom)} · encore ${j.bless.jours} jour${j.bless.jours > 1 ? 's' : ''}</span></div><span class="d mut">›</span></button>`).join('')}</div></div>`
         : '<p class="mut">Tout le monde est sur pied.</p>'}</div>`, d && d.garder); },
   scProgression:() => { fermerFeuille(); aller('progression'); },   // v127 : l'écran existe
+  scEtage:() => toast('Cet étage est fermé pour l\'instant.'),   // v151 : l'escalier barré du couloir des bureaux
   scCouloir:() => { const m = QM.matchDuJoueur(M); if (m && !m.res){ fermerFeuille(); return ACT.preparer(); }
     let pm = null; try { pm = TT() && TT().prochainMatch(M); } catch (e){}
     const adv = pm && pm.m && (pm.m.dom === M.manager.club ? pm.m.ext : pm.m.dom);

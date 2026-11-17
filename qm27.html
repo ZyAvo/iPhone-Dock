@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="71741408">
+<meta name="mon-ecran-version" content="67fb9540">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -912,6 +912,30 @@ html.desk .scene{max-width:min(560px, calc((100vh - 170px) * .667))}
   .sc-zone.joue .sc-dates span{animation:sc-date 3.2s ease-out calc(var(--i) * .55s) infinite both}
 }
 @media (prefers-reduced-motion: no-preference) and (hover:hover){.sc-zone:hover .sc-halo{animation:none}.sc-zone:hover .sc-dates span{animation:sc-date 3.2s ease-out calc(var(--i) * .55s) infinite both}}
+/* v151 : le couloir des bureaux. Portraits vivants (la toile respire, penche à peine) ; rais de soleil qui respirent avec leur poussière ;
+   lueur de l'escalier du hall, plus vive au survol ; noms gravés en doré au-dessus des portes, qui s'allument de gauche à droite */
+.sc-portrait{position:absolute;overflow:hidden;pointer-events:none;z-index:2}
+.sc-portrait b{position:absolute;inset:0;transform-origin:50% 100%;transform:scale(1.02)}
+@keyframes sc-portrait-0{0%,100%{transform:scale(1.02)}30%{transform:translateY(-.6%) scale(1.032)}52%{transform:rotate(.6deg) scale(1.03)}74%{transform:translateY(-.3%) scale(1.026)}}
+@keyframes sc-portrait-1{0%,100%{transform:scale(1.02)}25%{transform:rotate(-.5deg) scale(1.028)}50%{transform:translateY(-.5%) scale(1.032)}80%{transform:rotate(.3deg) scale(1.024)}}
+.sc-rais{position:absolute;inset:0;z-index:3;pointer-events:none;mix-blend-mode:screen;background:rgba(255,212,150,.5);opacity:.18;-webkit-mask-size:100% 100%;mask-size:100% 100%;overflow:hidden}
+@keyframes sc-rais{0%,100%{opacity:.08}50%{opacity:.26}}
+.sc-lueur-esc{position:absolute;left:-40%;top:-5%;width:150%;height:110%;border-radius:50%;mix-blend-mode:screen;opacity:.35;transition:opacity .35s;
+  background:radial-gradient(closest-side,rgba(255,192,95,.8),rgba(255,170,70,.28) 55%,rgba(255,160,60,0))}
+.sc-zone.joue .sc-lueur-esc{opacity:1}@media (hover:hover){.sc-zone:hover .sc-lueur-esc{opacity:1}}
+@keyframes sc-lueur-esc{0%,100%{opacity:.26}50%{opacity:.46}}
+.sc-nomgrave{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:calc(4.2cqw * var(--k));font-weight:750;letter-spacing:.03em;color:#f7d273;opacity:0;
+  clip-path:inset(-30% 100% -30% 0);transition:clip-path .55s ease-out,opacity .15s;
+  text-shadow:0 calc(.12cqw * var(--k)) 0 rgba(60,30,5,.9),0 0 calc(.5cqw * var(--k)) rgba(70,35,0,.7),0 0 calc(1.6cqw * var(--k)) rgba(255,185,70,.85),0 0 calc(3.4cqw * var(--k)) rgba(255,170,60,.45)}
+.sc-zone.joue .sc-nomgrave{opacity:1;clip-path:inset(-30% -5% -30% -5%)}@media (hover:hover){.sc-zone:hover .sc-nomgrave{opacity:1;clip-path:inset(-30% -5% -30% -5%)}}
+@keyframes sc-braise{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18)}}
+@media (prefers-reduced-motion: no-preference){
+  .sc-portrait.p0 b{animation:sc-portrait-0 11s ease-in-out infinite}.sc-portrait.p1 b{animation:sc-portrait-1 13s ease-in-out -4s infinite}
+  .sc-rais{animation:sc-rais 10s ease-in-out infinite}
+  .sc-lueur-esc{animation:sc-lueur-esc 3.4s ease-in-out infinite}.sc-zone.joue .sc-lueur-esc{animation:none}
+  .sc-nomgrave{animation:sc-braise 1.6s ease-in-out infinite}
+}
+@media (prefers-reduced-motion: no-preference) and (hover:hover){.sc-zone:hover .sc-lueur-esc{animation:none}}
 /* v124 : l'ardoise du Bazar, écrite à la craie */
 .sc-html{position:absolute;pointer-events:none;display:flex;flex-direction:column;justify-content:flex-start}
 /* v147 : la composition à la craie sur le tableau du vestiaire */
@@ -1181,8 +1205,8 @@ html.desk .er{cursor:grab}
 <script src="qm27-europe.js?v=8c9c3f40"></script>
 <script src="qm27-nations.js?v=66d46995"></script>
 <script src="qm27-visuel.js?v=475e9f0c"></script>
-<script src="qm27-ui.js?v=177a76ef"></script>
-<script src="qm27-ecrans.js?v=91218493"></script>
+<script src="qm27-ui.js?v=a7d1b268"></script>
+<script src="qm27-ecrans.js?v=a44742b5"></script>
 <script src="qm27-stats.js?v=044932c6"></script>
 <script src="commun.js?v=fc411b5f"></script>
 </body>
