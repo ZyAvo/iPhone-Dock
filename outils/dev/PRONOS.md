@@ -34,6 +34,14 @@ Un invité non inscrit voit la carte Règles et le formulaire.
   (plus petite somme des écarts |dom − réel| + |ext − réel| ; ex æquo : 3 chacun ; seul à avoir le bon résultat : 3). Calculé dans la page (`points`), d'après les pronos du match.
 - Badge « 🎯 +3 · le plus proche » en rugby ; stats et trophée Sniper : « pronos à 3 points ».
 
+## Points réglés par le serveur et historique des mois (v154, Code.gs v154)
+- Avant : le serveur ne gardait que les pronos ; points et classements étaient calculés par la page sur les matchs qu'elle charge (45 jours). Un fichier de la tâche Sport vidé (Ligue des nations, 18/11/2026) faisait disparaître des points, et la « Saison » ne couvrait que 45 jours.
+- Onglet **Pronos**, colonnes H à L ajoutées toutes seules : `coup d'envoi` (noté dès le prono), `score dom`, `score ext`, `points`, `réglé le`. Réglage à chaque ouverture de la page (action `etat`), avec les règles de la page (`pointsDe`). `-` en points : match annulé, pas compté. Une ligne réglée ne bouge plus.
+- Onglet **Historique** : une ligne par mois, groupe, joueur et jeu (`base` ou `plus`) : points, exacts, justes, pronos, rang, clôturé le. Un mois est clôturé quand tous ses pronos sont réglés, au plus tard 3 jours après sa fin (mois du coup d'envoi, heure de Paris). On peut corriger une ligne à la main : la page lit l'Historique tel quel.
+- Onglet **Tableau** (lecture seule, réécrit à chaque clôture) : par groupe et par jeu, joueurs en colonnes, mois en lignes, total.
+- `etat` renvoie en plus `res` (résultats des matchs réglés pas encore clôturés : la page les compte même s'ils ne sont plus dans ses fichiers), `histo` (mois clôturés) et `debut` (début de saison, juillet). Page : « Saison » = mois clôturés depuis juillet + mois pas encore clôturés ; « 📜 Mois précédents » (podium de chaque mois) sous le classement de la saison.
+- Mise en place : coller `outils/pronos/Code.gs` v154, Enregistrer, Déployer › Gérer les déploiements › ✏️ › Version : Nouvelle version › Déployer. Facultatif : lancer `toutRegler` depuis l'éditeur pour remplir tout de suite les colonnes et les onglets (sinon, à la première ouverture de la page). Une page v154 avec un ancien Code.gs marche comme avant.
+
 ## Présentation (v56)
 - **À pronostiquer** : en-tête (avatar, rang du mois, compte à rebours du prochain coup d'envoi, barre « pronos faits / matchs ouverts »), matchs par jour puis
   par compétition (logo de la compétition, sinon ⚽/🏉 ; n° de journée), logos des équipes (`t.logo`, sinon logo ESPN foot d'après l'identifiant ; repli : pastille

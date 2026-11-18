@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="f6c9b03d">
+<meta name="mon-ecran-version" content="bbcf67f6">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -386,6 +386,16 @@ html.desk .f-sheet{border-radius:26px}
 .p-tro .w span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .p-tro .w .p-av{width:20px;height:20px;font-size:11px}
 .p-tro .v{font-size:.72rem;color:var(--ink-soft)}
+/* v154 : palmarès des mois clôturés (onglet Saison) */
+.p-palm{border-radius:22px;padding:12px 14px}
+.p-palm h3{margin:0 0 6px;font-size:.92rem}
+.p-palm .mo{display:grid;grid-template-columns:7.8em minmax(0,1fr);gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line, rgba(127,127,127,.18))}
+.p-palm .mo:first-of-type{border-top:0}
+.p-palm .mo > b{font-size:.78rem;text-transform:capitalize}
+.p-palm .po{display:flex;flex-wrap:wrap;gap:4px 12px;min-width:0}
+.p-palm .po span{display:inline-flex;align-items:center;gap:5px;font-size:.8rem;white-space:nowrap}
+.p-palm .po .p-av{width:20px;height:20px;font-size:11px}
+.p-palm .po small{color:var(--ink-soft)}
 /* v75 : classement détaillé, mêmes codes que les classements de la page Sport (filet à gauche, rang coloré, ligne teintée) */
 .p-tab{border-radius:22px;overflow:hidden}
 .p-tab-d{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:inherit}
@@ -634,7 +644,7 @@ const SIM = !API;
 const JOURS_AVANT = 7, JOURS_APRES = 45;
 const hm = t => new Date(t).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
 const jourDe = t => new Date(t).toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
-const moisDe = t => new Date(t).toISOString().slice(0, 7);
+const moisDe = t => new Date(t).toLocaleDateString('fr-CA', {timeZone:'Europe/Paris'}).slice(0, 7);   // v154 : mois à l'heure de Paris, comme le serveur (avant : heure universelle)
 const q = new URLSearchParams(location.search);
 // v63 : lien de reconnexion (?groupe=…&pseudo=…) ; PRE = ce qui pré-remplit les formulaires ; RECO = formulaire « Me reconnecter »
 const LIEN = {g:(q.get('groupe') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8), p:(q.get('pseudo') || '').trim().slice(0, 20)};
@@ -1008,10 +1018,24 @@ function blocs(l, f){
 }
 
 /* ---------- classement ---------- */
+/* v154 : le serveur règle chaque prono et clôture chaque mois (onglet Historique). ETAT.res = résultat des matchs réglés pas encore clôturés :
+   ceux qui ne sont plus dans les fichiers de la page (sortis de la fenêtre de 45 jours, ou fichier vidé) comptent quand même.
+   ETAT.histo = mois clôturés [mois, jeu, pseudo, points, exacts, justes, pronos, rang] ; la saison = mois clôturés + mois pas encore clôturés. */
+const jeuCl = () => JEU === 'plus' ? 'plus' : 'base';
+const debutSaison = () => ETAT.debut || (([a, m]) => `${m >= 7 ? a : a - 1}-07`)(moisDe(Date.now()).split('-').map(Number));
+const fermes = () => new Set((ETAT.histo || []).filter(x => x[1] === jeuCl()).map(x => x[0]));
+function listeCl(){
+  const vus = new Set(tous().map(m => String(m.id))), ids = new Set((JEU === 'plus' ? EXTRAS : LIGUES).map(L => L.id));
+  const v = Object.entries(ETAT.res || {}).filter(([id, r]) => !vus.has(id) && ids.has(r[3]))
+    .map(([id, r]) => ({id, league:r[3], t:+r[2], state:'post', home:{score:r[0]}, away:{score:r[1]}}));
+  return v.length ? [...liste(), ...v].sort((a, b) => a.t - b.t) : liste();
+}
 function classement(per, sansDernierJour){
-  const mois = moisDe(Date.now()), T = {};
+  const mois = moisDe(Date.now()), T = {}, F = per === 'saison' ? fermes() : new Set(), deb = debutSaison();
   ETAT.joueurs.forEach(n => { T[n] = {n, pts:0, ex:0, nb:0, bons:0, serie:0}; });
-  let l = liste().filter(m => m.state === 'post' && ETAT.pronos[m.id] && (per === 'saison' || moisDe(m.t) === mois));
+  if (per === 'saison') (ETAT.histo || []).filter(x => x[1] === jeuCl() && x[0] >= deb).forEach(([, , n, pts, ex, bons, nb]) => {
+    const x = T[n] || (T[n] = {n, pts:0, ex:0, nb:0, bons:0, serie:0}); x.pts += pts; x.ex += ex; x.bons += bons; x.nb += nb; });
+  let l = listeCl().filter(m => m.state === 'post' && ETAT.pronos[m.id] && (per === 'saison' ? moisDe(m.t) >= deb && !F.has(moisDe(m.t)) : moisDe(m.t) === mois));
   if (sansDernierJour && l.length){ const der = new Date(l[l.length - 1].t).toDateString(); l = l.filter(m => new Date(m.t).toDateString() !== der); if (!l.length) return null; }
   l.forEach(m => Object.entries(ETAT.pronos[m.id] || {}).forEach(([n, p]) => {
     const pt = points(p, m); if (pt == null) return;
@@ -1113,7 +1137,7 @@ function reglesHTML(){
       <li><b>Foot</b> : score exact <b>3 points</b>, bon résultat (vainqueur ou nul) <b>1 point</b>.</li>
       <li><b>Rugby</b> : bon résultat <b>1 point</b> ; parmi ceux qui ont le bon résultat, le plus proche du score prend <b>3 points</b> (plus petite somme des écarts de points ; ex æquo : 3 chacun).
         Exemple, score final 27–20 : 25–20 et 28–21 (écart de 2) prennent 3 points, 30–10 prend 1 point, 20–25 prend 0.</li>
-      <li>Classement du mois et de la saison. À égalité : le plus de pronos à 3 points, puis le moins de pronos.</li></ul></div>
+      <li>Classement du mois et de la saison (de juillet à juin). Chaque mois fini est gardé : podiums dans « Mois précédents », onglet Saison. À égalité : le plus de pronos à 3 points, puis le moins de pronos.</li></ul></div>
     <div class="carte glass regles"><h2>➕ Les pronos en plus</h2><ul>
       <li>Au choix de chacun (Menu Pronos › Pronos en plus) : Liga, Serie A, Bundesliga, Ligue Europa, Ligue Conférence, NBA, NFL. Tout, ou au cas par cas.</li>
       <li>Ils ont <b>leur propre classement</b> (mois et saison), entre ceux qui y jouent. Le classement principal ne change pas.</li>
@@ -1347,13 +1371,20 @@ function tropheesHTML(l){
   ].filter(z => z[2]);
   return t.length ? `<div class="p-tro">${t.map(([e, nom, x, v]) => `<div class="glass"><span class="e">${e}</span><span class="t">${nom}</span><span class="w">${avHTML(x.n)}<span>${esc(x.n)}</span></span><span class="v">${esc(v(x))}</span></div>`).join('')}</div>` : '';
 }
+function palmaresHTML(me){                                    // v154 : podium de chaque mois clôturé de la saison
+  const deb = debutSaison(), H = (ETAT.histo || []).filter(x => x[1] === jeuCl() && x[0] >= deb && x[7] <= 3), mois = [...new Set(H.map(x => x[0]))].sort().reverse();
+  if (!mois.length) return '';
+  const nom = M => new Date(+M.slice(0, 4), +M.slice(5) - 1, 15).toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
+  return `<section class="p-palm glass"><h3>📜 Mois précédents</h3>${mois.map(M => `<div class="mo"><b>${esc(nom(M))}</b><div class="po">${H.filter(x => x[0] === M).sort((a, b) => a[7] - b[7])
+    .map(x => `<span${x[2] === me.pseudo ? ' class="moi"' : ''}>${['🥇', '🥈', '🥉'][x[7] - 1]} ${avHTML(x[2])}${esc(x[2])} <small>${pl(x[3], 'pt')}</small></span>`).join('')}</div></div>`).join('')}</section>`;
+}
 function clHTML(me){
   const l = classement(PERIODE), avant = classement(PERIODE, true), joue = l.some(x => x.nb);
   const per = `<div class="ong glass" role="tablist">${[['mois', 'Ce mois-ci'], ['saison', 'Saison']].map(([k, t]) => `<button type="button" role="tab" data-per="${k}" aria-selected="${PERIODE === k}">${t}</button>`).join('')}</div>`;
   const corps = joue
     ? podiumHTML(l, avant, me) + tableauHTML(l, avant, me) + tropheesHTML(l)
     : `<div class="carte glass"><h2>🏁 Le classement démarre au premier match terminé</h2><p>Dans le groupe : ${l.map(x => `${avHTML(x.n)} ${esc(x.n)}`).join(' &nbsp; ')}</p></div>`;
-  return per + corps + (JEU === 'plus' ? `<p class="note">Pronos en plus : classement entre ceux qui y jouent. Foot : score exact 3 points, bon résultat 1 point. NBA et NFL : bon vainqueur 1 point. À égalité : le plus de pronos à 3 points, puis le moins de pronos. Justes : bon résultat ou score exact. Exacts : pronos à 3 points. Série : bons pronos d'affilée en cours.</p>` + (SIM ? simOutils() : '') : '') + (JEU === 'plus' ? '' : `<p class="note">Foot : score exact 3 points, bon résultat (vainqueur ou nul) 1 point. Rugby : bon résultat 1 point, et 3 points pour le plus proche du score parmi ceux qui ont le bon résultat (plus petite somme des écarts de points). À égalité : le plus de pronos à 3 points, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison = les ${JOURS_APRES} derniers jours dans cet essai.` : ''} ▲▼ : places gagnées ou perdues depuis la dernière journée. Justes : bon résultat ou score exact. Exacts : pronos à 3 points. Série : bons pronos d'affilée en cours.</p>`
+  return per + corps + (PERIODE === 'saison' ? palmaresHTML(me) : '') + (JEU === 'plus' ? `<p class="note">Pronos en plus : classement entre ceux qui y jouent. Foot : score exact 3 points, bon résultat 1 point. NBA et NFL : bon vainqueur 1 point. À égalité : le plus de pronos à 3 points, puis le moins de pronos. Justes : bon résultat ou score exact. Exacts : pronos à 3 points. Série : bons pronos d'affilée en cours.</p>` + (SIM ? simOutils() : '') : '') + (JEU === 'plus' ? '' : `<p class="note">Foot : score exact 3 points, bon résultat (vainqueur ou nul) 1 point. Rugby : bon résultat 1 point, et 3 points pour le plus proche du score parmi ceux qui ont le bon résultat (plus petite somme des écarts de points). À égalité : le plus de pronos à 3 points, puis le moins de pronos.${PERIODE === 'saison' ? ` Saison : de juillet à juin, mois finis gardés sur le serveur${SIM ? ` (simulation : les ${JOURS_APRES} derniers jours)` : ''}.` : ''} ▲▼ : places gagnées ou perdues depuis la dernière journée. Justes : bon résultat ou score exact. Exacts : pronos à 3 points. Série : bons pronos d'affilée en cours.</p>`
     + (SIM ? simOutils() : '')) + appareilHTML(me);
 }
 const simOutils = () => `<div class="carte glass"><h2>Outils de simulation</h2><p>Pour voir le classement vivre tout de suite : des pronos tirés au hasard pour toi sur les matchs déjà joués.</p>

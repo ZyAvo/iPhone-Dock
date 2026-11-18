@@ -1,7 +1,7 @@
-/* KiosK — serveur des pronos entre amis (Google Apps Script, v79).
+/* KiosK — serveur des pronos entre amis (Google Apps Script, v154).
    Garde les joueurs et les pronos dans le Google Sheets auquel ce script est attaché (onglets « Joueurs » et « Pronos », créés tout seuls).
    Refuse un prono après le coup d'envoi (horaires lus sur le site publié, pas envoyés par le téléphone) et ne montre
-   les pronos des autres qu'une fois le match commencé. Les points et le classement sont calculés par la page.
+   les pronos des autres qu'une fois le match commencé. Jusqu'à la v153, les points et le classement étaient calculés par la page seulement.
    v55 : groupes, pseudos et matchs toujours lus en texte (le Sheets changeait « 2026 » en nombre : inscription en double, « mauvais code »).
    v56 : avatar de chaque joueur (colonne E de Joueurs, « emoji|couleur ») et, pour les matchs pas commencés, qui a déjà pronostiqué (sans les scores).
    v60 : paris entre amis avec des crédits fictifs (onglet « Paris ») : 100 crédits chaque mois + bonus du podium du mois précédent (20 / 10 / 5),
@@ -21,6 +21,11 @@
    Cotes figées et multipliées, fermé au premier coup d'envoi. Un match faux : perdu. Tout juste : mise × cote totale. Match reporté ou annulé : retiré du calcul.
    Les crédits et le classement n'ont rien de spécial à faire : la ligne compte comme un pari. Sélections des autres visibles match par match, au coup d'envoi.
    v79 : Ligue des nations (uefa.nations) et Championnat des nations de rugby (17567) dans LIGUES (horaires des pronos).
+   v154 : chaque prono est réglé ici, une fois le match terminé (onglet Pronos, colonnes H à L : coup d'envoi, score final, points, réglé le),
+   avec les mêmes règles que la page. Une ligne réglée ne bouge plus, même si un fichier de la tâche Sport se vide (Ligue des nations, 18/11/2026).
+   Chaque mois fini est clôturé dans l'onglet « Historique » (une ligne par mois, groupe, joueur et jeu : points, exacts, justes, pronos, rang),
+   et l'onglet « Tableau » (joueurs en colonnes, mois en lignes) est réécrit à chaque clôture. Réglage et clôture se font à chaque ouverture
+   de la page (action « etat ») ; toutRegler() fait la même chose pour tous les groupes depuis l'éditeur.
    Mise en place : voir outils/dev/PRONOS.md. */
 const SITE = 'https://zyavo.github.io/iPhone-Dock/';            // adresse du dock publié
 const LIGUES = {'fra.1':'fra-1', 'eng.1':'eng-1', '270559':'270559', 'uefa.champions':'uefa-champions', 'uefa.nations':'uefa-nations', '17567':'17567'};   // id ESPN → fichier donnees/sport/<fichier>.json
@@ -41,7 +46,8 @@ function feuille(nom, entetes, texte){
   return f;
 }
 const JOUEURS = () => feuille('Joueurs', ['groupe', 'pseudo', 'code (empreinte)', 'inscrit le', 'avatar', 'photo', 'photo v'], ['A:C', 'F:G']);
-const PRONOS = () => feuille('Pronos', ['groupe', 'pseudo', 'match', 'ligue', 'dom', 'ext', 'le'], 'A:D');
+const PRONOS = () => feuille('Pronos', ['groupe', 'pseudo', 'match', 'ligue', 'dom', 'ext', 'le', 'coup d\'envoi', 'score dom', 'score ext', 'points', 'réglé le'], 'A:D');   // v154 : H à L
+const HISTORIQUE = () => feuille('Historique', ['mois', 'groupe', 'pseudo', 'jeu', 'points', 'exacts', 'justes', 'pronos', 'rang', 'clôturé le'], 'A:D');   // v154
 const ABONNEMENTS = () => feuille('Abonnements', ['groupe', 'pseudo', 'adresse', 'p256dh', 'auth', 'ligues', 'appareil', 'le'], 'A:G');   // v72
 const tache = q => { const c = PropertiesService.getScriptProperties().getProperty('CLE_TACHE'); return !!c && c.length >= 16 && String(q.cle || '') === c; };
 const PARIS = () => feuille('Paris', ['groupe', 'pseudo', 'match', 'ligue', 'choix', 'mise', 'cote', 'le', 'mois', 'dom', 'ext', 'coup d\'envoi', 'gain', 'selections'], ['A:E', 'I:K', 'N:N']);   // v77 : colonne N (combinés)
@@ -147,6 +153,96 @@ function reglerCombi(r, R, now, anciens){
   else if (s.every(x => x.r)){ const ok = s.filter(x => x.r === 'ok'); gain = ok.length ? Math.round(+r[5] * Math.round(100 * ok.reduce((p, x) => p * x.o, 1)) / 100) : +r[5]; }   // tous annulés : remboursé
   return change || gain !== null ? {sel:change ? JSON.stringify(s) : null, gain} : null;
 }
+/* ---------- v154 : réglage des pronos et historique des mois ---------- */
+const jeuDe = lg => EXTRAS[lg] ? 'plus' : 'base';                 // « Pronos en plus » : classement à part
+const issue = (h, a) => h > a ? 1 : h < a ? 2 : 0;
+/* mêmes règles que la page (pronos.html, points) : NBA et NFL bon vainqueur 1 ; foot score exact 3, bon résultat 1 ;
+   rugby bon résultat 1, 3 pour le plus proche du score parmi les bons pronos du groupe (tous = pronos du groupe sur ce match) */
+function pointsDe(p, h, a, lg, tous){
+  const bon = q => issue(+q[0], +q[1]) === issue(h, a);
+  if (lg === 'nba' || lg === 'nfl') return bon(p) ? 1 : 0;
+  if (/\./.test(lg)) return +p[0] === h && +p[1] === a ? 3 : bon(p) ? 1 : 0;
+  if (!bon(p)) return 0;
+  const ecart = q => Math.abs(+q[0] - h) + Math.abs(+q[1] - a);
+  return ecart(p) <= Math.min(ecart(p), ...tous.filter(bon).map(ecart)) ? 3 : 1;
+}
+const debutSaison = () => { const [a, m] = moisDe(Date.now()).split('-').map(Number); return (m >= 7 ? a : a - 1) + '-07'; };   // saison : de juillet à juin
+/* règle les pronos des matchs terminés du groupe (colonne K vide = pas encore réglé ; « - » = match annulé, pas compté) */
+function reglerPronos(g){
+  const verrou = LockService.getScriptLock(); if (!verrou.tryLock(5000)) return;
+  try{
+    const f = PRONOS(), l = f.getDataRange().getValues(), now = Date.now(), H = horaires(), R = resultats(), fichiers = {}, parMatch = {};
+    const ancien = (lg, id) => {                                   // match sorti de passe.json / jours.json : fichier de sa compétition (lu une fois)
+      const c = LIGUES[lg] || EXTRAS[lg] || String(lg).replace(/\./g, '-');
+      if (!fichiers[c]){ fichiers[c] = {}; try{ (lire('donnees/sport/' + c + '.json').events || []).forEach(e => { if (e.home) fichiers[c][e.id] = resume(e); }); }catch(x){} }
+      return fichiers[c][id] || null;
+    };
+    l.forEach((r, k) => { if (k && T(r[0]) === g && r[10] === '') (parMatch[T(r[2])] || (parMatch[T(r[2])] = [])).push(k); });
+    Object.entries(parMatch).forEach(([id, ks]) => {
+      const r0 = l[ks[0]], lg = T(r0[3]), le = r0[6] instanceof Date ? r0[6].getTime() : now;
+      let t = +r0[7] || H[id] || 0, x = R[id];
+      if (!x && (t ? now > t + 2 * 3600e3 : true) && now - (t || le) < 60 * 864e5) x = ancien(lg, id);
+      if (x && +x[4]) t = +x[4];
+      if (!x) return;
+      if (x[0] === 'post' && x[1] !== '' && x[2] !== ''){
+        const h = +x[1], a = +x[2], tous = l.filter((r, k) => k && T(r[0]) === g && T(r[2]) === id).map(r => [r[4], r[5]]);
+        ks.forEach(k => { const pt = pointsDe([l[k][4], l[k][5]], h, a, lg, tous); f.getRange(k + 1, 8, 1, 5).setValues([[t || '', h, a, pt, new Date()]]); });
+      } else if (/CANCEL|ABANDON/.test(x[3] || '') && now - t > 2 * 864e5) ks.forEach(k => f.getRange(k + 1, 8, 1, 5).setValues([[t || '', '', '', '-', new Date()]]));
+      else if (t && !+r0[7]) ks.forEach(k => f.getRange(k + 1, 8).setValue(t));   // pas fini : on note déjà le coup d'envoi (mois du prono)
+    });
+  }finally{ verrou.releaseLock(); }
+}
+/* clôture des mois finis : une ligne par joueur ayant au moins un prono réglé ce mois-là (mois du coup d'envoi, heure de Paris),
+   quand tous les pronos du mois sont réglés, ou au plus tard 3 jours après la fin du mois. Une fois écrit, un mois ne change plus. */
+function cloturer(g){
+  const verrou = LockService.getScriptLock(); if (!verrou.tryLock(5000)) return false;
+  try{
+    const hf = HISTORIQUE(), fait = new Set(hf.getDataRange().getValues().slice(1).filter(r => T(r[1]) === g).map(r => T(r[0]) + '|' + T(r[3])));
+    const cur = moisDe(Date.now()), paquets = {};
+    PRONOS().getDataRange().getValues().slice(1).forEach(r => { if (T(r[0]) !== g || !+r[7]) return;
+      const M = moisDe(+r[7]); if (M < cur) (paquets[M + '|' + jeuDe(T(r[3]))] || (paquets[M + '|' + jeuDe(T(r[3]))] = [])).push(r); });
+    let ajout = false;
+    Object.keys(paquets).sort().forEach(k => {
+      if (fait.has(k)) return;
+      const [M, jeu] = k.split('|'), rs = paquets[k], [a, m] = suivant(M).split('-').map(Number);
+      if (rs.some(r => r[10] === '') && Date.now() < Date.UTC(a, m - 1, 1) + 3 * 864e5) return;    // pronos pas encore tous réglés : on attend
+      const S = {};
+      rs.forEach(r => { if (r[10] === '' || r[10] === '-') return; const p = T(r[1]), x = S[p] || (S[p] = {p, pts:0, ex:0, bons:0, nb:0}), pt = +r[10];
+        x.pts += pt; x.nb++; if (pt === 3) x.ex++; if (pt) x.bons++; });
+      Object.values(S).sort((x, y) => y.pts - x.pts || y.ex - x.ex || x.nb - y.nb || x.p.localeCompare(y.p))
+        .forEach((x, i) => { ajouter(hf, [M, g, x.p, jeu, x.pts, x.ex, x.bons, x.nb, i + 1, new Date()]); ajout = true; });
+    });
+    if (ajout) tableau();
+    return ajout;
+  }finally{ verrou.releaseLock(); }
+}
+/* onglet « Tableau » (lecture seule, réécrit à chaque clôture) : par groupe et par jeu, joueurs en colonnes, mois en lignes, total en bas */
+function tableau(){
+  const ss = SpreadsheetApp.getActive(), f = ss.getSheetByName('Tableau') || ss.insertSheet('Tableau'), blocs = {}, out = [], titres = [];
+  HISTORIQUE().getDataRange().getValues().slice(1).forEach(r => { const k = T(r[1]) + '|' + T(r[3]); (blocs[k] || (blocs[k] = [])).push(r); });
+  Object.keys(blocs).sort().forEach(k => {
+    const [g, jeu] = k.split('|'), rs = blocs[k], noms = [...new Set(rs.map(r => T(r[2])))].sort((x, y) => x.localeCompare(y)), mois = [...new Set(rs.map(r => T(r[0])))].sort();
+    titres.push(out.length + 1); out.push([g + (jeu === 'plus' ? ' — Pronos en plus' : ' — Pronos'), ...noms]);
+    mois.forEach(M => out.push([M, ...noms.map(n => { const r = rs.find(x => T(x[0]) === M && T(x[2]) === n); return r ? +r[4] : ''; })]));
+    titres.push(out.length + 1); out.push(['Total', ...noms.map(n => rs.filter(x => T(x[2]) === n).reduce((s, x) => s + +x[4], 0))]);
+    out.push(['']);
+  });
+  f.clear();
+  if (!out.length) return;
+  const w = Math.max(...out.map(r => r.length)), v = out.map(r => r.concat(Array(w - r.length).fill('')));
+  f.getRange(1, 1, v.length, 1).setNumberFormat('@');               // « 2026-11 » reste un texte
+  f.getRange(1, 1, v.length, w).setValues(v);
+  titres.forEach(n => f.getRange(n, 1, 1, w).setFontWeight('bold'));
+  f.setFrozenColumns(1);
+}
+/* depuis l'éditeur (menu des fonctions › toutRegler › Exécuter) : règle et clôture tout de suite, pour tous les groupes */
+function toutRegler(){
+  const groupes = [...new Set(JOUEURS().getDataRange().getValues().slice(1).map(r => T(r[0])).filter(Boolean))];
+  groupes.forEach(g => { reglerPronos(g); cloturer(g); });
+  tableau();
+  Logger.log(groupes.length + ' groupe(s) réglé(s) ; voir les onglets Pronos (colonnes H à L), Historique et Tableau');
+}
+
 /* soldes mois par mois (mois du coup d'envoi, heure de Paris) ; podium des mois finis (joueurs ayant parié) → bonus du mois suivant ; général = cumul des soldes de fin de mois */
 function bilan(g){
   const joueurs = JOUEURS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === g).map(r => T(r[1]));
@@ -192,7 +288,7 @@ const ACTIONS = {
     try{
       const f = PRONOS(), l = f.getDataRange().getValues();
       const i = l.findIndex((r, k) => k > 0 && T(r[0]) === j.g && T(r[1]) === j.p && T(r[2]) === String(q.match));
-      const ligne = [j.g, j.p, String(q.match), String(q.ligue || ''), h, a, new Date()];
+      const ligne = [j.g, j.p, String(q.match), String(q.ligue || ''), h, a, new Date(), t];          // v154 : + coup d'envoi (colonne H)
       if (i > 0) f.getRange(i + 1, 1, 1, ligne.length).setValues([ligne]); else ajouter(f, ligne);
       return {ok:true};
     }finally{ verrou.releaseLock(); }
@@ -318,16 +414,22 @@ const ACTIONS = {
   },
   etat(q){
     const j = joueur(q); if (!j) return {err:'code'};
-    const H = horaires(), now = Date.now(), pronos = {}, qui = {};
+    try{ reglerPronos(j.g); cloturer(j.g); }catch(x){}                 // v154 : un souci de réglage ne doit pas empêcher d'afficher la page
+    const H = horaires(), now = Date.now(), pronos = {}, qui = {}, res = {}, debut = debutSaison();
+    const histo = HISTORIQUE().getDataRange().getValues().slice(1).filter(r => T(r[1]) === j.g)
+      .map(r => [T(r[0]), T(r[3]), T(r[2]), +r[4], +r[5], +r[6], +r[7], +r[8]]);           // [mois, jeu, pseudo, points, exacts, justes, pronos, rang]
+    const fermes = new Set(histo.map(x => x[0] + '|' + x[1]));
     PRONOS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === j.g).forEach(r => {
-      const id = T(r[2]), nom = T(r[1]), commence = H[id] && now >= H[id];
+      const t = +r[7], M = t ? moisDe(t) : '';                     // v154 : résultat des matchs réglés pas encore clôturés (la page les compte même s'ils ne sont plus dans ses fichiers)
+      if (r[10] !== '' && r[10] !== '-' && t && M >= debut && !fermes.has(M + '|' + jeuDe(T(r[3])))) res[T(r[2])] = [+r[8], +r[9], t, T(r[3])];
+      const id = T(r[2]), nom = T(r[1]), h0 = H[id] || t, commence = r[10] !== '' || (h0 && now >= h0);   // v154 : horaire noté dans la ligne si le fichier du match a disparu
       if (!commence) (qui[id] || (qui[id] = [])).push(nom);    // v56 : qui a déjà pronostiqué (sans le score)
       if (nom !== j.p && !commence) return;                    // pronos des autres : seulement une fois le match commencé
       (pronos[id] || (pronos[id] = {}))[nom] = [r[4], r[5]];
     });
     const joueurs = [], avatars = {}, photos = {};
     JOUEURS().getDataRange().getValues().slice(1).filter(r => T(r[0]) === j.g).forEach(r => { joueurs.push(T(r[1])); if (AV(r[4])) avatars[T(r[1])] = T(r[4]); if (r[5] && T(r[6])) photos[T(r[1])] = T(r[6]); });
-    return {joueurs, pronos, avatars, photos, qui};
+    return {joueurs, pronos, avatars, photos, qui, res, histo, debut};
   }
 };
 
@@ -337,7 +439,7 @@ function verifier(){
   CacheService.getScriptCache().removeAll(Object.values(LIGUES).concat(Object.values(EXTRAS)).map(f => 'h:' + f));
   const n = Object.keys(horaires()).length;
   Logger.log(n ? n + ' matchs trouvés sur ' + SITE : 'Aucun match lu : vérifier SITE (' + SITE + ')');
-  JOUEURS(); PRONOS(); PARIS(); ABONNEMENTS();
+  JOUEURS(); PRONOS(); PARIS(); ABONNEMENTS(); HISTORIQUE();
   Logger.log(PropertiesService.getScriptProperties().getProperty('CLE_TACHE') ? 'Rappels : CLE_TACHE en place' : 'Rappels : propriété du script CLE_TACHE absente (voir PRONOS.md)');
   Logger.log(Object.keys(cotesMatin()).length + ' matchs avec la cote du matin');
 }

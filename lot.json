@@ -1,6 +1,6 @@
 {
- "lot": "v153",
- "date": "2026-11-18T06:40:41+00:00",
+ "lot": "v154",
+ "date": "2026-11-18T06:56:53+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/appli-ios.yml": "71fe94d4",
@@ -71,7 +71,7 @@
   "outils/tv-tri.mjs": "5f175f99",
   "outils/videos-data.mjs": "81465ebe",
   "outils/yahoo.py": "103be76d",
-  "pronos.html": "f6c9b03d",
+  "pronos.html": "bbcf67f6",
   "qm27-bureau.js": "6ed496f7",
   "qm27-carriere.js": "e19b23f8",
   "qm27-club.js": "baa0a5b6",
