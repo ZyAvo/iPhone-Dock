@@ -1,4 +1,4 @@
-// mon-ecran-version: 6e515cdc
+// mon-ecran-version: d46d97bf
 // Prépare les données de la page Sport (lancé par la tâche GitHub « Sport », v51 ; avant : « Programme TV sport »).
 // Lit la liste des compétitions et les fonctions de lecture dans sport.html et match.js,
 // interroge ESPN côté serveur, numérote les journées et écrit :
@@ -124,15 +124,31 @@ async function eventsFor(L, S, prev){
   const info = logosOf(today ? today.leagues : null);
 
   // Tournoi ponctuel sans match proche : on le met en pause
+  let sonde = null;
   if (L.seasonal){
     const near = (cal || []).some(d => d >= ymd(NOW - 7 * DAY) && d <= ymd(NOW + 45 * DAY)) || ((today || {}).events || []).length;
-    let vu = near, sondeLe = prev && prev.sondeLe;
+    let vu = near, sondeLe = prev && prev.sondeLe, sondeAvant = prev && prev.sondeAvant;
     // v78-v79 : ESPN n'annonce pas toujours ses dates dans le calendrier : on regarde les 21 prochains jours (une fois par jour tant que le tournoi est en pause)
     if (!vu && sondeLe !== ymd(NOW)){
       const jours = await pool(days(NOW + DAY, NOW + 21 * DAY).map(d => () => get(`${base}?dates=${d}&limit=300`).catch(() => null)), 8);
       vu = jours.some(j => ((j || {}).events || []).length); sondeLe = ymd(NOW);
     }
-    if (!vu) return {idle:true, info, sondeLe};
+    // v153 : un tournoi qui vient de finir garde ses matchs 46 jours (fenêtre des Pronos : 45 jours en arrière). Avant, la pause tombait
+    // dès le lendemain du dernier match quand ESPN n'avait pas de calendrier (Ligue des nations, 18/11/2026) : fichier vidé, matchs
+    // et points des Pronos disparus. Pendant ce « repos », pas de relecture de la saison : on reprend le fichier précédent tel quel.
+    const anciens = (prev && !prev.idle && prev.events) || [];
+    const recents = anciens.filter(m => m.t >= NOW - 46 * DAY && m.t <= NOW + DAY);
+    const finis = recents.every(m => m.state === 'post' || m.t < NOW - 3 * DAY || /POSTPONED|CANCEL/.test(m.code || ''));
+    if (!vu && recents.length && !finis) vu = true;                 // un match récent pas encore terminé : on relit normalement
+    // v153 : fichier sans matchs (déjà mis en pause) : on regarde aussi les 7 derniers jours, une fois par jour, pour récupérer un tournoi tout juste fini
+    if (!vu && !anciens.length && sondeAvant !== ymd(NOW)){
+      const jours = await pool(days(NOW - 7 * DAY, NOW - DAY).map(d => () => get(`${base}?dates=${d}&limit=300`).catch(() => null)), 8);
+      vu = jours.some(j => ((j || {}).events || []).length); sondeAvant = ymd(NOW);
+    }
+    sonde = {sondeLe, sondeAvant};
+    if (!vu && recents.length) return {repos:true, events:anciens, info, calendar:prev.calendar, checked:prev.checked, future:prev.future,
+      diag:{repos:true, appels:0, erreurs:[], derniers:recents.length}, completLe:prev.completLe, jourEspn:prev.jourEspn, ...sonde};
+    if (!vu) return {idle:true, info, ...sonde};
   }
 
   // 1) (jusqu'à la v50 : demande de toute la période d'un coup ; ESPN ne la remplissait jamais — « range: 0 » partout — v51 : retirée)
@@ -173,7 +189,7 @@ async function eventsFor(L, S, prev){
   const diag = {range:ranged.length, complet:COMPLET, days:todo.length, ok, failed:todo.length - ok, calendar:calOk ? 'espn' : 'tous les jours', ghosts:all.length - events.length};
   console.log(`  ${L.name} : ${JSON.stringify(diag)}`);
   Object.keys(future).forEach(d => { if (d <= far) delete future[d]; });
-  return {events, info, calendar:cal, checked:[...checked].sort(), future, diag, completLe:COMPLET ? ymd(NOW) : prev.completLe, jourEspn:1};
+  return {events, info, calendar:cal, checked:[...checked].sort(), future, diag, completLe:COMPLET ? ymd(NOW) : prev.completLe, jourEspn:1, ...(sonde || {})};
 }
 
 /* ---------- Journées ---------- */
@@ -416,7 +432,7 @@ for (const L of LEAGUES){
     const r = await eventsFor(L, S, prev);
     try{ await logoCompetition(L, r.info); }catch{}                          // v59
     if (r.idle){
-      write(file, {v:1, id:L.id, ...r.info, updated:index.updated, idle:true, season:S.label, ...(r.sondeLe ? {sondeLe:r.sondeLe} : {})});
+      write(file, {v:1, id:L.id, ...r.info, updated:index.updated, idle:true, season:S.label, ...(r.sondeLe ? {sondeLe:r.sondeLe} : {}), ...(r.sondeAvant ? {sondeAvant:r.sondeAvant} : {})});
       index.leagues[L.id] = {idle:true, file:`${slug(L.id)}.json`};
       console.log(`${L.name} : en pause`);
       continue;
@@ -425,7 +441,8 @@ for (const L of LEAGUES){
     await rugbyDetails(L, r.events, prev);
     const table = await standings(L, S, r.events, prev);
     try{ r.diag.logos = await logosClubs(L, r.events, table); }catch(e){ console.log(`  ${L.name} : logos TheSportsDB en échec (${e.message || e})`); }   // v58
-    write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, diag:r.diag, calendar:r.calendar, checked:r.checked, future:r.future, completLe:r.completLe, jourEspn:r.jourEspn, rounds, table, events:r.events.map(slim)});
+    write(file, {v:1, id:L.id, ...r.info, updated:index.updated, season:S.label, range:{start:S.start, end:S.end}, diag:r.diag, calendar:r.calendar, checked:r.checked, future:r.future, completLe:r.completLe, jourEspn:r.jourEspn,
+      ...(r.repos ? {repos:true} : {}), ...(r.sondeLe ? {sondeLe:r.sondeLe} : {}), ...(r.sondeAvant ? {sondeAvant:r.sondeAvant} : {}), rounds, table, events:r.events.map(slim)});   // v153 : repos, sondes du jour
     index.leagues[L.id] = {count:r.events.length, rounds, table:table ? table.src || 'espn' : false, diag:r.diag, file:`${slug(L.id)}.json`};
     r.events.filter(m => m.t >= NOW - 11 * DAY && m.t <= NOW + 15 * DAY).forEach(m => (m.t < NOW - 4 * DAY ? passe : upcoming).push(m));
     console.log(`${L.name} : ${r.events.length} matchs, ${Math.round((Date.now() - t0) / 1000)} s`, JSON.stringify(rounds));
