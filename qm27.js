@@ -1,4 +1,4 @@
-// mon-ecran-version: b7c48771
+// mon-ecran-version: aa6976af
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -402,7 +402,7 @@ function leviers(X, eq){
     const qk = id + ':' + r, QR = X.qr || (X.qr = {}); if (QR[qk] == null) QR[qk] = qualiteRole(j, p, r);   // qualité dans le rôle : fixe pendant le match
     const q = QR[qk] * f(X, eq, id);
     for (const l in R.lev){ let m = 1;
-      if (p === 'A'){ const course = (R.course || []).includes(l); m = course ? (vu ? (jeu ? 0.75 : 1) : 0) : (!vu ? 1 : jeu ? 0.6 : 0); }
+      if (p === 'A'){ const course = (R.course || []).includes(l); m = course ? (vu ? (jeu ? 0.85 : 1) : 0) : (!vu ? 1 : jeu ? 0.7 : 0); }   // v156 : « rester dans le jeu » moins coûteux
       if (m) (parts[l] = parts[l] || []).push(R.lev[l] * q * m); } }
   const L = {}, dec = EQ.lev.decr;
   for (const l in parts){ const v = parts[l].sort((x, y) => y - x); L[l] = v.reduce((t, x, i) => t + x * (dec[i] ?? 0.1), 0); }
@@ -560,7 +560,7 @@ function vifDor(X){
     let p = EQ.p0 * (F.S / EQ.vifRef) * (1 - (1 - met) * (1 - (X.e[k].meteoRes || 0))) * (1 + tmin / 30) * tardif * (1 + (X.e[k].vifBonus || 0));
     if (X.sonne[k] > 0) p *= 0.5;
     const rs = role(X, k, X.e[k].A[0]), ro = role(X, 1 - k, X.e[1 - k].A[0]);
-    p *= Math.max(0.5, 1 + EQ.lev.vif * lv(leviers(X, k), 'vif')) * Math.max(0.3, 1 - EQ.lev.gene * lv(leviers(X, 1 - k), 'gene')) * (T.vifMode === 'jeu' ? 0.8 : 1);   // v153 : leviers « vif » et « gêne »
+    p *= Math.max(0.5, 1 + EQ.lev.vif * lv(leviers(X, k), 'vif')) * Math.max(0.3, 1 - EQ.lev.gene * lv(leviers(X, 1 - k), 'gene')) * (T.vifMode === 'jeu' ? 0.9 : 1);   // v153 : leviers « vif » et « gêne »
     { const sj = J(X, X.e[k].A[0]); if (aManie(sj, 'feinte')) p *= 1.06; if (aManie(sj, 'oeil')) p *= 1.04; }   // v89 : manies de l'attrapeur
     if (T.attrapeur === 'marquage') p *= 0.6;
     if (To.attrapeur === 'marquage') p *= ro === 'tacticien' ? 0.55 : 0.65;

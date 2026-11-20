@@ -1,4 +1,4 @@
-// mon-ecran-version: c8027fc2
+// mon-ecran-version: d92d8472
 /* QM27 (v96) — analyse tactique, sans affichage. Expose window.QMT. Chargé après qm27.js (et les modules du club).
    - EFFETS : ce que change chaque consigne (lu dans le moteur, qm27.js › pas, vifDor), en tendances de −2 à +2.
    - adequation : un joueur est-il fait pour sa place, son rôle et les consignes demandées ? (vert / orange / rouge, avec les raisons)
@@ -66,7 +66,7 @@ const CONS = [
     ['marquage', 'Marquage', {vif:-1, vifAdv:-1, duree:1}, 'Colle l\'attrapeur adverse : nos chances −40 %, les siennes −35 % (−45 % si notre attrapeur est tacticien). Utile quand nos poursuiveurs sont meilleurs.']]],
   ['vifMode', 'Attrapeur, vif aperçu', 'bat', 'Quand le vif d\'or apparaît : partir en chasse (l\'attrapeur quitte le jeu de l\'équipe) ou rester dans le jeu (il continue d\'aider selon son rôle, mais chasse moins bien).', [
     ['chasse', 'Partir en chasse', {}, 'Référence : tout pour le vif'],
-    ['jeu', 'Rester dans le jeu', {vif:-1}, 'Son rôle d\'avant le vif continue à 60 %, ses chances sur le vif −20 % et −25 % sur ses leviers de course']]],
+    ['jeu', 'Rester dans le jeu', {vif:-1}, 'Son rôle d\'avant le vif continue à 70 %, ses chances sur le vif −10 % et −15 % sur ses leviers de course']]],
   ['gardien', 'Gardien', 'bat', 'Rester sur ses anneaux ou sortir au-devant du porteur.', [
     ['anneaux', 'Aux anneaux', {}, 'Référence'],
     ['sortie', 'Sortir', {tirsAdv:-1, precisionAdv:1}, 'Tirs adverses −3 pts, mais buts plus faciles s\'il est passé (+3 pts)']]],
@@ -226,7 +226,7 @@ function estimerX(X, k, T){
       let v = EQ.p0 * (S / EQ.vifRef) * (1 + (e.vifBonus || 0));
       const rs = Q().role(X, kk, e.A[0]), ro = Q().role(X, 1 - kk, X.e[1 - kk].A[0]), sj = X.M.joueurs[e.A[0]];
       { const vu = X.vifVu, lc = X.levC; X.vifVu = true; X.levC = null;   // v153 : leviers « vif » et « gêne » (phase de course)
-        v *= Math.max(0.5, 1 + EQ.lev.vif * Q().lv(Q().leviers(X, kk), 'vif')) * Math.max(0.3, 1 - EQ.lev.gene * Q().lv(Q().leviers(X, 1 - kk), 'gene')) * (T_.vifMode === 'jeu' ? 0.8 : 1);
+        v *= Math.max(0.5, 1 + EQ.lev.vif * Q().lv(Q().leviers(X, kk), 'vif')) * Math.max(0.3, 1 - EQ.lev.gene * Q().lv(Q().leviers(X, 1 - kk), 'gene')) * (T_.vifMode === 'jeu' ? 0.9 : 1);
         X.vifVu = vu; X.levC = lc; }
       void rs; if (Q().aManie(sj, 'feinte')) v *= 1.06; if (Q().aManie(sj, 'oeil')) v *= 1.04;
       if (T_.attrapeur === 'marquage') v *= 0.6; if (To.attrapeur === 'marquage') v *= ro === 'tacticien' ? 0.55 : 0.65;

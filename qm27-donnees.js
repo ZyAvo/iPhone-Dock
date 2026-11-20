@@ -1,4 +1,4 @@
-// mon-ecran-version: 084efbc8
+// mon-ecran-version: bd7eaf8f
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -368,7 +368,7 @@ const EQ = {
   /* v153 : poids des leviers de rôles dans un pas de jeu (voir ROLE_DEF), et part d'inconnu (forme du jour individuelle selon la Régularité,
      matchs importants, Adaptabilité à la météo, sursaut de l'outsider) */
   lev:{constr:0.07, finit:0.045, garde:0.07, recup:0.07, rempart:0.045, bouclier:0.4, marteau:0.4, ange:0.75, vif:0.35, gene:0.3, contre:0.12, decr:[1, 0.6, 0.35, 0.2],
-    ref:{constr:0.6, finit:1, garde:0.17, recup:0.63, rempart:1, bouclier:0.49, marteau:0.38, vif:0.36, gene:0.08, contre:0.31}},   // valeurs d'une équipe moyenne de l'ordinateur : effet nul
+    ref:{constr:0.64, finit:1, garde:0.17, recup:0.7, rempart:1, bouclier:0.52, marteau:0.5, vif:0.46, gene:0.26, contre:0.35}},   // valeurs d'une équipe moyenne de l'ordinateur : effet nul
   surprise:{regMin:0.02, regMax:0.09, gm:0.008, outsider:12, elan:0.03},
   charge:{match:0.5, plancher:0.6, baisse:0.25, fixe:2.5, repos:9, entrainement:0.4},   // v96 : fatigue cumulée (voir QM.recuperer)
   usure:1.2,                    // usure des balais par match (sur 100)
@@ -505,11 +505,13 @@ const ROLE_DEF = {
      gardeAnneaux:{lev:{rempart:0.7, bouclier:0.3}, at:{ant:1, ref:1, cou:1, pla:1}},
      ange:{lev:{ange:0.7, bouclier:0.3}, at:{vit:1, pla:1, fra:1}},
      traqueur:{lev:{gene:0.6, marteau:0.4}, at:{pre:1, vit:1, fra:1}}},
+  /* v156 : pour l'attrapeur, les parts d'avant le vif et celles de la course se comptent à part (chacune fait 1, ou moins) : participer ne coûte
+     plus la course entière ; le chasseur garde la course pleine et arrive frais */
   A:{chasseur:{lev:{vif:1}, course:['vif'], at:{vit:1, acc:1, piq:1, acu:1}},
-     eclaireur:{lev:{constr:0.45, bouclier:0.3, vif:0.25}, course:['vif'], at:{acu:2, vis:1, con:1}},
-     perturbateur:{lev:{recup:0.8, vif:0.2}, course:['vif'], at:{bou:1, agi:1, cou:1}},
-     leurre:{lev:{bouclier:0.35, gene:0.45, vif:0.2}, course:['gene', 'vif'], at:{piq:1, san:1, cou:1, agi:1}},
-     tacticien:{lev:{constr:0.2, gene:0.6, vif:0.2}, course:['gene', 'vif'], at:{dec:1, ant:1, san:1}}},
+     eclaireur:{lev:{constr:0.55, bouclier:0.45, vif:0.75}, course:['vif'], at:{acu:2, vis:1, con:1}},
+     perturbateur:{lev:{recup:1, vif:0.7}, course:['vif'], at:{bou:1, agi:1, cou:1}},
+     leurre:{lev:{bouclier:0.6, recup:0.4, gene:0.45, vif:0.55}, course:['gene', 'vif'], at:{piq:1, san:1, cou:1, agi:1}},
+     tacticien:{lev:{constr:0.5, rempart:0.5, gene:0.7, vif:0.4}, course:['gene', 'vif'], at:{dec:1, ant:1, san:1}}},
   G:{ligne:{lev:{rempart:1}, at:{'g:arr':1, 'g:cou_a':1, ref:1}},
      libero:{lev:{rempart:0.5, contre:0.5}, at:{'g:sor':1, agi:1, vit:1}},
      organisateur:{lev:{rempart:0.5, recup:0.5}, at:{'g:com':2, ant:1, vis:1}},
