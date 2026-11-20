@@ -1,4 +1,4 @@
-// mon-ecran-version: 6ed496f7
+// mon-ecran-version: 1c46b714
 /* QM27 (v91, lot 8) — le bureau du manager, sans affichage. Expose window.QMG et complète window.QMC. Chargé après qm27-vestiaire.js.
    Entraînement programmable : programme de la semaine en 5 séances (lundi-vendredi), intensité, ateliers par poste, modèles,
    préparation physique d'avant-saison ; l'adjoint planifie tout seul si on le laisse faire.
@@ -109,7 +109,7 @@ function programme(M, c, S){ return effets(M, c, programmeDe(M, c, M.semaine), S
    et le gardien sont des consignes du jour : libres, sans maîtrise. */
 const MT = EQ.maitrise, SYSTEME = Object.keys(MT.poids);
 const OPTIONS = {passes:['court', 'long'], sans:['pressing', 'zone', 'repli'], avec:['triangle', 'ligne', 'pointe'], batAvec:['escorte', 'devant'], batSans:['protection', 'harcelement'], zone:['axe', 'couloirs', 'loin']};
-const CLES_T = ['rythme', 'risque', 'agressivite', 'passes', 'sans', 'avec', 'batAvec', 'batSans', 'zone', 'cible', 'attrapeur', 'gardien'];
+const CLES_T = ['rythme', 'risque', 'agressivite', 'passes', 'sans', 'avec', 'batAvec', 'batSans', 'zone', 'cible', 'attrapeur', 'vifMode', 'gardien'];
 const r1 = x => Math.round(x * 10) / 10;
 const tac = T => Q().completerTactique({...(T || {})});
 const pareil = (a, b) => String(a) === String(b);
@@ -279,6 +279,11 @@ function tactiqueMatch(M, c, e, adv, eAdv, m){
   else if (g && T.gardien === 'sortie' && g.g && Q().ga(g, 'sor') < 10) T.gardien = 'anneaux';
   if (s && so && noteS(so) - noteS(s) > 1.3 && r() < C.lecture){ if (r() < 0.5) T.attrapeur = 'marquage'; else T.cible = 'attrapeur'; notes.push('leur attrapeur est plus fort'); }
   else if (s && meilleur(M, c, 'A', noteS) - noteS(s) > 1.5 && r() < C.lecture){ T.attrapeur = 'marquage'; notes.push('attrapeur remplaçant : marquage'); }
+  /* v155 : le rôle de l'attrapeur selon le duel (un attrapeur nettement plus faible joue plutôt pour l'équipe et reste dans le jeu) */
+  if (s && so && e.roles && r() < C.lecture){ const d = noteS(s) - noteS(so), R = e.roles[s.id];
+    if (d < -1.5 && R !== 'tacticien' && Q().qualiteRole(s, 'A', 'tacticien') >= 0.45){ e.roles = {...e.roles, [s.id]:'tacticien'}; notes.push('attrapeur tacticien contre plus fort'); }
+    else if (d > 1.5 && R !== 'chasseur'){ e.roles = {...e.roles, [s.id]:'chasseur'}; notes.push('attrapeur en chasse contre plus faible'); }
+    if (d < -2 && ['eclaireur', 'perturbateur'].includes(e.roles[s.id])){ T.vifMode = 'jeu'; notes.push('attrapeur qui reste dans le jeu'); } }
   const P = (e.P || []).map(id => M.joueurs[id]).filter(Boolean), ch = P.length ? P.reduce((t, j) => t + (j.charge || 0), 0) / P.length : 0;
   if (ch >= 55 && r() < 0.4 + C.lecture * 0.4){ if (T.rythme === 3) T.rythme = 2; if (T.sans === 'pressing') T.sans = 'zone'; notes.push('poursuiveurs fatigués : on ralentit'); }
   /* et parfois un choix à côté */
@@ -301,12 +306,9 @@ const CAPACITES = [
   ['reflexes', 'Réflexes et acuité', ['ref', 'acu', 'con']], ['mental', 'Lecture du jeu', ['vis', 'dec', 'ant']], ['caractere', 'Caractère', ['san', 'cou', 'det', 'con']],
   ['arrets', 'Arrêts (gardien)', ['ref'], ['arr', 'cou_a']], ['sorties', 'Sorties et relance (gardien)', ['agi'], ['sor', 'rel', 'com']],
 ];
-const ROLE_ATTRS = {
-  P:{polyvalent:['pas', 'tir', 'int', 'end'], meneur:['pas', 'vis', 'ctl', 'rec'], finisseur:['tir', 'pre', 'san', 'ctl'], harceleur:['int', 'bou', 'ant', 'vit']},
-  B:{equilibre:['fra', 'ant', 'pre'], protecteur:['ant', 'pla', 'con', 'fra'], chasseur:['fra', 'pre', 'agr', 'for']},
-  A:{equilibre:['acu', 'piq', 'vit'], chasseur:['piq', 'vit', 'acc', 'acu'], tacticien:['acu', 'ant', 'dec', 'con']},
-  G:{equilibre:['ref', ['arr', 'sor']], ligne:['ref', ['arr', 'cou_a']], libero:['agi', 'vit', ['sor', 'com']]},
-};
+/* v155 : attributs travaillés par un focus de rôle = ceux du rôle (QMD.ROLE_DEF) ; attributs de gardien dans une liste à part */
+const ROLE_ATTRS = Object.fromEntries(Object.entries(D.ROLE_DEF).map(([p, R]) => [p, Object.fromEntries(Object.entries(R).map(([r, d]) => {
+  const k = Object.keys(d.at); return [r, [...k.filter(x => !x.startsWith('g:')), k.filter(x => x.startsWith('g:')).map(x => x.slice(2))]]; }))]));
 const SEM_POSTE = 36;   // semaines d'entraînement (sans blessure) pour changer de poste : une saison entière
 const bonusFocus = c => [0, 0, 1, 2, 3, 5][QMC.niv(c, 'aire')] || 0;
 const focusDe = j => (j.focus || []).filter(Boolean);
@@ -696,6 +698,11 @@ Object.assign(QMC, {
     }
   },
   migrer(M){ const v = M.v || 1; base.migrer(M); initRecords(M); if (M.manager) profil(M);
+    if (v < 12){   // v155 : les anciens rôles (équilibré, protecteur, chasseur de batteur…) sont remplacés au mieux ; focus de rôle disparus retirés
+      for (const c of Object.values(M.clubs)) if (c.compo) Q().rolesAuto(M, c.compo, true);
+      if (M.sel && M.sel.compo) Q().rolesAuto(M, M.sel.compo, true);
+      for (const j of Object.values(M.joueurs)) if (j.focus){ j.focus = j.focus.filter(F => !F || F.t !== 'role' || (ROLE_ATTRS[j.poste] || {})[F.k]); if (!j.focus.some(Boolean)) delete j.focus; }
+      if (M.manager) Q().message(M, 'QM27 : rôles, synergies et vif d\'or', 'Le jeu change en profondeur. Le vif d\'or vaut maintenant 80 points : la meilleure équipe gagne plus souvent, mais une équipe menée de plus de 8 buts ne se sauve plus en l\'attrapant. Il y a vingt rôles (meneur, ailier, pivot, escorteur, briseur, ange gardien, éclaireur, leurre, relanceur…) et chacun agit vraiment : l\'attrapeur joue avant l\'apparition du vif, les batteurs protègent, cognent ou couvrent. Certains rôles s\'associent en synergies (« Passe décisive », « L\'enclume et le marteau »…). Chaque joueur a des badges bronze, argent ou or dans les rôles qui lui vont, l\'entraînement peut viser un rôle et le mercato chercher par rôle. Les rôles de ton équipe ont été réattribués : vérifie-les dans la Tactique. Enfin, chaque joueur a sa forme du jour, et les matchs à enjeu révèlent certains caractères : les surprises existent.', 'staff'); }
     if (M.manager && v < 11){ const U = monClub(M); if (U){ maitrise(M, U); presets(M, U); }
       Q().message(M, 'QM27 : plans de jeu et maîtrise tactique', 'Tu as maintenant trois plans de jeu enregistrables (écran Tactique) : ton système actuel est devenu « Plan A », et deux plans de départ t\'attendent (« Bloc bas » et « Pressing ») que tu peux régler, renommer et enregistrer. La maîtrise se compte désormais option par option : changer une consigne ne coûte que l\'écart sur cette option, rien n\'est remis à zéro. Les séances d\'apprentissage tactique travaillent le plan choisi dans l\'Entraînement. La maîtrise pèse plus en match (environ 7 victoires sur 100 entre un plan maîtrisé à 30 % et à 90 %). En face, chaque entraîneur a son style, adapte son plan à son effectif, à ses absents et à ce qu\'il sait de toi, avec plus ou moins de réussite : ton adjoint ne connaît plus que leur jeu habituel.', 'staff'); }
     if (M.manager && v < 10) Q().message(M, 'QM27 : plus de marge pour recruter', `Les droits TV augmentent, surtout pour les petits clubs : recettes plus fortes et plafond de masse salariale relevé (${QMC.euros(monClub(M) ? monClub(M).masseMax : 0)} par semaine pour ton club). Une belle saison fait aussi monter la réputation du club plus vite (jusqu'à +6). Les âges des joueurs et les retraites sont plus réguliers d'une saison à l'autre. Nouveau : les installations s'usent. À la fin de chaque saison, un bâtiment peut perdre un niveau, d'autant plus souvent qu'il est haut (rien au niveau 1, 2 % au niveau 2, jusqu'à 14 % au niveau 5) : il faut réinvestir pour rester au sommet. Et chaque club a une stature : sa réputation revient doucement vers elle, mais des saisons brillantes la font monter pour de bon.`, 'pres');

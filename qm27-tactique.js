@@ -1,4 +1,4 @@
-// mon-ecran-version: 37135330
+// mon-ecran-version: c8027fc2
 /* QM27 (v96) — analyse tactique, sans affichage. Expose window.QMT. Chargé après qm27.js (et les modules du club).
    - EFFETS : ce que change chaque consigne (lu dans le moteur, qm27.js › pas, vifDor), en tendances de −2 à +2.
    - adequation : un joueur est-il fait pour sa place, son rôle et les consignes demandées ? (vert / orange / rouge, avec les raisons)
@@ -60,10 +60,13 @@ const CONS = [
     ['poursuiveur', 'Poursuiveurs', {recup:1}, 'Le porteur lâche le souafle'],
     ['attrapeur', 'Attrapeur', {vifAdv:-1}, 'Leur attrapeur est sonné une minute (deux fois moins de chances sur le vif)'],
     ['gardien', 'Gardien', {precision:1, recup:1}, 'Leur gardien est sonné 2 min (−25 %) et on récupère le souafle']]],
-  ['attrapeur', 'Attrapeur', 'bat', 'Le choix clé. Attraper le vif d\'or rapporte 150 points et termine le match : si l\'on est mené de plus de 150 points, l\'attraper fait perdre.', [
+  ['attrapeur', 'Attrapeur', 'bat', 'Le choix clé. Attraper le vif d\'or rapporte 80 points et termine le match : si l\'on est mené de plus de 80 points (8 buts), l\'attraper fait perdre.', [
     ['gagnant', 'Si ça fait gagner', {}, 'Laisse filer le vif quand le prendre ferait perdre'],
     ['chasse', 'Chasse', {vif:1, risque:2}, 'Prend le vif dès que possible, même si cela fait perdre'],
     ['marquage', 'Marquage', {vif:-1, vifAdv:-1, duree:1}, 'Colle l\'attrapeur adverse : nos chances −40 %, les siennes −35 % (−45 % si notre attrapeur est tacticien). Utile quand nos poursuiveurs sont meilleurs.']]],
+  ['vifMode', 'Attrapeur, vif aperçu', 'bat', 'Quand le vif d\'or apparaît : partir en chasse (l\'attrapeur quitte le jeu de l\'équipe) ou rester dans le jeu (il continue d\'aider selon son rôle, mais chasse moins bien).', [
+    ['chasse', 'Partir en chasse', {}, 'Référence : tout pour le vif'],
+    ['jeu', 'Rester dans le jeu', {vif:-1}, 'Son rôle d\'avant le vif continue à 60 %, ses chances sur le vif −20 % et −25 % sur ses leviers de course']]],
   ['gardien', 'Gardien', 'bat', 'Rester sur ses anneaux ou sortir au-devant du porteur.', [
     ['anneaux', 'Aux anneaux', {}, 'Référence'],
     ['sortie', 'Sortir', {tirsAdv:-1, precisionAdv:1}, 'Tirs adverses −3 pts, mais buts plus faciles s\'il est passé (+3 pts)']]],
@@ -79,12 +82,8 @@ function effets(k, v){
 /* ---------- Adéquation joueur / place / rôle / consignes ---------- */
 const BASE = {P:['pas', 'rec', 'tir', 'pre', 'ctl', 'int', 'bou', 'vis', 'vit', 'acc'], B:['fra', 'pre', 'for', 'ant', 'agr', 'pla', 'vit'],
   A:['vit', 'acc', 'piq', 'acu', 'san', 'con', 'vir', 'dec'], G:['g:arr', 'g:cou_a', 'g:sor', 'ref', 'agi', 'pla']};
-const ROLE_ATTR = {
-  P:{polyvalent:['pas', 'tir', 'int', 'vit'], meneur:['pas', 'vis', 'ctl', 'equi'], finisseur:['tir', 'pre', 'san'], harceleur:['int', 'bou', 'ant', 'agr']},
-  B:{equilibre:['fra', 'ant', 'pla'], protecteur:['ant', 'pla', 'for'], chasseur:['fra', 'agr', 'pre']},
-  A:{equilibre:['vit', 'acu', 'piq', 'dec'], chasseur:['vit', 'acc', 'piq'], tacticien:['dec', 'san', 'ant', 'acu']},
-  G:{equilibre:['g:arr', 'ref', 'g:cou_a'], ligne:['g:arr', 'g:cou_a', 'ref'], libero:['g:sor', 'agi', 'g:rel']},
-};
+/* v153 : attributs de chaque rôle, tirés de QMD.ROLE_DEF (un poids 2 compte deux fois) */
+const ROLE_ATTR = Object.fromEntries(Object.entries(D.ROLE_DEF).map(([p, R]) => [p, Object.fromEntries(Object.entries(R).map(([r, d]) => [r, Object.entries(d.at).flatMap(([k, w]) => Array(w).fill(k))]))]));
 /* ce que chaque consigne demande, par poste : [postes, attributs, ce qui coince] */
 const DEMANDE = {
   rythme:{3:['PBA', ['end'], 'rythme rapide : manque d\'endurance']},
@@ -96,6 +95,7 @@ const DEMANDE = {
   batAvec:{devant:['B', ['vit', 'fra'], 'batteur devant : vitesse et frappe justes'], escorte:['B', ['pla', 'ant'], 'escorte : placement et anticipation justes']},
   batSans:{harcelement:['B', ['agr', 'fra'], 'harcèlement : agressivité et frappe justes'], protection:['B', ['pla', 'ant'], 'protection : placement et anticipation justes']},
   cible:{attrapeur:['B', ['pre'], 'viser l\'attrapeur : précision de frappe juste'], gardien:['B', ['pre'], 'viser le gardien : précision de frappe juste']},
+  vifMode:{jeu:['A', ['end', 'vis'], 'rester dans le jeu : endurance et vision justes']},
   attrapeur:{chasse:['A', ['vit', 'acc'], 'chasse : vitesse et accélération justes'], marquage:['A', ['ant', 'dec'], 'marquage : anticipation et décisions justes'], gagnant:['A', ['dec', 'san'], 'attente du bon moment : décisions et sang-froid justes']},
   gardien:{sortie:['G', ['g:sor', 'agi'], 'sorties : sorties et agilité justes'], anneaux:['G', ['g:arr', 'g:cou_a'], 'sur sa ligne : arrêts et couverture justes']},
 };
@@ -203,7 +203,7 @@ function contexteMatch(M, m, Sem){
   const P = equipesPrevues(M, m); if (!P) return null;
   const W = Sem || Q().semaine(M) || {date:Date.now()};
   const X = Q().creerMatch(M, P.E[0], P.E[1], Q().grainePour(M, m), {texte:false, date:W.date, meteo:Q().meteoPrevue(M, m, W)});
-  X.jour = [1, 1];   // forme du jour : neutre pour une prévision
+  X.jour = [1, 1]; X.fj = null;   // forme du jour (équipe et joueurs, v155) : neutre pour une prévision
   return {X, k:P.k, T0:Q().completerTactique({...P.E[P.k].tactique})};
 }
 function estimerX(X, k, T){
@@ -225,7 +225,10 @@ function estimerX(X, k, T){
     const vif = [0, 1].map(kk => { const e = X.e[kk], T_ = e.tactique, To = X.e[1 - kk].tactique, S = L[kk].F.S;
       let v = EQ.p0 * (S / EQ.vifRef) * (1 + (e.vifBonus || 0));
       const rs = Q().role(X, kk, e.A[0]), ro = Q().role(X, 1 - kk, X.e[1 - kk].A[0]), sj = X.M.joueurs[e.A[0]];
-      if (rs === 'chasseur') v *= 1.12; if (Q().aManie(sj, 'feinte')) v *= 1.06; if (Q().aManie(sj, 'oeil')) v *= 1.04;
+      { const vu = X.vifVu, lc = X.levC; X.vifVu = true; X.levC = null;   // v153 : leviers « vif » et « gêne » (phase de course)
+        v *= Math.max(0.5, 1 + EQ.lev.vif * Q().lv(Q().leviers(X, kk), 'vif')) * Math.max(0.3, 1 - EQ.lev.gene * Q().lv(Q().leviers(X, 1 - kk), 'gene')) * (T_.vifMode === 'jeu' ? 0.8 : 1);
+        X.vifVu = vu; X.levC = lc; }
+      void rs; if (Q().aManie(sj, 'feinte')) v *= 1.06; if (Q().aManie(sj, 'oeil')) v *= 1.04;
       if (T_.attrapeur === 'marquage') v *= 0.6; if (To.attrapeur === 'marquage') v *= ro === 'tacticien' ? 0.55 : 0.65;
       if (To.cible === 'attrapeur') v *= 1 - 0.5 * Math.min(0.9, part[kk] * L[kk].pCog * 12);   // notre attrapeur sonné quand on attaque
       return v; });
@@ -269,7 +272,7 @@ function analyse(M, X){
   else L.push(['mauvais', `Leur ${nomO('sans', sd)} craignait ${cz === 'axe' ? 'l\'axe' : cz === 'couloirs' ? 'les couloirs' : 'les tirs de loin'} ; on a attaqué ${T.zone === 'axe' ? 'par l\'axe' : T.zone === 'couloirs' ? 'par les couloirs' : 'de loin'}.`]);
   if (Q().CONTRE[Q().sansDe(T)] === To.zone) L.push(['mauvais', `Ils ont trouvé la faille de notre ${nomO('sans', Q().sansDe(T))} en attaquant ${To.zone === 'axe' ? 'par l\'axe' : To.zone === 'couloirs' ? 'par les couloirs' : 'de loin'}.`]);
   const vifMin = Math.round(X.t / 60);
-  if (X.vif === k) L.push([d > 0 ? 'bon' : 'mauvais', d > 0 ? `Vif d'or pris par notre attrapeur à la ${vifMin}e minute.` : `Notre attrapeur a pris le vif d'or alors qu'on était mené de plus de 150 points (consigne « ${nomO('attrapeur', T.attrapeur)} »).`]);
+  if (X.vif === k) L.push([d > 0 ? 'bon' : 'mauvais', d > 0 ? `Vif d'or pris par notre attrapeur à la ${vifMin}e minute.` : `Notre attrapeur a pris le vif d'or alors qu'on était mené de plus de ${EQ.points.vif} points (consigne « ${nomO('attrapeur', T.attrapeur)} »).`]);
   else { const F = [Q().forces(X, k), Q().forces(X, o)];
     L.push([d > 0 ? 'info' : 'mauvais', `Vif d'or adverse à la ${vifMin}e minute${F[1].S > F[0].S + 0.5 ? ` : leur attrapeur était plus fort (${vir(Math.round(F[1].S * 10) / 10)} contre ${vir(Math.round(F[0].S * 10) / 10)})${T.attrapeur !== 'marquage' && T.cible !== 'attrapeur' ? ', le marquage ou les cognards sur lui auraient pu le freiner' : ''}` : ''}.`]); }
   if (T.attrapeur === 'marquage') L.push(['info', `Marquage de leur attrapeur : le match a duré ${vifMin} minutes${d > 0 ? ', et nos poursuiveurs en ont profité' : ''}.`]);

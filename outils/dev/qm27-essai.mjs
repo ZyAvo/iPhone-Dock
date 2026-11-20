@@ -1,4 +1,4 @@
-// mon-ecran-version: 8f090b70
+// mon-ecran-version: 238b4e30
 // QM27 : vérifie l'équilibrage du moteur. Usage : node outils/dev/qm27-essai.mjs [nb de matchs] [nb de saisons]
 // Joue des matchs et des saisons complètes sans affichage, puis compare les moyennes aux cibles du GDD
 // (buts par équipe, durée, part des matchs décidés par le vif d'or, blessures, avantage du terrain).
@@ -40,7 +40,7 @@ const b = moy(buts), d = moy(duree), dc = decisif / R.length;
 console.log(`QM27 — ${R.length} matchs (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
 console.log(`${ok(b, 18, 26)}buts par équipe      : ${b.toFixed(1)} (cible 18 à 26)  min ${Math.min(...buts)}  max ${Math.max(...buts)}`);
 console.log(`${ok(d, 60, 90)}durée moyenne        : ${d.toFixed(0)} min (cible 60 à 90)  médiane ${med(duree).toFixed(0)}  max ${Math.max(...duree).toFixed(0)}  > 150 min : ${pc(duree.filter(x => x > 150).length)}`);
-console.log(`${ok(dc, 0.35, 0.6)}vif d'or décisif     : ${pc(decisif)} (cible environ un match sur deux)`);
+console.log(`${ok(dc, 0.25, 0.45)}vif d'or décisif     : ${pc(decisif)} (cible 25 à 45 % : vif d'or à 80 points depuis v155)`);
 console.log(`   attrapeur perdant  : ${pc(perdant)} (le 220-180)`);
 console.log(`   écart moyen de buts: ${moy(ecart).toFixed(1)}  nuls : ${pc(nul)}`);
 console.log(`   victoires domicile : ${pc(dom)}  extérieur : ${pc(ext)}`);

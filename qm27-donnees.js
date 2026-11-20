@@ -1,4 +1,4 @@
-// mon-ecran-version: c4136271
+// mon-ecran-version: 084efbc8
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -320,6 +320,8 @@ const TEXTES = {
   but:['BUT pour {c} ! {j} trompe {g} : {s}.', '{j} enroule son tir dans l\'anneau de gauche. {s}.', 'Passe en triangle et {j} conclut sans trembler. {s}.', '{j} s\'arrache dans la défense et marque. {s}.', 'Quel tir de {j} ! {g} n\'a rien vu passer. {s}.', '{j} fait la feinte du piqué et loge le souaffle au centre. {s}.', 'Encore {j} ! {c} enchaîne. {s}.', 'Contre éclair de {c}, {j} finit l\'action. {s}.'],
   arret:['Superbe parade de {g} devant {j} !', '{g} se détend et repousse le tir de {j}.', '{j} s\'essaie de loin : {g} capte sans trembler.', '{g} sort au bon moment et coupe la trajectoire de {j}.', 'Arrêt réflexe de {g}, le public se lève !'],
   rate:['{j} vise trop haut, le souaffle file au-dessus des anneaux.', 'Tir précipité de {j}, à côté.', '{j} touche le cercle de l\'anneau ! Pas loin.'],
+  cognard_devie:['L\'ange gardien détourne le cognard : {j} ne bronche pas.', '{j} esquive le cognard d\'un battement de balai.'],
+  cognard_tenu:['{j} encaisse le cognard sans lâcher le souafle !', 'Cognard sur {j}, qui tient bon sur son balai.'],
   cognard:['{j} frappe un cognard monstrueux : {a} perd le souaffle.', 'Cognard bien placé de {j}, l\'attaque adverse s\'écroule.', '{j} détourne la trajectoire d\'un poursuiveur adverse d\'un revers sec.', 'Le cognard de {j} siffle aux oreilles de {a}. Ballon perdu !'],
   cognard_att:['{j} envoie un cognard sur l\'attrapeur adverse, qui doit plonger pour l\'éviter.', 'L\'attrapeur adverse est sonné par un cognard de {j} !'],
   cognard_gar:['{j} vise les anneaux : le gardien adverse est bousculé.', 'Cognard sur le gardien adverse, signé {j}. Les anneaux sont exposés.'],
@@ -332,7 +334,7 @@ const TEXTES = {
   vif_cache:['Le vif d\'or disparaît derrière les tribunes. Les attrapeurs reprennent de l\'altitude.', 'Plus de trace du vif d\'or… il s\'est caché.'],
   vif_poursuite:['{j} est à deux mètres du vif d\'or !', 'Course poursuite folle : {j} tend le bras… raté !', '{j} frôle le vif d\'or en rase-mottes.'],
   vif_refus:['{j} tient le vif d\'or à portée mais retient son geste : l\'attraper ferait perdre {c}.', '{j} laisse filer le vif d\'or, {c} est trop loin au score.'],
-  vif_attrape:['{j} ATTRAPE LE VIF D\'OR ! +150 pour {c}. Score final : {s}.', 'C\'est fini ! {j} referme la main sur le vif d\'or. {s}.', 'Piqué vertigineux et {j} s\'empare du vif d\'or ! {s}.'],
+  vif_attrape:['{j} ATTRAPE LE VIF D\'OR ! +80 pour {c}. Score final : {s}.', 'C\'est fini ! {j} referme la main sur le vif d\'or. {s}.', 'Piqué vertigineux et {j} s\'empare du vif d\'or ! {s}.'],
   temps_mort:['Temps mort demandé par {c}.'],
   remplacement:['Changement pour {c} : {j} entre à la place de {k}.'],
   fin_perdu:['{j} attrape le vif d\'or… mais {c} perd quand même ! {s}.'],
@@ -342,7 +344,7 @@ const TEXTES = {
 const EQ = {
   banc:5,                         // v86 : 7 titulaires + 5 remplaçants (3 changements par match)
   niveauMin:10, niveauMax:12.6,   // niveau moyen des titulaires (sur 20) du club le moins réputé (40) au plus réputé (85)
-  points:{but:10, vif:150, victoire:3, nul:1},
+  points:{but:10, vif:80, victoire:3, nul:1},   // v153 : vif d'or à 80 points (150 avant : il décidait 99 % des matchs serrés et écrasait la gestion)
   pas:15,                       // secondes de jeu par pas
   echelleTir:6,               // s dans P(tir) = 1 / (1 + e^(−(A − D) / s))
   baseTir:-0.7,                    // décalage de la sigmoïde
@@ -350,7 +352,7 @@ const EQ = {
   garde:0.55,                   // possession gardée après une action sans tir
   cognard:0.05, blessure:0.035, faute:0.004, fauteGrave:0.12, penalty:0.70,
   vifApparitionMin:20, vifApparitionMax:50, p0:0.00245, vifRef:13, vifCache:0.008, vifMaxMin:240,
-  fatigue:0.09, domicile:1.05, jour:0.05,   // jour : forme du jour d'une équipe (écart type)
+  fatigue:0.09, domicile:1.05, jour:0.075,   // jour : forme du jour d'une équipe (écart type)
   refus:0.8,                    // attrapeur « seulement si ça fait gagner » : refuse la prise perdante (+ décisions)
   /* v84 : économie (Gallions fictifs). Salaire hebdomadaire = base × facteur^(note sur 20 − pivot) × (0,85 + réputation du club / 250) */
   eco:{semaines:44, salaireBase:2500, salaireFacteur:1.6, salairePivot:9, valeurAns:2.4,
@@ -363,6 +365,11 @@ const EQ = {
      En match, l'écart à 60 % (neutre) multiplie l'attaque et la défense des poursuiveurs (force) et la frappe des batteurs (force / 2),
      et une équipe mal rodée perd plus de ballons (pertes) ; calibré pour qu'un plan maîtrisé à 90 % gagne environ 7 matchs de plus sur 100 qu'à 30 %. */
   maitrise:{poids:{sans:0.24, avec:0.2, zone:0.14, passes:0.14, batAvec:0.14, batSans:0.14}, neutre:60, force:0.14, pertes:0.03, depart:60, autre:40, plancher:30, erosion:0.25, secondaire:0.35, ia:1.1},
+  /* v153 : poids des leviers de rôles dans un pas de jeu (voir ROLE_DEF), et part d'inconnu (forme du jour individuelle selon la Régularité,
+     matchs importants, Adaptabilité à la météo, sursaut de l'outsider) */
+  lev:{constr:0.07, finit:0.045, garde:0.07, recup:0.07, rempart:0.045, bouclier:0.4, marteau:0.4, ange:0.75, vif:0.35, gene:0.3, contre:0.12, decr:[1, 0.6, 0.35, 0.2],
+    ref:{constr:0.6, finit:1, garde:0.17, recup:0.63, rempart:1, bouclier:0.49, marteau:0.38, vif:0.36, gene:0.08, contre:0.31}},   // valeurs d'une équipe moyenne de l'ordinateur : effet nul
+  surprise:{regMin:0.02, regMax:0.09, gm:0.008, outsider:12, elan:0.03},
   charge:{match:0.5, plancher:0.6, baisse:0.25, fixe:2.5, repos:9, entrainement:0.4},   // v96 : fatigue cumulée (voir QM.recuperer)
   usure:1.2,                    // usure des balais par match (sur 100)
   /* v85 : stade et installations (niveaux 1 à 5 ; coût du niveau suivant = base × niveau actuel ; entretien par niveau et par semaine) */
@@ -468,16 +475,72 @@ const EVENEMENTS = [
   ['Gala de charité', 'Le gala organisé au stade a rapporté un peu d\'argent au club et beaucoup de sympathie.', 10000],
   ['Gnomes au jardin', 'Les gnomes ont retourné la pelouse de l\'aire d\'envol. Un jardinier a dû passer la semaine à les chasser.', -3000],
 ];
+/* v153 : vingt rôles. Chaque rôle a un effet propre : il répartit l'influence du joueur entre des LEVIERS de jeu (lev, parts qui font 1)
+   selon ses attributs (at, poids). Leviers : constr (on tire plus), finit (on marque mieux), garde (on garde le souafle), recup (l'adversaire
+   perd le souafle), rempart (l'adversaire marque moins bien), bouclier (moins de cognards sur nos poursuiveurs), marteau (nos cognards),
+   ange (notre attrapeur protégé), vif (course au vif), gene (gêne l'attrapeur adverse), contre (tir rapide après une récupération ou un arrêt).
+   Les leviers d'attrapeur marqués « avant » ne jouent qu'avant l'apparition du vif (ou s'il reste dans le jeu), ceux marqués « course » après. */
 const ROLES = {
-  P:[['polyvalent', 'Polyvalent', 'Équilibré entre attaque et défense.'], ['meneur', 'Meneur', 'Fait jouer les autres : l\'attaque de l\'équipe compte plus sur lui.'],
-     ['finisseur', 'Finisseur', 'Tire beaucoup plus souvent.'], ['harceleur', 'Harceleur', 'Presse le porteur : plus de ballons récupérés.']],
-  B:[['equilibre', 'Équilibré', 'Protège et attaque.'], ['protecteur', 'Protecteur', 'Moins de cognards réussis contre son équipe.'], ['chasseur', 'Chasseur', 'Plus de cognards réussis, plus de blessures adverses.']],
-  A:[['equilibre', 'Équilibré', 'Ni fougueux ni prudent.'], ['chasseur', 'Chasseur', 'Plus rapide sur le vif d\'or.'], ['tacticien', 'Tacticien', 'Meilleures décisions, marquage plus efficace.']],
-  G:[['equilibre', 'Équilibré', 'Classique.'], ['ligne', 'Gardien de ligne', 'Meilleur sur sa ligne.'], ['libero', 'Libéro', 'Sort au-devant : moins de tirs, mais plus faciles.']],
+  P:[['polyvalent', 'Polyvalent', 'Un peu de tout, en attaque comme en défense.'], ['meneur', 'Meneur', 'Construit le jeu ; ses coéquipiers tirent plus souvent et mieux.'],
+     ['finisseur', 'Finisseur', 'Tire beaucoup plus souvent, et mieux près des anneaux.'], ['ailier', 'Ailier', 'Contre-attaques et couloirs.'],
+     ['pivot', 'Pivot', 'Garde le souafle sous la pression et les cognards.'], ['harceleur', 'Harceleur', 'Presse le porteur : l\'adversaire perd plus de ballons.']],
+  B:[['escorteur', 'Escorteur', 'Colle au porteur : moins de cognards sur nos poursuiveurs.'], ['briseur', 'Briseur', 'Cogne le porteur adverse : ballons récupérés.'],
+     ['gardeAnneaux', 'Garde des anneaux', 'Couvre les anneaux et le gardien.'], ['ange', 'Ange gardien', 'Protège notre attrapeur des cognards.'],
+     ['traqueur', 'Traqueur', 'Chasse l\'attrapeur adverse.']],
+  A:[['chasseur', 'Chasseur', 'Ne joue que le vif d\'or, et arrive frais.'], ['eclaireur', 'Éclaireur', 'Lit le jeu avant le vif ; le repère plus vite.'],
+     ['perturbateur', 'Perturbateur', 'Gêne les poursuiveurs adverses avant le vif, au prix de sa fraîcheur.'], ['leurre', 'Leurre', 'Ses feintes attirent un batteur et gênent l\'attrapeur adverse.'],
+     ['tacticien', 'Tacticien', 'Marque l\'attrapeur adverse ; refuse les prises perdantes.']],
+  G:[['ligne', 'De ligne', 'Meilleur sur sa ligne.'], ['libero', 'Libéro', 'Sort au-devant : moins de tirs, mais plus faciles ; relance courte.'],
+     ['organisateur', 'Organisateur', 'Organise la défense de ses poursuiveurs.'], ['relanceur', 'Relanceur', 'Lance un contre après chaque arrêt.']],
 };
+const ROLE_DEF = {
+  P:{polyvalent:{lev:{constr:0.25, finit:0.15, garde:0.15, recup:0.25, contre:0.2}, at:{pas:1, tir:1, int:1, vit:1, ctl:1, ant:1}},
+     meneur:{lev:{constr:0.6, finit:0.25, contre:0.15}, at:{pas:2, vis:2, ctl:1, equi:1}},
+     finisseur:{lev:{finit:0.8, constr:0.2}, at:{tir:2, pre:2, san:1}},
+     ailier:{lev:{contre:0.5, constr:0.3, recup:0.2}, at:{vit:2, vir:1, acc:1}},
+     pivot:{lev:{garde:0.65, constr:0.2, recup:0.15}, at:{for:1, equ:1, cou:1, ctl:1}},
+     harceleur:{lev:{recup:0.75, rempart:0.25}, at:{int:2, ant:1, bou:1}}},
+  B:{escorteur:{lev:{bouclier:0.65, garde:0.2, rempart:0.15}, at:{pla:1, ant:1, for:1, ref:1}},
+     briseur:{lev:{marteau:0.65, recup:0.35}, at:{fra:2, pre:1, agr:1}},
+     gardeAnneaux:{lev:{rempart:0.7, bouclier:0.3}, at:{ant:1, ref:1, cou:1, pla:1}},
+     ange:{lev:{ange:0.7, bouclier:0.3}, at:{vit:1, pla:1, fra:1}},
+     traqueur:{lev:{gene:0.6, marteau:0.4}, at:{pre:1, vit:1, fra:1}}},
+  A:{chasseur:{lev:{vif:1}, course:['vif'], at:{vit:1, acc:1, piq:1, acu:1}},
+     eclaireur:{lev:{constr:0.45, bouclier:0.3, vif:0.25}, course:['vif'], at:{acu:2, vis:1, con:1}},
+     perturbateur:{lev:{recup:0.8, vif:0.2}, course:['vif'], at:{bou:1, agi:1, cou:1}},
+     leurre:{lev:{bouclier:0.35, gene:0.45, vif:0.2}, course:['gene', 'vif'], at:{piq:1, san:1, cou:1, agi:1}},
+     tacticien:{lev:{constr:0.2, gene:0.6, vif:0.2}, course:['gene', 'vif'], at:{dec:1, ant:1, san:1}}},
+  G:{ligne:{lev:{rempart:1}, at:{'g:arr':1, 'g:cou_a':1, ref:1}},
+     libero:{lev:{rempart:0.5, contre:0.5}, at:{'g:sor':1, agi:1, vit:1}},
+     organisateur:{lev:{rempart:0.5, recup:0.5}, at:{'g:com':2, ant:1, vis:1}},
+     relanceur:{lev:{contre:0.8, garde:0.2}, at:{'g:rel':2, pas:1, vis:1}}},
+};
+/* anciens rôles (avant v153) : celui qui les remplace (null : choisi d'après les attributs) */
+const ROLES_ANCIENS = {B:{equilibre:null, protecteur:'escorteur', chasseur:'briseur'}, A:{equilibre:null}, G:{equilibre:null}};
+/* badges indicatifs d'un joueur dans un rôle (sa note du rôle comparée à celle d'un joueur typique du poste) */
+const BADGES = [['or', 'Or', 4.5], ['argent', 'Argent', 3], ['bronze', 'Bronze', 1.5]];   // points au-dessus de la valeur typique du rôle à ce poste
+/* v153 : synergies entre deux rôles (r : [poste, rôle] × 2 ; cond : attribut et seuil du premier ou du second ; lev : leviers ajoutés ;
+   avant : seulement avant l'apparition du vif) et anti-synergies (même rôle en double) */
+const SYNERGIES = [
+  {id:'passe', nom:'Passe décisive', r:[['P', 'meneur'], ['P', 'finisseur']], cond:[0, 'vis', 13], lev:{finit:0.3}, d:'La réussite du finisseur monte avec la Vision du meneur.'},
+  {id:'enclume', nom:'L\'enclume et le marteau', r:[['B', 'escorteur'], ['B', 'briseur']], cond:[1, 'fra', 12], lev:{bouclier:0.15, marteau:0.15}, d:'Un batteur protège, l\'autre cogne.'},
+  {id:'mur', nom:'Le mur', r:[['B', 'gardeAnneaux'], ['G', 'ligne']], cond:[0, 'pla', 12], lev:{rempart:0.25}, d:'Gardien de ligne couvert par un batteur : les tirs proches passent moins.'},
+  {id:'intouchable', nom:'Porteur intouchable', r:[['B', 'escorteur'], ['P', 'pivot']], cond:[1, 'for', 13], lev:{garde:0.25, bouclier:0.1}, d:'Le pivot escorté garde le souafle.'},
+  {id:'eclair', nom:'Contre éclair', r:[['P', 'harceleur'], ['B', 'briseur']], cond:null, lev:{contre:0.3}, d:'Un ballon récupéré devient vite un tir.'},
+  {id:'relance', nom:'Relance longue', r:[['G', 'relanceur'], ['P', 'ailier']], cond:[1, 'vit', 14], lev:{contre:0.3}, d:'Après un arrêt, l\'ailier part dans le couloir.'},
+  {id:'protegee', nom:'Course protégée', r:[['B', 'ange'], ['A', 'chasseur']], cond:null, lev:{ange:0.35}, d:'Notre attrapeur n\'est presque plus sonné.'},
+  {id:'peine', nom:'Double peine', r:[['B', 'traqueur'], ['A', 'tacticien']], cond:null, lev:{gene:0.25}, d:'Leur attrapeur est marqué et visé.'},
+  {id:'lecture', nom:'Lecture du jeu', r:[['A', 'eclaireur'], ['G', 'organisateur']], cond:null, lev:{rempart:0.2, recup:0.1}, avant:true, d:'Avant le vif, la défense lit le jeu adverse.'},
+  {id:'feinte', nom:'Feinte et frappe', r:[['A', 'leurre'], ['B', 'briseur']], cond:null, lev:{marteau:0.2}, avant:true, d:'La feinte du leurre libère un cognard pour le briseur.'},
+];
+const ANTI_SYNERGIES = [
+  {id:'finisseurs', nom:'Deux finisseurs', poste:'P', role:'finisseur', d:'Ils se marchent dessus : le second tire moins souvent.'},
+  {id:'briseurs', nom:'Deux briseurs', poste:'B', role:'briseur', d:'Personne ne protège le porteur : bouclier divisé par deux.'},
+  {id:'libero', nom:'Libéro sans garde', poste:'G', role:'libero', d:'Sans garde des anneaux, ses sorties manquées coûtent plus cher.'},
+];
 /* v84 : entraînement : focus et familles d'attributs travaillées */
 const FOCUS = [['technique', 'Technique', ['Vol', 'Balle', 'Gardien']], ['physique', 'Physique', ['Physique']], ['tactique', 'Tactique', ['Mental']], ['repos', 'Repos', []]];
 const INTENSITES = [[1, 'Légère'], [2, 'Normale'], [3, 'Intense']];
 
-root.QMD = {NOMS_CLUBS, VILLES_LANGUES, LANGUES_NOMS, TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, CARTE, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
+root.QMD = {ROLE_DEF, ROLES_ANCIENS, BADGES, SYNERGIES, ANTI_SYNERGIES, NOMS_CLUBS, VILLES_LANGUES, LANGUES_NOMS, TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, CARTE, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
 })(typeof window !== 'undefined' ? window : globalThis);

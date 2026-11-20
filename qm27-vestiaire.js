@@ -1,4 +1,4 @@
-// mon-ecran-version: 878680d2
+// mon-ecran-version: 586910c3
 /* QM27 (v90, lot 7) — vestiaire et mercato, sans affichage. Expose window.QMH et complète window.QMC. Chargé après qm27-domaine.js.
    Vestiaire : ambiance, leaders, clans, mentorat, causeries, presse (La Gazette du sorcier).
    Mercato : attributs connus selon le travail du recruteur, offres par hibou (réponse la semaine suivante, contre-offres, clubs qui doublent),
@@ -6,7 +6,7 @@
    En option (réglage de la partie) : paris et pots-de-vin, avec le risque d'une enquête du ministère. Sauvegarde v6. */
 (function(root){
 'use strict';
-const D = root.QMD, EQ = D.EQ, QMC = root.QMC;
+const D = root.QMD, EQ = D.EQ, QMC = root.QMC, VP = () => EQ.points.vif;   // v155 : valeur du vif d'or
 const Q = () => root.QM;
 const borne = (x, a, b) => Math.max(a, Math.min(b, x));
 const arrondi = (x, pas) => Math.round(x / pas) * pas;
@@ -128,13 +128,13 @@ function causerie(M, X, eq, ton, moment){
     if (ton === 'colere') v = -0.5;
   } else {
     if (ton === 'calme') v = d > 60 ? 0.5 : d < -100 ? -0.2 : 0.2;
-    if (ton === 'encourageant') v = d < 0 && d > -150 ? 0.6 : 0.2;
+    if (ton === 'encourageant') v = d < 0 && d > -VP() ? 0.6 : 0.2;
     if (ton === 'exigeant') v = d < -60 ? (caractere >= 11 ? 0.7 : -0.3) : d > 60 ? -0.4 : 0.2;
-    if (ton === 'defi') v = d > 0 && d < 80 ? 0.5 : d < -150 ? -0.3 : 0.15;
-    if (ton === 'respect') v = d > 150 ? 0.45 : 0.05;
+    if (ton === 'defi') v = d > 0 && d < 80 ? 0.5 : d < -VP() ? -0.3 : 0.15;
+    if (ton === 'respect') v = d > VP() ? 0.45 : 0.05;
     if (ton === 'consignes') v = 0.3;
     if (ton === 'supporters') v = dom ? (d < 0 ? 0.5 : 0.3) : 0.1;
-    if (ton === 'humour') v = d < -150 ? 0.35 : d > 100 ? 0.3 : 0.1;
+    if (ton === 'humour') v = d < -VP() ? 0.35 : d > 100 ? 0.3 : 0.1;
     if (ton === 'colere') v = d < -100 ? (caractere >= 12 ? 0.9 : -0.6) : -0.7;
   }
   if (ton === 'silence') return {delta:0, avis:'neutre', txt:'Tu laisses les joueurs à leurs pensées.'};

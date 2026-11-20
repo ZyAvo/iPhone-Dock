@@ -1,4 +1,4 @@
-// mon-ecran-version: fc9a26c6
+// mon-ecran-version: faf9478b
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -457,7 +457,7 @@ function ficheJoueur(id, garder){
     <blockquote class="rapport">« ${esc(rapportRecruteur(j))} »<span>${rec ? `Rapport de ${esc(rec.p + ' ' + rec.n)}, recruteur` : 'Rapport de ton recruteur'}</span></blockquote>
     ${QM.manies(j).length ? `<div class="manies">${QM.manies(j).map(k => { const m = D.MANIES.find(x => x[0] === k); return m ? `<span class="manie"><b>${esc(m[1])}</b>${esc(m[3])}</span>` : ''; }).join('')}</div>` : ''}
     <div class="npostes" role="group" aria-label="Lire la fiche pour un poste">${['P', 'B', 'A', 'G'].map(p => { const x = noteVue(j, p); return `<button class="${p === P_ ? 'on' : ''}${p === j.poste ? ' nat' : ''}" data-act="fjPoste" data-p="${p}" aria-pressed="${p === P_}"><b class="${classeNote(x.mid)}" style="color:inherit${x.exact ? '' : ';font-size:.92rem'}">${x.txt}</b><span>${D.POSTES[p].nom}</span></button>`; }).join('')}</div>
-    <div class="fj-roles"><div class="chips petites">${ROLES_P.map(([k, nom]) => { const e = ad && ad.roles ? ad.roles[k] : null; return `<button class="chip ${k === role ? 'on' : ''}" data-act="fjRole" data-r="${k}" aria-pressed="${k === role}" title="${esc((ROLES_P.find(x => x[0] === k) || [])[2] || '')}">${esc(nom)}${e != null && kc >= 100 ? `<small class="${e >= 1 ? 'bon' : e < -1.2 ? 'mauvais' : 'mut'}">${e > 0 ? '+' : ''}${String(e).replace('.', ',')}</small>` : ''}</button>`; }).join('')}</div>
+    <div class="fj-roles"><div class="chips petites">${ROLES_P.map(([k, nom]) => { const e = ad && ad.roles ? ad.roles[k] : null; return `<button class="chip ${k === role ? 'on' : ''}" data-act="fjRole" data-r="${k}" aria-pressed="${k === role}" title="${esc((ROLES_P.find(x => x[0] === k) || [])[2] || '')}">${badgeHTML(j, P_, k, true)}${esc(nom)}${e != null && kc >= 100 ? `<small class="${e >= 1 ? 'bon' : e < -1.2 ? 'mauvais' : 'mut'}">${e > 0 ? '+' : ''}${String(e).replace('.', ',')}</small>` : ''}</button>`; }).join('')}</div>
       <p class="petit mut">${role ? esc((ROLES_P.find(x => x[0] === role) || [])[2] || '') + ' ' : 'Choisis un rôle pour surligner ses attributs. '}${kc >= 100 ? '<span title="Moyenne de ses attributs du rôle moins sa moyenne au poste">Le chiffre : ses attributs du rôle comparés à son niveau au poste. </span>' : ''}${autre ? `<button class="lien" data-act="fjRaz">Revenir à son poste</button>` : ''}</p></div>
     ${kc < 100 ? `<p class="petit mut" style="margin:6px 2px 0">Attributs en fourchette : ${Math.round(kc)} % connu. Suis le joueur (ton recruteur l'observe chaque semaine) ou affronte son équipe pour en savoir plus.</p>` : ''}
     <div class="carte fj-attrs"><h2>Attributs <span class="mut petit">${P_ === j.poste ? 'surlignés' : 'en ' + esc(D.POSTES[P_].nom.toLowerCase())} : cibles du poste${role ? ' · plus fort : rôle ' + esc(((ROLES_P.find(x => x[0] === role) || [])[1] || '').toLowerCase()) : ''}</span></h2><div class="cols-at">
@@ -478,7 +478,7 @@ const CONSIGNES = [
   ['agressivite', 'Agressivité', 'Plus de cognards réussis, plus de fautes et de penalties.', [[1, 'Calme'], [2, 'Normale'], [3, 'Dure']]],
   ['passes', 'Jeu de passes', 'Court : tirs plus sûrs. Long : plus de tirs.', [['court', 'Court'], ['long', 'Long']]],
   ['cible', 'Cible des cognards', 'Poursuiveurs : pertes de balle. Attrapeur : le gêne. Gardien : ouvre les anneaux.', [['poursuiveur', 'Poursuiveurs'], ['attrapeur', 'Attrapeur'], ['gardien', 'Gardien']]],
-  ['attrapeur', 'Attrapeur', 'Le choix clé : prendre le vif d\'or quand on est mené de plus de 150 points fait perdre.', [['gagnant', 'Si ça fait gagner'], ['chasse', 'Chasse'], ['marquage', 'Marquage']]],
+  ['attrapeur', 'Attrapeur', 'Le choix clé : prendre le vif d\'or quand on est mené de plus de 80 points (8 buts) fait perdre.', [['gagnant', 'Si ça fait gagner'], ['chasse', 'Chasse'], ['marquage', 'Marquage']]],
   ['gardien', 'Gardien', 'Sortir : moins de tirs adverses, mais buts plus faciles s\'il est passé.', [['anneaux', 'Aux anneaux'], ['sortie', 'Sortir']]],
 ];
 /* v89 : dispositions avec et sans le souafle, zone d'attaque */
@@ -493,9 +493,9 @@ const nomOpt = (k, v) => { const c = [...CONSIGNES, ...DISPOS].find(x => x[0] ==
 /* v96 : consignes compactes. Chaque ligne : libellé (touche : explications et effets), choix, tendances du choix actuel.
    o (facultatif) = {prev : prévision de l'adjoint (QMT.prevoir), fit : (k, v) => html des joueurs concernés, ouvert : clé dépliée} */
 const TT = () => window.QMT;
-const COURT_CONS = {rythme:'Rythme', risque:'Risque', agressivite:'Engagement', passes:'Passes', avec:'Poursuiveurs', batAvec:'Batteurs', zone:'Zone de tir', sans:'Poursuiveurs', batSans:'Batteurs', cible:'Cognards', attrapeur:'Attrapeur', gardien:'Gardien'};
-const COURT_OPT = {gagnant:'Si gagnant', poursuiveur:'Poursuiv.', anneaux:'Anneaux', harcelement:'Harcèlement'};
-const GROUPES_C = [['Avec le souafle', ['avec', 'batAvec', 'zone']], ['Sans le souafle', ['sans', 'batSans']], ['Style de jeu', ['rythme', 'risque', 'agressivite', 'passes']], ['Cognards, vif d\'or et gardien', ['cible', 'attrapeur', 'gardien']]];
+const COURT_CONS = {rythme:'Rythme', risque:'Risque', agressivite:'Engagement', passes:'Passes', avec:'Poursuiveurs', batAvec:'Batteurs', zone:'Zone de tir', sans:'Poursuiveurs', batSans:'Batteurs', cible:'Cognards', attrapeur:'Attrapeur', vifMode:'Vif aperçu', gardien:'Gardien'};
+const COURT_OPT = {jeu:'Dans le jeu', gagnant:'Si gagnant', poursuiveur:'Poursuiv.', anneaux:'Anneaux', harcelement:'Harcèlement'};
+const GROUPES_C = [['Avec le souafle', ['avec', 'batAvec', 'zone']], ['Sans le souafle', ['sans', 'batSans']], ['Style de jeu', ['rythme', 'risque', 'agressivite', 'passes']], ['Cognards, vif d\'or et gardien', ['cible', 'attrapeur', 'vifMode', 'gardien']]];
 const nb1 = x => (x > 0 ? '+' : x < 0 ? '−' : '±') + String(Math.abs(Math.round(x * 10) / 10)).replace('.', ',');
 const nb0 = x => (Math.round(x) > 0 ? '+' : Math.round(x) < 0 ? '−' : '±') + Math.abs(Math.round(x));
 const fxChips = (k, v) => !TT() ? '' : TT().effets(k, v).map(([l, n, bon]) => `<span class="fx ${bon === null ? '' : bon ? 'b' : 'm'}">${n > 0 ? '▲'.repeat(Math.min(2, n)) : '▼'.repeat(Math.min(2, -n))} ${esc(l)}</span>`).join('');
@@ -537,12 +537,27 @@ function fitOption(K, T){
     return `<p class="petit fitl">${L.length ? 'Moins à l\'aise : ' + L.join(', ') : '<i class="fit bon"></i> Les joueurs concernés sont à l\'aise'}</p>`;
   };
 }
+/* v155 : badges indicatifs (bronze, argent, or) d'un joueur dans un rôle, d'après ses attributs ; ce que fait un rôle ; ses synergies */
+const NOMS_LEV = {constr:'construction', finit:'finition', garde:'garde du souafle', recup:'récupération', rempart:'rempart', bouclier:'bouclier', marteau:'marteau', ange:'ange gardien', vif:'course au vif', gene:'gêne du vif adverse', contre:'contre-attaque'};
+/* badge exact (joueur bien connu ou de mon club) ou estimé d'après les fourchettes du recruteur (b.est) */
+function badgeDe(j, p, r){
+  if (!j || j.poste !== p) return null; if (j.club === M.manager.club || connu(j) >= 80) return QM.badge(j, p, r);
+  const R = (D.ROLE_DEF[p] || {})[r]; if (!R) return null; let s = 0, n = 0;
+  for (const [k, w] of Object.entries(R.at)){ const g = k.startsWith('g:'), i = g ? D.GARDIEN.findIndex(x => x[0] === k.slice(2)) : IDX(k); const v = g ? (j.g ? j.g[i] : 6) : j.a[i]; s += valVue(j, v, g ? k.slice(2) : k).mid * w; n += w; }
+  const moyP = noteVue(j, p).mid / 5; if (s / n < moyP - 0.6) return null;   // rôle en dessous de son niveau : pas de badge
+  const b = D.BADGES.find(x => s / n - QM.refRole(p, r) >= x[2]); return b ? [...b, 'est'] : null;
+}
+const badgeHTML = (j, p, r, court) => { const b = badgeDe(j, p, r); return b ? `<span class="bdg ${b[0]}${b[3] ? ' est' : ''}" title="Badge ${b[1].toLowerCase()}${b[3] ? ' estimé par le recruteur' : ''} : ses attributs dépassent nettement ceux d'un ${D.POSTES[p].nom.toLowerCase()} typique dans ce rôle">${court ? '' : b[1] + (b[3] ? ' ?' : '')}</span>` : ''; };
+const roleNom = (p, r) => ((D.ROLES[p] || []).find(x => x[0] === r) || [, r])[1];
+function roleLeviers(p, r){ const R = (D.ROLE_DEF[p] || {})[r]; if (!R) return ''; return Object.entries(R.lev).sort((a, b) => b[1] - a[1]).map(([l, w]) => `${NOMS_LEV[l]}${p === 'A' ? ((R.course || []).includes(l) ? ' (course)' : ' (avant le vif)') : ''} ${Math.round(w * 100)} %`).join(', '); }
+function roleAttrs(p, r){ const R = (D.ROLE_DEF[p] || {})[r]; if (!R) return ''; return Object.entries(R.at).map(([k, w]) => (k.startsWith('g:') ? (D.GARDIEN.find(g => g[0] === k.slice(2)) || [, k])[1] : (D.ATTRS.find(a => a[0] === k) || [, k])[1]) + (w > 1 ? ' ×' + w : '')).join(', '); }
+const synergiesRole = (p, r) => D.SYNERGIES.filter(S => S.r.some(x => x[0] === p && x[1] === r)).map(S => { const o = S.r.find(x => !(x[0] === p && x[1] === r)) || S.r[0]; return `${S.nom} (avec ${roleNom(o[0], o[1]).toLowerCase()})`; });
 const rolesFit = (j, p, r, T) => { const a = TT() ? TT().adequation(j, p, r, T) : null; return a ? a.roles : {}; };
 const libFit = x => x == null ? '' : x >= 0.8 ? '<span class="fitb bon">Idéal</span>' : x >= -0.5 ? '<span class="fitb moyen">Correct</span>' : '<span class="fitb faible">Peu naturel</span>';
 function listeRoles(j, p, r, id, T){
   const RF = rolesFit(j, p, r, T), a = TT() ? TT().adequation(j, p, r, T) : null;
   return `${a ? `<p class="petit" style="margin:0 0 8px">${pastille(a)} <b>${NIV[a.niveau][1]}</b> à ce qu'on lui demande${a.raisons.length ? (a.niveau === 'bon' ? '. À surveiller : ' : ' : ') + esc(a.raisons.join(' ; ')) : a.plus.length ? ' : ' + esc(a.plus.join(' ; ')) : ''}.</p>` : ''}
-    <div class="liste">${D.ROLES[p].map(([v, n, d]) => `<button class="el" data-act="choisirRole" data-j="${id}" data-r="${v}"><span class="poste ${p}" aria-hidden="true">${v === r ? '✓' : ''}</span><div class="t"><b>${n} ${libFit(RF[v])}</b><span style="white-space:normal">${esc(d)}</span></div></button>`).join('')}</div>`;
+    <div class="liste">${D.ROLES[p].map(([v, n, d]) => { const sy = synergiesRole(p, v); return `<button class="el" data-act="choisirRole" data-j="${id}" data-r="${v}"><span class="poste ${p}" aria-hidden="true">${v === r ? '✓' : ''}</span><div class="t"><b>${n} ${badgeHTML(j, p, v)} ${libFit(RF[v])}</b><span style="white-space:normal">${esc(d)}</span><span class="petit mut" style="white-space:normal">Agit sur : ${esc(roleLeviers(p, v))}. Attributs : ${esc(roleAttrs(p, v))}.${sy.length ? ' Synergies : ' + esc(sy.join(', ')) + '.' : ''}</span></div></button>`; }).join('')}</div>`;
 }
 function ficheRole(id, p){
   const k = club(M.manager.club).compo, j = M.joueurs[id], r = (k.roles || {})[id];
@@ -686,11 +701,22 @@ function vueTactique(){
     <div class="carte cons-c"><h2>Consignes <span class="mut petit">touche un libellé pour ses effets</span></h2>${consignesHTML(T, 'consigne', null, {prev:P, adv:R && R.adv.nom, fit:fitOption(K, T), ...optsMaitrise(T)})}</div>
     <div class="carte"><h2>Rôles et capitaine</h2><div class="liste compacte">${SLOTS_T.map(x => { const id = lireSlot(K, x), j = M.joueurs[id]; if (!j) return '';
       const Ro = (D.ROLES[x[0]] || []).find(r => r[0] === (K.roles || {})[id]), a = A[id];
-      return `<button class="el" data-act="role" data-j="${id}" data-p="${x[0]}">${posteB(x[0])}<div class="t"><b>${pastille(a)} ${esc(court(j))}${K.cap === id ? ' <span class="badge tit">C</span>' : ''} <span class="mut" style="font-weight:400">· ${Ro ? esc(Ro[1]) : 'rôle ?'}</span></b><span>${a && a.raisons.length ? (a.niveau === 'bon' ? 'À surveiller : ' : '') + esc(a.raisons[0]) : a && a.plus.length ? esc(a.plus[0]) : 'À l\'aise dans ce qu\'on lui demande'}</span></div><span class="d mut">›</span></button>`; }).join('')}</div></div>
+      return `<button class="el" data-act="role" data-j="${id}" data-p="${x[0]}">${posteB(x[0])}<div class="t"><b>${pastille(a)} ${esc(court(j))}${K.cap === id ? ' <span class="badge tit">C</span>' : ''} <span class="mut" style="font-weight:400">· ${Ro ? esc(Ro[1]) : 'rôle ?'}</span> ${Ro ? badgeHTML(j, x[0], Ro[0]) : ''}</b><span>${a && a.raisons.length ? (a.niveau === 'bon' ? 'À surveiller : ' : '') + esc(a.raisons[0]) : a && a.plus.length ? esc(a.plus[0]) : 'À l\'aise dans ce qu\'on lui demande'}</span></div><span class="d mut">›</span></button>`; }).join('')}</div></div>
+    ${synergiesHTML(K)}
   </div><div>
     ${R ? adversaireHTML(R, T) : ''}
     ${P ? previsionHTML(P, R, 'consigne') : ''}
   </div></div>`; });
+}
+/* v155 : synergies de la composition (actives, à un attribut près) et anti-synergies */
+function synergiesHTML(K){
+  if (!QM.synergiesDe || !K) return '';
+  const S = QM.synergiesDe(M, K), A = QM.antiSynergiesDe(M, K), nom = id => esc(court(M.joueurs[id] || {p:'', n:'?'}));
+  const lig = x => `<div class="el syn ${x.ok ? 'on' : 'presque'}"><span class="syn-i" aria-hidden="true">${x.ok ? '✦' : '◇'}</span><div class="t"><b>${esc(x.nom)}</b><span style="white-space:normal">${nom(x.a)} et ${nom(x.b)} · ${esc(x.d)}${x.ok ? '' : ` Il manque ${esc((D.ATTRS.find(a => a[0] === x.cond[1]) || [, x.cond[1]])[1].toLowerCase())} ${x.cond[2]} pour ${nom(x.cond[0] === 0 ? x.a : x.b)}.`}</span></div></div>`;
+  const pistes = D.SYNERGIES.filter(x => !S.some(y => y.id === x.id)).slice(0, 3);
+  return `<div class="carte"><h2>Synergies <span class="mut petit">${S.filter(x => x.ok).length} active${S.filter(x => x.ok).length > 1 ? 's' : ''}</span></h2>
+    ${S.length || A.length ? `<div class="liste compacte">${S.map(lig).join('')}${A.map(x => `<div class="el syn anti"><span class="syn-i" aria-hidden="true">✕</span><div class="t"><b>${esc(x.nom)}</b><span style="white-space:normal">${esc(x.d)}</span></div></div>`).join('')}</div>` : '<p class="petit mut" style="margin:0">Aucune synergie dans cette composition.</p>'}
+    <p class="petit mut" style="margin:8px 0 0">Une synergie s'allume quand deux rôles précis jouent ensemble (et parfois quand un attribut atteint un seuil). ${pistes.length ? 'À essayer : ' + pistes.map(x => `${esc(x.nom)} (${esc(roleNom(x.r[0][0], x.r[0][1]).toLowerCase())} + ${esc(roleNom(x.r[1][0], x.r[1][1]).toLowerCase())})`).join(', ') + '.' : ''}</p></div>`;
 }
 /* v152 : plans de jeu (presets) et maîtrise tactique par option */
 const GG = () => window.QMG && window.QMG.presets ? window.QMG : null;
@@ -875,7 +901,7 @@ function vueAide(){
   </div></div>
   <div class="carte aide"><h2>Comment ça marche</h2>
     <p><b>Points.</b> Un but de poursuiveur vaut ${E.points.but} points, le vif d'or ${E.points.vif} et termine le match. Victoire ${E.points.victoire} points au classement, nul ${E.points.nul}.</p>
-    <p><b>Le vif d'or.</b> Il apparaît entre la ${E.vifApparitionMin}e et la ${E.vifApparitionMax}e minute, peut se cacher puis revenir. Plus le temps passe, plus il est facile à attraper. Attention : le prendre quand on est mené de plus de 150 points fait perdre le match. La consigne « Si ça fait gagner » demande à l'attrapeur de le laisser filer dans ce cas.</p>
+    <p><b>Le vif d'or.</b> Il apparaît entre la ${E.vifApparitionMin}e et la ${E.vifApparitionMax}e minute, peut se cacher puis revenir. Plus le temps passe, plus il est facile à attraper. Il rapporte ${E.points.vif} points. Attention : le prendre quand on est mené de plus de ${E.points.vif} points fait perdre le match. La consigne « Si ça fait gagner » demande à l'attrapeur de le laisser filer dans ce cas.</p>
     <p><b>Dispositions.</b> Dans Tactique, deux phases : avec le souafle (poursuiveurs en triangle, en ligne ou en pointe ; batteurs en escorte ou devant ; zone d'attaque à toucher sur le terrain) et sans le souafle (pressing, zone ou repli ; batteurs en protection ou en harcèlement). Chaque défense craint une zone : le pressing craint l'axe, la zone craint les couloirs, le repli craint les tirs de loin. Désigne aussi ton tireur de penalty (touche un poursuiveur).</p>
     <p><b>Le match.</b> Une minute de jeu défile en une seconde à vitesse ×1 (deux secondes à ×0,5). La carte Statistiques suit le match en direct : équipes, tes joueurs (note, actions, fatigue, rendement, moral, charge) et ceux d'en face. Deux temps morts par équipe pour changer les consignes et faire entrer des remplaçants : 3 changements libres, plus ceux qui suivent une blessure. Pendant le direct : le match vu du dessus, les autres scores à la radio, les conseils de l'adjoint et, si tu le veux, l'ambiance du stade.</p>
     <p><b>Les joueurs.</b> 31 attributs de 1 à 20, plus 5 pour les gardiens. La note sur 100 dépend du poste : les attributs cibles (●) comptent triple. La forme, la fatigue et le moral changent chaque semaine.</p>
@@ -933,14 +959,14 @@ function blocContrat(j, mon){
 }
 
 /* ---------- v84 : onglet Club ---------- */
-const MERC = Object.assign({onglet:'recherche', poste:'tous', age:99, ageMin:15, moyens:false, q:'', valMax:0, salMax:0, noteMin:0, nat:'', fin:false, attr:'', attrMin:12, tri:'note'}, LS.lire('qm27:mercato', {}));   // v91 : recherche et filtres
+const MERC = Object.assign({onglet:'recherche', poste:'tous', age:99, ageMin:15, moyens:false, q:'', valMax:0, salMax:0, noteMin:0, nat:'', fin:false, attr:'', attrMin:12, role:'', badge:'', tri:'note'}, LS.lire('qm27:mercato', {}));   // v155 : rôle et badge   // v91 : recherche et filtres
 const garderMerc = () => { const {onglet, q, vu, ...f} = MERC; void onglet; void q; void vu; LS.ecrire('qm27:mercato', f); };
-const nbFiltres = () => [MERC.poste !== 'tous', MERC.age < 99 || MERC.ageMin > 15, MERC.valMax, MERC.salMax, MERC.noteMin, MERC.nat, MERC.fin, MERC.moyens, MERC.attr].filter(Boolean).length;
+const nbFiltres = () => [MERC.poste !== 'tous', MERC.age < 99 || MERC.ageMin > 15, MERC.valMax, MERC.salMax, MERC.noteMin, MERC.nat, MERC.fin, MERC.moyens, MERC.attr, MERC.role, MERC.badge].filter(Boolean).length;
 function ligneMercato(j, d){
   const p = MERC.poste !== 'tous' && MERC.poste !== 'bless' ? MERC.poste : j.poste, nv = noteVue(j, p), n = nv.mid;
   return `<button class="el" data-act="joueur" data-j="${j.id}">${j.club ? blason(j.club, 'p') : '<span class="blason nat p" aria-hidden="true" style="font-size:.5rem;font-weight:800;color:var(--ink-soft)">LIBRE</span>'}${posteB(j.poste)}
     <div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>${j.age} ans · ${d || (j.club ? esc(club(j.club).sigle) + ' · ' + eur(C.valeur(M, j)) : 'libre · demande ' + eur(C.salaireDemande(j, club(M.manager.club))) + '/sem.')}</span></div>
-    <span class="etoiles petit" aria-label="potentiel">${'★'.repeat(C.potentielEstime(M, j))}</span><span class="note ${classeNote(n)}${nv.exact ? '' : ' flou'}">${nv.txt}</span></button>`;
+    ${MERC.role && MERC.role.startsWith(j.poste + ':') ? badgeHTML(j, j.poste, MERC.role.split(':')[1]) : ''}<span class="etoiles petit" aria-label="potentiel">${'★'.repeat(C.potentielEstime(M, j))}</span><span class="note ${classeNote(n)}${nv.exact ? '' : ' flou'}">${nv.txt}</span></button>`;
 }
 function vueMercato(){
   const U = club(M.manager.club), S = QM.semaine(M), ouvert = C.mercatoOuvert(S), fen = C.prochaineFenetre(M);
@@ -950,7 +976,7 @@ function vueMercato(){
   const filtres = () => { const pills = filtresActifs();
     return `<div class="recherche"><input class="champ" type="search" id="mercQ" placeholder="Chercher un nom…" value="${esc(MERC.q)}" autocomplete="off" aria-label="Chercher un joueur par son nom"><button class="btn sec" data-act="mercFiltres">Filtres${nbFiltres() ? ' · ' + nbFiltres() : ''}</button></div>
     ${pills.length ? `<div class="pills">${pills.map(([k, t]) => `<button class="pill" data-act="mercRetire" data-k="${k}" aria-label="Retirer le filtre ${esc(t)}">${esc(t)} ✕</button>`).join('')}</div>` : ''}
-    <div class="tri-l"><span class="petit mut">Trier par</span>${[['note', 'Note'], ['pot', 'Potentiel'], ['valeur', 'Valeur'], ['age', 'Âge']].map(([k, n]) => `<button class="chip mini ${MERC.tri === k ? 'on' : ''}" data-act="mercTri" data-t="${k}">${n}</button>`).join('')}</div>`; };
+    <div class="tri-l"><span class="petit mut">Trier par</span>${[['note', 'Note'], ...(MERC.role ? [['role', 'Rôle']] : []), ['pot', 'Potentiel'], ['valeur', 'Valeur'], ['age', 'Âge']].map(([k, n]) => `<button class="chip mini ${MERC.tri === k ? 'on' : ''}" data-act="mercTri" data-t="${k}">${n}</button>`).join('')}</div>`; };
   const filtrer = L => filtrerMercato(L, U);
   if (MERC.onglet === 'offres'){
     const h = HH().etat(M), vols = h.hiboux.map(o => { const j = M.joueurs[o.j]; return j ? `<div class="el">${avatarDe(j, '', j.club || null).replace('class="av ', 'class="av mini ')}<div class="t"><b>🦉 ${esc(nomJ(j))}</b><span>${o.type === 'pret' ? `prêt, ${Math.round(o.part * 100)} % du salaire${o.option ? ', avec option' : ''}` : `${eur(o.montant)} · ${eur(o.sal)} / sem.`} · réponse la semaine prochaine</span></div></div>` : ''; }).join('');
@@ -982,17 +1008,20 @@ function vueMercato(){
   const q = $('#mercQ'); if (q) q.addEventListener('input', e => { MERC.q = e.target.value; const z = $('#mercListe'); if (z) z.innerHTML = listeMercato(MERC.onglet, club(M.manager.club)); });
   void filtrer;
 }
+const rangBadge = b => b ? ({bronze:1, argent:2, or:3}[b[0]] || 0) : 0;
 const sansAccent = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 function filtrerMercato(L, U){
   const place = U.masseMax - C.masse(M, U), q = sansAccent(MERC.q.trim()), ia = MERC.attr ? IDX(MERC.attr) : -1;
   const p = j => MERC.poste === 'tous' ? j.poste : MERC.poste;
+  const [rp, rr] = MERC.role ? MERC.role.split(':') : [null, null];   // v155 : recherche par rôle (et badge)
   return L.filter(j => j && (MERC.poste === 'tous' || j.poste === MERC.poste) && j.age <= MERC.age && j.age >= MERC.ageMin
       && (!q || sansAccent(j.p + ' ' + j.n).includes(q))
       && (!MERC.moyens || ((j.club ? C.prixClub(M, j) : 0) <= U.budget && C.salaireDemande(j, U) <= place))
       && (!MERC.valMax || C.valeur(M, j) <= MERC.valMax) && (!MERC.salMax || (j.contrat ? j.contrat.sal : 0) <= MERC.salMax)
       && (!MERC.noteMin || noteVue(j, p(j)).mid >= MERC.noteMin) && (!MERC.nat || j.nat === MERC.nat)
-      && (!MERC.fin || (j.contrat && j.contrat.fin <= M.saison)) && (ia < 0 || valVue(j, j.a[ia], MERC.attr).mid >= MERC.attrMin))
-    .map(j => ({j, k:MERC.tri === 'pot' ? C.potentielEstime(M, j) * 100 + noteVue(j, p(j)).mid : MERC.tri === 'valeur' ? C.valeur(M, j) : MERC.tri === 'age' ? -j.age : noteVue(j, p(j)).mid}))
+      && (!MERC.fin || (j.contrat && j.contrat.fin <= M.saison)) && (ia < 0 || valVue(j, j.a[ia], MERC.attr).mid >= MERC.attrMin)
+      && (!rp || j.poste === rp) && (!MERC.badge || (rp && rangBadge(badgeDe(j, rp, rr)) >= rangBadge([MERC.badge]))))
+    .map(j => ({j, k:MERC.tri === 'role' && rp ? (connu(j) >= 80 || j.club === U.id ? QM.scoreRole(j, rp, rr) * 5 : noteVue(j, rp).mid) : MERC.tri === 'pot' ? C.potentielEstime(M, j) * 100 + noteVue(j, p(j)).mid : MERC.tri === 'valeur' ? C.valeur(M, j) : MERC.tri === 'age' ? -j.age : noteVue(j, p(j)).mid}))
     .sort((a, b) => b.k - a.k).map(x => x.j);
 }
 function listeMercato(onglet, U){
@@ -1010,6 +1039,8 @@ function filtresActifs(){
   if (MERC.nat) R.push(['nat', nat(MERC.nat).nom]);
   if (MERC.fin) R.push(['fin', 'fin de contrat']);
   if (MERC.moyens) R.push(['moyens', 'dans mes moyens']);
+  if (MERC.role){ const [p, r] = MERC.role.split(':'); R.push(['role', `rôle ${roleNom(p, r).toLowerCase()}`]); }
+  if (MERC.badge) R.push(['badge', `badge ${MERC.badge} ou mieux`]);
   if (MERC.attr) R.push(['attr', `${(D.ATTRS.find(a => a[0] === MERC.attr) || [])[1]} ≥ ${MERC.attrMin}`]);
   return R;
 }
@@ -1024,6 +1055,8 @@ function ficheFiltres(){
       <label><span>Salaire actuel maximum</span>${sel('salMax', [[0, 'Tous'], ...[2000, 5000, 10000, 20000].map(v => [v, eurT(v).replace(/ G$/, ' Gallions') + ' / sem.'])], MERC.salMax)}</label>
       <label><span>Note estimée minimum</span>${sel('noteMin', [[0, 'Toutes'], [40, '40'], [50, '50'], [55, '55'], [60, '60'], [65, '65'], [70, '70']], MERC.noteMin)}</label>
       <label><span>Nationalité</span>${sel('nat', [['', 'Toutes'], ...D.SELECTIONS.map(n => [n, nat(n).nom]).sort((a, b) => a[1].localeCompare(b[1], 'fr'))], MERC.nat)}</label>
+      <label><span>Rôle</span>${sel('role', [['', 'Tous'], ...['P', 'B', 'A', 'G'].filter(p => MERC.poste === 'tous' || MERC.poste === p).flatMap(p => D.ROLES[p].map(r => [p + ':' + r[0], r[1] + (MERC.poste === 'tous' ? ' (' + D.POSTES[p].nom.toLowerCase() + ')' : '')]))], MERC.role)}</label>
+      <label><span>Badge dans ce rôle</span>${sel('badge', [['', 'Peu importe'], ['bronze', 'Bronze ou mieux'], ['argent', 'Argent ou mieux'], ['or', 'Or']], MERC.badge)}</label>
       <label><span>Caractéristique</span>${sel('attr', [['', 'Aucune'], ...D.ATTRS.map(a => [a[0], a[1]])], MERC.attr)}</label>
       <label><span>Au moins</span>${sel('attrMin', [8, 10, 12, 13, 14, 15, 16, 17, 18].map(x => [x, x + ' / 20']), MERC.attrMin)}</label>
     </div>
@@ -1614,7 +1647,7 @@ function radioHTML(){
 function conseils(){
   if (!X || X.fini) return [];
   const moi = X.joueur, T = QM.completerTactique({...X.e[moi].tactique}), To = X.e[1 - moi].tactique, d = X.score[moi] - X.score[1 - moi], S = X.stats, L = [], min = X.t / 60;
-  if (d < -150 && T.attrapeur === 'chasse') L.push(['Mené de plus de 150 points : ton attrapeur doit attendre (« Si ça fait gagner »).', 'attrapeur', 'gagnant']);
+  if (d < -E.points.vif && T.attrapeur === 'chasse') L.push([`Mené de plus de ${E.points.vif} points : ton attrapeur doit attendre (« Si ça fait gagner »).`, 'attrapeur', 'gagnant']);
   const sd = QM.sansDe(To), cz = QM.CONTRE[sd];
   if (min >= 3 && cz && T.zone !== cz) L.push([`Ils défendent en ${nomOpt('sans', sd).toLowerCase()} : attaque ${cz === 'loin' ? 'de loin' : cz === 'axe' ? 'par l\'axe' : 'par les couloirs'}.`, 'zone', cz]);
   if (min > 12 && (S[1 - moi].xb || 0) - (S[moi].xb || 0) > 3 && T.sans !== 'repli') L.push(['Ils se créent plus d\'occasions que nous : resserre-toi en repli.', 'sans', 'repli']);
@@ -1683,8 +1716,8 @@ function analyseHTML(){
 function prevoirLive(k, avant){
   if (!TT() || !X) return null;
   /* v152 : avant le coup d'envoi, l'adjoint ne connaît que leur jeu habituel (pendant le match, on voit leur tactique) */
-  const jour = X.jour, To = X.e[1 - k].tactique, cache = avant && X.attendue; X.jour = [1, 1]; if (cache) X.e[1 - k].tactique = QM.completerTactique({...X.attendue});
-  try { const ctx = {X, k}, P = TT().prevoir(ctx, QM.completerTactique({...X.e[k].tactique})); return X.sixn ? P : plansPrev(ctx, P, avant ? 'planAvant' : null); } finally { X.jour = jour; if (cache) X.e[1 - k].tactique = To; }
+  const jour = X.jour, fj = X.fj, To = X.e[1 - k].tactique, cache = avant && X.attendue; X.jour = [1, 1]; X.fj = null; X.levC = null;   // v155 : formes du jour cachées à l'adjoint if (cache) X.e[1 - k].tactique = QM.completerTactique({...X.attendue});
+  try { const ctx = {X, k}, P = TT().prevoir(ctx, QM.completerTactique({...X.e[k].tactique})); return X.sixn ? P : plansPrev(ctx, P, avant ? 'planAvant' : null); } finally { X.jour = jour; X.fj = fj; X.levC = null; if (cache) X.e[1 - k].tactique = To; }
 }
 function apresMatchHTML(){
   const moi = X.joueur, S = X.stats, N = QM.notesMatch(X), r = X.score[moi] - X.score[1 - moi];
@@ -1867,11 +1900,11 @@ const ACT = {
   choisirRole:d => { const k = club(M.manager.club).compo; k.roles = k.roles || {}; k.roles[d.j] = d.r; sauver(); retirerFeuille(); rendre(); },
   capitaine:d => { club(M.manager.club).compo.cap = d.j; sauver(); retirerFeuille(); rendre(); toast('Nouveau capitaine'); },
   merc:d => { MERC.onglet = d.o; MERC.vu = 1; rendre(); },
-  mercPoste:d => { MERC.poste = d.p; garderMerc(); if (document.querySelector('.fond')) ficheFiltres(); else rendre(); },
+  mercPoste:d => { MERC.poste = d.p; if (MERC.role && d.p !== 'tous' && !MERC.role.startsWith(d.p + ':')){ MERC.role = ''; MERC.badge = ''; } garderMerc(); if (document.querySelector('.fond')) ficheFiltres(); else rendre(); },
   mercFiltres:() => ficheFiltres(),
   mercVoir:() => { fermerFeuille(); if (!['recherche', 'libres'].includes(MERC.onglet)) MERC.onglet = 'recherche'; rendre(); },
-  mercRaz:() => { Object.assign(MERC, {poste:'tous', age:99, ageMin:15, moyens:false, valMax:0, salMax:0, noteMin:0, nat:'', fin:false, attr:''}); garderMerc(); ficheFiltres(); },
-  mercRetire:d => { const def = {poste:'tous', age:99, valMax:0, salMax:0, noteMin:0, nat:'', fin:false, moyens:false, attr:''}; if (d.k === 'age'){ MERC.age = 99; MERC.ageMin = 15; } else MERC[d.k] = def[d.k]; garderMerc(); rendre(); },
+  mercRaz:() => { Object.assign(MERC, {poste:'tous', age:99, ageMin:15, moyens:false, valMax:0, salMax:0, noteMin:0, nat:'', fin:false, attr:'', role:'', badge:''}); garderMerc(); ficheFiltres(); },
+  mercRetire:d => { const def = {poste:'tous', age:99, valMax:0, salMax:0, noteMin:0, nat:'', fin:false, moyens:false, attr:'', role:'', badge:''}; if (d.k === 'role') MERC.badge = ''; if (d.k === 'age'){ MERC.age = 99; MERC.ageMin = 15; } else MERC[d.k] = def[d.k]; garderMerc(); rendre(); },
   mercTri:d => { MERC.tri = d.t; garderMerc(); rendre(); },
   suivre:d => { const on = C.suivre(M, d.j); sauver(); toast(on ? 'Joueur supervisé : ton recruteur le suit de près' : 'Plus supervisé'); ficheJoueur(d.j); },
   vendre:d => { const on = C.mettreEnVente(M, d.j); sauver(); toast(on ? 'Mis en vente : les offres arrivent pendant le mercato' : 'Retiré de la vente'); ficheJoueur(d.j); if (U.vue === 'effectif' || U.vue === 'mercato') rendre(); },
@@ -1956,7 +1989,7 @@ document.addEventListener('change', e => {
   if (t.dataset.chg === 'carte'){ const r = B.reglerCarte(M, t.dataset.p, 'actif', t.checked); if (!r.ok){ t.checked = !t.checked; toast(r.msg); return; } sauver(); rendre(); return; }   // v133
   if (t.dataset.chg === 'produit'){ const r = B.reglerProduit(M, t.dataset.p, 'actif', t.checked); if (!r.ok){ t.checked = !t.checked; toast(r.msg); return; } sauver(); rendre(); return; }
   if (t.dataset.chg === 'poste'){ placerSlot(ctxCompo(), t.dataset.j, t.value || null); return; }
-  if (t.dataset.chg === 'mercF'){ const k = t.dataset.k; MERC[k] = t.type === 'checkbox' ? t.checked : ['nat', 'attr'].includes(k) ? t.value : +t.value; if (k === 'ageMin' && MERC.age < MERC.ageMin) MERC.age = 99; garderMerc(); return; }
+  if (t.dataset.chg === 'mercF'){ const k = t.dataset.k; MERC[k] = t.type === 'checkbox' ? t.checked : ['nat', 'attr', 'role', 'badge'].includes(k) ? t.value : +t.value; if (k === 'role' && !t.value) MERC.badge = ''; if (k === 'ageMin' && MERC.age < MERC.ageMin) MERC.age = 99; garderMerc(); return; }
   if (t.dataset.chg === 'autoSync'){ REG.autoSync = t.checked; regler(); if (t.checked) toast('Envoi automatique activé'); }
 });
 $('#fichier').addEventListener('change', async e => {

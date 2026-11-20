@@ -1,4 +1,4 @@
-// mon-ecran-version: 8c9c3f40
+// mon-ecran-version: d5461710
 /* QM27 (v104) — la Ligue des Anneaux, coupe d'Europe des clubs, et les prix européens.
    16 clubs : 5 par championnat, 6 pour celui du tenant du titre (ses 6 premiers s'il en fait partie, sinon ses 5 premiers et lui).
    v106 : 4 championnats, 4 places chacun ; le tenant qui finit plus bas que 4e prend la 4e place de sa ligue.
@@ -113,7 +113,7 @@ function resultat(M, m){
   const c = M.clubs[m.dom];
   if (c && !m.neutre && QMC.remplissage){ const aff = Math.round(c.stade * Math.min(1, QMC.remplissage(M, c, M.clubs[m.ext]) * 1.1)); QMC.compter(c, 'rec', 'europe', aff * (c.prix || 8) * 0.9); if (moi(M) === c.id) m.res.affluence = aff; }
 }
-const buts = (m, k) => (m.res.score[k] - (m.res.vif === k ? 150 : 0)) / 10;
+const buts = (m, k) => (m.res.score[k] - (m.res.vif === k ? D.EQ.points.vif : 0)) / 10;   // v155 : vif d'or à 80 points
 /* qualifié d'une double confrontation : points cumulés, puis buts, puis vifs, puis réputation */
 function qualifie(M, a, b, L){
   const tot = id => L.reduce((t, m) => t + (m.dom === id ? m.res.score[0] : m.ext === id ? m.res.score[1] : 0), 0);

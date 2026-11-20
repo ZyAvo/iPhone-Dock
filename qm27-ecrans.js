@@ -1,4 +1,4 @@
-// mon-ecran-version: 63bc2223
+// mon-ecran-version: 428868be
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -627,7 +627,7 @@ function ficheFocus(jid, msg){
   const M_ = M(), j = M_.joueurs[jid], Gm = G(), F = Gm.focusDe(j), c = moi();
   const choix = rang => { const cur = F[rang], on = x => cur && cur.t === x.t && cur.k === x.k ? ' on' : '';
     const L = [...Gm.CAPACITES.filter(x => j.poste === 'G' || (x[3] || []).length === 0).map(x => ({t:'cap', k:x[0], n:x[1]})),
-      ...(D.ROLES[j.poste] || []).map(x => ({t:'role', k:x[0], n:'Rôle : ' + x[1].toLowerCase()})),
+      ...(D.ROLES[j.poste] || []).map(x => { const b = window.QM.badge ? window.QM.badge(j, j.poste, x[0]) : null; return {t:'role', k:x[0], n:'Rôle : ' + x[1].toLowerCase() + (b ? ` (badge ${b[1].toLowerCase()})` : '')}; }),   // v155 : badge actuel dans le rôle
       ...['P', 'B', 'A', 'G'].filter(p => p !== j.poste).map(p => ({t:'poste', k:p, n:'Devenir ' + D.POSTES[p].nom.toLowerCase()}))];
     return `<div class="chips" style="flex-wrap:wrap;overflow:visible">${rang === 0 || cur ? `<button class="chip${cur ? '' : ' on'}" data-act="focusPose" data-j="${jid}" data-r="${rang}" data-t="" data-k="">Aucun</button>` : ''}${L.map(x => `<button class="chip${on(x)}" data-act="focusPose" data-j="${jid}" data-r="${rang}" data-t="${x.t}" data-k="${x.k}">${esc(x.n)}</button>`).join('')}</div>`; };
   const nb = Gm.bonusFocus(c), pris = c.effectif.filter(id => id !== jid && Gm.focusDe(M_.joueurs[id] || {}).length > 1).length;
