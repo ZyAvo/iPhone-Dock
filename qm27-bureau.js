@@ -1,4 +1,4 @@
-// mon-ecran-version: 60828607
+// mon-ecran-version: 3f2e61d1
 /* QM27 (v91, lot 8) — le bureau du manager, sans affichage. Expose window.QMG et complète window.QMC. Chargé après qm27-vestiaire.js.
    Entraînement programmable : programme de la semaine en 5 séances (lundi-vendredi), intensité, ateliers par poste, modèles,
    préparation physique d'avant-saison ; l'adjoint planifie tout seul si on le laisse faire.
@@ -221,19 +221,113 @@ const STYLES_JEU = {
 };
 const STYLES_TIRAGE = [['equilibre', 2], ['bloc', 1], ['offensif', 1], ['possession', 1], ['contre', 1], ['pressing', 1], ['physique', 1], ['vif', 0.6]];
 const styleCoach = (M, c) => { const C = coach(M, c); if (!C.style){ const r = rng(M, 'style', c.id, c.coachN || 0); C.style = r.pondere(STYLES_TIRAGE); } return C.style; };
+/* v159 : traits d'un entraîneur (ses idées, sa lecture du jeu, sa prudence, ses erreurs, sa fidélité à ses idées) selon sa réputation */
+function traits(r, rep){ const base = borne(0.25 + (rep - 40) / 90, 0.15, 0.85), pref = {}; for (const k of SYSTEME) if (r() < 0.45) pref[k] = r.choix(OPTIONS[k]);
+  return {pref, rythme:r.choix([1, 2, 2, 3]), agr:r.choix([1, 2, 2, 3]), risque:r.choix([1, 2, 2, 3]), lecture:r1(borne(base + r.gauss() * 0.15, 0.1, 0.95)),
+    prudence:r1(borne(0.5 + r.gauss() * 0.22, 0.05, 0.95)), erreur:r1(borne(0.55 - base * 0.5 + r.gauss() * 0.12, 0.05, 0.6)), fidele:r1(borne(0.5 + r.gauss() * 0.2, 0.1, 0.9))}; }
 /* poids des leviers du style de l'entraîneur d'un club de l'ordinateur (pour le choix des rôles) ; null pour le club du joueur */
 const poidsStyle = (M, clubId) => { const c = M.clubs[clubId]; if (!c || estJoueur(M, c)) return null; return STYLES_JEU[styleCoach(M, c)].lev; };
+/* l'entraîneur d'un club de l'ordinateur (v159 : une personne nommée, dans M.entr.L, qui peut changer de club en gardant ses idées et son style) */
 function coach(M, c){
-  if (c.coach) return c.coach;
-  const r = rng(M, 'coach', c.id, c.coachN || 0), base = borne(0.25 + (c.rep - 40) / 90, 0.15, 0.85);
-  const pref = {}; for (const k of SYSTEME) if (r() < 0.45) pref[k] = r.choix(OPTIONS[k]);   // ses idées : quelques options qu'il aime
-  c.coach = {pref, rythme:r.choix([1, 2, 2, 3]), agr:r.choix([1, 2, 2, 3]), risque:r.choix([1, 2, 2, 3]),
-    lecture:r1(borne(base + r.gauss() * 0.15, 0.1, 0.95)),   // lit-il bien l'adversaire ?
-    prudence:r1(borne(0.5 + r.gauss() * 0.22, 0.05, 0.95)), // se replie-t-il contre plus fort ?
-    erreur:r1(borne(0.55 - base * 0.5 + r.gauss() * 0.12, 0.05, 0.6)), // ses choix à côté de la plaque
-    fidele:r1(borne(0.5 + r.gauss() * 0.2, 0.1, 0.9))};     // tient-il à son plan ?
-  return c.coach;
+  if (estJoueur(M, c)) return c.coachJ || (c.coachJ = {...traits(rng(M, 'coach', c.id, c.coachN || 0), c.rep), nom:null});   // club du joueur : ses réglages d'ordinateur ne servent qu'aux essais
+  const E = entr(M); if (c.coachId && E.L[c.coachId]) return E.L[c.coachId];
+  return attacher(M, c);
 }
+/* ---------- v159 : entraîneurs nommés de l'ordinateur, limogeages, départs, mercato des bancs ---------- */
+const BANCS = {libres:12, minJ:8, protection:10, journal:80};
+const entr = M => M.entr || (M.entr = {L:{}, n:0, J:[]});   // L : entraîneurs par id ; J : journal des mouvements
+const NATS_E = () => Object.keys(D.NOMS).filter(k => D.NATIONS[k]);
+function creerEntraineur(M, r, nat, rep){
+  const N = D.NOMS[nat] || D.NOMS.ENG, E = entr(M), id = 'e' + (++E.n);
+  return E.L[id] = {id, nom:`${r.choix(N.p)} ${r.choix(N.n)}`, nat, age:r.ent(36, 58), rep:Math.round(borne(rep, 20, 92)), style:r.pondere(STYLES_TIRAGE), ...traits(r, rep), club:null, depuis:M.saison, arrive:-99, car:[], titres:0, libre:M.saison};
+}
+/* un club sans entraîneur nommé (partie d'avant v159, club arrivé en cours de route) : on garde ses idées et son style déjà vus, avec un nom */
+function attacher(M, c){
+  const r = rng(M, 'entr', c.id, c.coachN || 0), old = c.coach, pm = M.prix && M.prix.mgr && M.prix.mgr[c.id];
+  const e = creerEntraineur(M, r, r() < 0.75 || !D.NOMS[c.nat] ? (D.NOMS[c.nat] ? c.nat : 'ENG') : r.choix(NATS_E()), c.rep + r.gauss() * 6);
+  if (old) for (const k of ['pref', 'rythme', 'agr', 'risque', 'lecture', 'prudence', 'erreur', 'fidele', 'style']) if (old[k] != null) e[k] = old[k];
+  if (!old || !old.style) e.style = rng(M, 'style', c.id, c.coachN || 0).pondere(STYLES_TIRAGE);   // le même style qu'en v157
+  if (pm) e.nom = pm;   // le nom déjà vu dans les prix
+  e.club = c.id; e.depuis = M.saison - r.ent(0, 3); e.libre = null; c.coachId = e.id; delete c.coach;
+  return e;
+}
+function assurerEntraineurs(M){
+  for (const c of Object.values(M.clubs)) if (!estJoueur(M, c)) coach(M, c); else if (c.coachId) liberer(M, c, 'remplacé');   // le club du joueur n'a pas d'entraîneur de l'ordinateur
+  return remplirLibres(M);
+}
+function remplirLibres(M){
+  const E = entr(M), libres = Object.values(E.L).filter(e => !e.club), r = rng(M, 'libres', M.saison, M.tic || 0);
+  for (let i = libres.length; i < BANCS.libres; i++){ const e = creerEntraineur(M, r, r.choix(NATS_E()), 38 + r() * 30); e.age = r.ent(34, 50); }
+  return E;
+}
+const nomStyleE = e => STYLES_JEU[e.style] ? STYLES_JEU[e.style].nom.toLowerCase() : 'équilibré';
+function noter(M, x){ const J = entr(M).J; J.unshift({s:M.saison, t:M.tic || 0, ...x}); if (J.length > BANCS.journal) J.length = BANCS.journal; }
+/* l'entraîneur quitte le club (limogé, parti ailleurs, retraité, remplacé par le joueur) */
+function liberer(M, c, raison){
+  const E = entr(M), e = c.coachId && E.L[c.coachId]; if (!e) { delete c.coachId; return null; }
+  e.car.unshift([c.id, e.depuis, M.saison, raison]); if (e.car.length > 6) e.car.length = 6;
+  (c.anciens = c.anciens || []).unshift([e.nom, e.depuis, M.saison, raison]); if (c.anciens.length > 5) c.anciens.length = 5;
+  e.club = null; e.libre = M.saison; if (raison === 'limogé') e.rep = Math.max(20, e.rep - 3);
+  delete c.coachId; return e;
+}
+/* un club de l'ordinateur sans entraîneur en recrute un : un libre de réputation voisine, ou l'été un entraîneur en vue d'un club plus modeste */
+function embaucher(M, c, r, ete, profondeur = 0){
+  const E = remplirLibres(M), cible = c.rep - 3;   // (pas assurerEntraineurs : il donnerait un entraîneur à ce club vide)
+  const cand = Object.values(E.L).filter(e => !e.club && !e.retraite && !(e.car[0] && e.car[0][0] === c.id && e.car[0][2] >= M.saison - 1))
+    .map(e => [e, -Math.abs(e.rep - cible) + r.gauss() * 5 + (e.nat === c.nat ? 3 : 0) - (e.age > 60 ? 3 : 0)]);
+  if (ete && profondeur < 2) for (const e of Object.values(E.L)){ const a = e.club && M.clubs[e.club];
+    if (a && !estJoueur(M, a) && a.rep <= c.rep - 8 && e.rep >= c.rep - 6 && e.arrive < (M.tic || 0) - 20) cand.push([e, 4 - Math.abs(e.rep - cible) * 0.6 + r.gauss() * 5]); }
+  cand.sort((x, y) => y[1] - x[1]);
+  let e = cand.length && cand[0][1] > -14 ? cand[0][0] : null, ancien = null;
+  if (!e){ e = creerEntraineur(M, r, r() < 0.6 && D.NOMS[c.nat] ? c.nat : r.choix(NATS_E()), cible - 4 + r.gauss() * 4); e.age = r.ent(34, 48); }
+  if (e.club){ ancien = M.clubs[e.club]; liberer(M, ancien, 'parti à ' + c.nom); }
+  e.club = c.id; e.depuis = ete ? M.saison + 1 : M.saison; e.arrive = M.tic || 0; e.libre = null;
+  c.coachId = e.id; c.coachN = (c.coachN || 0) + 1; delete c.coach; delete c.presets; c.histT = [];
+  construirePlans(M, c);
+  if (ancien) noter(M, {k:'depart', c:ancien.id, e:e.id, vers:c.id});
+  noter(M, {k:'arrivee', c:c.id, e:e.id});
+  if (ancien) embaucher(M, ancien, r, ete, profondeur + 1);
+  return e;
+}
+/* rang attendu d'un club dans sa ligue (réputations) et rang réel */
+function ecartRang(M, L, CL){ const parRep = CL.map(x => x.id).sort((a, b) => M.clubs[b].rep - M.clubs[a].rep); return id => CL.findIndex(x => x.id === id) - parRep.indexOf(id); }
+const ligueJoueur = M => M.manager && M.manager.club && M.clubs[M.manager.club] ? M.clubs[M.manager.club].ligue : null;
+function annoncer(M, c, e, n, rang){
+  if (c.ligue !== ligueJoueur(M) || !n) return;
+  Q().message(M, `${c.nom} change d'entraîneur`, `${e ? `${e.nom} est limogé${rang ? ` (${rang}e du classement)` : ''}. ` : ''}${n.nom} (${D.NATIONS[n.nat] ? D.NATIONS[n.nat].nom : n.nat}, ${n.age} ans) le remplace : il aime le jeu ${nomStyleE(n)}. Attends-toi à une équipe qui change de visage.`, 'bancs');
+}
+/* chaque journée de championnat : les présidents de l'ordinateur perdent patience quand le classement est loin de leurs attentes */
+function semaineBancs(M, S){
+  if (!S || S.type !== 'ligue') return; assurerEntraineurs(M);
+  const r = rng(M, 'bancs', M.saison, M.tic || 0);
+  for (const L of Object.keys(M.ligues)){ const CL = Q().classement(M, L); if (!CL.length || CL[0].j < BANCS.minJ) continue; const ec = ecartRang(M, L, CL);
+    for (const x of CL){ const c = M.clubs[x.id]; if (!c || estJoueur(M, c)) continue; const e = coach(M, c);
+      if ((M.tic || 0) - e.arrive < BANCS.protection) continue;
+      const g = ec(c.id), T = M.tables[L] && M.tables[L][c.id], perdus = T && T.forme ? T.forme.slice(-4).filter(f => f === 'D').length : 0;
+      const p = g > 3 ? 0.006 * (g - 3) * (1 + 0.35 * perdus) * (1.3 - e.rep / 100) : 0;
+      if (r() < p){ const ancien = liberer(M, c, 'limogé'); noter(M, {k:'limoge', c:c.id, e:ancien.id, rang:CL.findIndex(y => y.id === c.id) + 1}); const n = embaucher(M, c, r, false); annoncer(M, c, ancien, n, CL.findIndex(y => y.id === c.id) + 1); } } }
+}
+/* fin de saison : bilan des entraîneurs (réputation, titres, âge), limogeages, retraites, départs vers de plus grands clubs */
+function eteBancs(M){
+  assurerEntraineurs(M); const r = rng(M, 'bancsEte', M.saison), E = entr(M), vides = [];
+  for (const L of Object.keys(M.ligues)){ const CL = Q().classement(M, L); if (!CL.length) continue; const ec = ecartRang(M, L, CL);
+    CL.forEach((x, k) => { const c = M.clubs[x.id]; if (!c || estJoueur(M, c)) return; const e = coach(M, c), g = ec(c.id);
+      e.rep = Math.round(borne(e.rep + borne(-g * 0.8, -5, 6) + (k === 0 ? 5 : 0), 20, 95)); if (k === 0) e.titres = (e.titres || 0) + 1;
+      e.age++;
+      const neuf = e.depuis === M.saison && (M.tic || 0) - e.arrive < 25;
+      if (e.age >= 66 || (e.age >= 62 && r() < 0.25)){ liberer(M, c, 'retraite'); e.retraite = M.saison; vides.push(c); noter(M, {k:'retraite', c:c.id, e:e.id}); }
+      else if (g >= 3 && r() < Math.min(0.75, 0.12 * (g - 2)) * (neuf ? 0.5 : 1)){ liberer(M, c, 'limogé'); vides.push(c); noter(M, {k:'limoge', c:c.id, e:e.id, rang:k + 1}); } }); }
+  for (const e of Object.values(E.L)) if (!e.club && !e.retraite && e.libre != null && e.libre < M.saison){ e.age++; if (e.age >= 64 || e.libre <= M.saison - 3) e.retraite = M.saison; }
+  for (const e of Object.values(E.L)) if (e.retraite && e.retraite < M.saison - 1) delete E.L[e.id];   // on oublie les retraités au bout d'un an
+  for (const c of vides.sort((a, b) => b.rep - a.rep)) if (!c.coachId) embaucher(M, c, r, true);
+  assurerEntraineurs(M);
+  /* un résumé pour le joueur : les bancs de sa ligue et des grands clubs */
+  const lj = ligueJoueur(M), J = E.J.filter(x => x.s === M.saison && x.k === 'arrivee' && M.clubs[x.c] && (M.clubs[x.c].ligue === lj || M.clubs[x.c].rep >= 75) && (M.tic || 0) - x.t < 3);
+  if (M.manager && J.length) Q().message(M, `Valse des entraîneurs : ${J.length} club${J.length > 1 ? 's' : ''} change${J.length > 1 ? 'nt' : ''} de banc`, J.map(x => { const c = M.clubs[x.c], n = E.L[x.e]; return `${c.nom} : ${n ? `${n.nom} (jeu ${nomStyleE(n)})` : '?'}`; }).join(' · ') + '. Les styles de jeu de ces équipes vont changer.', 'bancs');
+}
+/* le joueur prend un club : son entraîneur de l'ordinateur s'en va ; le joueur part : un entraîneur de l'ordinateur arrive */
+function libererBanc(M, c){ const e = liberer(M, c, 'remplacé'); if (e) noter(M, {k:'remplace', c:c.id, e:e.id}); }
+function entraineurDe(M, c){ if (!c || estJoueur(M, c)) return null; return coach(M, c); }
 /* convenance d'une option pour un groupe de joueurs (écart moyen des attributs demandés au niveau du poste) */
 function convient(M, ids, k, o){
   const QT = root.QMT; if (!QT || !QT.DEMANDE || !QT.ecart) return 0; const d = QT.DEMANDE[k] && QT.DEMANDE[k][o]; if (!d) return 0;
@@ -328,7 +422,7 @@ function profilJeu(M, c){
 /* ce que l'adjoint attend de l'adversaire pour la prévision (son jeu habituel, pas sa vraie tactique du jour) */
 const attendue = (M, c) => habitude(M, c).T;
 /* changement d'entraîneur d'un club de l'ordinateur (le joueur part, l'ordinateur reprend la main) */
-function nouvelEntraineur(M, c){ c.coachN = (c.coachN || 0) + 1; delete c.coach; delete c.presets; construirePlans(M, c); }
+function nouvelEntraineur(M, c){ if (c.coachId) liberer(M, c, 'remplacé'); delete c.coachJ; const r = rng(M, 'nouvel', c.id, M.tic || 0); embaucher(M, c, r, false); }   // v159 : un entraîneur nommé (un libre en général)
 /* en début de saison : les plans des clubs de l'ordinateur suivent leur nouvel effectif */
 function plansSaison(M){ for (const c of Object.values(M.clubs)) if (!estJoueur(M, c)) construirePlans(M, c); }
 const estJoueur = (M, c) => M.manager && M.manager.club === c.id;
@@ -752,6 +846,6 @@ Object.assign(QMC, {
 /* l'expérience du manager : causeries plus efficaces (motivation) ; les jeunes progressent plus vite via effets().jeunes */
 if (root.QMH){ const ca = root.QMH.causerie; root.QMH.causerie = (M, X, eq, ton, moment) => { const r = ca(M, X, eq, ton, moment); const p = M.manager && M.manager.profil; if (p){ p.xp.causeries = (p.xp.causeries || 0) + 1; if (r && typeof r.delta === 'number') r.delta = Math.round(r.delta * (1 + eff(M, 'mot') * 0.04) * 100) / 100; } return r; };
   const eh = root.QMH.envoyerHibou; root.QMH.envoyerHibou = (M, o) => { const r = eh(M, o); const p = M.manager && M.manager.profil; if (p && r && r.ok) p.xp.transferts = (p.xp.transferts || 0) + 1; return r; }; }
-root.QMG = {SEANCES_ANCIENNES, maitrise, apresEntrainement, bonusMatch, SYSTEME, OPTIONS, CLES_T, maitrisePlan, maitriseOption, coutChangement, presets, ecartsPreset, choisirPreset, enregistrerPreset, renommerPreset, choisirTravail, plansTravailles, noterTactique, habitude, coach, construirePlans, plansDe, entrainementIA, tactiqueMatch, attendue, nouvelEntraineur, plansSaison, NOMS_STYLE, STYLES_JEU, styleCoach, poidsStyle, profilJeu, CAPACITES, ROLE_ATTRS, SEM_POSTE, bonusFocus, focusDe, cibleFocus, focusActifs, definirFocus, apresFocus, noterCourbes, SEANCES, SEANCE, JOURS, ATELIERS, MODELES, plan, programmeDe, programmeAuto, definirSemaine, definirModele, modeAuto, effets, programme, apercu, fatigueTitulaires,
+root.QMG = {SEANCES_ANCIENNES, maitrise, apresEntrainement, bonusMatch, SYSTEME, OPTIONS, CLES_T, maitrisePlan, maitriseOption, coutChangement, presets, ecartsPreset, choisirPreset, enregistrerPreset, renommerPreset, choisirTravail, plansTravailles, noterTactique, habitude, coach, construirePlans, plansDe, entrainementIA, tactiqueMatch, attendue, nouvelEntraineur, plansSaison, NOMS_STYLE, STYLES_JEU, styleCoach, poidsStyle, profilJeu, entr, assurerEntraineurs, semaineBancs, eteBancs, libererBanc, entraineurDe, nomStyleE, BANCS, CAPACITES, ROLE_ATTRS, SEM_POSTE, bonusFocus, focusDe, cibleFocus, focusActifs, definirFocus, apresFocus, noterCourbes, SEANCES, SEANCE, JOURS, ATELIERS, MODELES, plan, programmeDe, programmeAuto, definirSemaine, definirModele, modeAuto, effets, programme, apercu, fatigueTitulaires,
   ATTR_MGR, profil, repartir, modifierProfil, att, eff, RECORDS, RECORD, records, initRecords, reunion, proposer, accepterOffre, chiffrer, offreInitiale, prefPresident, PHILOS, PALIERS, TXT_OBJ, noterAchat, lancerMission, arreterMission, missions:M => G(M).missions, MAX_MISSIONS, PROFILS, candidats, rapports:M => G(M).rapports || {}};
 })(typeof window !== 'undefined' ? window : globalThis);

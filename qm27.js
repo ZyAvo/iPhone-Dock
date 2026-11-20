@@ -1,4 +1,4 @@
-// mon-ecran-version: 27bb3f98
+// mon-ecran-version: ec5a1851
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -808,6 +808,7 @@ function terminerSemaine(M, X){
     else appliquerMatch(M, m, simulerMatch(M, m));
   }
   if (mj && mj.res){ if (mj.ligue === 'sixn'){ if (C()) C().apresMatchSelection(M, mj); } else apresMatchManager(M, mj); }
+  if (root.QMG && root.QMG.semaineBancs) root.QMG.semaineBancs(M, S);   // v159 : limogeages en cours de saison
   /* messages : blessures de l'équipe, résumé */
   if (M.manager){
     const club = clubJoueur(M) ? M.clubs[clubJoueur(M)] : {effectif:[]};
@@ -885,6 +886,7 @@ function finDeSaison(M){
     message(M, `Bilan de la saison ${lab}`, `${M.clubs[M.manager.club].nom} termine ${pos}${pos === 1 ? 'er' : 'e'} (objectif : ${o.vise === 1 ? 'titre' : 'top ' + o.vise}). Champions : ${Object.values(M.ligues).map(L => M.clubs[champs[L.id]].nom).join(', ')}.${sixn ? ` ${D.TOURNOI.court} : ${D.NATIONS[sixn].nom}.` : ''}${ldn ? ` ${D.LDN.nom} : ${D.NATIONS[ldn].nom}.` : ''}`, 'pres');
   }
   M.histo.push(h);
+  if (root.QMG && root.QMG.eteBancs) root.QMG.eteBancs(M);   // v159 : bilan des entraîneurs de l'ordinateur, valse des bancs
 }
 /* passage à la saison suivante (appelé par l'écran après le bilan) */
 function saisonSuivante(M){

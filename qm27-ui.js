@@ -1,4 +1,4 @@
-// mon-ecran-version: 469ed17f
+// mon-ecran-version: 7ddb9ede
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -551,14 +551,15 @@ const nomStyle = k => window.QMG && QMG.STYLES_JEU && QMG.STYLES_JEU[k] ? QMG.ST
 function profilTexte(c){ const P = window.QMG && QMG.profilJeu ? QMG.profilJeu(M, c) : null; if (!P) return ''; const f = x => x.toFixed(1).replace('.', ',');
   return `${P.etiquettes.slice(0, 2).map(e => `<span class="stj ${e}">${esc(nomStyle(e))}</span>`).join(' ')} <span class="mut">· ${f(P.pour)} buts marqués, ${f(P.contre)} encaissés, possession ${Math.round(P.poss)} % (${P.n} matchs)</span>`; }
 function styleJeuHTML(c){ if (!c || !window.QMG || !QMG.styleCoach || c.id === M.manager.club) return ''; const k = QMG.styleCoach(M, c), S = QMG.STYLES_JEU[k];
-  const P = profilTexte(c); return `Style de leur entraîneur : <b>${esc(S.nom.toLowerCase())}</b> (${esc(S.d.charAt(0).toLowerCase() + S.d.slice(1, -1))}).${P ? ' Sur le terrain : ' + P + '.' : ''}`; }
+  const P = profilTexte(c), en = QMG.entraineurDe ? QMG.entraineurDe(M, c) : null;   // v159 : entraîneur nommé
+  return `${en ? `Leur entraîneur, <b>${esc(en.nom)}</b> (${en.age} ans, en poste depuis ${en.depuis}), aime le jeu` : 'Style de leur entraîneur :'} <b>${esc(S.nom.toLowerCase())}</b> (${esc(S.d.charAt(0).toLowerCase() + S.d.slice(1, -1))}).${P ? ' Sur le terrain : ' + P + '.' : ''}`; }
 function stylesLigueHTML(l){
   if (!window.QMG || !QMG.profilJeu || !M.ligues[l]) return '';
   const L = QM.classement(M, l).map(r => club(r.id)).filter(Boolean), P = L.map(c => [c, QMG.profilJeu(M, c)]).filter(x => x[1]);
   if (!P.length) return '';
   const f = x => x.toFixed(1).replace('.', ',');
   return `<div class="carte"><h2>Styles de jeu <span class="mut petit">sur les ${Math.max(...P.map(x => x[1].n))} derniers matchs</span></h2><div class="tab-styles"><table><thead><tr><th>Club</th><th>Style</th><th title="Buts marqués par match">Pour</th><th title="Buts encaissés par match">Contre</th><th title="Possession">Poss.</th></tr></thead><tbody>
-    ${P.map(([c, x]) => `<tr${c.id === M.manager.club ? ' class="moi"' : ''}><td>${blason(c.id, 'p')} ${esc(c.sigle || c.nom)}</td><td>${x.etiquettes.slice(0, 2).map(e => `<span class="stj ${e}">${esc(nomStyle(e))}</span>`).join(' ')}${c.id !== M.manager.club && QMG.styleCoach ? `<br><span class="petit mut">entraîneur : ${esc(nomStyle(QMG.styleCoach(M, c)).toLowerCase())}</span>` : ''}</td><td class="num">${f(x.pour)}</td><td class="num">${f(x.contre)}</td><td class="num">${Math.round(x.poss)} %</td></tr>`).join('')}
+    ${P.map(([c, x]) => `<tr${c.id === M.manager.club ? ' class="moi"' : ''}><td>${blason(c.id, 'p')} ${esc(c.sigle || c.nom)}</td><td>${x.etiquettes.slice(0, 2).map(e => `<span class="stj ${e}">${esc(nomStyle(e))}</span>`).join(' ')}${c.id !== M.manager.club && QMG.styleCoach ? `<br><span class="petit mut">${QMG.entraineurDe && QMG.entraineurDe(M, c) ? esc(QMG.entraineurDe(M, c).nom) + ', ' : 'entraîneur : '}${esc(nomStyle(QMG.styleCoach(M, c)).toLowerCase())}</span>` : ''}</td><td class="num">${f(x.pour)}</td><td class="num">${f(x.contre)}</td><td class="num">${Math.round(x.poss)} %</td></tr>`).join('')}
   </tbody></table></div><p class="petit mut" style="margin:6px 0 0">Le style mesuré compare chaque club à la moyenne de sa ligue : offensif ou bloc défensif selon le nombre de buts dans ses matchs, possession au-delà de 54 %, contre-attaque quand il a peu le souafle et marque souvent juste après l'avoir récupéré, physique quand il blesse beaucoup.</p></div>`;
 }
 /* v155 : badges indicatifs (bronze, argent, or) d'un joueur dans un rôle, d'après ses attributs ; ce que fait un rôle ; ses synergies */
@@ -776,7 +777,7 @@ function plansPrev(ctx, P, act){
 /* v152 : fréquence d'une consigne dans leur jeu habituel, et portrait de leur entraîneur */
 const fq = (R, k) => R.hab && R.hab.freq && R.hab.freq[k] && R.hab.freq[k][1] > 1 ? ` <span class="mut">(${R.hab.freq[k][0]}/${R.hab.freq[k][1]})</span>` : '';
 function styleCoach(C){
-  const L = [C.lecture >= 0.65 ? 'Leur entraîneur lit bien ses adversaires et ajuste souvent son plan.' : C.lecture <= 0.35 ? 'Leur entraîneur ajuste rarement son plan à l\'adversaire.' : 'Leur entraîneur ajuste parfois son plan à l\'adversaire.'];
+  const L = [C.lecture >= 0.65 ? 'Il lit bien ses adversaires et ajuste souvent son plan.' : C.lecture <= 0.35 ? 'Il ajuste rarement son plan à l\'adversaire.' : 'Il ajuste parfois son plan à l\'adversaire.'];
   if (C.prudence >= 0.65) L.push('Il se replie volontiers contre plus fort.'); else if (C.prudence <= 0.3) L.push('Il ne recule devant personne.');
   if (C.fidele >= 0.7) L.push('Il tient à ses idées.');
   return L.join(' ');

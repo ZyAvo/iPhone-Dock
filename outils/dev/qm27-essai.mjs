@@ -1,4 +1,4 @@
-// mon-ecran-version: 086368a3
+// mon-ecran-version: 59e00e6a
 // QM27 : vérifie l'équilibrage du moteur. Usage : node outils/dev/qm27-essai.mjs [nb de matchs] [nb de saisons]
 // Joue des matchs et des saisons complètes sans affichage, puis compare les moyennes aux cibles du GDD
 // (buts par équipe, durée, part des matchs décidés par le vif d'or, blessures, avantage du terrain).
@@ -87,6 +87,9 @@ for (let i = 0; i < nbSaisons; i++){
   { const L = Object.values(W.joueurs).filter(j => j.club && W.clubs[j.club] && j.saison), sj = L.reduce((t, j) => t + (j.saison.ja || 0), 0), sr = L.reduce((t, j) => t + (j.saison.ro || 0), 0);   // v158
     const parStyle = {}; for (const c of Object.values(W.clubs)){ if (!c.ligue || !W.ligues[c.ligue]) continue; const k = ctx.QMG.styleCoach(W, c), E = c.effectif.map(id => W.joueurs[id]).filter(j => j && j.saison); const x = parStyle[k] = parStyle[k] || [0, 0, 0]; x[0]++; x[1] += E.reduce((t, j) => t + (j.saison.ja || 0), 0); x[2] += E.reduce((t, j) => t + (j.saison.ro || 0), 0); }
     console.log(`  cartons en championnat : ${sj} jaunes, ${sr} rouges · suspendus en fin de saison : ${L.filter(j => j.susp).length} · par club et style : ` + Object.entries(parStyle).map(([k, x]) => `${k} ${(x[1] / x[0]).toFixed(1)} J ${(x[2] / x[0]).toFixed(1)} R`).join(', ')); }
+  { const E = W.entr || {L:{}, J:[]}, J = E.J.filter(x => x.s === W.saison), n = k => J.filter(x => x.k === k).length;   // v159 : bancs
+    const st = {}; for (const c of Object.values(W.clubs)){ const e = E.L[c.coachId]; if (e) st[e.style] = (st[e.style] || 0) + 1; }
+    console.log(`  entraîneurs : ${Object.values(E.L).filter(e => e.club).length} en poste, ${Object.values(E.L).filter(e => !e.club && !e.retraite).length} libres · limogés ${n('limoge')}, partis ailleurs ${n('depart')}, retraites ${n('retraite')}, arrivées ${n('arrivee')} · styles : ${Object.entries(st).map(([k, v]) => k + ' ' + v).join(', ')}`); }
   QM.saisonSuivante(W);
   for (const c of Object.values(W.clubs)) budget0[c.id] = c.budget;
   const json = QM.serialiser(W);

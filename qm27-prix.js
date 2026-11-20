@@ -1,4 +1,4 @@
-// mon-ecran-version: 2df8e974
+// mon-ecran-version: 8daf584a
 /* QM27 (v103) — récompenses : équipe, joueur et manager du mois, prix de fin de saison par ligue, palmarès des joueurs,
    Hall of Fame à la retraite. Sans affichage : expose window.QMR et se branche sur QMC.semaine / avantSaison / apresSaison.
    Chargé après qm27-bureau.js. Rien ici ne tire au hasard dans le moteur des matchs (les noms des managers de l'ordinateur
@@ -26,6 +26,7 @@ const nomPoste = (p, pl) => D.POSTES[p][pl ? 'pl' : 'nom'].toLowerCase();
 /* ---------- managers de l'ordinateur : un nom stable par club ---------- */
 function managerDe(M, clubId){
   if (M.manager && M.manager.club === clubId) return {nom:M.manager.nom || 'Toi', moi:true};
+  const e = root.QMG && root.QMG.entraineurDe ? root.QMG.entraineurDe(M, M.clubs[clubId]) : null; if (e && e.nom) return {nom:e.nom, id:e.id};   // v159 : entraîneurs nommés
   const g = P(M).mgr; if (g[clubId]) return {nom:g[clubId]};
   const c = M.clubs[clubId], r = Q().hasard(Q().melange(M.graine, 'manager', clubId)), N = D.NOMS[c.nat] || D.NOMS.ENG;
   g[clubId] = `${r.choix(N.p)} ${r.choix(N.n)}`;

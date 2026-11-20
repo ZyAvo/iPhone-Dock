@@ -1,4 +1,4 @@
-// mon-ecran-version: 38cec3e6
+// mon-ecran-version: 2d707d26
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -768,8 +768,8 @@ ACT.recLigue = d => { U.recLigue = d.l; rendre(); };
 ACT.palmares = () => { U.troph = 'palmares'; aller('trophees'); };
 
 /* ============================== Boîte de réception ============================== */
-const CAT = {pres:'Président', staff:'Staff', club:'Club', mercato:'Mercato', bless:'Infirmerie', sixn:'Sélections', carriere:'Carrière', presse:'Presse', formation:'Formation', prix:'Prix', europe:'Europe', info:'Divers'};
-const ICO_MSG = {pres:'🏛️', staff:'🧙', club:'🏰', mercato:'🦉', bless:'✚', sixn:'🏆', carriere:'🧭', presse:'🗞️', formation:'🎓', prix:'🏅', europe:'💍', info:'✉️'};
+const CAT = {pres:'Président', staff:'Staff', club:'Club', mercato:'Mercato', bless:'Infirmerie', sixn:'Sélections', carriere:'Carrière', presse:'Presse', formation:'Formation', prix:'Prix', europe:'Europe', bancs:'Bancs', info:'Divers'};
+const ICO_MSG = {pres:'🏛️', staff:'🧙', club:'🏰', mercato:'🦉', bless:'✚', sixn:'🏆', carriere:'🧭', presse:'🗞️', formation:'🎓', prix:'🏅', europe:'💍', bancs:'🪑', info:'✉️'};
 const VUE_MSG = {pres:'direction', staff:'staff', club:'club', mercato:'mercato', sixn:'selection', carriere:'carriere', presse:'presse', formation:'formation', prix:'trophees', europe:'classements', info:'boite'};   // v99 : icône illustrée par catégorie
 const nonLus = () => (M() ? M().boite.filter(m => !m.lu).length : 0);
 Z.nonLus = nonLus;
@@ -954,8 +954,21 @@ function vueClubs(){
   ${M_.manager.club && Gm ? rechercheHTML(M_, Gm) : ''}
   <div class="seg">${Object.values(M_.ligues).map(x => `<button data-act="clubsL" data-l="${x.id}" class="${x.id === l ? 'on' : ''}">${esc(x.court)}</button>`).join('')}</div>
   <div class="carte"><div class="liste">${CL.map((r, i) => { const c = club(r.id);
-    return `<button class="el" data-act="ficheClub" data-c="${c.id}">${blason(c.id)}<div class="t"><b>${i + 1}. ${esc(c.nom)}${c.id === M_.manager.club ? ' <span class="badge tit">toi</span>' : ''}</b><span>${flag(c.nat)} ${esc(c.ville)} · ${r.pts} pts · ${plur(c.effectif.length, 'joueur')}</span></div><div class="d">${etoiles(c.rep)}</div></button>`; }).join('')}</div></div>
+    return `<button class="el" data-act="ficheClub" data-c="${c.id}">${blason(c.id)}<div class="t"><b>${i + 1}. ${esc(c.nom)}${c.id === M_.manager.club ? ' <span class="badge tit">toi</span>' : ''}</b><span>${flag(c.nat)} ${esc(c.ville)} · ${r.pts} pts · ${plur(c.effectif.length, 'joueur')}${window.QMG && QMG.entraineurDe && QMG.entraineurDe(M_, c) ? ' · ' + esc(QMG.entraineurDe(M_, c).nom) : ''}</span></div><div class="d">${etoiles(c.rep)}</div></button>`; }).join('')}</div></div>
+  ${bancsHTML(M_, l)}
   ${M_.manager.club ? `<button class="btn sec plein" data-act="mission" data-t="ligue" data-c="${l}">Envoyer le recruteur sur la ${esc(L.court)} (8 semaines)</button><div style="height:8px"></div><button class="btn sec plein" data-act="mission" data-t="libres" data-c="libres">Passer les agents libres au crible (8 semaines)</button>` : ''}`;
+}
+/* v159 : les bancs de la ligue (derniers mouvements) et les entraîneurs sans club */
+function bancsHTML(M_, l){
+  const G_ = window.QMG; if (!G_ || !G_.entr || !M_.entr) return '';
+  const E = M_.entr, nomC = id => (M_.clubs[id] || (M_.reserve || {})[id] || {nom:id}).nom, f = e => e ? `${esc(e.nom)} (${G_.nomStyleE(e)})` : '?';
+  const MV = E.J.filter(x => M_.clubs[x.c] && M_.clubs[x.c].ligue === l && ['limoge', 'arrivee', 'depart', 'retraite'].includes(x.k)).slice(0, 8);
+  const txt = x => { const e = E.L[x.e], n = nomC(x.c);
+    return x.k === 'limoge' ? `${esc(n)} limoge ${e ? esc(e.nom) : 'son entraîneur'}${x.rang ? ` (${x.rang}e)` : ''}` : x.k === 'arrivee' ? `${f(e)} arrive à ${esc(n)}` : x.k === 'depart' ? `${e ? esc(e.nom) : '?'} quitte ${esc(n)} pour ${esc(nomC(x.vers))}` : `${e ? esc(e.nom) : '?'} prend sa retraite (${esc(n)})`; };
+  const L = Object.values(E.L).filter(e => !e.club && !e.retraite).sort((a, b) => b.rep - a.rep).slice(0, 6);
+  return `<div class="carte"><h2>Les bancs</h2>${MV.length ? `<div class="liste">${MV.map(x => `<div class="el">${blason(x.c, 'p')}<div class="t"><b>${txt(x)}</b><span>saison ${x.s}-${String(x.s + 1).slice(2)}</span></div></div>`).join('')}</div>` : '<p class="petit mut" style="margin:0">Aucun changement d\'entraîneur dans cette ligue pour l\'instant.</p>'}
+    ${L.length ? `<h4 class="stm-g" style="margin-top:12px">Sans club</h4><div class="liste">${L.map(e => `<div class="el"><span class="blason nat p">${flagSeul(e.nat)}</span><div class="t"><b>${esc(e.nom)}</b><span>${e.age} ans · jeu ${G_.nomStyleE(e)} · réputation ${e.rep}${e.car[0] ? ` · ex-${esc(nomC(e.car[0][0]))}` : ''}</span></div></div>`).join('')}</div>` : ''}
+    <p class="petit mut" style="margin:8px 0 0">Un président perd patience quand son club finit loin de ce que promet sa réputation. Le nouvel entraîneur arrive avec son style : l'équipe change de visage.</p></div>`;
 }
 /* v97 : recherche par profil (mission sans fin, rapport mensuel) */
 function rechercheHTML(M_, Gm){
@@ -1034,7 +1047,8 @@ function vueClubFiche(){
   <div class="carte"><div class="kpi">${[['Classement', `${pos}${pos === 1 ? 'er' : 'e'}`], ['Points', T.pts ?? 0], ['Stade', (c.stade / 1000).toLocaleString('fr-FR', {maximumFractionDigits:1}) + ' k'], ['Connu', connuMoy + ' %']].map(([a, b]) => `<div><span>${a}</span><b>${b}</b></div>`).join('')}</div>
     ${!mien && M_.manager.club ? `<div class="btns" style="margin-top:12px"><button class="btn ${enMission ? 'sec' : ''}" data-act="mission" data-t="club" data-c="${c.id}" ${enMission ? 'disabled' : ''}>${enMission ? 'Recruteur sur place' : 'Envoyer le recruteur (4 sem.)'}</button><button class="btn sec" data-act="suivreClub" data-c="${c.id}">Superviser tout l'effectif</button></div>` : ''}</div>
   ${window.QMG && QMG.profilJeu ? (() => { const st = !mien && QMG.styleCoach ? QMG.STYLES_JEU[QMG.styleCoach(M_, c)] : null, pr = QMG.profilJeu(M_, c);
-    return st || pr ? `<div class="carte"><h2>Style de jeu</h2>${st ? `<p class="petit" style="margin:0 0 6px">Entraîneur : <b>${esc(st.nom)}</b>. ${esc(st.d)}</p>` : ''}${pr ? `<p class="petit" style="margin:0">Sur le terrain (${pr.n} derniers matchs) : ${pr.etiquettes.slice(0, 2).map(e => `<span class="stj ${e}">${esc(QMG.STYLES_JEU[e].nom)}</span>`).join(' ')} · ${pr.pour.toFixed(1).replace('.', ',')} buts marqués, ${pr.contre.toFixed(1).replace('.', ',')} encaissés, possession ${Math.round(pr.poss)} %, ${Math.round(pr.partContre * 100)} % des buts sur contre.</p>` : ''}</div>` : ''; })() : ''}
+    const en = !mien && QMG.entraineurDe ? QMG.entraineurDe(M_, c) : null, nomC = id => (M_.clubs[id] || (M_.reserve || {})[id] || {nom:id}).nom;   // v159 : entraîneur nommé
+    return st || pr ? `<div class="carte"><h2>${en ? 'Entraîneur et style de jeu' : 'Style de jeu'}</h2>${en ? `<p class="petit" style="margin:0 0 6px"><b>${esc(en.nom)}</b> · ${flag(en.nat)} · ${en.age} ans · réputation ${en.rep} · en poste depuis ${en.depuis}${en.titres ? ` · ${en.titres} titre${en.titres > 1 ? 's' : ''}` : ''}${en.car.length ? `<br><span class="mut">Avant : ${en.car.slice(0, 3).map(x => `${esc(nomC(x[0]))} (${x[1]}-${x[2]}, ${esc(x[3])})`).join(', ')}</span>` : ''}</p>` : ''}${st ? `<p class="petit" style="margin:0 0 6px">Style de l'entraîneur : <b>${esc(st.nom)}</b>. ${esc(st.d)}</p>` : ''}${c.anciens && c.anciens.length ? `<p class="petit mut" style="margin:0 0 6px">Anciens entraîneurs : ${c.anciens.slice(0, 3).map(x => `${esc(x[0])} (${x[1]}-${x[2]}, ${esc(x[3])})`).join(', ')}</p>` : ''}${pr ? `<p class="petit" style="margin:0">Sur le terrain (${pr.n} derniers matchs) : ${pr.etiquettes.slice(0, 2).map(e => `<span class="stj ${e}">${esc(QMG.STYLES_JEU[e].nom)}</span>`).join(' ')} · ${pr.pour.toFixed(1).replace('.', ',')} buts marqués, ${pr.contre.toFixed(1).replace('.', ',')} encaissés, possession ${Math.round(pr.poss)} %, ${Math.round(pr.partContre * 100)} % des buts sur contre.</p>` : ''}</div>` : ''; })() : ''}
   <div class="onglets" role="tablist">${[mien ? 'general' : 'scout', 'contrats', 'saison'].map(k => `<button role="tab" class="${FC.vue === k ? 'on' : ''}" data-act="fcVue" data-v="${k}">${VUES_EFF[k].nom}</button>`).join('')}</div>
   <div class="carte tj-carte">${tableJoueurs(L, {vue:mien && FC.vue === 'scout' ? 'general' : !mien && FC.vue === 'general' ? 'scout' : FC.vue, tri:FC.tri, sens:FC.sens, K:mien ? c.compo : null, act:'fcTri', nat:c.nat})}</div>
   <p class="petit mut">Notes estimées par ton recruteur (fourchettes en gris). Touche un joueur pour sa fiche : « Superviser » pour le suivre de près.</p>`;
