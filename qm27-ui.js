@@ -1,4 +1,4 @@
-// mon-ecran-version: faf9478b
+// mon-ecran-version: ce4ff8c5
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -363,7 +363,8 @@ function vueClassements(){
   VUE.innerHTML = `<div><h1 class="grand">Classements</h1><p class="sous">Saison ${lab(M.saison)} · victoire ${E.points.victoire} pts, nul ${E.points.nul} pt</p></div>
   <div class="seg defile" role="tablist">${tabs.map(([k, n]) => `<button role="tab" data-act="ligue" data-l="${k}" class="${k === l ? 'on' : ''}">${esc(n)}</button>`).join('')}</div>
   <div class="carte">${tableHTML(QM.classement(M, l), l, false)}</div>
-  <p class="petit mut">Départage : points, différence de points marqués et encaissés, points marqués, vifs d'or attrapés.</p>`;
+  <p class="petit mut">Départage : points, différence de points marqués et encaissés, points marqués, vifs d'or attrapés.</p>
+  ${stylesLigueHTML(l)}`;
 }
 
 /* ---------- Effectif ---------- */
@@ -536,6 +537,21 @@ function fitOption(K, T){
     for (const p of d[0]) for (const id of (K[p] || [])){ const j = M.joueurs[id]; if (!j) continue; const a = TT().adequation(j, p, (K.roles || {})[id], T2); if (a && a.niveau !== 'bon') L.push(`${pastille(a)} ${esc(court(j))}`); }
     return `<p class="petit fitl">${L.length ? 'Moins à l\'aise : ' + L.join(', ') : '<i class="fit bon"></i> Les joueurs concernés sont à l\'aise'}</p>`;
   };
+}
+/* v157 : style de jeu d'un club (entraîneur de l'ordinateur) et profil mesuré sur ses derniers matchs */
+const nomStyle = k => window.QMG && QMG.STYLES_JEU && QMG.STYLES_JEU[k] ? QMG.STYLES_JEU[k].nom : k;
+function profilTexte(c){ const P = window.QMG && QMG.profilJeu ? QMG.profilJeu(M, c) : null; if (!P) return ''; const f = x => x.toFixed(1).replace('.', ',');
+  return `${P.etiquettes.slice(0, 2).map(e => `<span class="stj ${e}">${esc(nomStyle(e))}</span>`).join(' ')} <span class="mut">· ${f(P.pour)} buts marqués, ${f(P.contre)} encaissés, possession ${Math.round(P.poss)} % (${P.n} matchs)</span>`; }
+function styleJeuHTML(c){ if (!c || !window.QMG || !QMG.styleCoach || c.id === M.manager.club) return ''; const k = QMG.styleCoach(M, c), S = QMG.STYLES_JEU[k];
+  const P = profilTexte(c); return `Style de leur entraîneur : <b>${esc(S.nom.toLowerCase())}</b> (${esc(S.d.charAt(0).toLowerCase() + S.d.slice(1, -1))}).${P ? ' Sur le terrain : ' + P + '.' : ''}`; }
+function stylesLigueHTML(l){
+  if (!window.QMG || !QMG.profilJeu || !M.ligues[l]) return '';
+  const L = QM.classement(M, l).map(r => club(r.id)).filter(Boolean), P = L.map(c => [c, QMG.profilJeu(M, c)]).filter(x => x[1]);
+  if (!P.length) return '';
+  const f = x => x.toFixed(1).replace('.', ',');
+  return `<div class="carte"><h2>Styles de jeu <span class="mut petit">sur les ${Math.max(...P.map(x => x[1].n))} derniers matchs</span></h2><div class="tab-styles"><table><thead><tr><th>Club</th><th>Style</th><th title="Buts marqués par match">Pour</th><th title="Buts encaissés par match">Contre</th><th title="Possession">Poss.</th></tr></thead><tbody>
+    ${P.map(([c, x]) => `<tr${c.id === M.manager.club ? ' class="moi"' : ''}><td>${blason(c.id, 'p')} ${esc(c.sigle || c.nom)}</td><td>${x.etiquettes.slice(0, 2).map(e => `<span class="stj ${e}">${esc(nomStyle(e))}</span>`).join(' ')}${c.id !== M.manager.club && QMG.styleCoach ? `<br><span class="petit mut">entraîneur : ${esc(nomStyle(QMG.styleCoach(M, c)).toLowerCase())}</span>` : ''}</td><td class="num">${f(x.pour)}</td><td class="num">${f(x.contre)}</td><td class="num">${Math.round(x.poss)} %</td></tr>`).join('')}
+  </tbody></table></div><p class="petit mut" style="margin:6px 0 0">Le style mesuré compare chaque club à la moyenne de sa ligue : offensif ou bloc défensif selon le nombre de buts dans ses matchs, possession au-delà de 54 %, contre-attaque quand il a peu le souafle et marque souvent juste après l'avoir récupéré, physique quand il blesse beaucoup.</p></div>`;
 }
 /* v155 : badges indicatifs (bronze, argent, or) d'un joueur dans un rôle, d'après ses attributs ; ce que fait un rôle ; ses synergies */
 const NOMS_LEV = {constr:'construction', finit:'finition', garde:'garde du souafle', recup:'récupération', rempart:'rempart', bouclier:'bouclier', marteau:'marteau', ange:'ange gardien', vif:'course au vif', gene:'gêne du vif adverse', contre:'contre-attaque'};
@@ -764,7 +780,7 @@ function adversaireHTML(R, T){
   return `<div class="carte adv"><h2>Prochain adversaire <span class="mut petit">${R.dom ? 'à l\'extérieur' : 'à domicile'}</span></h2>
     <div class="ligne" style="gap:10px;margin-bottom:8px">${blason(R.adv.id, 'p')}<div style="flex:1;min-width:0"><b>${esc(R.adv.nom)}</b><div class="petit mut">${R.rang}${R.rang === 1 ? 'er' : 'e'} sur ${R.nb} · forme ${R.forme.join(' ') || '—'} · ${D.METEOS[R.meteo] ? D.METEOS[R.meteo].ico + ' ' + D.METEOS[R.meteo].nom.toLowerCase() : ''}</div></div></div>
     <p class="petit" style="margin:0 0 4px"><b>Leur jeu habituel${R.hab && R.hab.n ? ` (${R.hab.n} dernier${R.hab.n > 1 ? 's' : ''} match${R.hab.n > 1 ? 's' : ''})` : ' (pas encore vus : d\'après leur style)'} :</b> ${no('sans', QM.sansDe(To))}${fq(R, 'sans')} sans le souafle, attaque ${To.zone === 'axe' ? 'par l\'axe' : To.zone === 'couloirs' ? 'par les couloirs' : 'de loin'}${fq(R, 'zone')}, batteurs en ${no('batSans', To.batSans)}${fq(R, 'batSans')}, cognards sur ${no('cible', To.cible)}${fq(R, 'cible')}, jeu ${['calme', 'normal', 'dur'][(+To.agressivite || 2) - 1]}, attrapeur « ${no('attrapeur', To.attrapeur)} »${fq(R, 'attrapeur')}, gardien ${To.gardien === 'sortie' ? 'qui sort' : 'sur sa ligne'}${fq(R, 'gardien')}.</p>
-    ${R.coach ? `<p class="petit mut" style="margin:0 0 8px">${esc(styleCoach(R.coach))} Ce n'est qu'une tendance : il peut changer son plan pour ce match.</p>` : ''}
+    ${R.coach ? `<p class="petit mut" style="margin:0 0 8px">${styleJeuHTML(R.adv)} ${esc(styleCoach(R.coach))} Ce n'est qu'une tendance : il peut changer son plan pour ce match.</p>` : ''}
     <div class="rfs"><div class="rf-leg"><span><i class="n"></i>nous</span><span><i class="e"></i>eux</span></div>${R.lignes.map(([l, a, b]) => barre(l, a, b)).join('')}</div>
     <p class="petit" style="margin:8px 0"><b>À surveiller :</b> ${R.cles.map(x => `${esc(court(x.j))} (${D.POSTES[x.j.poste].nom.toLowerCase()}, ${x.n})`).join(', ')}</p>
     ${R.conseils.length ? `<div class="conseils">${R.conseils.map(([t, k, v]) => `<div class="cs-c"><span>${esc(t)}</span>${k && String(T[k]) !== String(v) ? `<button class="btn sec mini" data-act="consigne" data-k="${k}" data-v="${v}">Appliquer</button>` : ''}</div>`).join('')}</div>` : ''}</div>`;

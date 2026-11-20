@@ -1,4 +1,4 @@
-// mon-ecran-version: 428868be
+// mon-ecran-version: 7d7677f0
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -1033,6 +1033,8 @@ function vueClubFiche(){
   VUE.innerHTML = `<div class="tete-club">${blason(c.id, 'g')}<div style="min-width:0"><h1 class="grand">${esc(c.nom)}</h1><p class="sous">${flag(c.nat)} ${esc(c.ville)} · ${esc(M_.ligues[c.ligue].court)} · ${etoiles(c.rep)}</p></div></div>
   <div class="carte"><div class="kpi">${[['Classement', `${pos}${pos === 1 ? 'er' : 'e'}`], ['Points', T.pts ?? 0], ['Stade', (c.stade / 1000).toLocaleString('fr-FR', {maximumFractionDigits:1}) + ' k'], ['Connu', connuMoy + ' %']].map(([a, b]) => `<div><span>${a}</span><b>${b}</b></div>`).join('')}</div>
     ${!mien && M_.manager.club ? `<div class="btns" style="margin-top:12px"><button class="btn ${enMission ? 'sec' : ''}" data-act="mission" data-t="club" data-c="${c.id}" ${enMission ? 'disabled' : ''}>${enMission ? 'Recruteur sur place' : 'Envoyer le recruteur (4 sem.)'}</button><button class="btn sec" data-act="suivreClub" data-c="${c.id}">Superviser tout l'effectif</button></div>` : ''}</div>
+  ${window.QMG && QMG.profilJeu ? (() => { const st = !mien && QMG.styleCoach ? QMG.STYLES_JEU[QMG.styleCoach(M_, c)] : null, pr = QMG.profilJeu(M_, c);
+    return st || pr ? `<div class="carte"><h2>Style de jeu</h2>${st ? `<p class="petit" style="margin:0 0 6px">Entraîneur : <b>${esc(st.nom)}</b>. ${esc(st.d)}</p>` : ''}${pr ? `<p class="petit" style="margin:0">Sur le terrain (${pr.n} derniers matchs) : ${pr.etiquettes.slice(0, 2).map(e => `<span class="stj ${e}">${esc(QMG.STYLES_JEU[e].nom)}</span>`).join(' ')} · ${pr.pour.toFixed(1).replace('.', ',')} buts marqués, ${pr.contre.toFixed(1).replace('.', ',')} encaissés, possession ${Math.round(pr.poss)} %, ${Math.round(pr.partContre * 100)} % des buts sur contre.</p>` : ''}</div>` : ''; })() : ''}
   <div class="onglets" role="tablist">${[mien ? 'general' : 'scout', 'contrats', 'saison'].map(k => `<button role="tab" class="${FC.vue === k ? 'on' : ''}" data-act="fcVue" data-v="${k}">${VUES_EFF[k].nom}</button>`).join('')}</div>
   <div class="carte tj-carte">${tableJoueurs(L, {vue:mien && FC.vue === 'scout' ? 'general' : !mien && FC.vue === 'general' ? 'scout' : FC.vue, tri:FC.tri, sens:FC.sens, K:mien ? c.compo : null, act:'fcTri', nat:c.nat})}</div>
   <p class="petit mut">Notes estimées par ton recruteur (fourchettes en gris). Touche un joueur pour sa fiche : « Superviser » pour le suivre de près.</p>`;

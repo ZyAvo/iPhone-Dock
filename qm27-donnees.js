@@ -1,4 +1,4 @@
-// mon-ecran-version: bd7eaf8f
+// mon-ecran-version: 5f5a5537
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -347,7 +347,7 @@ const EQ = {
   points:{but:10, vif:80, victoire:3, nul:1},   // v153 : vif d'or à 80 points (150 avant : il décidait 99 % des matchs serrés et écrasait la gestion)
   pas:15,                       // secondes de jeu par pas
   echelleTir:6,               // s dans P(tir) = 1 / (1 + e^(−(A − D) / s))
-  baseTir:-0.7,                    // décalage de la sigmoïde
+  baseTir:-0.8,                    // décalage de la sigmoïde (v157 : −0,7 avant les tirs multipliés par les consignes)
   baseBut:0.385, kBut:0.022, butMin:0.10, butMax:0.80,   // v89 : baseBut 0,40 avant les dispositions et les zones d'attaque
   garde:0.55,                   // possession gardée après une action sans tir
   cognard:0.05, blessure:0.035, faute:0.004, fauteGrave:0.12, penalty:0.70,
@@ -367,6 +367,9 @@ const EQ = {
   maitrise:{poids:{sans:0.24, avec:0.2, zone:0.14, passes:0.14, batAvec:0.14, batSans:0.14}, neutre:60, force:0.14, pertes:0.03, depart:60, autre:40, plancher:30, erosion:0.25, secondaire:0.35, ia:1.1},
   /* v153 : poids des leviers de rôles dans un pas de jeu (voir ROLE_DEF), et part d'inconnu (forme du jour individuelle selon la Régularité,
      matchs importants, Adaptabilité à la météo, sursaut de l'outsider) */
+  /* v157 : identités tactiques. k amplifie les effets des consignes (QMD.STYLE) ; contre : bonus de tir au pas qui suit une récupération
+     (doublé pour une équipe en repli) ; duel : ballons perdus en plus face à une défense au jeu dur (selon Force, Bousculade, Équilibre) */
+  style:{k:1.3, contre:0.02, contreRepli:0.04, duel:0.03},
   lev:{constr:0.07, finit:0.045, garde:0.07, recup:0.07, rempart:0.045, bouclier:0.4, marteau:0.4, ange:0.75, vif:0.35, gene:0.3, contre:0.12, decr:[1, 0.6, 0.35, 0.2],
     ref:{constr:0.64, finit:1, garde:0.17, recup:0.7, rempart:1, bouclier:0.52, marteau:0.5, vif:0.46, gene:0.26, contre:0.35}},   // valeurs d'une équipe moyenne de l'ordinateur : effet nul
   surprise:{regMin:0.02, regMax:0.09, gm:0.008, outsider:12, elan:0.03},
@@ -518,6 +521,19 @@ const ROLE_DEF = {
      relanceur:{lev:{contre:0.8, garde:0.2}, at:{'g:rel':2, pas:1, vis:1}}},
 };
 /* anciens rôles (avant v153) : celui qui les remplace (null : choisi d'après les attributs) */
+/* v157 : effets des consignes, par option : att = quand l'équipe a le souafle, def = quand l'adversaire l'a (appliqué à l'adversaire) ;
+   [tir, but, perte] en points de probabilité (tir : tenter un tir à ce pas ; but : réussite ; perte : perdre le souafle sans tirer), × EQ.style.k */
+const STYLE = {
+  rythme:{1:{att:[-0.05, 0, -0.065], def:[-0.015, 0, 0]}, 3:{att:[0.05, 0, 0.04], def:[0.01, 0, 0]}},
+  risque:{1:{att:[-0.04, 0.01, 0], def:[-0.02, -0.01, 0]}, 3:{att:[0.045, -0.005, 0], def:[0.015, 0.005, 0]}},
+  agressivite:{3:{def:[0, 0.005, 0]}},
+  passes:{court:{att:[-0.02, 0.01, -0.04]}, long:{att:[0.035, -0.01, 0.01]}},
+  avec:{triangle:{att:[0, 0, -0.015]}, ligne:{att:[0.035, -0.01, -0.02]}, pointe:{att:[-0.01, 0.025, 0.03]}},
+  zone:{axe:{att:[-0.02, 0.01, 0]}, couloirs:{att:[0.01, -0.005, 0]}, loin:{att:[0.035, -0.012, 0]}},
+  sans:{pressing:{att:[0.02, 0, 0], def:[-0.04, 0.005, 0.07]}, repli:{att:[-0.045, 0, 0], def:[-0.015, -0.012, -0.02]}},
+  batAvec:{devant:{att:[0, 0.012, 0], def:[0, 0.004, 0]}},
+  batSans:{protection:{def:[0, -0.012, 0]}, harcelement:{def:[0, 0.005, 0]}},
+};
 const ROLES_ANCIENS = {B:{equilibre:null, protecteur:'escorteur', chasseur:'briseur'}, A:{equilibre:null}, G:{equilibre:null}};
 /* badges indicatifs d'un joueur dans un rôle (sa note du rôle comparée à celle d'un joueur typique du poste) */
 const BADGES = [['or', 'Or', 4.5], ['argent', 'Argent', 3], ['bronze', 'Bronze', 1.5]];   // points au-dessus de la valeur typique du rôle à ce poste
@@ -544,5 +560,5 @@ const ANTI_SYNERGIES = [
 const FOCUS = [['technique', 'Technique', ['Vol', 'Balle', 'Gardien']], ['physique', 'Physique', ['Physique']], ['tactique', 'Tactique', ['Mental']], ['repos', 'Repos', []]];
 const INTENSITES = [[1, 'Légère'], [2, 'Normale'], [3, 'Intense']];
 
-root.QMD = {ROLE_DEF, ROLES_ANCIENS, BADGES, SYNERGIES, ANTI_SYNERGIES, NOMS_CLUBS, VILLES_LANGUES, LANGUES_NOMS, TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, CARTE, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
+root.QMD = {STYLE, ROLE_DEF, ROLES_ANCIENS, BADGES, SYNERGIES, ANTI_SYNERGIES, NOMS_CLUBS, VILLES_LANGUES, LANGUES_NOMS, TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, CARTE, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
 })(typeof window !== 'undefined' ? window : globalThis);

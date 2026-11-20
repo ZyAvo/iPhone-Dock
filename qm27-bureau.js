@@ -1,4 +1,4 @@
-// mon-ecran-version: 1c46b714
+// mon-ecran-version: 60828607
 /* QM27 (v91, lot 8) — le bureau du manager, sans affichage. Expose window.QMG et complète window.QMC. Chargé après qm27-vestiaire.js.
    Entraînement programmable : programme de la semaine en 5 séances (lundi-vendredi), intensité, ateliers par poste, modèles,
    préparation physique d'avant-saison ; l'adjoint planifie tout seul si on le laisse faire.
@@ -188,6 +188,9 @@ const coder = T => HIST_K.map(k => Math.max(0, HIST_O[k].findIndex(o => pareil(o
 const decoder = h => Object.fromEntries(HIST_K.map((k, i) => [k, HIST_O[k][+h[i]] ?? HIST_O[k][0]]));
 function noterTactique(M, m, X){
   if (!X || m.ligue === 'sixn') return;
+  for (const k of [0, 1]){ const c = M.clubs[X.e[k].id]; if (!c) continue; const S = X.stats, ps = (S[0].poss || 0) + (S[1].poss || 0);   // v157 : profil de jeu
+    (c.histS = c.histS || []).push([S[k].buts, S[1 - k].buts, ps ? Math.round((S[k].poss || 0) / ps * 100) : 50, S[k].fautes || 0, X.bless ? X.bless.filter(b => b.eq !== k).length : 0, S[k].bc || 0]);
+    if (c.histS.length > HIST_N) c.histS.splice(0, c.histS.length - HIST_N); }
   for (const k of [0, 1]){ const c = M.clubs[X.e[k].id]; if (!c) continue; const T = tac(X.e[k].tactique);
     (c.histT = c.histT || []).push(coder(T)); if (c.histT.length > HIST_N) c.histT.splice(0, c.histT.length - HIST_N); }
 }
@@ -205,6 +208,21 @@ function habitude(M, c){
 
 /* --- managers de l'ordinateur : un style, des plans adaptés à l'effectif, des choix de match plus ou moins justes --- */
 const NOMS_STYLE = {pressing:'pressing', zone:'défense de zone', repli:'bloc bas'};
+/* v157 : styles de jeu des entraîneurs. T : consignes qui font le style ; lev : poids des leviers pour choisir les rôles (QM.optimiserRoles) */
+const STYLES_JEU = {
+  bloc:{nom:'Bloc défensif', d:'Peu de buts marqués, très peu d\'encaissés.', T:{sans:'repli', batSans:'protection', batAvec:'escorte', risque:1, rythme:1, passes:'court', avec:'triangle', zone:'axe'}, lev:{rempart:1.7, recup:1.3, bouclier:1.2}},
+  offensif:{nom:'Offensif', d:'Beaucoup de tirs, de buts marqués… et encaissés.', T:{sans:'zone', avec:'ligne', passes:'long', zone:'loin', batAvec:'devant', batSans:'harcelement', rythme:3, risque:3}, lev:{constr:1.5, finit:1.5}},
+  possession:{nom:'Possession', d:'Garde le souafle, use l\'adversaire, encaisse peu.', T:{passes:'court', avec:'triangle', rythme:1, risque:1, batAvec:'escorte'}, lev:{garde:2, constr:1.2}},
+  contre:{nom:'Contre-attaque', d:'Laisse le souafle et frappe vite après chaque récupération.', T:{sans:'repli', passes:'long', zone:'couloirs', batSans:'protection'}, lev:{contre:2.2, recup:1.3}},
+  pressing:{nom:'Pressing', d:'Récupère haut, fait perdre le souafle, s\'use.', T:{sans:'pressing', batSans:'harcelement'}, lev:{recup:1.8, marteau:1.2}},
+  physique:{nom:'Physique', d:'Gagne les duels, blesse, commet des fautes.', T:{agressivite:3, batSans:'harcelement'}, lev:{marteau:1.8, garde:1.3, recup:1.2}},
+  vif:{nom:'Guerre du vif', d:'Tout pour l\'attrapeur : le protéger, gêner le leur.', T:{cible:'attrapeur'}, lev:{vif:1.6, gene:1.8, ange:1.8}},
+  equilibre:{nom:'Équilibré', d:'Pas de parti pris.', T:{}, lev:{}},
+};
+const STYLES_TIRAGE = [['equilibre', 2], ['bloc', 1], ['offensif', 1], ['possession', 1], ['contre', 1], ['pressing', 1], ['physique', 1], ['vif', 0.6]];
+const styleCoach = (M, c) => { const C = coach(M, c); if (!C.style){ const r = rng(M, 'style', c.id, c.coachN || 0); C.style = r.pondere(STYLES_TIRAGE); } return C.style; };
+/* poids des leviers du style de l'entraîneur d'un club de l'ordinateur (pour le choix des rôles) ; null pour le club du joueur */
+const poidsStyle = (M, clubId) => { const c = M.clubs[clubId]; if (!c || estJoueur(M, c)) return null; return STYLES_JEU[styleCoach(M, c)].lev; };
 function coach(M, c){
   if (c.coach) return c.coach;
   const r = rng(M, 'coach', c.id, c.coachN || 0), base = borne(0.25 + (c.rep - 40) / 90, 0.15, 0.85);
@@ -240,6 +258,9 @@ function construirePlans(M, c){
   const g = M.joueurs[(K.G || [])[0]], sortie = g && g.g ? Q().ga(g, 'sor') - Q().ga(g, 'arr') : -3;
   const T0 = tac({rythme:C.rythme, risque:C.risque, agressivite:C.agr, cible:r.choix(['poursuiveur', 'poursuiveur', 'attrapeur', 'gardien']), attrapeur:'gagnant', gardien:sortie >= 1 ? 'sortie' : 'anneaux'});
   for (const k of SYSTEME) T0[k] = choisir(k, {});
+  /* v157 : le style de l'entraîneur l'emporte, sauf s'il s'adapte à un effectif qui ne s'y prête pas (moins il est fidèle à ses idées, plus il s'adapte) */
+  const ST = STYLES_JEU[styleCoach(M, c)].T;
+  for (const k in ST){ const libre = SYSTEME.includes(k) && r() < (1 - C.fidele) * 0.35; if (!libre) T0[k] = ST[k]; }
   const T1 = tac({...T0, risque:1, rythme:Math.max(1, T0.rythme - 1), agressivite:Math.min(2, T0.agressivite)}); T1.sans = choisir('sans', {repli:1.2, zone:0.6}); T1.batSans = 'protection'; T1.batAvec = 'escorte';
   const T2 = tac({...T0, risque:3, rythme:3}); T2.sans = choisir('sans', {pressing:1.2}); T2.batSans = choisir('batSans', {harcelement:0.8}); T2.zone = choisir('zone', {loin:0.4, couloirs:0.4});
   c.plansIA = [T0, T1, T2].map(coder);
@@ -289,6 +310,20 @@ function tactiqueMatch(M, c, e, adv, eAdv, m){
   /* et parfois un choix à côté */
   if (r() < C.erreur * 0.35){ const k = r.choix(SYSTEME); T[k] = r.choix(OPTIONS[k]); }
   return {T:tac(T), notes};
+}
+/* v157 : profil de jeu d'un club sur ses derniers matchs, et étiquettes lisibles (comparées à la moyenne de sa ligue) */
+function profilJeu(M, c){
+  const H = c.histS || []; if (H.length < 3) return null;
+  const n = H.length, m = i => H.reduce((t, h) => t + h[i], 0) / n;
+  const P = {n, pour:m(0), contre:m(1), poss:m(2), fautes:m(3), bless:m(4), partContre:H.reduce((t, h) => t + h[5], 0) / Math.max(1, H.reduce((t, h) => t + h[0], 0))};
+  const L = Object.values(M.clubs).filter(x => x.ligue === c.ligue && (x.histS || []).length >= 3), moy = f => L.length ? L.reduce((t, x) => t + f(x), 0) / L.length : 1;
+  const tot = moy(x => x.histS.reduce((t, h) => t + h[0] + h[1], 0) / x.histS.length), bl = moy(x => x.histS.reduce((t, h) => t + h[4], 0) / x.histS.length), pc = moy(x => x.histS.reduce((t, h) => t + h[5], 0) / Math.max(1, x.histS.reduce((t, h) => t + h[0], 0)));
+  const E = [];
+  if (P.pour + P.contre >= tot * 1.15) E.push('offensif'); else if (P.pour + P.contre <= tot * 0.85) E.push('bloc');
+  if (P.poss >= 54) E.push('possession'); else if (P.poss <= 47 && P.partContre >= pc * 1.1) E.push('contre');
+  if (P.bless >= bl * 1.5 && P.bless >= 0.25) E.push('physique');
+  P.etiquettes = E.length ? E : ['equilibre'];
+  return P;
 }
 /* ce que l'adjoint attend de l'adversaire pour la prévision (son jeu habituel, pas sa vraie tactique du jour) */
 const attendue = (M, c) => habitude(M, c).T;
@@ -717,6 +752,6 @@ Object.assign(QMC, {
 /* l'expérience du manager : causeries plus efficaces (motivation) ; les jeunes progressent plus vite via effets().jeunes */
 if (root.QMH){ const ca = root.QMH.causerie; root.QMH.causerie = (M, X, eq, ton, moment) => { const r = ca(M, X, eq, ton, moment); const p = M.manager && M.manager.profil; if (p){ p.xp.causeries = (p.xp.causeries || 0) + 1; if (r && typeof r.delta === 'number') r.delta = Math.round(r.delta * (1 + eff(M, 'mot') * 0.04) * 100) / 100; } return r; };
   const eh = root.QMH.envoyerHibou; root.QMH.envoyerHibou = (M, o) => { const r = eh(M, o); const p = M.manager && M.manager.profil; if (p && r && r.ok) p.xp.transferts = (p.xp.transferts || 0) + 1; return r; }; }
-root.QMG = {SEANCES_ANCIENNES, maitrise, apresEntrainement, bonusMatch, SYSTEME, OPTIONS, CLES_T, maitrisePlan, maitriseOption, coutChangement, presets, ecartsPreset, choisirPreset, enregistrerPreset, renommerPreset, choisirTravail, plansTravailles, noterTactique, habitude, coach, construirePlans, plansDe, entrainementIA, tactiqueMatch, attendue, nouvelEntraineur, plansSaison, NOMS_STYLE, CAPACITES, ROLE_ATTRS, SEM_POSTE, bonusFocus, focusDe, cibleFocus, focusActifs, definirFocus, apresFocus, noterCourbes, SEANCES, SEANCE, JOURS, ATELIERS, MODELES, plan, programmeDe, programmeAuto, definirSemaine, definirModele, modeAuto, effets, programme, apercu, fatigueTitulaires,
+root.QMG = {SEANCES_ANCIENNES, maitrise, apresEntrainement, bonusMatch, SYSTEME, OPTIONS, CLES_T, maitrisePlan, maitriseOption, coutChangement, presets, ecartsPreset, choisirPreset, enregistrerPreset, renommerPreset, choisirTravail, plansTravailles, noterTactique, habitude, coach, construirePlans, plansDe, entrainementIA, tactiqueMatch, attendue, nouvelEntraineur, plansSaison, NOMS_STYLE, STYLES_JEU, styleCoach, poidsStyle, profilJeu, CAPACITES, ROLE_ATTRS, SEM_POSTE, bonusFocus, focusDe, cibleFocus, focusActifs, definirFocus, apresFocus, noterCourbes, SEANCES, SEANCE, JOURS, ATELIERS, MODELES, plan, programmeDe, programmeAuto, definirSemaine, definirModele, modeAuto, effets, programme, apercu, fatigueTitulaires,
   ATTR_MGR, profil, repartir, modifierProfil, att, eff, RECORDS, RECORD, records, initRecords, reunion, proposer, accepterOffre, chiffrer, offreInitiale, prefPresident, PHILOS, PALIERS, TXT_OBJ, noterAchat, lancerMission, arreterMission, missions:M => G(M).missions, MAX_MISSIONS, PROFILS, candidats, rapports:M => G(M).rapports || {}};
 })(typeof window !== 'undefined' ? window : globalThis);
