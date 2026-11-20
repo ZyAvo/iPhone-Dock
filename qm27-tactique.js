@@ -1,4 +1,4 @@
-// mon-ecran-version: d92d8472
+// mon-ecran-version: 82a3b71f
 /* QM27 (v96) — analyse tactique, sans affichage. Expose window.QMT. Chargé après qm27.js (et les modules du club).
    - EFFETS : ce que change chaque consigne (lu dans le moteur, qm27.js › pas, vifDor), en tendances de −2 à +2.
    - adequation : un joueur est-il fait pour sa place, son rôle et les consignes demandées ? (vert / orange / rouge, avec les raisons)
@@ -31,10 +31,10 @@ const CONS = [
     [1, 'Faible', {tirs:-1, precision:1, tirsAdv:-1}, 'Tirs −4 pts, précision +2 pts, tirs adverses −2 pts'],
     [2, 'Normale', {}, 'Référence'],
     [3, 'Élevée', {tirs:1, precision:-1, tirsAdv:1}, 'Tirs +4 pts, précision −2 pts, tirs adverses +2 pts']]],
-  ['agressivite', 'Agressivité', 'jeu', 'L\'engagement des batteurs et des poursuiveurs. Dure : plus de cognards réussis et de blessures chez l\'adversaire, mais beaucoup plus de fautes, donc de penalties.', [
-    [1, 'Calme', {cognards:-1, fautes:-2, blessAdv:-1}, 'Cognards −25 %, fautes −60 %'],
+  ['agressivite', 'Agressivité', 'jeu', 'L\'engagement des batteurs et des poursuiveurs. Dure : plus de cognards réussis et de blessures chez l\'adversaire, mais beaucoup plus de fautes, donc de penalties, de cartons et de suspensions. L\'arbitre du match compte : un sévère sort plus vite les cartons.', [
+    [1, 'Calme', {cognards:-1, fautes:-2, blessAdv:-1}, 'Cognards −25 %, fautes −45 %, peu de cartons'],
     [2, 'Normale', {}, 'Référence'],
-    [3, 'Dure', {cognards:1, fautes:2, blessAdv:1}, 'Cognards +25 %, fautes +60 %, blessures adverses +30 %']]],
+    [3, 'Dure', {cognards:1, fautes:2, blessAdv:1}, 'Cognards +25 %, duels gagnés, fautes +75 %, cartons et exclusions, blessures adverses +30 %']]],
   ['passes', 'Jeu de passes', 'jeu', 'Court : on construit, les tirs sont mieux préparés. Long : on va vite vers les anneaux, on tire plus mais moins bien.', [
     ['court', 'Court', {tirs:-1, precision:1}, 'Tirs −3 pts, précision +2 pts'],
     ['long', 'Long', {tirs:1, precision:-1}, 'Tirs +3 pts, précision −2 pts']]],
@@ -164,10 +164,11 @@ function rapport(M, m, Sem){
   else if (nous.D - eux.A > 1 && Tn.sans !== 'pressing') conseils.push(['Leur attaque est faible : un pressing nous rendrait le souafle plus vite.', 'sans', 'pressing']);
   if (eux.B - nous.B > 1 && Tn.batAvec !== 'escorte') conseils.push(['Leurs batteurs frappent fort : garde les nôtres en escorte du porteur.', 'batAvec', 'escorte']);
   if (To.agressivite === 3) conseils.push(['Ils jouent dur : attends-toi à des penalties, vérifie ton tireur.', null, null]);
+  if (X.arb && X.arb.k === 'severe' && Tn.agressivite === 3) conseils.push([`${X.arb.nom} arbitre ce match et sort vite les cartons : un jeu moins dur évite les exclusions.`, 'agressivite', 2]);   // v158
   if (To.gardien === 'sortie' && Tn.passes !== 'court') conseils.push(['Leur gardien sort beaucoup : le jeu court le prend à revers.', 'passes', 'court']);
   if (nous.G < eux.G - 1 && Tn.gardien === 'sortie') conseils.push(['Notre gardien n\'est pas un spécialiste des sorties : reste aux anneaux.', 'gardien', 'anneaux']);
   const hab = root.QMG && root.QMG.habitude ? root.QMG.habitude(M, adv) : null, co = root.QMG && root.QMG.coach ? root.QMG.coach(M, adv) : null;
-  return {adv, m, dom:m.dom === adv.id, T:To, hab, coach:co, forme:T ? T.forme.slice() : [], rang:CL.findIndex(l => l.id === adv.id) + 1, nb:CL.length, cles, lignes, conseils:conseils.slice(0, 5), meteo:X.meteo};
+  return {adv, m, dom:m.dom === adv.id, T:To, hab, coach:co, forme:T ? T.forme.slice() : [], rang:CL.findIndex(l => l.id === adv.id) + 1, nb:CL.length, cles, lignes, conseils:conseils.slice(0, 5), meteo:X.meteo, arb:X.arb, suspAdv:adv.effectif.map(id => M.joueurs[id]).filter(j => j && j.susp)};   // v158 : arbitre, suspendus adverses
 }
 
 /* ---------- L'adjoint joue le match en coulisses ---------- */
@@ -218,7 +219,7 @@ function estimerX(X, k, T){
       const pen = e.pen && e.P.includes(e.pen) ? e.pen : (W.sort((x, y) => y[1] - x[1])[0] || [])[0], pPen = pen ? borne(EQ.penalty + 0.02 * (Q().qualiteTir(X, a, pen) - Fd.G), 0.4, 0.9) : EQ.penalty;
       const c = p.pCog, f = (1 - c) * p.pFaute, t = (1 - c) * (1 - p.pFaute) * p.pTir, n = (1 - c) * (1 - p.pFaute) * (1 - p.pTir);
       const reste = (Fd.T.cible === 'attrapeur' ? c : 0) + t * (1 - pBut) * 0.3 + n * (1 - p.tourne);
-      return {buts:f * pPen + t * pBut, tirs:f + t, fautesAdv:f, pBut, reste, pCog:c, F:Fa};
+      return {buts:f * (p.pPenF ?? 1) * pPen + t * pBut, tirs:f * (p.pPenF ?? 1) + t, fautesAdv:f, pBut, reste, pCog:c, F:Fa};   // v158 : une faute sur quatre environ donne un penalty
     });
     const q = L.map(x => 1 - x.reste), part = [q[1] / (q[0] + q[1]), q[0] / (q[0] + q[1])];
     /* course au vif d'or */
@@ -276,7 +277,9 @@ function analyse(M, X){
   else { const F = [Q().forces(X, k), Q().forces(X, o)];
     L.push([d > 0 ? 'info' : 'mauvais', `Vif d'or adverse à la ${vifMin}e minute${F[1].S > F[0].S + 0.5 ? ` : leur attrapeur était plus fort (${vir(Math.round(F[1].S * 10) / 10)} contre ${vir(Math.round(F[0].S * 10) / 10)})${T.attrapeur !== 'marquage' && T.cible !== 'attrapeur' ? ', le marquage ou les cognards sur lui auraient pu le freiner' : ''}` : ''}.`]); }
   if (T.attrapeur === 'marquage') L.push(['info', `Marquage de leur attrapeur : le match a duré ${vifMin} minutes${d > 0 ? ', et nos poursuiveurs en ont profité' : ''}.`]);
-  if (S[k].fautes >= 6 || S[o].pen >= 3) L.push(['mauvais', `${S[k].fautes} fautes et ${S[o].pen} penalties concédés${T.agressivite === 3 ? ' : la consigne « dure » coûte cher' : ''}.`]);
+  const cr = (X.cartons || []).filter(c => c.eq === k), nr = cr.filter(c => c.c !== 'j').length, nj = cr.filter(c => c.c === 'j').length;   // v158 : cartons
+  if (nr) L.push(['mauvais', `${nr === 1 ? 'Un carton rouge' : nr + ' cartons rouges'} : on a fini à ${7 - nr}${T.agressivite === 3 ? ', la consigne « dure » coûte cher' : ''}. Suspension à prévoir.`]);
+  if (S[k].fautes >= 6 || S[o].pen >= 3) L.push(['mauvais', `${S[k].fautes} fautes, ${S[o].pen} penalties concédés${nj ? ` et ${nj} carton${nj > 1 ? 's' : ''} jaune${nj > 1 ? 's' : ''}` : ''}${T.agressivite === 3 && !nr ? ' : la consigne « dure » coûte cher' : ''}${X.arb && X.arb.k === 'severe' ? ` (${X.arb.nom} est un arbitre sévère)` : ''}.`]);
   else if (T.agressivite === 3 && S[k].cog > S[o].cog + 3) L.push(['bon', `Jeu dur payant : ${S[k].cog} cognards réussis contre ${S[o].cog}, sans trop de fautes.`]);
   const tit = Q().titulaires(X.e[k]), fat = Math.round(moy(tit.map(id => X.fat[id] || 0)));
   if (fat >= 60) L.push(['mauvais', `Fatigue moyenne en fin de match : ${fat} %${T.rythme === 3 || T.sans === 'pressing' ? ' (rythme et pressing coûtent cher)' : ''}. Elle pèsera aussi la semaine prochaine.`]);

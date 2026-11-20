@@ -1,4 +1,4 @@
-// mon-ecran-version: ce4ff8c5
+// mon-ecran-version: 469ed17f
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -401,6 +401,7 @@ function rapportRecruteur(j){
   if (top && top[1] >= 11) L.push(ATOUTS[top[0]]); else L.push('Un joueur sans point fort marqué.');
   if (faible && faible[1] <= Math.max(7, top ? top[1] - 7 : 7) && DEFAUTS[faible[3]]) L.push(DEFAUTS[faible[3]]);
   if (j.bless) L.push('Pour l\'instant à l\'infirmerie.');
+  if (j.susp) L.push(`Suspendu pour ${j.susp.n} match${j.susp.n > 1 ? 's' : ''} de club.`);
   else if (j.forme >= 8) L.push('En pleine bourre en ce moment.');
   else if (j.forme <= 4) L.push('Traverse une mauvaise passe.');
   else if (j.age <= 21 && est >= 4) L.push('Un diamant brut, à polir.');
@@ -454,6 +455,7 @@ function ficheJoueur(id, garder){
         <div><span>Moral</span><b>${Math.round(j.moral)}<small>/100</small></b><div class="barre"><i style="width:${Math.round(j.moral)}%"></i></div></div>
         <div><span>Potentiel</span><span class="etoiles">${'★'.repeat(est)}${'☆'.repeat(5 - est)}</span></div>
         ${j.bless ? `<div class="bls"><span>Blessure</span><b>${esc(j.bless.nom)} · ${j.bless.jours} j</b></div>` : ''}
+        ${j.susp ? `<div class="bls"><span>Suspendu</span><b>${j.susp.n} match${j.susp.n > 1 ? 's' : ''} · ${esc(j.susp.r)}</b></div>` : ''}
       </div></div>
     <blockquote class="rapport">« ${esc(rapportRecruteur(j))} »<span>${rec ? `Rapport de ${esc(rec.p + ' ' + rec.n)}, recruteur` : 'Rapport de ton recruteur'}</span></blockquote>
     ${QM.manies(j).length ? `<div class="manies">${QM.manies(j).map(k => { const m = D.MANIES.find(x => x[0] === k); return m ? `<span class="manie"><b>${esc(m[1])}</b>${esc(m[3])}</span>` : ''; }).join('')}</div>` : ''}
@@ -538,6 +540,12 @@ function fitOption(K, T){
     return `<p class="petit fitl">${L.length ? 'Moins à l\'aise : ' + L.join(', ') : '<i class="fit bon"></i> Les joueurs concernés sont à l\'aise'}</p>`;
   };
 }
+/* v158 : arbitre et cartons */
+const NOM_ARB = {severe:'sévère', laxiste:'laisse jouer', normal:'dans la moyenne'};
+const arbitreHTML = A => `<span class="arb ${A.k}">⚖︎</span> <b>Arbitre :</b> ${flag(A.nat)} ${esc(A.nom)}, ${NOM_ARB[A.k]}${A.k === 'severe' ? ' : cartons faciles, le jeu dur se paie' : A.k === 'laxiste' ? ' : il siffle peu et sort rarement les cartons' : ''}.`;
+const cartonHTML = j => { if (!j) return ''; const A = D.EQ.fautes.accumul;
+  if (j.susp) return `<span class="crt r" title="Suspendu : ${esc(j.susp.r)} (${j.susp.n} match${j.susp.n > 1 ? 's' : ''})">${j.susp.n}</span>`;
+  return j.cj && j.cj % A === A - 1 ? `<span class="crt j" title="${j.cj} jaunes : au prochain, suspendu un match">${j.cj}</span>` : ''; };
 /* v157 : style de jeu d'un club (entraîneur de l'ordinateur) et profil mesuré sur ses derniers matchs */
 const nomStyle = k => window.QMG && QMG.STYLES_JEU && QMG.STYLES_JEU[k] ? QMG.STYLES_JEU[k].nom : k;
 function profilTexte(c){ const P = window.QMG && QMG.profilJeu ? QMG.profilJeu(M, c) : null; if (!P) return ''; const f = x => x.toFixed(1).replace('.', ',');
@@ -664,7 +672,7 @@ function jetonHTML(K, s, sel, T){
   if (!j) return `<button class="jeton vide${banc ? ' b' : ''}" data-act="jeton" data-slot="${s}"${pos} aria-label="${nomSlot(s)} : place libre">${eti}<span class="rond">+</span><b>${banc ? 'Libre' : D.POSTES[s[0]].nom}</b></button>`;
   const p = banc ? j.poste : s[0], n = QM.note(j, p), hors = !banc && j.poste !== p, iv = infoJeton(j, n);
   return `<button class="jeton ${p}${hors ? ' hors' : ''}${banc ? ' b' : ''}${U.flash === id ? ' flash' : ''}" data-act="jeton" data-slot="${s}" data-j="${id}"${pos} aria-label="${esc(nomJ(j))}, ${nomSlot(s)}, note ${n}">${eti}
-    <span class="rond kit">${V.maillot(kitDe(sel), sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? '')}${banc ? `<i class="ps pi" title="${D.POSTES[p].nom}">${V.posteImg(p)}</i>` : ''}${K.cap === id && !banc ? '<i class="cap" title="Capitaine">C</i>' : ''}${K.pen === id && !banc ? '<i class="pn" title="Tireur de penalty">P</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : ''}${j.inter && !sel ? '<i class="bl" title="En sélection">✈︎</i>' : ''}${banc ? '' : `<i class="ntj ${iv.cls}">${iv.txt}</i>`}</span>${banc ? `<b>${esc(j.n)}</b><span class="nt ${iv.cls}">${iv.txt}</span>` : `<b class="eti">${U.fitMap && U.fitMap[id] ? pastille(U.fitMap[id]) : ''}<span class="nm">${esc(j.n)}</span>${hors ? `<span class="hp" title="Hors de son poste">${j.poste}</span>` : ''}</b>`}</button>`;
+    <span class="rond kit">${V.maillot(kitDe(sel), sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? '')}${banc ? `<i class="ps pi" title="${D.POSTES[p].nom}">${V.posteImg(p)}</i>` : ''}${K.cap === id && !banc ? '<i class="cap" title="Capitaine">C</i>' : ''}${K.pen === id && !banc ? '<i class="pn" title="Tireur de penalty">P</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : j.susp ? '<i class="bl sp" title="Suspendu">S</i>' : ''}${j.inter && !sel ? '<i class="bl" title="En sélection">✈︎</i>' : ''}${banc ? '' : `<i class="ntj ${iv.cls}">${iv.txt}</i>`}</span>${banc ? `<b>${esc(j.n)}</b><span class="nt ${iv.cls}">${iv.txt}</span>` : `<b class="eti">${U.fitMap && U.fitMap[id] ? pastille(U.fitMap[id]) : ''}<span class="nm">${esc(j.n)}</span>${hors ? `<span class="hp" title="Hors de son poste">${j.poste}</span>` : ''}</b>`}</button>`;
 }
 function ligneEff(ctx, j){
   const K = ctx.K, s = slotDe(K, j.id), p = s && s[0] !== 'R' ? s[0] : j.poste, n = QM.note(j, p);
@@ -672,7 +680,7 @@ function ligneEff(ctx, j){
   const G = [['Poursuiveurs', ['P0', 'P1', 'P2']], ['Batteurs', ['B0', 'B1']], ['Attrapeur', ['A0']], ['Gardien', ['G0']], ['Remplaçants', SLOTS_B()]];
   const sel = `<select data-chg="poste" data-j="${j.id}" aria-label="Place de ${esc(nomJ(j))}">${G.map(([g, L]) => `<optgroup label="${g}">${L.map(x => `<option value="${x}"${x === s ? ' selected' : ''}>${nomSlot(x)}${occ(x)}</option>`).join('')}</optgroup>`).join('')}<optgroup label="Hors du groupe"><option value=""${s ? '' : ' selected'}>— Réserve</option></optgroup></select>`;
   return `<div class="er${U.flash === j.id ? ' flash' : ''}" data-drag="${j.id}"><label class="pick${s ? (s[0] === 'R' ? ' r' : ' ti ' + s[0]) : ''}"><span>${s ? nomSlot(s) : '—'}</span>${sel}</label>
-    <button class="t" data-act="joueur" data-j="${j.id}"><b>${ctx.sel ? '' : flag(j.nat) + ' '}${esc(nomJ(j))}${j.bless ? ' <span class="badge bless">✚</span>' : ''}${j.inter && !ctx.sel ? ' <span class="badge" title="En sélection cette semaine">✈︎</span>' : ''}</b><span>${D.POSTES[j.poste].nom}${ctx.sel ? ' · ' + esc(club(j.club).nom) : ' · ' + j.age + ' ans'}</span></button>
+    <button class="t" data-act="joueur" data-j="${j.id}"><b>${ctx.sel ? '' : flag(j.nat) + ' '}${esc(nomJ(j))}${j.bless ? ' <span class="badge bless">✚</span>' : ''}${ctx.sel ? '' : cartonHTML(j)}${j.inter && !ctx.sel ? ' <span class="badge" title="En sélection cette semaine">✈︎</span>' : ''}</b><span>${D.POSTES[j.poste].nom}${ctx.sel ? ' · ' + esc(club(j.club).nom) : ' · ' + j.age + ' ans'}</span></button>
     <span class="note ${classeNote(n)}">${n}</span><span class="fo ${j.forme >= 7 ? 'bon' : j.forme < 5 ? 'mauvais' : ''}" title="Forme">${j.forme}</span></div>`;
 }
 function panneauHTML(ctx){
@@ -783,6 +791,8 @@ function adversaireHTML(R, T){
     ${R.coach ? `<p class="petit mut" style="margin:0 0 8px">${styleJeuHTML(R.adv)} ${esc(styleCoach(R.coach))} Ce n'est qu'une tendance : il peut changer son plan pour ce match.</p>` : ''}
     <div class="rfs"><div class="rf-leg"><span><i class="n"></i>nous</span><span><i class="e"></i>eux</span></div>${R.lignes.map(([l, a, b]) => barre(l, a, b)).join('')}</div>
     <p class="petit" style="margin:8px 0"><b>À surveiller :</b> ${R.cles.map(x => `${esc(court(x.j))} (${D.POSTES[x.j.poste].nom.toLowerCase()}, ${x.n})`).join(', ')}</p>
+    ${R.suspAdv && R.suspAdv.length ? `<p class="petit" style="margin:0 0 8px"><b>Suspendu${R.suspAdv.length > 1 ? 's' : ''} chez eux :</b> ${R.suspAdv.map(j => `${esc(court(j))} (${D.POSTES[j.poste].nom.toLowerCase()})`).join(', ')}</p>` : ''}
+    ${R.arb ? `<p class="petit" style="margin:0 0 8px">${arbitreHTML(R.arb)}</p>` : ''}
     ${R.conseils.length ? `<div class="conseils">${R.conseils.map(([t, k, v]) => `<div class="cs-c"><span>${esc(t)}</span>${k && String(T[k]) !== String(v) ? `<button class="btn sec mini" data-act="consigne" data-k="${k}" data-v="${v}">Appliquer</button>` : ''}</div>`).join('')}</div>` : ''}</div>`;
 }
 /* v96 : prévision de l'adjoint et pistes d'amélioration (act : consigne, consigneAvant ou consigneLive) */
@@ -867,7 +877,7 @@ function choisirPour(p, i, banc){
   const L = c.effectif.map(id => M.joueurs[id]).filter(j => j.id !== actuel).sort((a, b) => rang(a) - rang(b) || QM.note(b, banc ? b.poste : p) - QM.note(a, banc ? a.poste : p));
   feuille(`${teteF(banc ? 'Remplaçant' : D.POSTES[p].nom, banc ? 'Choisis le joueur à mettre sur le banc' : 'Note au poste · le joueur choisi échange sa place')}
   <div class="liste">${L.map(j => { const r = roleDe(j.id), n = QM.note(j, banc ? j.poste : p);
-    return `<button class="el" data-act="mettre" data-j="${j.id}" data-p="${p}" data-i="${i}" data-b="${banc ? 1 : 0}">${posteB(j.poste)}<div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>${r.tit ? 'Titulaire (' + D.POSTES[r.p].nom.toLowerCase() + ')' : r.banc ? 'Remplaçant' : 'Réserve'} · forme ${j.forme} · fatigue ${j.fat} %${j.bless ? ' · ✚ blessé' : ''}</span></div><span class="note ${classeNote(n)}">${n}</span></button>`; }).join('')}</div>`);
+    return `<button class="el" data-act="mettre" data-j="${j.id}" data-p="${p}" data-i="${i}" data-b="${banc ? 1 : 0}">${posteB(j.poste)}<div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>${r.tit ? 'Titulaire (' + D.POSTES[r.p].nom.toLowerCase() + ')' : r.banc ? 'Remplaçant' : 'Réserve'} · forme ${j.forme} · fatigue ${j.fat} %${j.bless ? ' · ✚ blessé' : ''}${j.susp ? ` · suspendu (${j.susp.n} match${j.susp.n > 1 ? 's' : ''})` : ''}</span></div><span class="note ${classeNote(n)}">${n}</span></button>`; }).join('')}</div>`);
 }
 function mettre(jid, p, i, banc){
   fermerFeuille(); placerSlot(ctxCompo(), jid, banc ? 'R' + i : p + i);
@@ -905,7 +915,7 @@ function vueAide(){
     ${D.LANGUES_NOMS.map(([k, n, ex]) => `<label class="el"><div class="t"><b>${n}</b><span>${esc(ex)}</span></div><input type="radio" name="nomsLg" data-chg="noms" value="${k}" ${(REG.noms || 'local') === k ? 'checked' : ''} style="width:22px;height:22px"></label>`).join('')}
   </div></div>
   <div class="carte"><h2>Pauses automatiques pendant le direct</h2><div class="liste">
-    ${[['blessure', 'Blessure'], ['faute_grave', 'Faute grave'], ['vif_apercu', 'Vif d\'or aperçu']].map(([k, n]) => `<label class="el"><div class="t"><b>${n}</b></div><input type="checkbox" data-chg="pause" data-k="${k}" ${P[k] ? 'checked' : ''} style="width:22px;height:22px"></label>`).join('')}
+    ${[['blessure', 'Blessure'], ['faute_grave', 'Carton rouge'], ['vif_apercu', 'Vif d\'or aperçu']].map(([k, n]) => `<label class="el"><div class="t"><b>${n}</b></div><input type="checkbox" data-chg="pause" data-k="${k}" ${P[k] ? 'checked' : ''} style="width:22px;height:22px"></label>`).join('')}
   </div></div>
   <div class="carte"><h2>Pendant le direct</h2><div class="liste">
     <label class="el"><div class="t"><b>Temps forts selon l'enjeu</b><span>Tout quand le match est serré, l'essentiel quand il est plié</span></div><input type="checkbox" data-chg="resumes" ${REG.resumes !== 'tout' ? 'checked' : ''} style="width:22px;height:22px"></label>
@@ -919,6 +929,7 @@ function vueAide(){
     <p><b>Points.</b> Un but de poursuiveur vaut ${E.points.but} points, le vif d'or ${E.points.vif} et termine le match. Victoire ${E.points.victoire} points au classement, nul ${E.points.nul}.</p>
     <p><b>Le vif d'or.</b> Il apparaît entre la ${E.vifApparitionMin}e et la ${E.vifApparitionMax}e minute, peut se cacher puis revenir. Plus le temps passe, plus il est facile à attraper. Il rapporte ${E.points.vif} points. Attention : le prendre quand on est mené de plus de ${E.points.vif} points fait perdre le match. La consigne « Si ça fait gagner » demande à l'attrapeur de le laisser filer dans ce cas.</p>
     <p><b>Dispositions.</b> Dans Tactique, deux phases : avec le souafle (poursuiveurs en triangle, en ligne ou en pointe ; batteurs en escorte ou devant ; zone d'attaque à toucher sur le terrain) et sans le souafle (pressing, zone ou repli ; batteurs en protection ou en harcèlement). Chaque défense craint une zone : le pressing craint l'axe, la zone craint les couloirs, le repli craint les tirs de loin. Désigne aussi ton tireur de penalty (touche un poursuiveur).</p>
+    <p><b>Fautes et cartons.</b> Une faute sur quatre environ est sifflée en penalty, les autres donnent un coup franc. L'arbitre (indiqué avant le match) peut être sévère ou laisser jouer. Carton jaune, second jaune ou rouge direct : l'exclu n'est pas remplacé, son équipe joue à un de moins. Suspensions en club : ${E.fautes.susp.j2} match après un second jaune, ${E.fautes.susp.r} après un rouge direct, un match tous les ${E.fautes.accumul} jaunes de la saison. Un jeu dur gagne des duels mais coûte des fautes, des cartons et de la fatigue.</p>
     <p><b>Le match.</b> Une minute de jeu défile en une seconde à vitesse ×1 (deux secondes à ×0,5). La carte Statistiques suit le match en direct : équipes, tes joueurs (note, actions, fatigue, rendement, moral, charge) et ceux d'en face. Deux temps morts par équipe pour changer les consignes et faire entrer des remplaçants : 3 changements libres, plus ceux qui suivent une blessure. Pendant le direct : le match vu du dessus, les autres scores à la radio, les conseils de l'adjoint et, si tu le veux, l'ambiance du stade.</p>
     <p><b>Les joueurs.</b> 31 attributs de 1 à 20, plus 5 pour les gardiens. La note sur 100 dépend du poste : les attributs cibles (●) comptent triple. La forme, la fatigue et le moral changent chaque semaine.</p>
     <p><b>La composition.</b> 7 titulaires sur le terrain et ${NB_BANC()} remplaçants sur le banc (Tactique). Glisse un joueur du banc sur un titulaire pour les échanger, ou choisis la place de chacun avec le menu du panneau Effectif (titulaire, remplaçant ou réserve). Une place laissée libre est complétée au coup d'envoi.</p>
@@ -1602,6 +1613,7 @@ function majTerrain(evs){
   }
   L.pa = P;
   for (const [id, [x, y]] of Object.entries(P)){ const g = svg.querySelector('#lj-' + id); if (g) g.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`; }
+  for (const id of (X.exclus || []).flat()){ const g = svg.querySelector('#lj-' + id); if (g) g.style.display = 'none'; }   // v158 : exclu
   const but = evs.find(ev => ev.but), ball = svg.querySelector('#lj-souafle');
   if (ball){ let bx, by;
     if (but){ bx = but.e === 0 ? 192 : 8; by = 56 + alea(50) * 18; }
@@ -1625,7 +1637,7 @@ function statsMatchHTML(){
     /* [libellé, valeur gauche, valeur droite, texte gauche, texte droit, plus haut = mieux ?] */
     const L = [['Possession', ps[0], ps[1], ps[0] + ' %', ps[1] + ' %', true], ['Tirs', S[0].tirs, S[1].tirs, , , true], ['Buts', S[0].buts, S[1].buts, , , true],
       ['Précision', prec(0), prec(1), prec(0) + ' %', prec(1) + ' %', true], ['Buts attendus', S[0].xb || 0, S[1].xb || 0, virg(S[0].xb), virg(S[1].xb), true],
-      ['Arrêts', S[0].arrets, S[1].arrets, , , true], ['Cognards réussis', S[0].cog, S[1].cog, , , true], ['Fautes', S[0].fautes, S[1].fautes, , , false],
+      ['Arrêts', S[0].arrets, S[1].arrets, , , true], ['Cognards réussis', S[0].cog, S[1].cog, , , true], ['Fautes', S[0].fautes, S[1].fautes, , , false], ['Cartons jaunes', S[0].cj || 0, S[1].cj || 0, , , false], ['Exclusions', S[0].cr || 0, S[1].cr || 0, , , false],
       ['Penalties obtenus', S[0].pen, S[1].pen, , , true], ['Note moyenne', noteM(0), noteM(1), virg(noteM(0)), virg(noteM(1)), true],
       ['Fatigue moyenne', fatM(0), fatM(1), fatM(0) + ' %', fatM(1) + ' %', false], ['Moral', X.moral[0], X.moral[1], nb1(X.moral[0]), nb1(X.moral[1]), true],
       ['Temps morts', X.tm[0], X.tm[1], , , true], ['Changements', X.rempl[0], X.rempl[1], , , true]];
@@ -1638,11 +1650,11 @@ function statsMatchHTML(){
   const jeu = (id, p) => { const q = X.perf[id] || {}; return p === 'P' ? `${q.b || 0} but${(q.b || 0) > 1 ? 's' : ''} / ${q.t || 0} tir${(q.t || 0) > 1 ? 's' : ''}` : p === 'B' ? `${q.cog || 0} cognard${(q.cog || 0) > 1 ? 's' : ''}` : p === 'G' ? `${q.arr || 0} arrêt${(q.arr || 0) > 1 ? 's' : ''} · ${q.enc || 0} enc.` : (q.vif ? 'vif d\'or !' : X.sonne[k] > 0 ? 'sonné' : '—'); };
   const ligne = (id, p, surBanc) => { const j = M.joueurs[id]; if (!j) return ''; const q = X.perf[id] || {}, fat = Math.round(X.fat[id] || 0), rend = Math.round(QM.rendement(X, k, id) * 100);
     const det = o === 'moi' ? `${!surBanc ? `rendement ${rend} % · ` : ''}moral ${j.moral} · forme ${virg(j.forme)} · charge ${Math.round(j.charge || 0)}${q.f ? ` · ${q.f} faute${q.f > 1 ? 's' : ''}` : ''}` : `${!surBanc ? `rendement ${rend} %` : 'remplaçant'}${q.f ? ` · ${q.f} faute${q.f > 1 ? 's' : ''}` : ''}`;
-    return `<div class="stm-j${bl.has(id) ? ' bless' : ''}">${posteB(p)}<div class="t"><b>${esc(court(j))}${bl.has(id) ? ' <span class="badge" style="color:var(--mauvais)">blessé</span>' : ''}</b><span>${det}</span></div>
+    return `<div class="stm-j${bl.has(id) ? ' bless' : ''}">${posteB(p)}<div class="t"><b>${esc(court(j))}${bl.has(id) ? ' <span class="badge" style="color:var(--mauvais)">blessé</span>' : ''}${(X.cartons || []).filter(c => c.id === id).map(c => `<span class="crt-m ${c.c === 'j' ? 'j' : 'r'}" title="${c.c === 'j' ? 'Carton jaune' : c.c === 'j2' ? 'Second jaune, exclu' : 'Carton rouge'} (${Math.floor(c.t / 60)}e)"></span>`).join('')}${X.exclus && X.exclus[k].includes(id) ? ' <span class="badge" style="color:var(--mauvais)">exclu</span>' : ''}</b><span>${det}</span></div>
       <div class="stm-n">${surBanc || N[id] == null ? '—' : virg(N[id])}</div><div class="stm-a">${surBanc ? '' : jeu(id, p)}</div>
       <div class="stm-f" title="Fatigue ${fat} %"><div class="barre fat"><i style="width:${fat}%"></i></div><small class="${fat >= 70 ? 'mauvais' : fat >= 50 ? 'moyen' : ''}">${fat} %</small></div></div>`; };
   const tri = L => L.slice().sort((a, b) => ORD_P[poste(a) || M.joueurs[a].poste] - ORD_P[poste(b) || M.joueurs[b].poste]);
-  return `<div class="stm-h"><span></span><span>Joueur</span><span>Note</span><span>Match</span><span>Fatigue</span></div>${tri(tit).map(id => ligne(id, poste(id), false)).join('')}
+  return `<div class="stm-h"><span></span><span>Joueur</span><span>Note</span><span>Match</span><span>Fatigue</span></div>${tri([...tit, ...(X.exclus ? X.exclus[k] : [])]).map(id => ligne(id, poste(id) || M.joueurs[id].poste, false)).join('')}
     ${banc.length ? `<h4 class="stm-g">Banc</h4>${banc.map(id => ligne(id, M.joueurs[id] ? M.joueurs[id].poste : 'P', true)).join('')}` : ''}
     <p class="petit mut" style="margin:8px 0 0">Rendement : ce que le joueur donne en ce moment (fatigue, forme, moral). ${o === 'moi' ? 'Charge : fatigue cumulée des dernières semaines.' : 'Leur moral et leur charge ne se voient pas depuis le banc.'}</p>`;
 }
@@ -1682,7 +1694,7 @@ function majAdjoint(){
 function enjeu(){ if (!X) return 'fort'; const d = Math.abs(X.score[0] - X.score[1]); return d <= 70 || (X.vifVu && !X.vifCache) || X.sixn ? 'fort' : d >= 150 ? 'faible' : 'moyen'; }
 function montrer(ev){
   if (REG.resumes === 'tout' || !ev.txt) return true;
-  if (ev.cle || /^(vif|fin|remplacement|temps_mort|penalty|blessure|faute_grave|debut)/.test(ev.k)) return true;
+  if (ev.cle || /^(vif|fin|remplacement|temps_mort|penalty|blessure|faute_grave|carton|second|debut)/.test(ev.k)) return true;
   const e = enjeu(); return e === 'fort' || (e === 'moyen' && !!ev.but);
 }
 function majEnjeu(){ const b = $('#enjeu'); if (!b) return; const e = REG.resumes === 'tout' ? 'tout' : enjeu(); b.textContent = {tout:'tout le match', fort:'match serré : tout', moyen:'temps forts', faible:'match plié : l\'essentiel'}[e]; }
@@ -1706,7 +1718,7 @@ const Son = (() => {
 function evHTML(ev){
   if (!ev.txt) return '';
   const coul = ev.e >= 0 ? X.e[ev.e].couleurs[0] : '';
-  const cls = ['ev', ev.but ? 'but' : '', ev.cle ? 'cle' : '', /^vif|fin_perdu/.test(ev.k) ? 'vif' : ''].join(' ');
+  const cls = ['ev', ev.but ? 'but' : '', ev.cle ? 'cle' : '', /^vif|fin_perdu/.test(ev.k) ? 'vif' : '', ev.carton ? 'crt-' + ev.carton : ''].join(' ');
   return `<div class="${cls}" style="${coul ? '--ce:' + coul : ''}"><span class="m">${Math.floor(ev.t / 60)}'</span><span class="x">${esc(ev.txt)}</span></div>`;
 }
 function avantMatchHTML(){
@@ -1744,7 +1756,7 @@ function apresMatchHTML(){
   return `<div class="carte" style="border-color:${r > 0 ? 'var(--bon)' : r < 0 ? 'var(--mauvais)' : 'var(--line)'}"><h2>${titre}</h2>
     <p style="margin:0 0 4px">Vif d'or attrapé par <b>${esc(vifNom)}</b> (${esc(X.e[X.vif].nom)}) à la ${Math.round(X.t / 60)}e minute.</p>
     ${homme ? `<p class="sous" style="margin:0 0 10px">Homme du match : ${esc(nomJ(M.joueurs[homme[0]]))} (${homme[1]})</p>` : ''}
-    <div class="stat">${[['buts', 'Buts'], ['xb', 'Buts attendus'], ['tirs', 'Tirs'], ['arrets', 'Arrêts'], ['cog', 'Cognards réussis'], ['fautes', 'Fautes'], ['pen', 'Penalties obtenus']].map(([k, n]) => `<span>${k === 'xb' ? virg(S[0].xb) : S[0][k]}</span><span>${n}</span><span>${k === 'xb' ? virg(S[1].xb) : S[1][k]}</span>`).join('')}</div>
+    <div class="stat">${[['buts', 'Buts'], ['xb', 'Buts attendus'], ['tirs', 'Tirs'], ['arrets', 'Arrêts'], ['cog', 'Cognards réussis'], ['fautes', 'Fautes'], ['cj', 'Cartons jaunes'], ['cr', 'Exclusions'], ['pen', 'Penalties obtenus']].map(([k, n]) => `<span>${k === 'xb' ? virg(S[0].xb) : S[0][k] || 0}</span><span>${n}</span><span>${k === 'xb' ? virg(S[1].xb) : S[1][k] || 0}</span>`).join('')}</div>
     <button class="btn plein" style="margin-top:14px" data-act="finMatch">Continuer</button></div>
   ${analyseHTML()}
   ${presseHTML()}
@@ -1763,14 +1775,14 @@ function tic(){
   const evs = QM.pas(X);
   const fil = $('#fil');
   if (fil) for (const ev of evs){ if (!montrer(ev)) continue; const h = evHTML(ev); if (h) fil.insertAdjacentHTML('afterbegin', h); }
-  for (const ev of evs){ if (ev.but) Son.clameur(ev.e === X.joueur ? 1 : 0.45); if (ev.k === 'vif_apercu' && ev.vif === 'vu') Son.carillon(); if (/^penalty|^faute_grave/.test(ev.k)) Son.sifflet(false); }
+  for (const ev of evs){ if (ev.but) Son.clameur(ev.e === X.joueur ? 1 : 0.45); if (ev.k === 'vif_apercu' && ev.vif === 'vu') Son.carillon(); if (/^penalty|^faute_grave|^carton|^second/.test(ev.k)) Son.sifflet(false); }
   majTableau(); majTerrain(evs);
   const st = $('#stl'); if (st) st.innerHTML = statsLive();
   const sm = $('#stm'), now = Date.now(); if (sm && now - (U.live.stmT || 0) > 900){ U.live.stmT = now; sm.innerHTML = statsMatchHTML(); }
   if (X.pas % 4 === 0){ const rd = $('#radio'); if (rd) rd.innerHTML = radioHTML(); majEnjeu(); }
   if (X.pas % 12 === 0) majAdjoint();
   if (X.fini){ clearInterval(U.live.timer); Son.sifflet(true); Son.clameur(X.vif === X.joueur ? 1 : 0.3); setTimeout(() => Son.arreter(), 2500); setTimeout(() => { rendre(); scrollTo({top:0, behavior:'smooth'}); }, 1100); return; }
-  const k = evs.find(ev => ev.cle && ((ev.k === 'blessure' && REG.pauses.blessure) || (ev.k === 'faute_grave' && REG.pauses.faute_grave) || (ev.k === 'vif_apercu' && ev.vif === 'vu' && REG.pauses.vif_apercu)));
+  const k = evs.find(ev => ev.cle && ((ev.k === 'blessure' && REG.pauses.blessure) || (ev.k === 'carton_rouge' || ev.k === 'second_jaune') && REG.pauses.faute_grave || (ev.k === 'vif_apercu' && ev.vif === 'vu' && REG.pauses.vif_apercu)));
   if (k) pauseAuto(k);
 }
 function majTableau(){

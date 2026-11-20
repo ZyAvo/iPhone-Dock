@@ -1,4 +1,4 @@
-// mon-ecran-version: 7d7677f0
+// mon-ecran-version: 38cec3e6
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -822,7 +822,7 @@ function vuePlus(){
 /* ============================== Effectif en colonnes ============================== */
 /* v92 : catalogue des colonnes [libellé court, largeur, description] et vues de l'effectif réglables (roue ⚙︎) */
 const COLS = {note:['Note', 44, 'Note au poste'], pot:['Pot.', 40, 'Potentiel estimé (étoiles)'], forme:['Forme', 40, 'Forme sur 10'], moral:['Moral', 42, 'Moral sur 100'],
-  fat:['Fatigue', 50, 'Fatigue du moment (au moins 60 % de la charge)'], charge:['Charge', 52, 'Fatigue cumulée : matchs enchaînés, entraînement ; redescend au repos'], bless:['Dispo', 44, 'Blessure ou sélection'], m:['MJ', 30, 'Matchs joués cette saison'], stat:['Stat', 50, 'Buts, cognards, vifs d\'or ou arrêts'],
+  fat:['Fatigue', 50, 'Fatigue du moment (au moins 60 % de la charge)'], charge:['Charge', 52, 'Fatigue cumulée : matchs enchaînés, entraînement ; redescend au repos'], bless:['Dispo', 44, 'Blessure (jours), suspension (matchs) ou sélection'], m:['MJ', 30, 'Matchs joués cette saison'], stat:['Stat', 50, 'Buts, cognards, vifs d\'or ou arrêts'],
   moy:['Moy.', 38, 'Note moyenne en match'], sal:['Salaire', 54, 'Salaire par semaine'], fin:['Fin', 46, 'Fin de contrat'], valeur:['Valeur', 58, 'Valeur estimée'],
   clause:['Clause', 58, 'Clause libératoire'], prog:['Prog.', 44, 'Progression de la note cette saison']};
 const VUES_DEF = [{id:'general', nom:'Général', cols:['note', 'forme', 'moral']}, {id:'contrats', nom:'Contrats', cols:['sal', 'fin', 'valeur']},
@@ -844,7 +844,7 @@ function valeurCol(j, k, ctx){
     case 'fin': return [j.contrat ? j.contrat.fin : 0, j.contrat ? `<span class="${j.contrat.fin <= M_.saison ? 'mauvais' : ''}">${lab(j.contrat.fin).slice(2)}</span>` : '—'];
     case 'pot': { const v = C.potentielEstime(M_, j); return [v, `${v}<span class="etoiles petit">★</span>`]; }
     case 'valeur': { const v = C.valeur(M_, j); return [v, eur(v)]; }
-    case 'bless': return [j.bless ? j.bless.jours : j.inter ? 0.5 : 0, j.bless ? `<span class="mauvais">${j.bless.jours} j</span>` : j.inter ? '<span class="moyen" title="En sélection">✈︎</span>' : '—'];
+    case 'bless': return [j.bless ? j.bless.jours : j.susp ? j.susp.n * 7 : j.inter ? 0.5 : 0, j.bless ? `<span class="mauvais">${j.bless.jours} j</span>` : j.susp ? `<span class="mauvais" title="Suspendu : ${esc(j.susp.r)}">susp. ${j.susp.n}</span>` : j.inter ? '<span class="moyen" title="En sélection">✈︎</span>' : '—'];   // v158 : suspendus
     case 'm': return [s.m || 0, s.m || 0];
     case 'stat': { const v = j.poste === 'P' ? s.b : j.poste === 'B' ? s.cog : j.poste === 'A' ? s.v : s.arr; return [v || 0, `${v || 0}<span class="mut petit"> ${({P:'b', B:'cog', A:'vif', G:'arr'})[j.poste]}</span>`]; }
     case 'moy': { const v = s.m ? s.notes / s.m : 0; return [v, v ? (Math.round(v * 10) / 10).toLocaleString('fr-FR') : '—']; }
@@ -858,22 +858,22 @@ function tableJoueurs(L, ctx){
   const cles = (ctx.cols || (VUES_EFF[ctx.vue] || VUES_DEF[0]).cols).filter(k => COLS[k]), CC = cles.map(k => [k, COLS[k][0], COLS[k][1], COLS[k][2]]);
   const tri = ctx.tri || 'poste', sens = ctx.sens || 1;
   /* v101 : colonne fixe des absents (croix rouge = blessé, avion = en sélection), triable */
-  const absV = j => j.bless ? 1000 + (j.bless.jours || 0) : j.inter ? 1 : 0;
+  const absV = j => j.bless ? 1000 + (j.bless.jours || 0) : j.susp ? 500 + j.susp.n : j.inter ? 1 : 0;   // v158 : suspendus
   const rows = L.map(j => ({j, v:Object.assign(Object.fromEntries(cles.map(k => [k, valeurCol(j, k, ctx)])), {abs:[absV(j)]})}));
   const large = 40 + 20 + 34 + 150 + CC.reduce((t, c) => t + c[2] + 4, 0);
   const ord = {P:0, B:1, A:2, G:3};
   /* v95 : tri par composition — titulaires (poursuiveurs, batteurs, attrapeur, gardien), remplaçants R1-R5, réserve, absents */
   const rangSel = j => { const K = ctx.K; if (!K) return 99; let k = 0; for (const p of ['P', 'B', 'A', 'G']){ const i = K[p].indexOf(j.id); if (i >= 0) return k + i; k += K[p].length; }
-    const i = K.banc.indexOf(j.id); return i >= 0 ? 20 + i : j.bless || j.inter ? 60 + ord[j.poste] : 40 + ord[j.poste]; };
+    const i = K.banc.indexOf(j.id); return i >= 0 ? 20 + i : j.bless || j.inter || j.susp ? 60 + ord[j.poste] : 40 + ord[j.poste]; };
   rows.sort((a, b) => tri === 'sel' ? sens * (rangSel(a.j) - rangSel(b.j)) || (b.v.note ? b.v.note[0] - a.v.note[0] : window.QM.note(b.j) - window.QM.note(a.j)) : tri === 'poste' ? ord[a.j.poste] - ord[b.j.poste] || (b.v.note ? b.v.note[0] - a.v.note[0] : window.QM.note(b.j) - window.QM.note(a.j))
     : tri === 'nom' ? sens * a.j.n.localeCompare(b.j.n, 'fr') : tri === 'age' ? sens * (a.j.age - b.j.age) : tri === 'note' && !b.v.note ? sens * (window.QM.note(b.j) - window.QM.note(a.j)) : sens * ((b.v[tri] || [0])[0] - (a.v[tri] || [0])[0]));
   const th = (k, n, w, t) => `<button class="th ${tri === k ? 'on' : ''}" style="${w ? 'width:' + w + 'px' : ''}" data-act="${ctx.act || 'effTri'}" data-t="${k}"${t ? ` title="${esc(t)}"` : ''}>${n}${tri === k ? (sens > 0 ? ' ▾' : ' ▴') : ''}</button>`;
-  return `<div class="tj" role="table" style="min-width:${large}px"><div class="tj-h" role="row">${th('poste', 'Poste', 40)}${th('abs', '✚', 20, 'Absents : blessés et internationaux')}${th('nom', 'Joueur')}${th('age', 'Âge', 34)}${CC.map(([k, n, w, t]) => th(k, n, w, t)).join('')}</div>
+  return `<div class="tj" role="table" style="min-width:${large}px"><div class="tj-h" role="row">${th('poste', 'Poste', 40)}${th('abs', '✚', 20, 'Absents : blessés, suspendus et internationaux')}${th('nom', 'Joueur')}${th('age', 'Âge', 34)}${CC.map(([k, n, w, t]) => th(k, n, w, t)).join('')}</div>
     ${rows.map(({j, v}, i) => { const st = ctx.K ? statut(ctx.K, j.id) : null, U_ = moi();
       const grp = tri === 'sel' && ctx.K ? (r => r < 20 ? 'Titulaires' : r < 40 ? 'Remplaçants' : r < 60 ? 'Réserve' : 'Absents')(rangSel(j)) : null, grpAv = grp && i ? (r => r < 20 ? 'Titulaires' : r < 40 ? 'Remplaçants' : r < 60 ? 'Réserve' : 'Absents')(rangSel(rows[i - 1].j)) : null;
-      return `${grp && grp !== grpAv ? `<div class="tj-grp" role="row">${grp}</div>` : ''}<button class="tj-l ${j.bless || j.inter ? 'indispo' : ''}" role="row" data-act="joueur" data-j="${j.id}">
+      return `${grp && grp !== grpAv ? `<div class="tj-grp" role="row">${grp}</div>` : ''}<button class="tj-l ${j.bless || j.inter || j.susp ? 'indispo' : ''}" role="row" data-act="joueur" data-j="${j.id}">
         <span style="width:40px" class="tj-p">${posteB(j.poste)}${st ? `<i class="st ${st[1]}" title="${st[2]}">${st[0]}</i>` : ''}</span>
-        <span style="width:20px" class="tj-c tj-abs">${j.bless ? `<i class="abs-b" title="Blessé : ${esc(j.bless.nom)}, ${j.bless.jours} j" aria-label="Blessé ${j.bless.jours} jours">✚</i>` : j.inter ? '<i class="abs-i" title="En sélection" aria-label="En sélection">✈︎</i>' : ''}</span>
+        <span style="width:20px" class="tj-c tj-abs">${j.bless ? `<i class="abs-b" title="Blessé : ${esc(j.bless.nom)}, ${j.bless.jours} j" aria-label="Blessé ${j.bless.jours} jours">✚</i>` : j.susp ? `<i class="crt r" title="Suspendu : ${esc(j.susp.r)}, ${j.susp.n} match${j.susp.n > 1 ? 's' : ''}" aria-label="Suspendu">${j.susp.n}</i>` : j.inter ? '<i class="abs-i" title="En sélection" aria-label="En sélection">✈︎</i>' : ''}</span>
         <span class="tj-n">${flag(j.nat)}<b>${j.num != null && ctx.K ? `<span class="num">${j.num}</span>` : ''}${esc(j.p[0])}. ${esc(j.n)}</b>${j.pret ? '<i class="tag">prêt</i>' : ''}${U_ && U_.aVendre.includes(j.id) ? '<i class="tag">vente</i>' : ''}${!ctx.K && U_ && U_.suivi.includes(j.id) ? '<i class="tag or">suivi</i>' : ''}</span>
         <span style="width:34px" class="tj-c">${j.age}</span>
         ${CC.map(([k, , w]) => `<span class="tj-c" style="width:${w}px">${v[k][1]}</span>`).join('')}</button>`; }).join('') || '<p class="mut" style="padding:10px">Personne ici.</p>'}</div>`;
@@ -883,7 +883,7 @@ const EFF = Object.assign({vue:'general', tri:'poste', sens:1, poste:'tous'}, LS
 function vueEffectif(){
   const c = moi(), K = c.compo;
   let L = c.effectif.map(id => M().joueurs[id]).filter(Boolean);
-  if (EFF.poste === 'bless') L = L.filter(j => j.bless || j.inter); else if (EFF.poste !== 'tous') L = L.filter(j => j.poste === EFF.poste);
+  if (EFF.poste === 'bless') L = L.filter(j => j.bless || j.inter || j.susp); else if (EFF.poste !== 'tous') L = L.filter(j => j.poste === EFF.poste);
   const masse = C.masse(M(), c);
   VUE.innerHTML = `<div><h1 class="grand">Effectif</h1><p class="sous">${plur(c.effectif.length, 'joueur')} · masse salariale ${eur(masse)} / ${eur(c.masseMax)} par semaine</p></div>
   <div class="onglets-l"><div class="onglets" role="tablist">${vuesPerso().map(x => `<button role="tab" class="${EFF.vue === x.id ? 'on' : ''}" aria-selected="${EFF.vue === x.id}" data-act="effVue" data-v="${x.id}">${esc(x.nom)}</button>`).join('')}</div>

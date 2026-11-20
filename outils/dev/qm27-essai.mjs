@@ -1,4 +1,4 @@
-// mon-ecran-version: 238b4e30
+// mon-ecran-version: 086368a3
 // QM27 : vérifie l'équilibrage du moteur. Usage : node outils/dev/qm27-essai.mjs [nb de matchs] [nb de saisons]
 // Joue des matchs et des saisons complètes sans affichage, puis compare les moyennes aux cibles du GDD
 // (buts par équipe, durée, part des matchs décidés par le vif d'or, blessures, avantage du terrain).
@@ -45,6 +45,8 @@ console.log(`   attrapeur perdant  : ${pc(perdant)} (le 220-180)`);
 console.log(`   écart moyen de buts: ${moy(ecart).toFixed(1)}  nuls : ${pc(nul)}`);
 console.log(`   victoires domicile : ${pc(dom)}  extérieur : ${pc(ext)}`);
 console.log(`   blessures par match: ${(bless / R.length).toFixed(2)}`);
+{ const st = R.flatMap(X => X.stats), m = k => (st.reduce((t, x) => t + (x[k] || 0), 0) / st.length).toFixed(2);   // v158 : fautes et cartons par équipe et par match
+  console.log(`   par équipe et match: fautes ${m('fautes')} · penalties ${m('pen')} · jaunes ${m('cj')} · rouges ${m('cr')}`); }
 
 /* saisons complètes (v84 : entraînement, finances, mercato) */
 const W = QM.nouveauMonde(1000);
@@ -82,6 +84,9 @@ for (let i = 0; i < nbSaisons; i++){
   const triés = fins.slice().sort((a, b) => b.c.rep - a.c.rep);
   console.log('  finances : ' + [triés[0], triés[Math.floor(triés.length / 2)], triés[triés.length - 1]].map(voir).join('\n             '));
   console.log(`  soldes négatifs : ${fins.filter(x => x.c.budget < 0).length} clubs ${fins.filter(x => x.c.budget < 0).map(x => x.c.id + " " + QMC.euros(x.c.budget) + (x.c.id === W.manager.club ? " (club du joueur, non géré)" : "")).join(", ")}`);
+  { const L = Object.values(W.joueurs).filter(j => j.club && W.clubs[j.club] && j.saison), sj = L.reduce((t, j) => t + (j.saison.ja || 0), 0), sr = L.reduce((t, j) => t + (j.saison.ro || 0), 0);   // v158
+    const parStyle = {}; for (const c of Object.values(W.clubs)){ if (!c.ligue || !W.ligues[c.ligue]) continue; const k = ctx.QMG.styleCoach(W, c), E = c.effectif.map(id => W.joueurs[id]).filter(j => j && j.saison); const x = parStyle[k] = parStyle[k] || [0, 0, 0]; x[0]++; x[1] += E.reduce((t, j) => t + (j.saison.ja || 0), 0); x[2] += E.reduce((t, j) => t + (j.saison.ro || 0), 0); }
+    console.log(`  cartons en championnat : ${sj} jaunes, ${sr} rouges · suspendus en fin de saison : ${L.filter(j => j.susp).length} · par club et style : ` + Object.entries(parStyle).map(([k, x]) => `${k} ${(x[1] / x[0]).toFixed(1)} J ${(x[2] / x[0]).toFixed(1)} R`).join(', ')); }
   QM.saisonSuivante(W);
   for (const c of Object.values(W.clubs)) budget0[c.id] = c.budget;
   const json = QM.serialiser(W);

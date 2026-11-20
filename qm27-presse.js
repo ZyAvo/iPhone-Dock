@@ -1,4 +1,4 @@
-// mon-ecran-version: 89e4e7fe
+// mon-ecran-version: c8907b53
 /* QM27 (v94) — conférences de presse, sans affichage. Expose window.QMP. Chargé après qm27-vestiaire.js.
    Après chaque match : 1 à 3 questions (réglage), posées par des médias différents et tirées selon le contexte
    (résultat, vif d'or, joueurs du match, blessures, série, classement, objectif, mercato, vestiaire, supporters, finances,
@@ -181,7 +181,7 @@ const SUJETS = {
     ['confiant', 'Le plan était clair et les joueurs l\'ont appliqué.', {eq:1}],
     ['collectif', 'Les joueurs ont fait mieux que ce que j\'avais dessiné au tableau.', {eq:2, rep:-0.1}],
     ['franc', 'J\'ai peut-être trop compliqué les choses.', {eq:1, pr:2, conf:-1}]]},
-  arbitre:{w:x => x.fautes >= 6 || x.penAdv >= 2 ? 3 : 0, m:'radio', q:['Plusieurs décisions de l\'arbitre ont fait débat. Votre avis ?', '{fautes} fautes sifflées ce soir. L\'arbitre a-t-il été à la hauteur ?'],
+  arbitre:{w:x => x.fautes >= 6 || x.penAdv >= 2 || x.rouges ? 3 : 0, m:'radio', q:['Plusieurs décisions de l\'arbitre ont fait débat. Votre avis ?', '{fautes} fautes sifflées ce soir. L\'arbitre a-t-il été à la hauteur ?'],
     r:[
     ['respectueux', 'Un match difficile à arbitrer. Je ne l\'accablerai pas.', {rep:0.3, pr:1}],
     ['polemique', 'Il a sifflé à sens unique.', {supp:2, rep:-0.5, conf:-1}],
@@ -291,7 +291,7 @@ function contexte(M, X){
   const mes = joues.filter(j => mien(j.id)).sort((a, b) => notes[b.id] - notes[a.id]), siens = joues.filter(j => !mien(j.id)).sort((a, b) => notes[b.id] - notes[a.id]);
   const S = Q().semaine(M), x = {M, X, U, mg, moi, d, notes, res:Math.sign(d), vifMoi, vifAdv, sixn:!!X.sixn, domicile:moi === 0 && X.domicile, meteo:X.meteo,
     meteoNom:((D.METEOS[X.meteo] || {}).nom || '').toLowerCase(), adv:X.e[adv].nom, c:X.e[moi].nom, sc:`${X.score[moi]}–${X.score[adv]}`,
-    top:mes[0], flop:mes.length > 1 ? mes[mes.length - 1] : null, topAdv:siens[0], fautes:X.stats[moi].fautes, penAdv:X.stats[adv].pen,
+    top:mes[0], flop:mes.length > 1 ? mes[mes.length - 1] : null, topAdv:siens[0], fautes:X.stats[moi].fautes, penAdv:X.stats[adv].pen, rouges:(X.cartons || []).filter(c => c.eq === moi && c.c !== 'j').length,   // v158
     tournoi:D.LDN.nom, confiance:mg ? mg.confiance : 60};   // v106 : la Ligue des nations remplace le Tournoi des Six Emblèmes
   x.vifPerdu = d < 0 && vifAdv && X.score[moi] > X.score[adv] - EQ.points.vif;
   x.arrache = d > 0 && vifMoi && X.score[moi] - EQ.points.vif <= X.score[adv] - 30;   // mené d'au moins trois buts avant le vif d'or

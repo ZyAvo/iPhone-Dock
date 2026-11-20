@@ -1,4 +1,4 @@
-// mon-ecran-version: 5f5a5537
+// mon-ecran-version: 77fbdc07
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -31,6 +31,11 @@ const SIX_NATIONS = ['ENG', 'FRA', 'IRL', 'ITA', 'SCO', 'WAL'];   // les six nat
 const SELECTIONS = Object.keys(NATIONS);   // v106 : toutes les sélections (Ligue des nations, amicaux)
 const TOURNOI = {nom:'Tournoi des Six Emblèmes', court:'Six Emblèmes'};   // v91-v105 : l'ancien tournoi des sélections (palmarès des anciennes saisons)
 const LDN = {nom:'Ligue des nations', court:'Ligue des nations', mini:'LDN'};   // v106 : l'été, une saison sur deux (poules puis élimination)
+/* v158 : arbitres (nom, nation, sévérité : moins de 0,9 laxiste, plus de 1,15 sévère) */
+const ARBITRES = [['Hilda Grünewald', 'GER', 1.3], ['Bertrand Moreau', 'FRA', 1.22], ['Owain Pritchard', 'WAL', 0.82], ['Agnes Lindqvist', 'SWE', 1.05], ['Rafael Ortega', 'ESP', 0.9],
+  ['Cormac Doyle', 'IRL', 0.75], ['Ottavia Ricci', 'ITA', 1.15], ['Pieter van Dam', 'NED', 0.98], ['Margaret Hollis', 'ENG', 1.1], ['Kjetil Aas', 'NOR', 0.88], ['Zofia Kowalczyk', 'POL', 1.25],
+  ['Fergus MacLeod', 'SCO', 0.8], ['Anouk Peeters', 'BEL', 1.0], ['Václav Novák', 'CZE', 1.18], ['Eira Halvorsen', 'NOR', 0.95], ['Lucien Fabre', 'FRA', 0.85], ['Ingrid Sørensen', 'DEN', 1.08],
+  ['Desmond Ashworth', 'ENG', 0.92], ['Matthias Leitner', 'AUT', 1.35], ['Sigrún Jónsdóttir', 'ISL', 1.02], ['Aino Virtanen', 'FIN', 0.78], ['Teodoro Bassi', 'ITA', 1.12], ['Marie-Claire Wagner', 'LUX', 0.96], ['Henrik Strand', 'SWE', 1.2]];
 const AMICAUX = {nom:'Matchs amicaux', court:'Amical', fenetres:'Trêve internationale'};   // v106 : trois ou quatre trêves par saison, adversaires tirés au sort
 
 const LIGUES = [   // v106 : quatre championnats de 16 clubs (avant : B&I, France, Italie)
@@ -326,8 +331,12 @@ const TEXTES = {
   cognard_att:['{j} envoie un cognard sur l\'attrapeur adverse, qui doit plonger pour l\'éviter.', 'L\'attrapeur adverse est sonné par un cognard de {j} !'],
   cognard_gar:['{j} vise les anneaux : le gardien adverse est bousculé.', 'Cognard sur le gardien adverse, signé {j}. Les anneaux sont exposés.'],
   blessure:['Aïe. {j} reste au sol après le choc : {b}.', '{j} grimace et se tient le bras… {b}.', 'Mauvaise nouvelle pour {c} : {j} est touché ({b}).'],
-  faute:['Faute de {j} qui accroche le balai adverse : penalty !', 'Coup de coude de {j}, l\'arbitre siffle un penalty.', '{j} bloque le passage en croisant : penalty.'],
-  faute_grave:['FAUTE GRAVE de {j} ! Charge dangereuse, l\'arbitre est furieux. Penalty.', '{j} percute volontairement un adversaire : faute grave et penalty.'],
+  faute:['Faute de {j} qui accroche le balai adverse dans la zone : penalty !', 'Coup de coude de {j} devant les anneaux, l\'arbitre siffle un penalty.', '{j} bloque le passage en croisant : penalty.'],
+  faute_cf:['Faute de {j} au milieu du terrain : coup franc.', '{j} accroche un manche, {r} siffle. Coup franc.', '{j} coupe la trajectoire de trop près : coup franc pour {a}.', 'Petit coup d\'épaule de {j}, {r} ne laisse rien passer : coup franc.'],
+  faute_grave:['FAUTE GRAVE de {j} ! Charge dangereuse, {r} est furieux. Penalty.', '{j} percute volontairement un adversaire : faute grave et penalty.'],
+  carton_jaune:['Carton jaune pour {j}.', '{r} sort le jaune : {j} est averti.', '{j} prend un avertissement.'],
+  carton_rouge:['CARTON ROUGE ! {j} est exclu, {c} finit à un de moins.', '{r} n\'hésite pas : rouge direct pour {j}. {c} jouera en infériorité.'],
+  second_jaune:['Deuxième jaune pour {j}, donc rouge : il quitte le terrain.', '{j} récidive : second avertissement et exclusion. {c} à un de moins.'],
   penalty_but:['Penalty transformé par {j}. {s}.', '{j} ne tremble pas sur le penalty. {s}.'],
   penalty_rate:['{g} arrête le penalty de {j} !', 'Penalty manqué par {j} !'],
   vif_apercu:['LE VIF D\'OR ! Une lueur dorée près des tribunes… les attrapeurs s\'élancent !', 'Le vif d\'or est apparu ! Les deux attrapeurs foncent en piqué.', 'Un éclat doré au-dessus du terrain : le vif d\'or est là !'],
@@ -350,7 +359,11 @@ const EQ = {
   baseTir:-0.8,                    // décalage de la sigmoïde (v157 : −0,7 avant les tirs multipliés par les consignes)
   baseBut:0.385, kBut:0.022, butMin:0.10, butMax:0.80,   // v89 : baseBut 0,40 avant les dispositions et les zones d'attaque
   garde:0.55,                   // possession gardée après une action sans tir
-  cognard:0.05, blessure:0.035, faute:0.004, fauteGrave:0.12, penalty:0.70,
+  cognard:0.05, blessure:0.035, faute:0.012, fauteGrave:0.12, penalty:0.70,
+  /* v158 : fautes et sanctions. agr : fautes selon l'agressivité (calme, normale, dure) ; pen : part des fautes sifflées en penalty (les autres : coup franc, cf = bonus au tir
+     de l'action suivante) ; grave : part des fautes graves (penalty, rouge direct possible) ; jaune : avertissement sur une faute ordinaire ; rouge : rouge direct sur une faute grave ;
+     inf : force perdue par place vide après une exclusion ; accumul : jaunes en club qui valent un match de suspension ; susp : matchs de suspension (second jaune, rouge direct) */
+  fautes:{agr:{1:0.55, 2:1, 3:1.75}, pressing:1.25, harcelement:1.15, pen:0.27, cf:0.08, grave:0.07, jaune:0.15, rouge:0.25, inf:{P:0.2, B:0.35}, accumul:5, susp:{j2:1, r:2}, fatigue:0.6},
   vifApparitionMin:20, vifApparitionMax:50, p0:0.00245, vifRef:13, vifCache:0.008, vifMaxMin:240,
   fatigue:0.09, domicile:1.05, jour:0.075,   // jour : forme du jour d'une équipe (écart type)
   refus:0.8,                    // attrapeur « seulement si ça fait gagner » : refuse la prise perdante (+ décisions)
@@ -369,7 +382,7 @@ const EQ = {
      matchs importants, Adaptabilité à la météo, sursaut de l'outsider) */
   /* v157 : identités tactiques. k amplifie les effets des consignes (QMD.STYLE) ; contre : bonus de tir au pas qui suit une récupération
      (doublé pour une équipe en repli) ; duel : ballons perdus en plus face à une défense au jeu dur (selon Force, Bousculade, Équilibre) */
-  style:{k:1.3, contre:0.02, contreRepli:0.04, duel:0.03},
+  style:{k:1.3, contre:0.02, contreRepli:0.04, duel:0.042},
   lev:{constr:0.07, finit:0.045, garde:0.07, recup:0.07, rempart:0.045, bouclier:0.4, marteau:0.4, ange:0.75, vif:0.35, gene:0.3, contre:0.12, decr:[1, 0.6, 0.35, 0.2],
     ref:{constr:0.64, finit:1, garde:0.17, recup:0.7, rempart:1, bouclier:0.52, marteau:0.5, vif:0.46, gene:0.26, contre:0.35}},   // valeurs d'une équipe moyenne de l'ordinateur : effet nul
   surprise:{regMin:0.02, regMax:0.09, gm:0.008, outsider:12, elan:0.03},
@@ -560,5 +573,5 @@ const ANTI_SYNERGIES = [
 const FOCUS = [['technique', 'Technique', ['Vol', 'Balle', 'Gardien']], ['physique', 'Physique', ['Physique']], ['tactique', 'Tactique', ['Mental']], ['repos', 'Repos', []]];
 const INTENSITES = [[1, 'Légère'], [2, 'Normale'], [3, 'Intense']];
 
-root.QMD = {STYLE, ROLE_DEF, ROLES_ANCIENS, BADGES, SYNERGIES, ANTI_SYNERGIES, NOMS_CLUBS, VILLES_LANGUES, LANGUES_NOMS, TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, CARTE, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
+root.QMD = {ARBITRES, STYLE, ROLE_DEF, ROLES_ANCIENS, BADGES, SYNERGIES, ANTI_SYNERGIES, NOMS_CLUBS, VILLES_LANGUES, LANGUES_NOMS, TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, CARTE, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
 })(typeof window !== 'undefined' ? window : globalThis);

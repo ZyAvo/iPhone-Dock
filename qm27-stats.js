@@ -1,4 +1,4 @@
-// mon-ecran-version: 044932c6
+// mon-ecran-version: 9964dddb
 /* QM27 (v102) — statistiques de la saison : onglets « Équipes » et « Joueurs » dans Classements.
    Lit M.statsC (stats d'équipes du championnat, remplies par QM.statsEquipes) et j.saison (stats des joueurs, QM.statsJoueur).
    Chargé après qm27-ecrans.js, dont il reprend la boîte à outils (window.QMU) ; remplace VUES.classements par une version à trois vues. */
@@ -38,6 +38,8 @@ const GRP_EQ = [
     ['fautes', 'Fautes', 52, o => o.fautes, v => v, 1, 'Fautes commises'],
     ['fj', 'Par m.', 50, o => div(o.fautes, o.j), v => nb(v), 1, 'Fautes par match'],
     ['penC', 'Pén. c.', 52, o => o.penC, v => v, 1, 'Penalties concédés'],
+    ['cj', 'Jaunes', 52, o => o.cj || 0, v => v, 1, 'Cartons jaunes reçus'],
+    ['cr', 'Rouges', 50, o => o.cr || 0, v => v, 1, 'Exclusions (rouge direct ou second jaune)'],
     ['pen', 'Pén. o.', 52, o => o.pen, v => v, 0, 'Penalties obtenus']]],
   ['vif', 'Vif d\'or', [
     ['vifs', 'Vifs', 44, o => o.vifs, v => v, 0, 'Vifs d\'or attrapés'],
@@ -65,6 +67,8 @@ const COL_J = {
   moy:['moy', 'Note', 44, j => div(sj(j, 'notes'), sj(j, 'm')), v => nb(v), 0, 'Note moyenne'],
   mvp:['mvp', 'JdM', 40, j => sj(j, 'mvp'), v => v, 0, 'Joueur du match (meilleure note)'],
   f:['f', 'Fautes', 48, j => sj(j, 'f'), v => v, 1, 'Fautes commises'],
+  ja:['ja', 'Jaunes', 50, j => sj(j, 'ja'), v => v, 1, 'Cartons jaunes en championnat'],
+  ro:['ro', 'Rouges', 48, j => sj(j, 'ro'), v => v, 1, 'Exclusions en championnat'],
   b:['b', 'Buts', 42, j => sj(j, 'b'), v => v, 0, 'Buts marqués'],
   xb:['xb', 'xB', 44, j => sj(j, 'xb'), v => nb(v), 0, 'Buts attendus'],
   t:['t', 'Tirs', 42, j => sj(j, 't'), v => v, 0, 'Tirs'],
@@ -84,7 +88,7 @@ const COL_J = {
   vifT:['vifT', 'Capture', 58, j => div(sj(j, 'vifT'), sj(j, 'v')), v => v == null ? '—' : Math.round(v) + ' min', 1, 'Minute moyenne de ses captures'],
   bl:['bl', 'Bless.', 46, j => sj(j, 'bl'), v => v, 1, 'Blessures subies en match'],
 };
-const COLS_POSTE = {tous:['moy', 'mvp', 'm', 'tit', 'mn', 'f', 'bl'], P:['b', 'xb', 'fin', 't', 'prec', 'pen', 'moy', 'm'], B:['cog', 'cogm', 'bc', 'f', 'moy', 'm'],
+const COLS_POSTE = {tous:['moy', 'mvp', 'm', 'tit', 'mn', 'f', 'ja', 'ro', 'bl'], P:['b', 'xb', 'fin', 't', 'prec', 'pen', 'moy', 'm'], B:['cog', 'cogm', 'bc', 'f', 'ja', 'moy', 'm'],
   A:['v', 'vifp', 'vifT', 'moy', 'm'], G:['arrp', 'arr', 'enc', 'evit', 'penArr', 'moy', 'm']};   // la colonne du tri par défaut en premier
 const DEF_TRI = {tous:'moy', P:'b', B:'cog', A:'v', G:'arrp'};
 
