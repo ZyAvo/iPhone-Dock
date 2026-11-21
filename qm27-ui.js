@@ -1,4 +1,4 @@
-// mon-ecran-version: c0bd4c8b
+// mon-ecran-version: 8c35df9a
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -434,46 +434,151 @@ function carriereHTML(j){
    sont surlignés, ceux du rôle plus fort. Purement visuel : la composition ne change que dans la Tactique. */
 let FJ = null;
 const roleCompo = j => { const c = j.club && club(j.club); return c && c.compo && c.compo.roles ? c.compo.roles[j.id] || null : null; };
+/* ---------- v161 : la fiche joueur en page entière (mobile et PC), cinq onglets, flèches pour passer d'un joueur à l'autre ---------- */
+const ONGLETS_FJ = [['gen', 'Général'], ['att', 'Attributs et entraînement', 'Attributs'], ['mor', 'Moral'], ['con', 'Contrat'], ['car', 'Carrière']];
+const estDesk = () => document.documentElement.classList.contains('desk');
+/* moral : cinq visages, du rouge au vert (dessinés en attendant les images) */
+const MORAUX = [[20, 'furieux', '#d64545'], [40, 'mécontent', '#e8833a'], [60, 'neutre', '#d9b31f'], [80, 'content', '#7cb342'], [101, 'ravi', '#2e9e5b']];
+const niveauMoral = m => MORAUX.findIndex(x => m < x[0]);
+function visageMoral(m, t = 28){ const k = niveauMoral(m), [, nom, c] = MORAUX[k], bouche = ['M9 23 Q16 16 23 23', 'M10 22 Q16 19 22 22', 'M10 21 L22 21', 'M10 20 Q16 24 22 20', 'M9 19 Q16 27 23 19'][k];
+  const sourcils = k === 0 ? '<path d="M9 10 L14 12 M23 10 L18 12" stroke="#2b1d12" stroke-width="1.6" stroke-linecap="round"/>' : '';
+  return `<svg class="visage" viewBox="0 0 32 32" width="${t}" height="${t}" role="img" aria-label="Moral : ${nom}"><circle cx="16" cy="16" r="14.5" fill="${c}" stroke="rgba(0,0,0,.35)"/>${sourcils}<circle cx="11.5" cy="13.5" r="1.9" fill="#2b1d12"/><circle cx="20.5" cy="13.5" r="1.9" fill="#2b1d12"/><path d="${bouche}" fill="none" stroke="#2b1d12" stroke-width="2" stroke-linecap="round"/></svg>`; }
+/* potentiel : une étoile à cinq branches, chaque branche pleine ou vide */
+function etoilePot(n, t = 30){ const R = 15, r = 6.2, c = 16, pt = (a, d) => [c + d * Math.sin(a), c - d * Math.cos(a)].map(x => x.toFixed(2)).join(',');
+  const br = [0, 1, 2, 3, 4].map(i => { const a = i * 2 * Math.PI / 5, g = a - Math.PI / 5, d = a + Math.PI / 5; return `<polygon points="${pt(g, r)} ${pt(a, R)} ${pt(d, r)} ${c},${c}" class="${i < n ? 'pl' : 'vd'}"/>`; }).join('');
+  return `<svg class="etp" viewBox="0 0 32 32" width="${t}" height="${t}" role="img" aria-label="Potentiel ${n} sur 5">${br}</svg>`; }
+function statutJ(j){
+  if (j.bless) return ['bless', 'Blessé', `${j.bless.jours} j`];
+  if (j.susp) return ['susp', 'Suspendu', `${j.susp.n} m.`];
+  if (j.inter) return ['inter', 'En sélection', (D.NATIONS[j.inter] || {court:j.inter}).court || j.inter];
+  if (j.pret && j.club === M.manager.club) return ['pret', 'Prêté ici', ''];
+  if (!j.club) return ['libre', 'Agent libre', ''];
+  return ['actif', 'Actif', ''];
+}
+/* meilleur badge d'un joueur (rôles de son poste) : [badge, rôle] */
+function meilleurBadge(j){ let best = null; for (const [r] of (D.ROLES[j.poste] || [])){ const b = badgeDe(j, j.poste, r); if (b && (!best || rangBadge(b) > rangBadge(best[0]))) best = [b, r]; } return best; }
+const badgeRoleHTML = (j, x) => x ? `<span class="bdg ${x[0][0]}${x[0][3] ? ' est' : ''}" title="Badge ${x[0][1].toLowerCase()}${x[0][3] ? ' estimé' : ''} : ${esc(roleNom(j.poste, x[1]))}">${x[0][1]}${x[0][3] ? ' ?' : ''}</span> <span class="mut">${esc(roleNom(j.poste, x[1]).toLowerCase())}</span>` : '';
+const tuile = (lib, val, cls) => `<div class="fjt${cls ? ' ' + cls : ''}"><span>${lib}</span><b>${val}</b></div>`;
+/* attributs : une ligne (valeur, part dans la note au poste lu, progression depuis le dernier rapport mensuel) */
+function ligneAttrFJ(j, k, nom, v, c, part, mx, ancien){
+  const x = valVue(j, v, k), d = ancien != null && x.exact ? Math.round(v) - Math.round(ancien) : 0;
+  return `<div class="at${c ? ' c' : ''}${c === 2 ? ' r' : ''}${x.exact ? '' : ' flou'}" title="${esc(nom)}${c === 2 ? ' · attribut du rôle' : c ? ' · compte dans la note au poste' : ''}${part ? ` (${Math.round(part * 100)} % de la note)` : ''}"><span>${esc(COURT_ATTR[k] || nom)}</span>${part ? `<i class="pt" style="width:${Math.round(part / mx * 100)}%"></i>` : '<i class="pt vide"></i>'}<em class="tdc ${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '▲' : d < 0 ? '▼' : ''}</em><b class="${classeAttr(x.mid)}">${x.txt}</b></div>`; }
+function tableAttrsFJ(j, P_, ra){
+  const PN = QM.partNote ? QM.partNote(P_) : {}, mx = Math.max(...Object.values(PN), 0.01), A0 = j.aM || null;
+  const cib = k => { const pt = PN[k] || 0, c = pt >= 0.05; return ra.includes(k) ? 2 : c ? 1 : 0; };
+  const fam = f => `<div class="fa"><h4>${f}</h4>${D.ATTRS.map((a, i) => a[2] !== f ? '' : ligneAttrFJ(j, a[0], a[1], j.a[i], cib(a[0]), PN[a[0]] || 0, mx, A0 ? A0[i] : null)).join('')}</div>`;
+  const gard = j.poste === 'G' || P_ === 'G' ? `<div class="fa fa-g"><h4>Gardien</h4><div class="fa-gl">${D.GARDIEN.map((g, i) => ligneAttrFJ(j, g[0], g[1], j.g[i], ra.includes('g:' + g[0]) ? 2 : (PN['g:' + g[0]] || 0) >= 0.05 ? 1 : 0, PN['g:' + g[0]] || 0, mx, j.gM ? j.gM[i] : null)).join('')}</div></div>` : '';
+  return `<div class="fj-at"><div class="fj-at-col">${fam('Physique')}${fam('Balle')}</div><div class="fj-at-col">${fam('Vol')}${fam('Mental')}</div>${gard}</div>`;
+}
+function lecturePosteRole(j){
+  const P_ = FJ.p, ROLES_P = D.ROLES[P_] || [], role = ROLES_P.some(x => x[0] === FJ.role) ? FJ.role : null, kc = connu(j);
+  const T_ = window.QMT, ad = T_ ? T_.adequation(j, P_, role || (ROLES_P[0] || [])[0]) : null, autre = P_ !== j.poste || role !== roleCompo(j);
+  return `<div class="npostes" role="group" aria-label="Lire la fiche pour un poste">${['P', 'B', 'A', 'G'].map(p => { const x = noteVue(j, p); return `<button class="${p === P_ ? 'on' : ''}${p === j.poste ? ' nat' : ''}" data-act="fjPoste" data-p="${p}" aria-pressed="${p === P_}"><b class="${classeNote(x.mid)}" style="color:inherit">${x.txt}</b><span>${D.POSTES[p].nom}</span></button>`; }).join('')}</div>
+    <div class="fj-roles"><div class="chips petites">${ROLES_P.map(([k, nom]) => { const e = ad && ad.roles ? ad.roles[k] : null; return `<button class="chip ${k === role ? 'on' : ''}" data-act="fjRole" data-r="${k}" aria-pressed="${k === role}" title="${esc((ROLES_P.find(x => x[0] === k) || [])[2] || '')}">${badgeHTML(j, P_, k, true)}${esc(nom)}${e != null && kc >= 100 ? ` <span class="mut">${e > 0 ? '+' : ''}${String(Math.round(e * 10) / 10).replace('.', ',')}</span>` : ''}</button>`; }).join('')}</div>
+    ${autre ? '<p class="petit mut" style="margin:4px 0 0">Lecture seulement : la composition se change dans Tactique.</p>' : ''}</div>`;
+}
+function saisonFJ(j){
+  const s = j.saison || {}, [ix, nomS] = STAT_P[j.poste], val = {3:s.b, 4:s.cog, 5:s.v, 6:s.arr}[ix] || 0, nS = j.nS && j.nS.s === M.saison ? j.nS : null;
+  return `<div class="fj-saison2"><div><b>${s.m || 0}</b><span>matchs${s.m ? ` (${s.tit || 0} tit., ${(s.m || 0) - (s.tit || 0)} entrées)` : ''}</span></div><div><b>${s.mn || 0}</b><span>minutes</span></div>
+    <div><b>${val}</b><span>${nomS}</span></div><div><b>${s.m ? (s.notes / s.m).toFixed(1).replace('.', ',') : '—'}</b><span>note moyenne</span></div>
+    <div><b>${s.ja || 0} / ${s.ro || 0}</b><span>cartons J / R</span></div><div><b>${s.mvp || 0}</b><span>joueur du match</span></div></div>
+    ${j.sel ? `<p class="petit" style="margin:6px 0 0">${flag(j.nat)} <b>${j.sel} sélection${j.sel > 1 ? 's' : ''}</b>${j.selB ? `, ${j.selB} but${j.selB > 1 ? 's' : ''}` : ''}${nS ? ` · cette saison : ${nS.m} match${nS.m > 1 ? 's' : ''}${nS.b ? `, ${nS.b} but${nS.b > 1 ? 's' : ''}` : ''}` : ''}</p>` : ''}`;
+}
+function ongletGeneral(j, desk){
+  const mon = j.club === M.manager.club, bp = QM.meilleurPoste(j), nv = noteVue(j, bp), est = C.potentielEstime(M, j), st = statutJ(j), v = C.valeur(M, j), cl = j.contrat || {};
+  const tiles = `<div class="fjt-l">${tuile('Note', `${nv.txt}<small> ${D.POSTES[bp].court || bp}</small>`, classeNote(nv.mid))}${tuile('Potentiel', etoilePot(est))}${tuile('Statut', `${st[1]}${st[2] ? `<small> ${esc(st[2])}</small>` : ''}`, 'st-' + st[0])}${tuile('Moral', visageMoral(j.moral))}</div>
+    <div class="fjt-l t3">${tuile('Salaire', j.club ? eur(cl.sal || 0) + '<small> /sem.</small>' : '—')}${tuile('Valeur', eur(v))}${tuile('Expire', j.club && cl.fin != null ? 'été ' + (cl.fin + 1) : '—')}</div>`;
+  const rapport = `<blockquote class="rapport">« ${esc(rapportRecruteur(j))} »<span>${mon || true ? 'Rapport de ton recruteur' : ''}</span></blockquote>
+    ${QM.manies(j).length ? `<div class="manies">${QM.manies(j).map(k => { const m = D.MANIES.find(x => x[0] === k); return m ? `<span class="manie"><b>${esc(m[1])}</b>${esc(m[3])}</span>` : ''; }).join('')}</div>` : ''}`;
+  const roles = `<div class="carte"><h2>Rôles et badges</h2>${lecturePosteRole(j)}</div>`;
+  const saison = `<div class="carte"><h2>Saison ${lab(M.saison)}</h2>${saisonFJ(j)}</div>`;
+  const r = mon ? roleDe(j.id) : {}, place = mon ? `<p class="petit mut" style="margin:8px 0 0">${r.tit ? `Titulaire (${D.POSTES[r.p].nom.toLowerCase()}).` : r.banc ? 'Remplaçant.' : 'Hors du groupe de 12.'}</p>` : '';
+  const potion = mon && B.a(club(M.manager.club), 'apothicaire') ? `<button class="btn sec plein" style="margin-top:8px" data-act="potion" data-j="${j.id}">Potion de forme de l'apothicaire (+2 forme)</button>` : '';
+  if (!desk) return `${tiles}${saison}${roles}${rapport}${place}${potion}`;
+  /* PC : une page en paysage, façon Football Manager */
+  const kc = connu(j), etat = `<div class="fj-etat">
+      <div><span>Forme</span><b>${j.forme}<small>/10</small></b><div class="barre"><i style="width:${j.forme * 10}%"></i></div></div>
+      <div><span>Fatigue</span><b>${j.fat}<small> %</small></b><div class="barre fat"><i style="width:${j.fat}%"></i></div></div>
+      <div><span>Charge</span><b>${Math.round(j.charge || 0)}<small>/100</small></b><div class="barre fat"><i style="width:${Math.round(j.charge || 0)}%"></i></div></div></div>`;
+  const P_ = FJ.p, role = (D.ROLES[P_] || []).some(x => x[0] === FJ.role) ? FJ.role : null, T_ = window.QMT, ra = T_ && T_.ROLE_ATTR[P_] && role ? T_.ROLE_ATTR[P_][role] : [];
+  return `<div class="fj-pc"><div class="fj-pc-g">${tiles}${etat}${contratResume(j)}${place}${potion}</div>
+    <div class="fj-pc-m"><div class="carte fj-attrs"><h2>Attributs${P_ === j.poste ? '' : ' <span class="mut petit">lus en ' + esc(D.POSTES[P_].nom.toLowerCase()) + '</span>'}</h2><p class="fj-leg">Surlignés : ce qui fait la note au poste (barre : sa part)${role ? ' · en doré : le rôle ' + esc(roleNom(P_, role).toLowerCase()) : ''}.</p>${tableAttrsFJ(j, P_, ra)}${kc < 100 ? `<p class="petit mut" style="margin:6px 0 0">Connu à ${Math.round(kc)} % : attributs en fourchette.</p>` : ''}</div></div>
+    <div class="fj-pc-d">${roles}<div class="carte fj-radar">${V.radar(axesRadar(j).map(([l, x]) => [l, kc >= 100 ? x : valVue(j, Math.round(x), 'ax' + l).mid]), COULEUR_POSTE[j.poste])}</div>${saison}${rapport}</div></div>`;
+}
+function contratResume(j){
+  const cl = j.contrat || {}, inf = [cl.clause ? `Clause libératoire ${eur(cl.clause)}` : '', cl.primeVif ? `Prime par vif ${eur(cl.primeVif)}` : '', j.revente ? `${j.revente.pct} % à la revente` : ''].filter(Boolean);
+  return j.club ? `<div class="carte"><h2>Contrat</h2><p class="petit" style="margin:0">${esc(club(j.club).nom)}${j.pret ? ' (prêt)' : ''} · jusqu'à l'été ${cl.fin + 1}${inf.length ? '<br>' + inf.join(' · ') : ''}</p></div>` : '';
+}
+function ongletAttributs(j){
+  const P_ = FJ.p, role = (D.ROLES[P_] || []).some(x => x[0] === FJ.role) ? FJ.role : null, T_ = window.QMT, ra = T_ && T_.ROLE_ATTR[P_] && role ? T_.ROLE_ATTR[P_][role] : [], kc = connu(j), mon = j.club === M.manager.club;
+  const X = window.QMX, G_ = window.QMG, F = G_ && G_.focusDe ? G_.focusDe(j) : [], cb = mon && X ? X.courbes()[j.id] : null, pr = mon ? (club(M.manager.club).progres || {})[j.id] : null, est = C.potentielEstime(M, j);
+  const ent = mon ? `<div class="carte"><h2>Entraînement</h2>
+      <p class="petit" style="margin:0 0 6px">${F.length ? 'Focus : ' + F.map(x => `<span class="badge${x.t === 'poste' ? ' tit' : ''}">${esc(X ? X.NOMS_FOCUS({...x, p:j.poste}) : x.k)}</span>`).join(' ') : '<span class="mut">Aucun focus : il progresse au rythme du groupe.</span>'}</p>
+      ${j.reconv ? `<p class="petit" style="margin:0 0 6px">Apprend le poste de <b>${D.POSTES[j.reconv.p].nom.toLowerCase()}</b> : ${j.reconv.sem} / ${G_ ? G_.SEM_POSTE : 36} semaines.</p>` : ''}
+      <p class="petit" style="margin:0 0 6px">Potentiel estimé ${etoilePot(est, 18)} ${est} sur 5${pr ? ` · ce mois-ci ${pr > 0 ? '+' : ''}${(pr * 5).toFixed(1).replace('.', ',')} point${Math.abs(pr * 5) >= 2 ? 's' : ''} de note` : ''}</p>
+      ${cb && cb.length > 1 && X ? `<div class="fj-courbe">${X.courbe(cb)}<span class="petit mut">note au poste depuis le début de la saison</span></div>` : ''}
+      <button class="btn sec plein" style="margin-top:8px" data-act="focusJ" data-j="${j.id}">Choisir ses focus</button></div>` : '';
+  return `${lecturePosteRole(j)}
+    <div class="carte fj-attrs"><h2>Attributs</h2><p class="fj-leg">Surlignés : ce qui fait la note au poste (barre : sa part)${role ? ' · en doré : le rôle ' + esc(roleNom(P_, role).toLowerCase()) : ''}${j.aM ? ' · ▲▼ depuis le dernier rapport mensuel' : ''}.</p>${tableAttrsFJ(j, P_, ra)}
+      ${kc < 100 ? `<p class="petit mut" style="margin:6px 0 0">Attributs en fourchette : ${Math.round(kc)} % connu. Suis le joueur ou affronte son équipe pour en savoir plus.</p>` : ''}</div>
+    <div class="carte fj-radar">${V.radar(axesRadar(j).map(([l, x]) => [l, kc >= 100 ? x : valVue(j, Math.round(x), 'ax' + l).mid]), COULEUR_POSTE[j.poste])}</div>${ent}`;
+}
+function sparkMoral(L){ if (!L || L.length < 2) return ''; const w = 260, h = 60, n = L.length, x = i => 4 + i * (w - 8) / (n - 1), y = v => h - 4 - v / 100 * (h - 8);
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" aria-hidden="true">${[20, 40, 60, 80].map(v => `<line x1="0" x2="${w}" y1="${y(v)}" y2="${y(v)}" class="g"/>`).join('')}<polyline points="${L.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/>${L.map((v, i) => i === n - 1 ? `<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="var(--accent)"/>` : '').join('')}</svg>`; }
+const traitCache = (k, v) => ({pro:['Peu sérieux', 'Professionnel', 'Modèle de rigueur'], amb:['Sans ambition', 'Ambitieux', 'Dévoré d\'ambition'], reg:['Irrégulier', 'Assez régulier', 'Métronome'], gm:['Tétanisé par l\'enjeu', 'Solide dans les grands matchs', 'Se sublime dans les grands matchs'], ada:['Craint la météo', 'S\'adapte', 'Joue par tous les temps'], loy:['Mercenaire', 'Loyal', 'Fidèle au club']}[k] || ['', '', ''])[v < 8 ? 0 : v < 14 ? 1 : 2];
+function ongletMoral(j){
+  const mon = j.club === M.manager.club, c = j.club ? club(j.club) : null, H_ = HH(), k = niveauMoral(j.moral), L = [];
+  if (mon && H_){ const s = j.saison || {};
+    if (H_.mecontents(M, c).some(x => x.id === j.id)) L.push(['m', `Veut jouer davantage : ${s.m || 0} matchs joués pour environ ${Math.round(s.mAttendu || 0)} attendus.`]);
+    else if ((s.mAttendu || 0) > 0) L.push(['b', `Temps de jeu conforme à ce qu'il attend (${s.m || 0} matchs).`]);
+    if (H_.leaders(M, c).some(x => x.id === j.id)) L.push(['b', 'Un des leaders du vestiaire : son moral pèse sur les autres.']);
+    const cl = H_.clans(M, c).find(x => x.joueurs.some(y => y.id === j.id)); if (cl) L.push([cl.moral >= 60 ? 'b' : cl.moral < 40 ? 'm' : '', `Fait partie du clan « ${esc(cl.nom)} » (${cl.joueurs.length} joueurs, moral moyen ${cl.moral}).`]);
+    if (H_.mentore && H_.mentore(c, j)) L.push(['b', 'Suit un mentor : il prend peu à peu son état d\'esprit.']);
+    if ((c.mentors || []).some(p => p.mentor === j.id)) L.push(['b', 'Mentor d\'un jeune joueur.']);
+    if (c.compo && c.compo.cap === j.id) L.push(['b', 'Capitaine de l\'équipe.']);
+    L.push([H_.ambiance(M, c) >= 65 ? 'b' : H_.ambiance(M, c) < 45 ? 'm' : '', `Ambiance du vestiaire : ${H_.ambiance(M, c)} / 100.`]); }
+  if (j.contrat && j.contrat.fin <= M.saison && j.club) L.push(['m', 'Son contrat se termine cet été.']);
+  if (j.bless) L.push(['m', 'Blessé : il ronge son frein.']);
+  if (j.forme >= 8) L.push(['b', 'En grande forme.']); else if (j.forme <= 4) L.push(['m', 'En petite forme.']);
+  const vu = mon || connu(j) >= 80, perso = vu ? ['pro', 'amb', 'reg', 'gm', 'ada', 'loy'].filter(x => j.cache[x] != null).map(x => `<div class="el"><div class="t"><b>${esc(traitCache(x, j.cache[x]))}</b><span>${esc((D.CACHES.find(y => y[0] === x) || [, x])[1])}</span></div></div>`).join('') : '';
+  return `<div class="carte fj-moral"><div class="fj-moral-h">${visageMoral(j.moral, 54)}<div><b>${Math.round(j.moral)} / 100</b><span>${MORAUX[k][1]}</span></div></div>
+      ${mon && j.mh && j.mh.length > 1 ? `${sparkMoral(j.mh)}<p class="petit mut" style="margin:2px 0 0">Les ${j.mh.length} dernières semaines.</p>` : mon ? '<p class="petit mut" style="margin:6px 0 0">La courbe se remplit semaine après semaine (16 semaines gardées).</p>' : ''}</div>
+    <div class="carte"><h2>Ce qui le fait bouger</h2>${L.length ? `<ul class="fj-facteurs">${L.map(([t, x]) => `<li class="${t}">${x}</li>`).join('')}</ul>` : '<p class="petit mut" style="margin:0">Rien de particulier à signaler.</p>'}
+      <p class="petit mut" style="margin:6px 0 0">Les victoires et les bonnes notes le font monter ; le banc, les défaites et un leader malheureux le font baisser.</p></div>
+    <div class="carte"><h2>Personnalité <span class="mut petit">selon ton staff</span></h2>${perso ? `<div class="liste compacte">${perso}</div>` : '<p class="petit mut" style="margin:0">Ton recruteur ne le connaît pas assez (80 % nécessaires).</p>'}</div>`;
+}
+function ongletCarriere(j){
+  const L = matchsInter(j.id);
+  return `${carriereHTML(j).replace('<details class="carte fj-carriere">', '<details class="carte fj-carriere" open>')}
+    <div class="carte"><h2>Sélection ${flag(j.nat)}</h2><p class="petit" style="margin:0 0 6px">${j.sel ? `<b>${j.sel} sélection${j.sel > 1 ? 's' : ''}</b>${j.selB ? `, ${j.selB} but${j.selB > 1 ? 's' : ''}` : ''}${j.selV ? `, ${j.selV} vif${j.selV > 1 ? 's' : ''} d'or` : ''}` : 'Jamais sélectionné.'}</p>
+      ${L.length ? `<h4 class="sous-t">Matchs de la saison</h4><div class="liste">${L.map(([k, m]) => { const x = m.res.f.c.flat().find(y => y[0] === j.id); return `<button class="el" data-act="feuilleInter" data-k="${k}" data-m="${m.id}">${blason(m.dom, 'p', true)}<div class="t"><b>${esc(nomEq(m.dom, true))} ${m.res.score.join('–')} ${esc(nomEq(m.ext, true))}</b><span>${fmtDate(M.calendrier[k].date)}${x && x[3] ? ` · ${x[3]} but${x[3] > 1 ? 's' : ''}` : ''}</span></div>${x && x[2] ? `<span class="note ${classeNote(x[2] * 10)}">${String(x[2]).replace('.', ',')}</span>` : ''}</button>`; }).join('')}</div>` : ''}</div>`;
+}
+/* liste suivie par les flèches : les fiches ouvertes depuis la même liste (ordre et filtres de l'écran) */
+function listeDepuis(el){
+  for (let n = el && el.parentElement; n && n !== document.body; n = n.parentElement){ const L = [...n.querySelectorAll('[data-act="joueur"][data-j]')].map(x => x.dataset.j); const U_ = [...new Set(L)]; if (U_.length > 1) return U_; }
+  return null;
+}
 function ficheJoueur(id, garder){
   const j = M.joueurs[id]; if (!j) return;
-  if (!FJ || FJ.id !== id) FJ = {id, p:j.poste, role:roleCompo(j)};
-  const P_ = FJ.p, ROLES_P = D.ROLES[P_] || [], role = ROLES_P.some(x => x[0] === FJ.role) ? FJ.role : null;
-  const T_ = window.QMT, ra = T_ && T_.ROLE_ATTR[P_] && role ? T_.ROLE_ATTR[P_][role] : [], ad = T_ ? T_.adequation(j, P_, role || (ROLES_P[0] || [])[0]) : null;
-  const mon = j.club === M.manager.club, r = mon ? roleDe(id) : {}, cl = j.club ? club(j.club) : null;
-  const PN = QM.partNote ? QM.partNote(P_) : null, part = {};   // v160 : surlignés = ce qui fait la note au poste (5 % ou plus)
-  const cible = {}; D.ATTRS.forEach(a => { part[a[0]] = PN ? PN[a[0]] || 0 : 0; const c = PN ? part[a[0]] >= 0.05 : a[3]['PBAG'.indexOf(P_)] === '●'; cible[a[0]] = c ? (ra.includes(a[0]) ? 2 : 1) : ra.includes(a[0]) ? 2 : 0; });
-  D.GARDIEN.forEach(g => { part[g[0]] = PN ? PN['g:' + g[0]] || 0 : 0; cible[g[0]] = P_ === 'G' ? (ra.includes('g:' + g[0]) ? 2 : (PN ? part[g[0]] >= 0.05 : true) ? 1 : 0) : 0; });
-  const autre = P_ !== j.poste || role !== roleCompo(j);
-  const s = j.saison, est = C.potentielEstime(M, j), rec = mon ? club(M.manager.club).staff.recruteur : null;
-  const kc = connu(j), ligne = (k, nom, v, c) => { const x = valVue(j, v, k); return `<div class="at${c ? ' c' : ''}${c === 2 ? ' r' : ''}${x.exact ? '' : ' flou'}" title="${esc(nom)}${c === 2 ? ' · attribut du rôle' : c ? ' · compte dans la note au poste' : ''}${part[k] ? ` (${Math.round(part[k] * 100)} % de la note)` : ''}"><span>${esc(COURT_ATTR[k] || nom)}</span><b class="${classeAttr(x.mid)}">${x.txt}</b></div>`; };
-  const fam = f => `<div class="fa"><h4>${f}</h4>${D.ATTRS.map((a, i) => a[2] !== f ? '' : ligne(a[0], a[1], j.a[i], cible[a[0]])).join('')}</div>`;
-  feuille(`${teteF(`${esc(nomJ(j))}`, `${flagSeul(j.nat)} ${esc(nat(j.nat).nom)} · ${j.age} ans · ${D.POSTES[j.poste].nom}${cl ? ' · ' + (mon ? 'n° ' + j.num : esc(cl.nom)) : ' · agent libre'}`, `<span class="avp g">${avatarDe(j, 'g')}${cl ? `<span class="blp">${V.blason(cl, 'p')}</span>` : ''}</span>`)}
-    <div class="fj-haut"><div class="fj-radar">${V.radar(axesRadar(j).map(([l, v]) => [l, kc >= 100 ? v : valVue(j, Math.round(v), 'ax' + l).mid]), COULEUR_POSTE[j.poste])}${kc < 100 ? `<p class="petit mut" style="margin:0;text-align:center">Estimation · connu à ${Math.round(kc)} %</p>` : ''}</div>
-      <div class="fj-etat">
-        <div><span>Forme</span><b>${j.forme}<small>/10</small></b><div class="barre"><i style="width:${j.forme * 10}%"></i></div></div>
-        <div><span>Fatigue</span><b>${j.fat}<small> %</small></b><div class="barre fat"><i style="width:${j.fat}%"></i></div></div>
-        <div title="Fatigue cumulée : monte avec les matchs enchaînés, redescend quand le joueur souffle"><span>Charge</span><b class="${(j.charge || 0) >= 60 ? 'mauvais' : (j.charge || 0) >= 40 ? 'moyen' : ''}">${Math.round(j.charge || 0)}<small>/100</small></b><div class="barre fat"><i style="width:${Math.round(j.charge || 0)}%"></i></div></div>
-        <div><span>Moral</span><b>${Math.round(j.moral)}<small>/100</small></b><div class="barre"><i style="width:${Math.round(j.moral)}%"></i></div></div>
-        <div><span>Potentiel</span><span class="etoiles">${'★'.repeat(est)}${'☆'.repeat(5 - est)}</span></div>
-        ${j.bless ? `<div class="bls"><span>Blessure</span><b>${esc(j.bless.nom)} · ${j.bless.jours} j</b></div>` : ''}
-        ${j.susp ? `<div class="bls"><span>Suspendu</span><b>${j.susp.n} match${j.susp.n > 1 ? 's' : ''} · ${esc(j.susp.r)}</b></div>` : ''}
-      </div></div>
-    <blockquote class="rapport">« ${esc(rapportRecruteur(j))} »<span>${rec ? `Rapport de ${esc(rec.p + ' ' + rec.n)}, recruteur` : 'Rapport de ton recruteur'}</span></blockquote>
-    ${QM.manies(j).length ? `<div class="manies">${QM.manies(j).map(k => { const m = D.MANIES.find(x => x[0] === k); return m ? `<span class="manie"><b>${esc(m[1])}</b>${esc(m[3])}</span>` : ''; }).join('')}</div>` : ''}
-    <div class="npostes" role="group" aria-label="Lire la fiche pour un poste">${['P', 'B', 'A', 'G'].map(p => { const x = noteVue(j, p); return `<button class="${p === P_ ? 'on' : ''}${p === j.poste ? ' nat' : ''}" data-act="fjPoste" data-p="${p}" aria-pressed="${p === P_}"><b class="${classeNote(x.mid)}" style="color:inherit${x.exact ? '' : ';font-size:.92rem'}">${x.txt}</b><span>${D.POSTES[p].nom}</span></button>`; }).join('')}</div>
-    <div class="fj-roles"><div class="chips petites">${ROLES_P.map(([k, nom]) => { const e = ad && ad.roles ? ad.roles[k] : null; return `<button class="chip ${k === role ? 'on' : ''}" data-act="fjRole" data-r="${k}" aria-pressed="${k === role}" title="${esc((ROLES_P.find(x => x[0] === k) || [])[2] || '')}">${badgeHTML(j, P_, k, true)}${esc(nom)}${e != null && kc >= 100 ? `<small class="${e >= 1 ? 'bon' : e < -1.2 ? 'mauvais' : 'mut'}">${e > 0 ? '+' : ''}${String(e).replace('.', ',')}</small>` : ''}</button>`; }).join('')}</div>
-      <p class="petit mut">${role ? esc((ROLES_P.find(x => x[0] === role) || [])[2] || '') + ' ' : 'Choisis un rôle pour surligner ses attributs. '}${kc >= 100 ? '<span title="Moyenne de ses attributs du rôle moins sa moyenne au poste">Le chiffre : ses attributs du rôle comparés à son niveau au poste. </span>' : ''}${autre ? `<button class="lien" data-act="fjRaz">Revenir à son poste</button>` : ''}</p></div>
-    ${kc < 100 ? `<p class="petit mut" style="margin:6px 2px 0">Attributs en fourchette : ${Math.round(kc)} % connu. Suis le joueur (ton recruteur l'observe chaque semaine) ou affronte son équipe pour en savoir plus.</p>` : ''}
-    <div class="carte fj-attrs"><h2>Attributs <span class="mut petit">${P_ === j.poste ? 'surlignés' : 'en ' + esc(D.POSTES[P_].nom.toLowerCase())} : ce qui fait la note au poste${role ? ' · plus fort : rôle ' + esc(((ROLES_P.find(x => x[0] === role) || [])[1] || '').toLowerCase()) : ''}</span></h2><div class="cols-at">
-      ${fam('Physique')}${fam('Vol')}${fam('Balle')}${fam('Mental')}
-      ${j.poste === 'G' || P_ === 'G' ? `<div class="fa"><h4>Gardien</h4>${D.GARDIEN.map((g, i) => ligne(g[0], g[1], j.g[i], cible[g[0]])).join('')}</div>` : ''}
-    </div></div>
-    <p class="fj-saison"><b>Saison</b> ${s.m} match${s.m > 1 ? 's' : ''} · ${s.b} but${s.b > 1 ? 's' : ''} · ${s.v} vif${s.v > 1 ? 's' : ''} · note moyenne ${s.m ? (s.notes / s.m).toFixed(1) : '—'}</p>
-    ${carriereHTML(j)}
-    ${mon && B.a(club(M.manager.club), 'apothicaire') ? `<button class="btn sec plein" style="margin-top:10px" data-act="potion" data-j="${j.id}">Potion de forme de l'apothicaire (+2 forme)</button>` : ''}
-    ${j.acad ? blocJeune(j) : blocContrat(j, mon)}
-    ${mon ? `<p class="petit mut" style="margin-top:10px">${r.tit ? `Titulaire (${D.POSTES[r.p].nom.toLowerCase()}).` : r.banc ? 'Remplaçant.' : 'Hors du groupe de 12.'} Les changements se font dans Tactique.</p>` : ''}`, garder);
+  if (!FJ || FJ.id !== id) FJ = {id, p:j.poste, role:roleCompo(j), onglet:FJ ? FJ.onglet : 'gen', liste:FJ ? FJ.liste : null};
+  const desk = estDesk(), on = FJ.onglet || 'gen', mon = j.club === M.manager.club, cl = j.club ? club(j.club) : null, L = FJ.liste || [], i = L.indexOf(id), mb = meilleurBadge(j);
+  const corps = on === 'gen' ? ongletGeneral(j, desk) : on === 'att' ? ongletAttributs(j) : on === 'mor' ? ongletMoral(j) : on === 'con' ? (j.acad ? blocJeune(j) : blocContrat(j, mon)) : ongletCarriere(j);
+  const nav = d => L.length > 1 ? `<button class="fj-nav" data-act="fjNav" data-d="${d}" aria-label="${d < 0 ? 'Joueur précédent' : 'Joueur suivant'}">${d < 0 ? '‹' : '›'}</button>` : '';
+  const html = `<div class="fjp${desk ? ' desk' : ''}"><div class="fj-tete">${nav(-1)}<span class="avp g">${avatarDe(j, 'g')}${cl ? `<span class="blp">${V.blason(cl, 'p')}</span>` : ''}</span>
+      <div class="fj-id"><h3>${esc(nomJ(j))}</h3><div class="sous">${flagSeul(j.nat)} ${esc(nat(j.nat).nom)}${j.sel ? ` · ${j.sel} sél.` : ''} · ${j.age} ans · ${D.POSTES[j.poste].nom}${cl ? ' · ' + (mon ? 'n° ' + j.num : esc(cl.nom)) : ' · agent libre'}</div>${mb ? `<div class="sous">${badgeRoleHTML(j, mb)}</div>` : ''}</div>
+      ${L.length > 1 ? `<span class="fj-pos mut petit">${i + 1} / ${L.length}</span>` : ''}${nav(1)}${!mon && M.manager.club ? `<button class="fj-suivre" data-act="suivre" data-j="${j.id}" title="${club(M.manager.club).suivi.includes(j.id) ? 'Ne plus superviser' : 'Superviser'}">${club(M.manager.club).suivi.includes(j.id) ? '★' : '☆'}</button>` : ''}<button class="fermer" data-act="fermer" aria-label="Fermer">✕</button></div>
+    <div class="onglets fj-ong" role="tablist">${ONGLETS_FJ.map(([k, n, c]) => `<button role="tab" class="${on === k ? 'on' : ''}" data-act="fjOnglet" data-o="${k}" aria-selected="${on === k}">${c ? `<span class="long">${n}</span><span class="court">${c}</span>` : n}</button>`).join('')}</div>
+    <div class="fj-corps">${corps}</div></div>`;
+  const ouvert = document.querySelector('.fond.fj-page .feuille');
+  feuille(html, garder || !!ouvert);
+  const f = document.querySelector('.fond'); if (f) f.classList.add('fj-page');
+  const t = document.querySelector('.fond.fj-page .fj-tete'); if (t) t.parentElement.style.setProperty('--fjh', t.offsetHeight + 'px');
 }
+function naviguerFJ(d){ if (!FJ || !FJ.liste) return; const L = FJ.liste, i = L.indexOf(FJ.id); if (i < 0) return; const id = L[(i + d + L.length) % L.length]; const o = FJ.onglet, l = FJ.liste; FJ = {id, p:M.joueurs[id].poste, role:roleCompo(M.joueurs[id]), onglet:o, liste:l}; ficheJoueur(id, true); const c = document.querySelector('.fond.fj-page .feuille'); if (c) c.scrollTop = 0; }
+addEventListener('keydown', e => { if (!document.querySelector('.fond.fj-page') || /INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) return; if (e.key === 'ArrowLeft') naviguerFJ(-1); if (e.key === 'ArrowRight') naviguerFJ(1); });
+let fjTouch = null;
+document.addEventListener('touchstart', e => { if (e.target.closest && e.target.closest('.fond.fj-page .fj-corps') && !e.target.closest('.npostes, .chips, .tab-carr, .onglets')) fjTouch = [e.touches[0].clientX, e.touches[0].clientY]; else fjTouch = null; }, {passive:true});
+document.addEventListener('touchend', e => { if (!fjTouch) return; const dx = e.changedTouches[0].clientX - fjTouch[0], dy = e.changedTouches[0].clientY - fjTouch[1]; fjTouch = null; if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2) naviguerFJ(dx < 0 ? 1 : -1); }, {passive:true});
 
 /* ---------- Tactique ---------- */
 const CONSIGNES = [
@@ -901,10 +1006,20 @@ function mettre(jid, p, i, banc){
   fermerFeuille(); placerSlot(ctxCompo(), jid, banc ? 'R' + i : p + i);
 }
 
+/* ---------- v161 : feuille de match d'un match international (saison en cours) ---------- */
+function matchsInter(id){ const L = []; M.calendrier.forEach((S, k) => { for (const m of S.matchs) if (m.ligue === 'sixn' && m.res && m.res.f && m.res.f.c.some(c => c.some(x => x[0] === id))) L.push([k, m]); }); return L; }
+function feuilleInter(k, mid){
+  const S = M.calendrier[+k], m = S && S.matchs.find(x => x.id === mid); if (!m || !m.res || !m.res.f) return;
+  const f = m.res.f, ORD = {G:0, P:1, B:2, A:3}, ca = id => (f.ca || []).filter(c => c[0] === id).map(c => `<span class="crt-m ${c[2] === 'j' ? 'j' : 'r'}" title="${c[2] === 'j' ? 'Carton jaune' : 'Exclu'} (${c[3]}e)"></span>`).join('');
+  const col = (i, n) => `<div><h4 class="sous-t">${blason(n, 'p', true)} ${esc(nomEq(n, true))}</h4><div class="liste compacte">${f.c[i].slice().sort((a, b) => ORD[a[1]] - ORD[b[1]]).map(([id, p, note, b, v]) => { const j = M.joueurs[id];
+    return `<button class="el" data-act="joueur" data-j="${id}">${posteB(p)}<div class="t"><b>${j ? esc(court(j)) : '?'}${b ? ` <span class="mut">⚽ ${b}</span>` : ''}${v ? ' <span title="Vif d\'or">✦</span>' : ''}${ca(id)}</b><span>${j && j.club && M.clubs[j.club] ? esc(M.clubs[j.club].nom) : 'sans club'}</span></div>${note ? `<span class="note ${classeNote(note * 10)}">${String(note).replace('.', ',')}</span>` : ''}</button>`; }).join('')}</div></div>`;
+  feuille(`${teteF(`${esc(nomEq(m.dom, true))} ${m.res.score.join('–')} ${esc(nomEq(m.ext, true))}`, `${esc(m.comp === 'ldn' ? D.LDN.nom : D.AMICAUX.nom)} · ${fmtDate(S.date, true)} · ${m.res.duree} min${m.res.vif >= 0 ? ' · vif d\'or : ' + esc(nomEq(m.res.vif ? m.ext : m.dom, true)) : ''}`)}
+    <div class="cols feuille-inter">${col(0, m.dom)}${col(1, m.ext)}</div><p class="petit mut">Notes du match sur 10. Touche un joueur pour sa fiche.</p>`);
+}
 /* ---------- Calendrier ---------- */
 function ficheSemaine(k){
   const s = M.calendrier[k], mg = M.manager, l = mg.club ? club(mg.club).ligue : null;
-  const ligne = (m, sixn) => `<div class="el">${blason(m.dom, 'p', sixn)}<div class="t"><b>${esc(nomEq(m.dom, sixn))} – ${esc(nomEq(m.ext, sixn))}</b><span>${m.res ? `${m.res.duree} min${m.res.vif >= 0 ? ' · vif d\'or : ' + esc(nomEq(m.res.vif ? m.ext : m.dom, sixn)) : ''}` : 'à venir'}</span></div><b>${m.res ? m.res.score.join('–') : ''}</b>${blason(m.ext, 'p', sixn)}</div>`;
+  const ligne = (m, sixn) => `<${sixn && m.res && m.res.f ? `button data-act="feuilleInter" data-k="${k}" data-m="${m.id}" title="Feuille de match"` : 'div'} class="el">${blason(m.dom, 'p', sixn)}<div class="t"><b>${esc(nomEq(m.dom, sixn))} – ${esc(nomEq(m.ext, sixn))}</b><span>${m.res ? `${m.res.duree} min${m.res.vif >= 0 ? ' · vif d\'or : ' + esc(nomEq(m.res.vif ? m.ext : m.dom, sixn)) : ''}` : 'à venir'}</span></div><b>${m.res ? m.res.score.join('–') : ''}</b>${blason(m.ext, 'p', sixn)}</${sixn && m.res && m.res.f ? 'button' : 'div'}>`;
   const Ls = s.matchs.filter(m => m.ligue === 'sixn'), Lc = s.matchs.filter(m => m.ligue !== 'sixn' && m.ligue !== 'eu' && (!l || m.ligue === l)), Le = s.matchs.filter(m => m.ligue === 'eu'), QE = window.QME;
   const titre = s.type === 'sixn' ? (s.comp && window.QMN ? window.QMN.titreSemaine(s) : `${D.TOURNOI.court} · tour ${s.tour}`) : s.type === 'europe' && QE ? `Finale de la ${QE.NOM}` : `Journée ${s.journee}${s.tour ? ' · ' + D.TOURNOI.court + ' (tour ' + s.tour + ')' : ''}`;
   feuille(`${teteF(titre, fmtDate(s.date, true))}
@@ -1011,7 +1126,7 @@ function ligneMercato(j, d){
   const p = MERC.poste !== 'tous' && MERC.poste !== 'bless' ? MERC.poste : j.poste, nv = noteVue(j, p), n = nv.mid;
   return `<button class="el" data-act="joueur" data-j="${j.id}">${j.club ? blason(j.club, 'p') : '<span class="blason nat p" aria-hidden="true" style="font-size:.5rem;font-weight:800;color:var(--ink-soft)">LIBRE</span>'}${posteB(j.poste)}
     <div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>${j.age} ans · ${d || (j.club ? esc(club(j.club).sigle) + ' · ' + eur(C.valeur(M, j)) : 'libre · demande ' + eur(C.salaireDemande(j, club(M.manager.club))) + '/sem.')}</span></div>
-    ${MERC.role && MERC.role.startsWith(j.poste + ':') ? badgeHTML(j, j.poste, MERC.role.split(':')[1]) : ''}<span class="etoiles petit" aria-label="potentiel">${'★'.repeat(C.potentielEstime(M, j))}</span><span class="note ${classeNote(n)}${nv.exact ? '' : ' flou'}">${nv.txt}</span></button>`;
+    ${MERC.role && MERC.role.startsWith(j.poste + ':') ? badgeHTML(j, j.poste, MERC.role.split(':')[1]) : (b => b ? `<span class="bdg ${b[0][0]}${b[0][3] ? ' est' : ''}" title="Meilleur badge : ${esc(roleNom(j.poste, b[1]))}${b[0][3] ? ' (estimé)' : ''}">${b[0][1]}${b[0][3] ? ' ?' : ''}</span>` : '')(meilleurBadge(j))}<span class="etoiles petit" aria-label="potentiel">${'★'.repeat(C.potentielEstime(M, j))}</span><span class="note ${classeNote(n)}${nv.exact ? '' : ' flou'}">${nv.txt}</span></button>`;
 }
 function vueMercato(){
   const U = club(M.manager.club), S = QM.semaine(M), ouvert = C.mercatoOuvert(S), fen = C.prochaineFenetre(M);
@@ -1888,12 +2003,15 @@ const ACT = {
   importer:() => $('#fichier').click(),
   quitter:() => { sauver(); M = null; EMP = null; X = null; U.vue = 'accueil'; rendre(); scrollTo(0, 0); },
   sauverMain:async () => { await sauver(); toast('Partie enregistrée'); rendre(); },
-  joueur:d => { FJ = null; ficheJoueur(d.j); },
+  joueur:(d, el) => { const dans = el && el.closest('.fond.fj-page'), L = dans ? (FJ && FJ.liste) : listeDepuis(el); const o = dans && FJ ? FJ.onglet : 'gen'; FJ = null; FJ = {id:d.j, p:(M.joueurs[d.j] || {}).poste, role:M.joueurs[d.j] ? roleCompo(M.joueurs[d.j]) : null, onglet:o, liste:L && L.includes(d.j) ? L : null}; if (dans) retirerFeuille(); ficheJoueur(d.j); },
+  fjNav:d => naviguerFJ(+d.d),
+  fjOnglet:d => { if (!FJ) return; FJ.onglet = d.o; ficheJoueur(FJ.id, true); const c = document.querySelector('.fond.fj-page .feuille'); if (c) c.scrollTop = 0; },
   fjPoste:d => { if (!FJ) return; if (FJ.p !== d.p){ FJ.p = d.p; FJ.role = null; } ficheJoueur(FJ.id, true); },   // v101 : lire la fiche pour un autre poste
   fjRole:d => { if (!FJ) return; FJ.role = FJ.role === d.r ? null : d.r; ficheJoueur(FJ.id, true); },
   fjRaz:() => { if (!FJ) return; const j = M.joueurs[FJ.id]; FJ = null; if (j) ficheJoueur(j.id, true); },
   ligue:d => { U.ligue = d.l; rendre(); },
   semaine:d => ficheSemaine(+d.s),
+  feuilleInter:d => feuilleInter(d.k, d.m),   // v161
   jeton:d => ficheJeton(d.slot),
   causerie:d => { const r = HH().causerie(M, X, X.joueur, d.t, d.m); X.moral[X.joueur] = Math.max(-3, Math.min(3, X.moral[X.joueur] + r.delta)); r.txt = `${(HH().TONS.find(t => t[0] === d.t) || [, d.t])[1]} : ${r.txt}`;
     if (d.m === 'avant') X.causerieAvant = r; else { X.causerieTM = X.tm[X.joueur]; X.causerieTxt = r.txt; }
@@ -2083,5 +2201,5 @@ Object.assign(ACT, {
 });
 function rafraichirFeuilleScene(){ const el = document.querySelector('.fond .feuille [data-sc]'); if (el && ACT[el.dataset.sc]) ACT[el.dataset.sc]({garder:true}); }
 window.QMU = {flagSeul, pieces, eurT, get M(){ return M; }, get X(){ return X; }, get EMP(){ return EMP; }, U, REG, regler, VUES, ACT, VUE, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, nomEq, flag, posteB, etoiles, nomJ, court,
-  classeNote, classeAttr, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, valVue, connu, HH, roleDe, ficheSemaine, msgHTML, tableHTML, ICO, MERC, ligneMercato, IDX, COURT_ATTR, LS, nomBat};
+  classeNote, classeAttr, meilleurBadge, rangBadge, roleNom, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, valVue, connu, HH, roleDe, ficheSemaine, msgHTML, tableHTML, ICO, MERC, ligneMercato, IDX, COURT_ATTR, LS, nomBat};
 })();

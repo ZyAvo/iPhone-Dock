@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="4abc91be">
+<meta name="mon-ecran-version" content="98231517">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1079,6 +1079,46 @@ table.cl td.club .blz{flex:none}
 .avp > .poste{position:absolute;right:-4px;bottom:-3px;width:17px;height:17px;border-radius:6px;font-size:.58rem;font-style:normal;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.18)}
 .avp.g{width:62px;height:62px}
 .avp .blp{position:absolute;right:-7px;bottom:-5px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
+.fond.fj-page{align-items:stretch;justify-content:stretch;background:var(--sheet-solid)}
+.fond.fj-page .feuille{width:100%;max-width:none;max-height:none;height:100%;border-radius:0;padding:0 0 calc(18px + env(safe-area-inset-bottom, 0px));animation:none}
+.fjp{max-width:760px;margin:0 auto;padding:0 max(12px, env(safe-area-inset-left, 0px))}
+.fjp.desk{max-width:1440px;padding:0 22px}
+.fj-tete{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top, 0px)) 0 8px;background:var(--sheet-solid);border-bottom:1px solid var(--line)}
+.fj-tete .avp{flex:none;position:relative;width:54px;height:54px} .fj-tete .avp > svg,.fj-tete .avp > img,.fj-tete .avp > span:not(.blp){width:54px;height:54px}
+.fj-tete .blp{position:absolute;right:-5px;bottom:-5px;width:22px;height:22px;overflow:hidden} .fj-tete .blp svg,.fj-tete .blp img{width:22px !important;height:22px !important}
+.fj-ong .court{display:none} html:not(.desk) .fj-ong .long{display:none} html:not(.desk) .fj-ong .court{display:inline}
+.fj-leg{margin:-2px 0 6px;font-size:.7rem;color:var(--ink-soft)}
+.fj-pc-d .fj-radar .radar{max-width:230px}
+.fj-id{flex:1;min-width:0} .fj-id h3{margin:0;font-size:1.1rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fj-id .sous{font-size:.74rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.fj-nav{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card-2);color:var(--ink);font-size:1.4rem;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0 0 3px}
+.fj-suivre{flex:none;background:none;border:0;font-size:1.25rem;color:var(--accent);cursor:pointer;padding:4px}
+.fj-pos{flex:none}
+.fj-ong{position:sticky;top:var(--fjh, 74px);z-index:2;background:var(--sheet-solid);margin:0 0 10px;overflow-x:auto;scrollbar-width:none;white-space:nowrap}
+.fj-corps > .carte, .fj-corps .carte{margin-top:10px}
+.fjt-l{display:grid;grid-template-columns:repeat(4, 1fr);gap:6px;margin:4px 0 6px} .fjt-l.t3{grid-template-columns:repeat(3, 1fr)}
+.fjt{background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:7px 4px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:3px;min-height:62px}
+.fjt span{font-size:.62rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em}
+.fjt b{font-size:1.02rem;line-height:1.15;display:flex;align-items:center;justify-content:center;gap:2px;flex-wrap:wrap} .fjt small{font-size:.66rem;color:var(--ink-soft);font-weight:600}
+.fjt-l.t3 .fjt b{font-size:.86rem}
+.fjt.n4 b{color:var(--bon)} .fjt.n2 b{color:var(--moyen)} .fjt.n1 b{color:var(--mauvais)}
+.fjt.st-bless b,.fjt.st-susp b{color:var(--mauvais);font-size:.82rem} .fjt.st-inter b{color:var(--accent);font-size:.82rem} .fjt.st-actif b{color:var(--bon);font-size:.86rem} .fjt.st-libre b,.fjt.st-pret b{font-size:.8rem}
+.etp polygon{stroke:#b8860b;stroke-width:.8;stroke-linejoin:round} .etp .pl{fill:#e0b43a} .etp .vd{fill:transparent}
+.fj-saison2{display:grid;grid-template-columns:repeat(3, 1fr);gap:8px 6px}
+.fj-saison2 div{display:flex;flex-direction:column;align-items:center;text-align:center} .fj-saison2 b{font-size:1.05rem} .fj-saison2 span{font-size:.66rem;color:var(--ink-soft)}
+.fj-at{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.fj-at .fa-g{grid-column:1/-1} .fa-gl{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.fj-at .at{display:grid;grid-template-columns:minmax(0,1fr) 26px 12px 26px;align-items:center;gap:4px}
+.fj-at .at .pt{display:block;height:4px;border-radius:2px;background:var(--accent);opacity:.55;justify-self:start} .fj-at .at .pt.vide{opacity:0}
+.fj-at .at .tdc{font-style:normal;font-size:.55rem;text-align:center} .tdc.up{color:var(--bon)} .tdc.down{color:var(--mauvais)}
+.fj-pc{display:grid;grid-template-columns:300px minmax(0,1fr) 340px;gap:16px;align-items:start}
+.fj-pc .fj-etat{margin:10px 0} .fj-pc .carte{margin-top:0;margin-bottom:12px}
+.fj-pc-g .fjt-l{grid-template-columns:1fr 1fr} .fj-pc-g .fjt-l.t3{grid-template-columns:1fr 1fr 1fr}
+.fj-moral-h{display:flex;align-items:center;gap:14px} .fj-moral-h b{display:block;font-size:1.3rem} .fj-moral-h span{color:var(--ink-soft);font-size:.82rem}
+.spark{display:block;margin-top:10px} .spark .g{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.fj-facteurs{margin:0;padding-left:18px;font-size:.82rem} .fj-facteurs li{margin:0 0 4px} .fj-facteurs li.b::marker{color:var(--bon)} .fj-facteurs li.m::marker{color:var(--mauvais)}
+.fj-courbe{display:flex;align-items:center;gap:10px;margin:4px 0}
+.feuille-inter{gap:10px} .feuille-inter .el .note{margin-left:auto}
 .fj-haut{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:10px;align-items:center;margin:2px 0 8px}
 .fj-radar .radar{display:block;width:100%;max-width:300px;margin:0 auto;overflow:visible}
 .fj-etat{display:flex;flex-direction:column;gap:7px}
@@ -1226,11 +1266,11 @@ html.desk .er{cursor:grab}
 <input type="file" id="fichier" accept=".json,application/json" hidden>
 <script src="synchro.js?v=0ce8808a"></script>
 <script src="qm27-donnees.js?v=7d802fab"></script>
-<script src="qm27.js?v=556fda00"></script>
-<script src="qm27-club.js?v=baa0a5b6"></script>
+<script src="qm27.js?v=5ddfd9bc"></script>
+<script src="qm27-club.js?v=5adff052"></script>
 <script src="qm27-carriere.js?v=e8bd32de"></script>
 <script src="qm27-domaine.js?v=b8c686dd"></script>
-<script src="qm27-vestiaire.js?v=586910c3"></script>
+<script src="qm27-vestiaire.js?v=ac76c497"></script>
 <script src="qm27-presse.js?v=c8907b53"></script>
 <script src="qm27-tactique.js?v=82a3b71f"></script>
 <script src="qm27-bureau.js?v=aa6b16a2"></script>
@@ -1238,8 +1278,8 @@ html.desk .er{cursor:grab}
 <script src="qm27-europe.js?v=d5461710"></script>
 <script src="qm27-nations.js?v=66d46995"></script>
 <script src="qm27-visuel.js?v=475e9f0c"></script>
-<script src="qm27-ui.js?v=c0bd4c8b"></script>
-<script src="qm27-ecrans.js?v=2d707d26"></script>
+<script src="qm27-ui.js?v=8c35df9a"></script>
+<script src="qm27-ecrans.js?v=5aa24f47"></script>
 <script src="qm27-stats.js?v=9964dddb"></script>
 <script src="commun.js?v=fc411b5f"></script>
 </body>

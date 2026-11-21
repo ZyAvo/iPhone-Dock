@@ -1,4 +1,4 @@
-// mon-ecran-version: 2d707d26
+// mon-ecran-version: 5aa24f47
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -638,6 +638,7 @@ function ficheFocus(jid, msg){
     <h4 class="sous-t">Focus bonus <span class="mut petit" style="text-transform:none;letter-spacing:0">· ${Math.max(0, nb - pris)} place${nb - pris > 1 ? 's' : ''} libre${nb - pris > 1 ? 's' : ''} sur ${nb}</span></h4>${F[0] ? (F[1] || pris < nb ? choix(1) : `<p class="petit mut">Plus de place : ${nb ? 'monte l\'Aire d\'envol ou libère un autre joueur' : 'il faut l\'Aire d\'envol au niveau 2'}.</p>`) : '<p class="petit mut">Choisis d\'abord son focus principal.</p>'}
     <p class="petit mut" style="margin:10px 0 0">Changer de poste remet à zéro l'apprentissage d'un nouveau poste.</p>`);
 }
+window.QMX = {NOMS_FOCUS, courbe, courbes:() => { const c = moi(), M_ = M(); return c && c.courbes && c.courbes.saison === M_.saison ? c.courbes.n : {}; }};   // v161 : pour la fiche joueur
 ACT.focusJ = d => ficheFocus(d.j);
 ACT.focusPose = d => { const r = G().definirFocus(M(), d.j, +d.r, d.t ? {t:d.t, k:d.k} : null); if (r.ok){ sauver(); rendre(); } ficheFocus(d.j, r.ok ? '' : r.txt); };
 function vueDirection(){
@@ -824,8 +825,8 @@ function vuePlus(){
 const COLS = {note:['Note', 44, 'Note au poste'], pot:['Pot.', 40, 'Potentiel estimé (étoiles)'], forme:['Forme', 40, 'Forme sur 10'], moral:['Moral', 42, 'Moral sur 100'],
   fat:['Fatigue', 50, 'Fatigue du moment (au moins 60 % de la charge)'], charge:['Charge', 52, 'Fatigue cumulée : matchs enchaînés, entraînement ; redescend au repos'], bless:['Dispo', 44, 'Blessure (jours), suspension (matchs) ou sélection'], m:['MJ', 30, 'Matchs joués cette saison'], stat:['Stat', 50, 'Buts, cognards, vifs d\'or ou arrêts'],
   moy:['Moy.', 38, 'Note moyenne en match'], sal:['Salaire', 54, 'Salaire par semaine'], fin:['Fin', 46, 'Fin de contrat'], valeur:['Valeur', 58, 'Valeur estimée'],
-  clause:['Clause', 58, 'Clause libératoire'], prog:['Prog.', 44, 'Progression de la note cette saison']};
-const VUES_DEF = [{id:'general', nom:'Général', cols:['note', 'forme', 'moral']}, {id:'contrats', nom:'Contrats', cols:['sal', 'fin', 'valeur']},
+  clause:['Clause', 58, 'Clause libératoire'], prog:['Prog.', 44, 'Progression de la note cette saison'], badge:['Badge', 58, 'Meilleur badge de rôle (bronze, argent, or) ; le rôle au survol']};   // v161
+const VUES_DEF = [{id:'general', nom:'Général', cols:['note', 'badge', 'forme', 'moral']}, {id:'contrats', nom:'Contrats', cols:['sal', 'fin', 'valeur']},
   {id:'physique', nom:'Physique', cols:['fat', 'charge', 'forme', 'bless']}, {id:'saison', nom:'Saison', cols:['m', 'stat', 'moy']}];
 const VUES_EFF = {scout:{nom:'Estimation', cols:['note', 'pot', 'valeur']}};
 for (const v of VUES_DEF) VUES_EFF[v.id] = v;
@@ -843,6 +844,7 @@ function valeurCol(j, k, ctx){
     case 'sal': return [j.contrat ? j.contrat.sal : 0, j.contrat ? eur(j.contrat.sal) : '—'];
     case 'fin': return [j.contrat ? j.contrat.fin : 0, j.contrat ? `<span class="${j.contrat.fin <= M_.saison ? 'mauvais' : ''}">${lab(j.contrat.fin).slice(2)}</span>` : '—'];
     case 'pot': { const v = C.potentielEstime(M_, j); return [v, `${v}<span class="etoiles petit">★</span>`]; }
+    case 'badge': { const b = Z.meilleurBadge ? Z.meilleurBadge(j) : null; return [b ? Z.rangBadge(b[0]) * 10 + (b[0][3] ? 0 : 1) : 0, b ? `<span class="bdg ${b[0][0]}${b[0][3] ? ' est' : ''}" title="Badge ${b[0][1].toLowerCase()} : ${esc(Z.roleNom(j.poste, b[1]))}${b[0][3] ? ' (estimé)' : ''}">${b[0][1]}${b[0][3] ? '?' : ''}</span>` : '<span class="mut">—</span>']; }   // v161
     case 'valeur': { const v = C.valeur(M_, j); return [v, eur(v)]; }
     case 'bless': return [j.bless ? j.bless.jours : j.susp ? j.susp.n * 7 : j.inter ? 0.5 : 0, j.bless ? `<span class="mauvais">${j.bless.jours} j</span>` : j.susp ? `<span class="mauvais" title="Suspendu : ${esc(j.susp.r)}">susp. ${j.susp.n}</span>` : j.inter ? '<span class="moyen" title="En sélection">✈︎</span>' : '—'];   // v158 : suspendus
     case 'm': return [s.m || 0, s.m || 0];

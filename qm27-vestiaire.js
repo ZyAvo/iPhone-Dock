@@ -1,4 +1,4 @@
-// mon-ecran-version: 586910c3
+// mon-ecran-version: ac76c497
 /* QM27 (v90, lot 7) — vestiaire et mercato, sans affichage. Expose window.QMH et complète window.QMC. Chargé après qm27-domaine.js.
    Vestiaire : ambiance, leaders, clans, mentorat, causeries, presse (La Gazette du sorcier).
    Mercato : attributs connus selon le travail du recruteur, offres par hibou (réponse la semaine suivante, contre-offres, clubs qui doublent),
@@ -83,6 +83,8 @@ function finMentorat(M, jeune){ const U = monClub(M); if (U) U.mentors = (U.ment
 function vestiaireSemaine(M, S, r){
   const U = monClub(M); if (!U) return;
   const h = H()(M), amb = ambiance(M, U), lead = leaders(M, U);
+  for (const id of U.effectif){ const j = M.joueurs[id]; if (!j) continue; (j.mh = j.mh || []).push(Math.round(j.moral)); if (j.mh.length > 16) j.mh.splice(0, j.mh.length - 16);   // v161 : moral des 16 dernières semaines
+    if (!j.aM){ j.aM = j.a.map(Math.round); if (j.g) j.gM = j.g.map(Math.round); } }   // v161 : repère des flèches de progression (remis au rapport mensuel)
   /* un leader malheureux plombe les autres ; une bonne ambiance soude le groupe */
   if (lead.some(j => j.moral < 40)) for (const id of U.effectif){ const j = M.joueurs[id]; if (j && !lead.includes(j)) j.moral = Math.max(5, j.moral - 1); }
   U.cohesion = borne((U.cohesion || 70) + (amb >= 70 ? 0.5 : amb < 40 ? -0.5 : 0), 30, 100);

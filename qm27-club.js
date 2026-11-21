@@ -1,4 +1,4 @@
-// mon-ecran-version: baa0a5b6
+// mon-ecran-version: 5adff052
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -197,6 +197,7 @@ function entrainement(M, S, r){
 }
 function rapportEntrainement(M){
   const c = club(M, M.manager.club), L = Object.entries(c.progres).filter(([id]) => M.joueurs[id] && M.joueurs[id].club === c.id).sort((a, b) => b[1] - a[1]);
+  for (const id of c.effectif){ const j = M.joueurs[id]; if (j){ j.aM = j.a.map(Math.round); if (j.g) j.gM = j.g.map(Math.round); } }   // v161 : nouveau repère des flèches ▲▼ de la fiche
   c.progres = {};
   if (!L.length) return;
   const haut = L.filter(x => x[1] > 0).slice(0, 4).map(([id, d]) => `${nomJ(M.joueurs[id])} (+${(d * 5).toFixed(1).replace('.', ',')})`);

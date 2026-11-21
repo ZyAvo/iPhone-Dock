@@ -1,4 +1,4 @@
-// mon-ecran-version: 556fda00
+// mon-ecran-version: 5ddfd9bc
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -656,12 +656,17 @@ function matchDuJoueur(M){ const L = matchsDuJoueur(M); return L.find(m => !m.re
 /* v91 : convocations de la semaine — les joueurs retenus par leur sélection manquent le match de leur club */
 function convoquer(M){
   for (const j of Object.values(M.joueurs)) if (j.inter) delete j.inter;
-  const S = semaine(M); if (!S || !S.matchs.some(m => m.ligue === 'sixn') || !S.matchs.some(m => m.ligue !== 'sixn')) return;
+  const S = semaine(M); if (!S || !S.matchs.some(m => m.ligue === 'sixn')) return;   // v161 : toutes les semaines de sélection (trêves amicales comprises), pas seulement quand les clubs jouent
   const moi = natJoueur(M);
   for (const n of D.SELECTIONS.filter(x => S.matchs.some(m => m.ligue === 'sixn' && (m.dom === x || m.ext === x)))){
     const e = n === moi && C() ? C().convocation(M).compo : selection(M, n);
     for (const id of [...titulaires(e), ...(e.banc || [])]) if (M.joueurs[id]) M.joueurs[id].inter = n;
   }
+  /* v161 : le joueur est prévenu des convocations de ses joueurs (une fois par semaine de sélection) */
+  const c = clubJoueur(M) && M.clubs[clubJoueur(M)], L = c ? c.effectif.map(id => M.joueurs[id]).filter(j => j && j.inter) : [];
+  if (c && L.length && M.convMsg !== S.date){ M.convMsg = S.date;
+    const nm = n => (D.NATIONS[n] || {nom:n}).nom, nb = n => S.matchs.filter(m => m.ligue === 'sixn' && (m.dom === n || m.ext === n)).length, cp = (S.matchs.find(m => m.ligue === 'sixn') || {}).comp === 'ldn' ? 'la Ligue des nations' : 'les matchs amicaux de la trêve';
+    message(M, `${L.length} joueur${L.length > 1 ? 's' : ''} en sélection`, `Convoqués pour ${cp} : ${L.map(j => `${nomJ(j)} (${nm(j.inter)}, ${nb(j.inter)} match${nb(j.inter) > 1 ? 's' : ''})`).join(', ')}. Ils rentrent la semaine prochaine${S.matchs.some(m => m.ligue !== 'sixn') ? ' et manquent les matchs de club de cette semaine' : ''}.`, 'sixn'); }
 }
 const convoques = (M, clubId) => (M.clubs[clubId] ? M.clubs[clubId].effectif : []).filter(id => M.joueurs[id] && M.joueurs[id].inter);
 function grainePour(M, m){ return melange(M.graine, m.id); }
@@ -744,7 +749,7 @@ function appliquerMatch(M, m, X){
   const club = m.ligue !== 'sixn', enLigue = club && !!M.ligues[m.ligue];   // v104 : la Ligue des Anneaux est un match de club, hors des stats du championnat
   for (const k of [0, 1]){
     const e = X.e[k];
-    const joues = new Set([...titulaires(e), ...(X.sortis || []).filter(id => X.perf[id] && X.perf[id].eq === k)]);   // v106 : un remplacé ne compte que pour son équipe (il comptait deux fois)
+    const joues = new Set([...titulaires(e), ...(X.sortis || []).filter(id => X.perf[id] && X.perf[id].eq === k), ...((X.exclus || [])[k] || [])]);   // v161 : les exclus ont joué ; v106 : un remplacé ne compte que pour son équipe (il comptait deux fois)
     for (const id of joues){
       const j = M.joueurs[id]; if (!j || !X.perf[id] || !X.perf[id].m) continue;
       const n = notes[id];
@@ -763,6 +768,11 @@ function appliquerMatch(M, m, X){
     }
   }
   for (const b of X.bless){ const j = M.joueurs[b.id]; if (j){ j.bless = {nom:b.nom, jours:C() && j.club ? C().dureeBlessure(M, j.club, b.jours) : b.jours}; if (enLigue && j.saison){ ajout(j.saison, 'bl', 1); ajout(j.saison, 'blJ', j.bless.jours); } } }
+  if (!club){   // v161 : feuille de match des matchs internationaux (saison en cours) : [id, poste, note, buts, vif] par équipe, cartons
+    const f = {c:[[], []], ca:r.ca};
+    for (const [id, p] of Object.entries(X.perf)){ if (!p.m || !M.joueurs[id]) continue; const ps = ['P', 'B', 'A', 'G'].find(q => X.e[p.eq][q].includes(id)) || M.joueurs[id].poste;
+      f.c[p.eq].push([id, ps, notes[id] || null, p.b || 0, p.vif ? 1 : 0]); }
+    m.res.f = f; }
   if (club) sanctions(M, m, X, enLigue);   // v158 : suspensions purgées, cartons, nouvelles suspensions
   if (enLigue) statsEquipes(M, m, X);
   if (club) for (const id of [m.dom, m.ext]) if (M.clubs[id]) M.clubs[id].usure = Math.max(0, Math.round(((M.clubs[id].usure ?? 100) - EQ.usure * (1 - (root.QMB ? root.QMB.bonus(M.clubs[id], 'usure') : 0))) * 10) / 10);   // v84 : balais
