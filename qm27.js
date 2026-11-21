@@ -1,4 +1,4 @@
-// mon-ecran-version: 5ddfd9bc
+// mon-ecran-version: bd24e3f2
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -856,6 +856,7 @@ function finirMatchDuJoueur(M, X){
 }
 function attente(M, clubId, adv){ const a = M.clubs[clubId].rep, b = adv.rep || 60; return borne(0.5 + (a - b) / 60, 0.15, 0.85); }
 function apresMatchManager(M, m){
+  if (root.QMB && root.QMB.goutePlat) root.QMB.goutePlat(M, m);   // v163 : la spécialité de l'adversaire
   const mg = M.manager, k = m.dom === mg.club ? 0 : 1, [s0, s1] = m.res.score, moi = k ? s1 : s0, lui = k ? s0 : s1;
   const adv = M.clubs[k ? m.dom : m.ext];
   const att = attente(M, mg.club, adv), res = moi > lui ? 1 : moi === lui ? 0.5 : 0;

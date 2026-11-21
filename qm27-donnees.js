@@ -1,4 +1,4 @@
-// mon-ecran-version: 7d802fab
+// mon-ecran-version: b33e81dd
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -482,7 +482,27 @@ const CARTE = [
   ['biere', 'Bière au beurre', 1.3, 2, null, '🍺'], ['citrouille', 'Jus de citrouille', 0.8, 1.2, null, '🎃'], ['tourte', 'Tourtes à la citrouille', 1, 2.5, null, '🥧'],
   ['the', 'Thé fumant des tribunes', 0.6, 0.8, null, '🍵'], ['grenouilles', 'Grenouilles en chocolat', 0.9, 1.5, null, '🐸'], ['marrons', 'Marrons grillés au feu de dragon', 0.7, 1, null, '🌰'],
   ['ragout', 'Ragoût du chaudron géant', 1.2, 3.5, 'chaudron', '🍲'], ['hydromel', 'Hydromel maison', 1.4, 4, 'hydromel', '🍯'],
+  /* v163 : douze classiques de plus, débloqués par le niveau de la Taverne (« niv2 » : niveau 2…) */
+  ['plumes', 'Plumes en sucre', 0.8, 1.2, 'niv2', '🪶'], ['reglisse', 'Baguettes de réglisse', 0.7, 1, 'niv2', '🍬'], ['chaudrons', 'Gâteaux-chaudrons', 1, 2, 'niv2', '🧁'],
+  ['pomme', 'Pomme d\'amour flottante', 0.9, 1.5, 'niv3', '🍎'], ['popcorn', 'Pop-corn feu follet', 1, 1.5, 'niv3', '🍿'], ['sorbet', 'Sorbet givre-doux', 0.9, 2, 'niv3', '🍨'],
+  ['dragon', 'Saucisses au feu de dragon', 1.2, 3, 'niv4', '🌭'], ['lune', 'Lait de lune', 0.8, 1.5, 'niv4', '🥛'], ['soupe', 'Soupe de citrouille', 0.9, 2, 'niv4', '🥣'],
+  ['hibou', 'Pain d\'épices hibou', 0.9, 1.5, 'niv5', '🦉'], ['petillants', 'Bonbons pétillants', 1, 1.5, 'niv5', '✨'], ['fees', 'Fruits des fées', 1.1, 2.5, 'niv5', '🍇'],
 ];
+/* v163 : la spécialité de chaque club, débloquée quand le manager joue avec ou contre lui (M.manager.plats) ; servie le jour où ce club vient jouer chez nous, elle fait +10 % de restauration */
+const PLATS_LOCAUX = {
+  bath:'Brioche de Bath', canterbury:'Tarte aux cerises du Kent', glastonbury:'Cidre d\'Avalon', norwich:'Saucisses à la moutarde de Norwich', oxford:'Tartines à la marmelade d\'Oxford',
+  whitby:'Poisson-frites de Whitby', york:'Yorkshire puddings', cork:'Bœuf épicé de Cork', dublin:'Ragoût irlandais', galway:'Huîtres de Galway', aberdeen:'Butteries d\'Aberdeen',
+  inverness:'Haggis des Highlands', stirling:'Sablés écossais', aberystwyth:'Welsh cakes', conwy:'Moules de Conwy', swansea:'Welsh rarebit',
+  salzburg:'Salzburger Nockerl', wien:'Sachertorte', antwerpen:'Mains d\'Anvers en chocolat', bruxelles:'Gaufre de Bruxelles', brno:'Koláč morave', praha:'Trdelník de Prague',
+  berlin:'Currywurst', hamburg:'Fischbrötchen de Hambourg', koln:'Halve Hahn de Cologne', munchen:'Bretzel géant de Munich', luxembourg:'Gromperekichelcher', amsterdam:'Stroopwafels',
+  utrecht:'Poffertjes', gdansk:'Goldwasser de Gdańsk', krakow:'Obwarzanek de Cracovie', warszawa:'Pierogi de Varsovie',
+  barcelona:'Crème catalane', madrid:'Churros au chocolat', sevilla:'Gazpacho andalou', toledo:'Massepain de Tolède', bordeaux:'Canelés de Bordeaux', lyon:'Tarte aux pralines roses',
+  marseille:'Navettes de Marseille', paris:'Macarons de Paris', rennes:'Galette-saucisse rennaise', toulouse:'Violettes de Toulouse', firenze:'Schiacciata florentine', milano:'Panettone',
+  napoli:'Pizza napolitaine', roma:'Supplì romains', torino:'Bicerin de Turin', venezia:'Fritole vénitiennes',
+  aarhus:'Smørrebrød', kobenhavn:'Wienerbrød', odense:'Æbleskiver', helsinki:'Korvapuusti', tampere:'Mustamakkara de Tampere', turku:'Tartelettes caréliennes', akureyri:'Kleinur',
+  reykjavik:'Pylsur de Reykjavík', bergen:'Skillingsboller de Bergen', oslo:'Gaufres au brunost', tromso:'Ragoût de renne', trondheim:'Sodd de Trondheim', goteborg:'Räksmörgås',
+  malmo:'Spettekaka', stockholm:'Prinsesstårta', uppsala:'Semla d\'Uppsala',
+};
 /* v88 : partenaires inventés (sponsor maillot et panneaux) */
 const SPONSORS = ['Balais Aquilon', 'Chocolaterie Lune d\'Or', 'La Gazette du Soir', 'Chaudrons Martel', 'Hydromel Brasse-Brume', 'Plumes & Parchemins', 'Thés de la Pythie',
   'Potions Mirabelle', 'Fromagerie des Trois Lunes', 'Assurances Paratonnerre', 'Bottes de Sept Lieues', 'Sorbets Givre-Doux', 'Lunettes Œil-de-Lynx', 'Cheminée Express',
@@ -578,5 +598,5 @@ const ANTI_SYNERGIES = [
 const FOCUS = [['technique', 'Technique', ['Vol', 'Balle', 'Gardien']], ['physique', 'Physique', ['Physique']], ['tactique', 'Tactique', ['Mental']], ['repos', 'Repos', []]];
 const INTENSITES = [[1, 'Légère'], [2, 'Normale'], [3, 'Intense']];
 
-root.QMD = {NOTE, ARBITRES, STYLE, ROLE_DEF, ROLES_ANCIENS, BADGES, SYNERGIES, ANTI_SYNERGIES, NOMS_CLUBS, VILLES_LANGUES, LANGUES_NOMS, TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, CARTE, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
+root.QMD = {PLATS_LOCAUX, NOTE, ARBITRES, STYLE, ROLE_DEF, ROLES_ANCIENS, BADGES, SYNERGIES, ANTI_SYNERGIES, NOMS_CLUBS, VILLES_LANGUES, LANGUES_NOMS, TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, CARTE, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
 })(typeof window !== 'undefined' ? window : globalThis);

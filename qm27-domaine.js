@@ -1,4 +1,4 @@
-// mon-ecran-version: b8c686dd
+// mon-ecran-version: f9438176
 /* QM27 (v88, lot 5) — le domaine du club : bâtiments sorciers (niveaux 1 à 5 et améliorations au choix aux niveaux 3 et 5),
    stade en quatre tribunes, Bazar (produits et prix), sponsor maillot et panneaux à négocier, supporters, emprunt à la Banque des Gobelins,
    salle des trophées et palmarès, petits événements. Sans affichage : expose window.QMB (bonus lus par le moteur) et complète window.QMC.
@@ -102,6 +102,9 @@ function assurer(M){
     for (let i = 0; i < Math.min(placesPanneaux(c), c.dom.offresPanneaux.length) - 1; i++) signerPanneau(M, 0, true);
   }
   if (!c.dom.carte){ c.dom.carte = {}; for (const p of D.CARTE.slice(0, 4)) c.dom.carte[p[0]] = {actif:true, prix:'normal'}; }   // v133 : la carte de la buvette
+  /* v163 : recettes des spécialités : celles du manager (il les emporte d'un club à l'autre) et celle de son club */
+  if (!M.manager.plats){ M.manager.plats = {}; for (const S of M.calendrier || []) for (const m of S.matchs) if (m.res && m.ligue !== 'sixn' && (m.dom === c.id || m.ext === c.id)){ const o = m.dom === c.id ? m.ext : m.dom; if (D.PLATS_LOCAUX[o]) M.manager.plats[o] = M.saison; } }   // partie en cours : les adversaires déjà affrontés cette saison
+  const mp = M.manager.plats; if (D.PLATS_LOCAUX[c.id]) mp[c.id] = mp[c.id] || 1; c.dom.plats = Object.assign(c.dom.plats || {}, mp);
   const t = c.dom.trib, tot = t.N + t.S + t.E + t.O;
   if (tot !== c.stade){ t[c.dom.cote] = Math.max(0, t[c.dom.cote] + c.stade - tot); }
   return c;
@@ -302,7 +305,21 @@ function apresSaison(M){
 }
 
 /* ---------- v133 : la buvette du stade, sa carte et ses prix (même règle de prix que le Bazar) ---------- */
-const carteDispo = c => D.CARTE.filter(p => !p[4] || a(c, p[4]));
+/* v163 : tous les articles possibles : les classiques, puis une spécialité par club ([clé, nom, attrait, prix, condition, emoji, club]) */
+const PRODUITS_BUV = [...D.CARTE, ...Object.entries(D.PLATS_LOCAUX).map(([id, nom]) => ['l_' + id, nom, 1.15, 2.6, 'club:' + id, '🍽️', id])];
+const dispoProduit = (c, p) => !p[4] || (p[4].startsWith('niv') ? niv(c, 'buvettes') >= +p[4].slice(3) : p[4].startsWith('club:') ? !!(c && c.dom && c.dom.plats && c.dom.plats[p[6]]) : a(c, p[4]));
+const carteDispo = c => PRODUITS_BUV.filter(p => dispoProduit(c, p));
+/* le jour où un club vient jouer chez nous, sa spécialité à la carte fait +10 % de restauration (ses supporters en achètent) */
+const bonusVisiteur = (c, visiteur) => carteActive(c).some(p => p[0] === 'l_' + visiteur) ? 1.1 : 1;
+/* le manager goûte la spécialité de chaque club qu'il affronte (ou qu'il entraîne) */
+function goutePlat(M, m){
+  const mg = M.manager; if (!mg || !mg.club || !m || m.ligue === 'sixn') return;
+  const autre = m.dom === mg.club ? m.ext : m.ext === mg.club ? m.dom : null, nom = autre && D.PLATS_LOCAUX[autre]; if (!nom) return;
+  const mp = mg.plats = mg.plats || {}; if (mp[autre]) return;
+  mp[autre] = M.saison; const c = M.clubs[mg.club]; if (c && c.dom) (c.dom.plats = c.dom.plats || {})[autre] = M.saison;
+  const n = Object.keys(mp).length;
+  Q().message(M, `Nouvelle recette : ${nom}`, `Ton intendant a rapporté la recette de ${M.clubs[autre] ? M.clubs[autre].nom : autre}. Tu peux la mettre à la carte de la buvette (Stade › La buvette) ; servie le jour où ce club vient jouer chez toi, elle rapporte 10 % de plus. Carnet de recettes : ${n} sur ${Object.keys(D.PLATS_LOCAUX).length}.`, 'club');
+}
 const placesCarte = c => 3 + niv(c, 'buvettes');   // 4 au niveau 1 : la carte de départ y tient toujours
 const ATTRAIT_CARTE = D.CARTE.slice(0, 4).reduce((s, p) => s + p[2], 0);
 const carteActive = c => c && c.dom && c.dom.carte ? carteDispo(c).filter(p => c.dom.carte[p[0]] && c.dom.carte[p[0]].actif).slice(0, placesCarte(c)) : [];
@@ -323,7 +340,7 @@ function partCarte(c, id){
 /* recettes de la buvette pour un match à domicile devant aff spectateurs */
 const recettesBuvette = (c, aff) => aff * (EQ.eco.repasBase + c.rep / 60) * QMC.multInst(c, 'buvettes') * (1 + bonus(c, 'resto')) * multCarte(c);
 function reglerCarte(M, id, champ, v){
-  const c = assurer(M), p = D.CARTE.find(x => x[0] === id); if (!p || (p[4] && !a(c, p[4]))) return {ok:false, msg:'Pas encore à la carte.'};
+  const c = assurer(M), p = PRODUITS_BUV.find(x => x[0] === id); if (!p || !dispoProduit(c, p)) return {ok:false, msg:'Pas encore à la carte.'};
   const st = c.dom.carte[id] = c.dom.carte[id] || {actif:false, prix:'normal'};
   if (champ === 'actif'){
     if (v && !st.actif && Object.entries(c.dom.carte).filter(([k, s]) => s.actif && carteDispo(c).some(q => q[0] === k)).length >= placesCarte(c)) return {ok:false, msg:`Carte pleine : ${placesCarte(c)} articles au niveau ${niv(c, 'buvettes')} de la Taverne.`};
@@ -350,6 +367,6 @@ Object.assign(QMC, {
 });
 root.QMB = {bonus, ajusterBlessure, multProgression, balaiDe, bonusMatch, bonusAffluence, finances, assurer, coutBat, lancer, amelEnAttente, choisirAmel, potion,
   signerSponsor, signerPanneau, retirerPanneau, placesPanneaux, reglerProduit, produitsDispo, placesRayon, recettesBazar, recetteProduit, PRIX,
-  carteDispo, placesCarte, carteActive, multCarte, partCarte, recettesBuvette, reglerCarte,
+  carteDispo, placesCarte, carteActive, multCarte, PRODUITS_BUV, dispoProduit, bonusVisiteur, goutePlat, partCarte, recettesBuvette, reglerCarte,
   emprunter, rembourser, plafondPret, tauxPret, titres, visites, rang, BAT, AMEL, a};
 })(typeof window !== 'undefined' ? window : globalThis);

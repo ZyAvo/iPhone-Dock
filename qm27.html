@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="d722c639">
+<meta name="mon-ecran-version" content="e66ce183">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -615,6 +615,12 @@ i.fit.moyen{background:var(--moyen)}i.fit.faible{background:var(--mauvais)}
 .stj.bloc{background:color-mix(in srgb,#2f6db5 18%,transparent)}.stj.offensif{background:color-mix(in srgb,#c0392b 18%,transparent)}.stj.possession{background:color-mix(in srgb,#2e8b57 18%,transparent)}
 .stj.contre{background:color-mix(in srgb,#d68910 20%,transparent)}.stj.physique{background:color-mix(in srgb,#7d3c98 18%,transparent)}.stj.pressing{background:color-mix(in srgb,#b03a2e 14%,transparent)}.stj.vif{background:color-mix(in srgb,#c9971d 22%,transparent)}
 .tab-styles{overflow-x:auto}.tab-styles table{width:100%;border-collapse:collapse;font-size:.82rem}.tab-styles th{text-align:left;font-size:.7rem;color:var(--ink-soft);font-weight:600;padding:4px 6px}.tab-styles td{padding:6px;border-top:1px solid var(--line);vertical-align:top}.tab-styles td.num{text-align:right;white-space:nowrap}.tab-styles tr.moi td{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.buv-ico img{display:block;width:40px;height:40px;object-fit:contain} .buv-lock .buv-ico img{filter:grayscale(1);opacity:.45}
+.carnet{display:grid;grid-template-columns:repeat(auto-fill, minmax(76px, 1fr));gap:8px 6px;margin-bottom:6px}
+.carnet .rec{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px} .carnet .rec img{width:48px;height:48px;object-fit:contain}
+.carnet .rec span{font-size:.64rem;font-weight:700;line-height:1.15} .carnet .rec small{font-size:.58rem;color:var(--ink-soft)}
+.carnet .rec.fermee img{filter:grayscale(1) brightness(.35);opacity:.45} .carnet .rec.fermee span{color:var(--ink-faint)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .carnet .rec.fermee img{filter:grayscale(1) brightness(1.6);opacity:.3}} :root[data-theme="dark"] .carnet .rec.fermee img{filter:grayscale(1) brightness(1.6);opacity:.3}
 .bdgi{position:relative;display:inline-flex;vertical-align:middle;flex:none;line-height:0} .bdgi img{display:block;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.35))}
 .bdgi.est img{opacity:.62;filter:grayscale(.2) drop-shadow(0 1px 1.5px rgba(0,0,0,.3))} .bdgi i{position:absolute;right:-3px;top:-4px;font-style:normal;font-size:.58rem;font-weight:800;color:var(--ink);background:var(--card-2);border-radius:50%;width:11px;height:11px;line-height:11px;text-align:center}
 .bdg-t{font-size:.66rem;font-weight:700;margin:0 4px 0 3px;vertical-align:middle} .bdg-t.or{color:#b8860b} .bdg-t.argent{color:#7d8794} .bdg-t.bronze{color:#a8673a}
@@ -1271,11 +1277,11 @@ html.desk .er{cursor:grab}
 <nav class="qm-nav" id="nav" hidden aria-label="Menus du jeu"><div class="in"></div></nav>
 <input type="file" id="fichier" accept=".json,application/json" hidden>
 <script src="synchro.js?v=0ce8808a"></script>
-<script src="qm27-donnees.js?v=7d802fab"></script>
-<script src="qm27.js?v=5ddfd9bc"></script>
-<script src="qm27-club.js?v=5adff052"></script>
+<script src="qm27-donnees.js?v=b33e81dd"></script>
+<script src="qm27.js?v=bd24e3f2"></script>
+<script src="qm27-club.js?v=ccf815c8"></script>
 <script src="qm27-carriere.js?v=e8bd32de"></script>
-<script src="qm27-domaine.js?v=b8c686dd"></script>
+<script src="qm27-domaine.js?v=f9438176"></script>
 <script src="qm27-vestiaire.js?v=ac76c497"></script>
 <script src="qm27-presse.js?v=c8907b53"></script>
 <script src="qm27-tactique.js?v=82a3b71f"></script>
@@ -1284,8 +1290,8 @@ html.desk .er{cursor:grab}
 <script src="qm27-europe.js?v=d5461710"></script>
 <script src="qm27-nations.js?v=66d46995"></script>
 <script src="qm27-visuel.js?v=475e9f0c"></script>
-<script src="qm27-ui.js?v=7347ee23"></script>
-<script src="qm27-ecrans.js?v=8b303ff3"></script>
+<script src="qm27-ui.js?v=c8af85fa"></script>
+<script src="qm27-ecrans.js?v=c46e7f7c"></script>
 <script src="qm27-stats.js?v=9964dddb"></script>
 <script src="commun.js?v=fc411b5f"></script>
 </body>

@@ -1,4 +1,4 @@
-// mon-ecran-version: 7347ee23
+// mon-ecran-version: c8af85fa
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -1489,6 +1489,16 @@ function vueBoutique(){
   V.colorierProduits(VUE, c);   // v111
   if (scene) Z_().ardoiseDefile();
 }
+/* v163 : carnet de recettes : les spécialités des 64 clubs, débloquées en jouant avec ou contre eux */
+function carnetRecettes(c){
+  const P = D.PLATS_LOCAUX, mp = M.manager.plats || {}, n = Object.keys(P).filter(id => mp[id]).length, tot = Object.keys(P).length;
+  const prochain = (() => { const S = QM.semaine(M), m = S && S.matchs.find(x => x.dom === c.id && x.ligue !== 'sixn'); return m && P[m.ext] ? m.ext : null; })();
+  const L = Object.keys(M.ligues).filter(l => l !== 'sixn').map(l => [l, Object.values(M.clubs).filter(x => x.ligue === l && P[x.id]).sort((a, b) => a.ville.localeCompare(b.ville))]).filter(x => x[1].length);
+  return `<div class="carte"><h2>Carnet de recettes <span class="mut petit">${n} / ${tot}</span></h2><div class="barre" style="margin:0 0 8px"><i style="width:${Math.round(n / tot * 100)}%"></i></div>
+    ${prochain ? `<p class="petit" style="margin:0 0 8px">Prochain visiteur : <b>${esc(club(prochain).nom)}</b>${mp[prochain] ? ` · mets ses ${esc(P[prochain].toLowerCase())} à la carte pour +10 %.` : ' · sa recette sera à toi après le match.'}</p>` : ''}
+    ${L.map(([l, C_]) => `<h4 class="sous-t">${esc(M.ligues[l].nom)}</h4><div class="carnet">${C_.map(x => `<div class="rec${mp[x.id] ? '' : ' fermee'}" title="${mp[x.id] ? esc(P[x.id]) + ' · ' + esc(x.nom) : 'À découvrir en jouant ' + esc(x.nom)}"><img src="images/qm27/buvette/l_${x.id}.webp" width="48" height="48" alt="" loading="lazy"><span>${mp[x.id] ? esc(P[x.id]) : '?'}</span><small>${esc(x.ville)}</small></div>`).join('')}</div>`).join('')}
+    <p class="petit mut" style="margin:8px 0 0">Chaque club que tu affrontes, en championnat, en coupe ou en Ligue des Anneaux, te donne sa recette. Elle te suit si tu changes de club.</p></div>`;
+}
 /* v133 : la buvette du stade (tente aux chopes de l'entrée) : la carte et ses prix, comme les produits du Bazar */
 function vueBuvette(){
   const c = B.assurer(M), d = c.dom, dispo = B.carteDispo(c), act = B.carteActive(c), lib = {bas:'Bas', normal:'Normal', haut:'Haut'};
@@ -1496,13 +1506,15 @@ function vueBuvette(){
   const scene = Z_() && Z_().sceneDispo('buvette');
   VUE.innerHTML = `<div><h1 class="grand">La buvette</h1><p class="sous">Taverne du stade niveau ${C.niv(c, 'buvettes')} · ${act.length} / ${B.placesCarte(c)} à la carte · environ ${eur(tot)} par match à domicile</p></div>
   ${scene ? Z_().sceneHTML('buvette') : ''}
-  <div class="carte" id="carteBuvette"><h2>La carte</h2><div class="liste">${D.CARTE.map(p => { const ok = !p[4] || B.a(c, p[4]), st = d.carte[p[0]] || {actif:false, prix:'normal'};
-    if (!ok) return `<div class="el" style="opacity:.55"><span class="buv-ico" aria-hidden="true">${p[5]}</span><div class="t"><b>🔒 ${esc(p[1])}</b><span>Débloqué par ${esc(B.AMEL[p[4]].nom)} (${esc(nomBat(B.AMEL[p[4]].bat))}, niveau ${B.AMEL[p[4]].niv})</span></div></div>`;
+  <div class="carte" id="carteBuvette"><h2>La carte <span class="mut petit">${act.length} / ${B.placesCarte(c)} places</span></h2><div class="liste">${B.PRODUITS_BUV.filter(p => !p[6] || B.dispoProduit(c, p)).map(p => { const ok = B.dispoProduit(c, p), st = d.carte[p[0]] || {actif:false, prix:'normal'};
+    const ico = `<span class="buv-ico" aria-hidden="true"><img src="images/qm27/buvette/${p[0]}.webp" width="40" height="40" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('${p[5]}'))"></span>`;
+    if (!ok) return `<div class="el buv-lock">${ico}<div class="t"><b>🔒 ${esc(p[1])}</b><span>${p[4].startsWith('niv') ? `Taverne du stade niveau ${p[4].slice(3)}` : `Débloqué par ${esc(B.AMEL[p[4]].nom)} (${esc(nomBat(B.AMEL[p[4]].bat))}, niveau ${B.AMEL[p[4]].niv})`}</span></div></div>`;
     const on = act.some(x => x[0] === p[0]);
-    return `<div class="el prod"><span class="buv-ico" aria-hidden="true">${p[5]}</span><label class="interr"><input type="checkbox" data-chg="carte" data-p="${p[0]}" ${st.actif ? 'checked' : ''} aria-label="${esc(p[1])} à la carte"><span></span></label>
-      <div class="t"><b>${esc(p[1])}</b><span>${'★'.repeat(Math.round(p[2] * 3))} · ${eur(p[3] * B.PRIX[st.prix].p)} · ${on ? '≈ ' + eur(tot * B.partCarte(c, p[0])) + ' / match' : 'pas à la carte'}</span></div>
+    return `<div class="el prod">${ico}<label class="interr"><input type="checkbox" data-chg="carte" data-p="${p[0]}" ${st.actif ? 'checked' : ''} aria-label="${esc(p[1])} à la carte"><span></span></label>
+      <div class="t"><b>${esc(p[1])}${p[6] ? ` <span class="mut petit">${esc(club(p[6]) ? club(p[6]).ville : '')}</span>` : ''}</b><span>${'★'.repeat(Math.round(p[2] * 3))} · ${eur(p[3] * B.PRIX[st.prix].p)} · ${on ? '≈ ' + eur(tot * B.partCarte(c, p[0])) + ' / match' : 'pas à la carte'}</span></div>
       <div class="seg mini">${['bas', 'normal', 'haut'].map(v => `<button data-act="prixCarte" data-p="${p[0]}" data-v="${v}" class="${st.prix === v ? 'on' : ''}">${lib[v]}</button>`).join('')}</div></div>`; }).join('')}</div>
-    <p class="petit mut" style="margin:8px 0 0">Plus la carte est longue, plus les spectateurs consomment, de moins en moins à chaque article ajouté. Prix bas : un peu moins de recettes, des supporters ravis. Prix haut : plus de recettes, des supporters qui râlent. Une carte vide les fâche. Chaque niveau de la Taverne ajoute une place à la carte.</p></div>
+    <p class="petit mut" style="margin:8px 0 0">Plus la carte est longue, plus les spectateurs consomment, de moins en moins à chaque article ajouté. Prix bas : un peu moins de recettes, des supporters ravis. Prix haut : plus de recettes, des supporters qui râlent. Une carte vide les fâche. Chaque niveau de la Taverne ajoute une place à la carte et débloque de nouveaux classiques. Les spécialités des clubs attirent un peu plus ; servie le jour où son club vient jouer chez toi, une spécialité rapporte 10 % de plus.</p></div>
+  ${carnetRecettes(c)}
   <div class="carte"><h2>La Taverne du stade</h2>
     <div class="ligne" style="justify-content:space-between"><span>Niveau</span><b>${C.niv(c, 'buvettes')} / 5</b></div><div class="sep"></div>
     <div class="ligne" style="justify-content:space-between"><span>Effet de la carte</span><b>${mult >= 1 ? '+' : '−'}${Math.abs(Math.round((mult - 1) * 100))} %</b></div><div class="sep"></div>
