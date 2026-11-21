@@ -1,4 +1,4 @@
-// mon-ecran-version: b33e81dd
+// mon-ecran-version: ffe7ff1e
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -394,8 +394,12 @@ const EQ = {
   charge:{match:0.5, plancher:0.6, baisse:0.25, fixe:2.5, repos:9, entrainement:0.4},   // v96 : fatigue cumulée (voir QM.recuperer)
   usure:1.2,                    // usure des balais par match (sur 100)
   /* v85 : stade et installations (niveaux 1 à 5 ; coût du niveau suivant = base × niveau actuel ; entretien par niveau et par semaine) */
-  stade:{tranche:2000, coutPlace:600, semaines:8, max:60000},
-  inst:{boutique:{base:400e3, entretien:500, semaines:4}, buvettes:{base:300e3, entretien:400, semaines:3}, tribunes:{base:800e3, entretien:800, semaines:8}, formation:{base:600e3, entretien:1200, semaines:6}},
+  stade:{tranche:2000, coutPlace:600, semaines:8, max:60000, niveau:0.04, supporters:0.25},   // v165 : +4 % de remplissage et +0,25 supporter par semaine par niveau de tribunes au-dessus de 2 (v85 : +2 %)
+  /* v165 : coût et entretien des tribunes et de la Taverne suivent la taille du stade (15 000 places = ×1, entre ×0,5 et ×2) : leurs recettes en dépendent */
+  taille:{ref:15000, min:0.5, max:2},
+  /* v165 : Salle des trophées : visites par semaine et par niveau, en plus par titre ; Guide-fantôme ×1,5, Musée ×1,4 (v88 : 900, 250, ×2) */
+  visites:{base:1350, titre:375, fantome:1.5, musee:1.4},
+  inst:{boutique:{base:400e3, entretien:500, semaines:4}, buvettes:{base:300e3, entretien:400, semaines:3, taille:true}, tribunes:{base:400e3, entretien:800, semaines:8, taille:true}, formation:{base:600e3, entretien:1200, semaines:6}},
   /* v85 : carrière */
   carriere:{repSelection:70, licenciement:5, offreSemaine:0.05, chomageOffre:0.6, academieMax:12},
   /* v88 : domaine du club. Bâtiments (niveau 1 à 5) : coût du niveau suivant = base × niveau actuel, entretien par niveau et par semaine.
@@ -420,13 +424,13 @@ const INSTALLATIONS = [['boutique', 'Boutique', 'Recettes de la boutique'], ['bu
 /* v88 : bâtiments du domaine. [clé, nom, icône du plan, ce que fait chaque niveau, vue ouverte depuis le bâtiment,
    améliorations au choix au niveau 3 puis au niveau 5 : [clé, nom, effet]]. La clé « tribunes » est le stade (capacité à part). */
 const BATIMENTS = [
-  ['tribunes', 'Stade', 'stade', 'Tribunes couvertes : le stade se remplit mieux (+2 % par niveau au-dessus de 2).', 'stade',
+  ['tribunes', 'Stade', 'stade', 'Tribunes couvertes : le stade se remplit mieux (+4 % par niveau au-dessus de 2) et les supporters y sont mieux (+1 par mois et par niveau). Coût selon la taille du stade.', 'stade',
     [['loges', 'Loges des mécènes', 'Recettes VIP à chaque match à domicile.'], ['ecran', 'Écran géant enchanté', 'Affluence +4 %.']],
     [['lanternes', 'Lanternes féeriques', 'Matchs en soirée : billetterie +10 %.'], ['dragon', 'Dragon de pierre gardien', 'Avantage du terrain +2 %.']]],
-  ['boutique', 'Bazar du club', 'bazar', 'Recettes de la boutique (×0,85 au niveau 1, ×1,45 au niveau 5) et un produit de plus en rayon par niveau.', 'boutique',
-    [['hibou', 'Vente par hibou', 'La boutique vend aussi les semaines sans match à domicile (+25 %).'], ['atelier', 'Atelier de maillots', 'Nouveau produit : maillots éditions spéciales.']],
+  ['boutique', 'Bazar du club', 'bazar', 'Recettes de la boutique (×0,85 au niveau 1, ×1,45 au niveau 5) et un produit de plus en rayon par niveau (4 au moins).', 'boutique',
+    [['hibou', 'Vente par hibou', 'Commandes par hibou toute la saison : recettes du Bazar +20 %.'], ['atelier', 'Atelier de maillots', 'Nouveau produit : maillots éditions spéciales.']],
     [['echarpes', 'Écharpes qui changent de couleur', 'Nouveau produit vedette.'], ['chocolat', 'Vifs d\'or en chocolat', 'Nouveau produit vedette.']]],
-  ['buvettes', 'Taverne du stade', 'taverne', 'Recettes de restauration par spectateur (×0,85 au niveau 1, ×1,45 au niveau 5) et une place de plus à la carte de la buvette par niveau.', 'buvette',
+  ['buvettes', 'Taverne du stade', 'taverne', 'Recettes de restauration par spectateur (×0,85 au niveau 1, ×1,45 au niveau 5) et une place de plus à la carte de la buvette par niveau. Coût selon la taille du stade.', 'buvette',
     [['chaudron', 'Chaudron géant', 'Restauration +15 % et le ragoût à la carte de la buvette.'], ['ouverte', 'Taverne ouverte en semaine', 'Recettes même sans match à domicile.']],
     [['hydromel', 'Hydromel maison', 'Restauration +15 %, l\'hydromel à la carte de la buvette, les supporters adorent.'], ['banquets', 'Banquets d\'après-match', 'Recettes VIP après les victoires à domicile.']]],
   ['formation', 'Pensionnat des jeunes ailes', 'pensionnat', 'Centre de formation : plus de jeunes chaque été, et de meilleurs.', 'formation',
@@ -438,24 +442,24 @@ const BATIMENTS = [
   ['aire', 'Aire d\'envol', 'aire', 'Terrain d\'entraînement : progression de tous (+4 % par niveau au-dessus de 2).', 'entrainement',
     [['anneaux', 'Anneaux mobiles', 'Poursuiveurs et gardiens : +10 % de progression.'], ['cognards', 'Cognards apprivoisés', 'Batteurs : +15 % de progression.']],
     [['brumes', 'Vents et brumes artificiels', 'La météo gêne deux fois moins ton équipe.'], ['vifs', 'Volière à vifs d\'or d\'exercice', 'Attrapeurs : +20 % de progression.']]],
-  ['hangar', 'Hangar à balais', 'hangar', 'Balais mieux entretenus : vitesse et maniabilité (+0,3 par niveau au-dessus de 2).', 'balais',
+  ['hangar', 'Hangar à balais', 'hangar', 'Balais mieux entretenus : vitesse et maniabilité (+0,5 par niveau au-dessus de 2).', 'balais',
     [['etabli', 'Établi d\'artisan', 'Balais neufs 25 % moins chers.'], ['vernis', 'Vernis anti-usure', 'Les balais s\'usent deux fois moins vite.']],
     [['fabricant', 'Contrat avec un fabricant', '16 000 Gallions de sponsoring par saison.'], ['prototype', 'Prototype maison', 'Un balai unique : +1 partout.']]],
-  ['salle', 'Salle commune', 'salle', 'Vestiaires : la cohésion monte plus vite (+0,25 par semaine et par niveau au-dessus de 2).', 'tactique',
+  ['salle', 'Salle commune', 'salle', 'Vestiaires : la cohésion monte plus vite (+0,5 par semaine et par niveau au-dessus de 2).', 'tactique',
     [['cheminee', 'Cheminée et fauteuils', 'Le moral baisse moins après une défaite.'], ['tableau', 'Tableau noir enchanté', 'Cohésion +0,5 par semaine.']],
     [['portraits', 'Portraits des légendes du club', 'Moral de l\'équipe en hausse à domicile.'], ['jeunes', 'Coin des jeunes', 'Les moins de 22 ans progressent 10 % plus vite.']]],
-  ['voliere', 'Volière à hiboux', 'voliere', 'Recrutement : ton recruteur estime mieux le potentiel (+1,5 par niveau au-dessus de 2).', 'mercato',
+  ['voliere', 'Volière à hiboux', 'voliere', 'Recrutement : ton recruteur estime mieux le potentiel (+2,5 par niveau au-dessus de 2).', 'mercato',
     [['grandsducs', 'Grands-ducs voyageurs', 'Les clubs vendeurs demandent 8 % de moins.'], ['correspondants', 'Correspondants à l\'étranger', 'Estimations encore plus justes (+3).']],
-    [['espion', 'Hibou espion', 'Composition adverse connue avant chaque match.'], ['agent', 'Agent attitré', 'Salaires demandés 10 % plus bas.']]],
+    [['espion', 'Hibou espion', 'Composition adverse connue avant chaque match.'], ['agent', 'Agent attitré', 'Salaires demandés 6 % plus bas.']]],
   ['divination', 'Cabinet de divination', 'divination', 'Rapport sur l\'adversaire avant chaque match : plus de détails à chaque niveau.', null,
     [['boule', 'Boule de cristal', 'La météo du prochain match est connue une semaine avant.'], ['pensine', 'Pensine des matchs', 'Cohésion +1 après chaque match.']],
     [['astres', 'Carte du ciel', 'Force +1,5 % contre les 4 premiers du classement.'], ['prophetie', 'Prophétie du vif', 'Ton attrapeur +3 % sur le vif d\'or.']]],
   ['trophees', 'Salle des trophées', 'trophees', 'Visites payantes chaque semaine, selon le niveau et le palmarès.', 'trophees',
     [['fantome', 'Guide-fantôme', 'Visites 50 % plus chères.'], ['archives', 'Archives du club', 'Réputation +1 à chaque titre, les supporters s\'en souviennent.']],
-    [['musee', 'Musée du Quidditch', 'Visites doublées.'], ['legendes', 'Allée des légendes', 'Supporters +1 par mois.']]],
+    [['musee', 'Musée du Quidditch', 'Visites 40 % plus chères.'], ['legendes', 'Allée des légendes', 'Supporters +1 par mois.']]],
   ['residence', 'Résidence des joueurs', 'residence', 'La fatigue part plus vite (+4 % par niveau au-dessus de 1).', null,
     [['chambres', 'Chambres insonorisées', 'La fatigue part encore 15 % plus vite.'], ['jardin', 'Jardin d\'hiver', 'Le moral remonte plus vite chaque semaine.']],
-    [['manoir', 'Manoir des stars', 'Salaires demandés 5 % plus bas, les vedettes aiment venir.'], ['spa', 'Thermes du club', 'Blessures −10 % et fatigue −10 %.']]],
+    [['manoir', 'Manoir des stars', 'Salaires demandés 3 % plus bas, les vedettes aiment venir.'], ['spa', 'Thermes du club', 'Blessures −10 % et fatigue −10 %.']]],
 ];
 /* v89 : manies des joueurs : [clé, nom, postes, effet, attributs qui la rendent probable] */
 const MANIES = [

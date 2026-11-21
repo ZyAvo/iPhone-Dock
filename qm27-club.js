@@ -1,4 +1,4 @@
-// mon-ecran-version: ccf815c8
+// mon-ecran-version: c27182ca
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -45,11 +45,14 @@ function valeur(M, j){
 /* v85 : installations (niveau 2 = référence) */
 const niv = (c, k) => (c.inst || {})[k] || 2;
 const multInst = (c, k) => 0.7 + 0.15 * niv(c, k);
-const entretienInst = c => Object.entries({...EQ.inst, ...(EQ.bat || {})}).reduce((s, [k, v]) => s + v.entretien * niv(c, k), 0);   // v88 : tous les bâtiments
+/* v165 : tribunes et Taverne : coût et entretien selon la taille du stade (leurs recettes en dépendent) */
+const facteurTaille = (c, k) => { const v = EQ.inst[k] || (EQ.bat || {})[k]; return v && v.taille ? borne((c.stade || EQ.taille.ref) / EQ.taille.ref, EQ.taille.min, EQ.taille.max) : 1; };
+const coutNiveau = (c, k) => { const v = EQ.inst[k] || EQ.bat[k]; return Math.round(v.base * niv(c, k) * facteurTaille(c, k) / 5000) * 5000; };
+const entretienInst = c => Object.entries({...EQ.inst, ...(EQ.bat || {})}).reduce((s, [k, v]) => s + v.entretien * niv(c, k) * facteurTaille(c, k), 0);   // v88 : tous les bâtiments
 const QB = () => root.QMB;   // v88 : bonus du domaine (qm27-domaine.js)
 const masse = (M, c) => c.effectif.reduce((s, id) => s + ((M.joueurs[id] || {}).contrat || {sal:0}).sal, 0) + Object.values(c.staff || {}).reduce((s, x) => s + x.sal, 0);
 function revenusSaison(c){
-  const prixRef = 6 + c.rep / 10, aff = c.stade * borne(0.35 + c.rep / 170 + 0.02 * (niv(c, 'tribunes') - 2), 0.15, 1);
+  const prixRef = 6 + c.rep / 10, aff = c.stade * borne(0.35 + c.rep / 170 + EQ.stade.niveau * (niv(c, 'tribunes') - 2), 0.15, 1);
   return 15 * aff * (prixRef + (ECO.repasBase + c.rep / 60) * multInst(c, 'buvettes')) + ECO.tv + c.rep * ECO.tvRep + ECO.sponsors + Math.pow(c.rep / 85, 2) * ECO.sponsorsRep + Math.pow(c.rep / 85, 2.5) * ECO.merch * multInst(c, 'boutique');
 }
 const masseMax = c => arrondi(revenusSaison(c) * ECO.masse / ECO.semaines, 500);
@@ -208,7 +211,7 @@ function rapportEntrainement(M){
 /* ---------- Finances de la semaine ---------- */
 function formeRecente(M, c){ const t = M.tables[c.ligue] && M.tables[c.ligue][c.id]; return t ? (t.forme || []).reduce((s, f) => s + (f === 'V' ? 1 : f === 'D' ? -1 : 0), 0) : 0; }
 function remplissage(M, c, adv){
-  return borne(0.35 + c.rep / 170 + 0.03 * formeRecente(M, c) + ((adv ? adv.rep : 60) - 60) / 400 - 0.9 * (c.prix / prixRef(c) - 1) + 0.02 * (niv(c, 'tribunes') - 2) + (QB() ? QB().bonusAffluence(M, c) : 0), 0.15, 1);
+  return borne(0.35 + c.rep / 170 + 0.03 * formeRecente(M, c) + ((adv ? adv.rep : 60) - 60) / 400 - 0.9 * (c.prix / prixRef(c) - 1) + EQ.stade.niveau * (niv(c, 'tribunes') - 2) + (QB() ? QB().bonusAffluence(M, c) : 0), 0.15, 1);
 }
 function finances(M, S){
   const n = ECO.semaines;
@@ -506,7 +509,7 @@ function avantSaison(M, r){
 function investirIA(M, c){
   const res = revenusSaison(c), cfgs = {...EQ.inst, ...(EQ.bat || {})}, cible = borne(Math.floor(1 + (c.rep - 40) / 12) + (c.budget > res * 2.5 ? 1 : 0), 1, 5);   // un club vise les installations de son rang (52 → niveau 2, 64 → 3, 76 → 4, 88 → 5), un cran de plus s'il roule sur l'or
   for (let k = 0; k < 6 && c.budget > res; k++){
-    const L = Object.keys(cfgs).filter(t => niv(c, t) < cible).map(t => [t, cfgs[t].base * niv(c, t)]).sort((a, b) => a[1] - b[1]);
+    const L = Object.keys(cfgs).filter(t => niv(c, t) < cible).map(t => [t, coutNiveau(c, t)]).sort((a, b) => a[1] - b[1]);
     if (!L.length || c.budget - L[0][1] < res * 0.8) break;
     c.inst = c.inst || {}; c.inst[L[0][0]] = niv(c, L[0][0]) + 1; compter(c, 'dep', 'travaux', L[0][1]);
   }
@@ -556,7 +559,7 @@ function potentielEstime(M, j){
   return Math.round(borne(vrai + bruit, 1, 5));
 }
 
-root.QMC = {nouveauClub, usure:user, noterCarriere, niv, multInst, entretienInst, compter, finVide, creerStaff, numLibre, transfert, libererJoueur, reparerCompo, progression, completerClub, besoin, initMonde, migrer, semaine, avantSaison, apresSaison, nouveauJoueur, dureeBlessure, salaireDemande, valeur, masse, masseMax, prixRef, remplissage, euros,
+root.QMC = {nouveauClub, usure:user, noterCarriere, niv, multInst, entretienInst, coutNiveau, facteurTaille, compter, finVide, creerStaff, numLibre, transfert, libererJoueur, reparerCompo, progression, completerClub, besoin, initMonde, migrer, semaine, avantSaison, apresSaison, nouveauJoueur, dureeBlessure, salaireDemande, valeur, masse, masseMax, prixRef, remplissage, euros,
             mercatoOuvert, prochaineFenetre, proposerTransfert, accepterOffre, refuserOffre, mettreEnVente, suivre, liberer, coutLiberation, prolonger, embaucher,
             UNITES_GALLION, acheterBalais, reglerPrix, potentielEstime, prixClub, exigenceJoueur, NOMS_REC, NOMS_DEP, ENT_DEFAUT, revenusSaison};
 })(typeof window !== 'undefined' ? window : globalThis);

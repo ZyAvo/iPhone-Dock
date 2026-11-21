@@ -1,4 +1,4 @@
-// mon-ecran-version: b4502054
+// mon-ecran-version: fb699238
 /* QM27 (v88…v163, v164) — les lieux du club : domaine et bâtiments, stade, Bazar, buvette et carnet de recettes, partenaires, salle des trophées, banque, divination.
    Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU) ; ses fonctions sont publiées dans window.QMF (v164 : découpage de qm27-ui.js). */
 (() => {
@@ -11,7 +11,7 @@ const POS_DOM = {infirmerie:[62, 56], salle:[140, 50], bureau:[210, 44], formati
 const VUE_BAT = {stade:'stade', boutique:'boutique', buvette:'buvette', formation:'formation', entrainement:'entrainement', balais:'vestiaire', tactique:'tactique', mercato:'mercato', trophees:'trophees'};
 const nomBat = k => k === 'bureau' ? 'Bureau du président' : (B.BAT[k] || [])[1] || k;
 const pips = n => `<span class="pips" aria-label="niveau ${n} sur 5">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
-const coutEntretien = (c, k) => ((E.inst[k] || E.bat[k] || {}).entretien || 0) * C.niv(c, k);
+const coutEntretien = (c, k) => ((E.inst[k] || E.bat[k] || {}).entretien || 0) * C.niv(c, k) * (C.facteurTaille ? C.facteurTaille(c, k) : 1);   // v165 : selon la taille du stade (tribunes, Taverne)
 function stadePlan(c){
   const lv = C.niv(c, 'tribunes'), [c1, c2] = c.couleurs, toit = lv >= 3;
   return `<g class="dbat" data-act="batiment" data-b="tribunes" role="button" tabindex="0" aria-label="Stade, niveau ${lv}">

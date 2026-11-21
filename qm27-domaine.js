@@ -1,4 +1,4 @@
-// mon-ecran-version: f9438176
+// mon-ecran-version: 05baa14b
 /* QM27 (v88, lot 5) — le domaine du club : bâtiments sorciers (niveaux 1 à 5 et améliorations au choix aux niveaux 3 et 5),
    stade en quatre tribunes, Bazar (produits et prix), sponsor maillot et panneaux à négocier, supporters, emprunt à la Banque des Gobelins,
    salle des trophées et palmarès, petits événements. Sans affichage : expose window.QMB (bonus lus par le moteur) et complète window.QMC.
@@ -36,13 +36,13 @@ function bonus(c, k){
     case 'progJeunes': return a(c, 'jeunes') ? 0.1 : 0;
     case 'progAcad': return a(c, 'terrain') ? 0.25 : 0;
     case 'meteo': return a(c, 'brumes') ? 0.5 : 0;
-    case 'balai': return (n('hangar') - 2) * 0.3 + (a(c, 'prototype') ? 1 : 0);
+    case 'balai': return (n('hangar') - 2) * 0.5 + (a(c, 'prototype') ? 1 : 0);   // v165 : 0,5 par niveau (0,3)
     case 'balaiPrix': return a(c, 'etabli') ? 0.25 : 0;
     case 'usure': return a(c, 'vernis') ? 0.5 : 0;
-    case 'cohesion': return (n('salle') - 2) * 0.25 + (a(c, 'tableau') ? 0.5 : 0);
-    case 'estimation': return (n('voliere') - 2) * 1.5 + (a(c, 'correspondants') ? 3 : 0);
+    case 'cohesion': return (n('salle') - 2) * 0.5 + (a(c, 'tableau') ? 0.5 : 0);   // v165 : 0,5 par niveau (0,25)
+    case 'estimation': return (n('voliere') - 2) * 2.5 + (a(c, 'correspondants') ? 3 : 0);   // v165 : 2,5 par niveau (1,5)
     case 'prixVendeur': return a(c, 'grandsducs') ? 0.08 : 0;
-    case 'salaire': return (a(c, 'agent') ? 0.1 : 0) + (a(c, 'manoir') ? 0.05 : 0);
+    case 'salaire': return (a(c, 'agent') ? 0.06 : 0) + (a(c, 'manoir') ? 0.03 : 0);   // v165 : 6 % et 3 % (10 % et 5 %)
     case 'domicile': return a(c, 'dragon') ? 0.02 : 0;
     case 'affluence': return a(c, 'ecran') ? 0.04 : 0;
     case 'billetterie': return a(c, 'lanternes') ? 0.1 : 0;
@@ -144,7 +144,7 @@ function retirerPanneau(M, i){ const c = assurer(M), p = c.dom.panneaux[i]; if (
 /* ---------- Bazar : produits et prix ---------- */
 const PRIX = {bas:{p:0.8, v:1.15, supp:0.06}, normal:{p:1, v:1, supp:0}, haut:{p:1.3, v:0.85, supp:-0.1}};
 const produitsDispo = c => D.PRODUITS.filter(p => !p[4] || a(c, p[4]));
-const placesRayon = c => 2 + niv(c, 'boutique');
+const placesRayon = c => Math.max(4, 2 + niv(c, 'boutique'));   // v165 : 4 au moins (les 4 produits de départ)
 const ATTRAIT_REF = 3.9;   // les 4 produits de départ
 function recetteProduit(c, p, st){ const base = Math.pow(c.rep / 85, 2.5) * EQ.eco.merch / SEM() * QMC.multInst(c, 'boutique') * (a(c, 'hibou') ? 1.2 : 1);
   const x = PRIX[st.prix] || PRIX.normal; return base * p[2] / ATTRAIT_REF * x.p * x.v; }
@@ -200,10 +200,10 @@ function titres(M, c){
   for (const h of M.europeHist || []) if (h.v === c.id) L.push({saison:`${h.saison}-${String(h.saison + 1).slice(2)}`, titre:'Ligue des Anneaux', ancien:false, cle:'eu'});   // v111
   return L.sort((x, y) => x.saison < y.saison ? 1 : -1);
 }
-const visites = (M, c) => niv(c, 'trophees') * (900 + 250 * titres(M, c).length) * (a(c, 'fantome') ? 1.5 : 1) * (a(c, 'musee') ? 2 : 1);
+const visites = (M, c) => { const V = EQ.visites; return niv(c, 'trophees') * (V.base + V.titre * titres(M, c).length) * (a(c, 'fantome') ? V.fantome : 1) * (a(c, 'musee') ? V.musee : 1); };   // v165
 
 /* ---------- Travaux et améliorations ---------- */
-function coutBat(c, type){ return type === 'stade' ? EQ.stade.tranche * EQ.stade.coutPlace : cfg(type).base * niv(c, type); }
+function coutBat(c, type){ return type === 'stade' ? EQ.stade.tranche * EQ.stade.coutPlace : QMC.coutNiveau(c, type); }
 function lancer(M, type, cote){
   const c = assurer(M);
   if (type === 'stade' && cote && c.dom.trib[cote] != null) c.dom.cote = cote;
@@ -261,6 +261,7 @@ function supportersSemaine(M, c, S){
   for (const [id, st] of Object.entries(d.produits)) if (st.actif && D.PRODUITS.some(p => p[0] === id)) v += PRIX[st.prix].supp;
   if (d.carte){ const act = carteActive(c); for (const p of act) v += PRIX[d.carte[p[0]].prix].supp; if (!act.length) v -= 0.3; }   // v133 : la buvette
   if (a(c, 'hydromel')) v += 0.2;
+  v += EQ.stade.supporters * (niv(c, 'tribunes') - 2);   // v165 : des tribunes couvertes, des supporters mieux installés
   if (a(c, 'legendes') && M.semaine % 4 === 0) v += 1;
   const avant = d.supp; d.supp = Math.round(borne(d.supp + v, 0, 100) * 10) / 10;
   M.manager.confiance = Math.round(borne(M.manager.confiance + (d.supp - 50) / 250, 0, 100) * 10) / 10;
