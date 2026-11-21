@@ -1,4 +1,4 @@
-// mon-ecran-version: 8c35df9a
+// mon-ecran-version: 7347ee23
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -440,9 +440,7 @@ const estDesk = () => document.documentElement.classList.contains('desk');
 /* moral : cinq visages, du rouge au vert (dessinés en attendant les images) */
 const MORAUX = [[20, 'furieux', '#d64545'], [40, 'mécontent', '#e8833a'], [60, 'neutre', '#d9b31f'], [80, 'content', '#7cb342'], [101, 'ravi', '#2e9e5b']];
 const niveauMoral = m => MORAUX.findIndex(x => m < x[0]);
-function visageMoral(m, t = 28){ const k = niveauMoral(m), [, nom, c] = MORAUX[k], bouche = ['M9 23 Q16 16 23 23', 'M10 22 Q16 19 22 22', 'M10 21 L22 21', 'M10 20 Q16 24 22 20', 'M9 19 Q16 27 23 19'][k];
-  const sourcils = k === 0 ? '<path d="M9 10 L14 12 M23 10 L18 12" stroke="#2b1d12" stroke-width="1.6" stroke-linecap="round"/>' : '';
-  return `<svg class="visage" viewBox="0 0 32 32" width="${t}" height="${t}" role="img" aria-label="Moral : ${nom}"><circle cx="16" cy="16" r="14.5" fill="${c}" stroke="rgba(0,0,0,.35)"/>${sourcils}<circle cx="11.5" cy="13.5" r="1.9" fill="#2b1d12"/><circle cx="20.5" cy="13.5" r="1.9" fill="#2b1d12"/><path d="${bouche}" fill="none" stroke="#2b1d12" stroke-width="2" stroke-linecap="round"/></svg>`; }
+function visageMoral(m, t = 28){ const k = niveauMoral(m); return `<img class="visage" src="images/qm27/moral/${k}.webp" width="${t}" height="${t}" alt="Moral : ${MORAUX[k][1]}" title="Moral : ${MORAUX[k][1]} (${Math.round(m)})">`; }   // v161 : visages illustrés
 /* potentiel : une étoile à cinq branches, chaque branche pleine ou vide */
 function etoilePot(n, t = 30){ const R = 15, r = 6.2, c = 16, pt = (a, d) => [c + d * Math.sin(a), c - d * Math.cos(a)].map(x => x.toFixed(2)).join(',');
   const br = [0, 1, 2, 3, 4].map(i => { const a = i * 2 * Math.PI / 5, g = a - Math.PI / 5, d = a + Math.PI / 5; return `<polygon points="${pt(g, r)} ${pt(a, R)} ${pt(d, r)} ${c},${c}" class="${i < n ? 'pl' : 'vd'}"/>`; }).join('');
@@ -457,7 +455,7 @@ function statutJ(j){
 }
 /* meilleur badge d'un joueur (rôles de son poste) : [badge, rôle] */
 function meilleurBadge(j){ let best = null; for (const [r] of (D.ROLES[j.poste] || [])){ const b = badgeDe(j, j.poste, r); if (b && (!best || rangBadge(b) > rangBadge(best[0]))) best = [b, r]; } return best; }
-const badgeRoleHTML = (j, x) => x ? `<span class="bdg ${x[0][0]}${x[0][3] ? ' est' : ''}" title="Badge ${x[0][1].toLowerCase()}${x[0][3] ? ' estimé' : ''} : ${esc(roleNom(j.poste, x[1]))}">${x[0][1]}${x[0][3] ? ' ?' : ''}</span> <span class="mut">${esc(roleNom(j.poste, x[1]).toLowerCase())}</span>` : '';
+const badgeRoleHTML = (j, x) => x ? `${imgBadge(x[0], x[1], 18, `Badge ${x[0][1].toLowerCase()}${x[0][3] ? ' estimé' : ''} : ${roleNom(j.poste, x[1])}`)} <span class="mut">${x[0][1]}${x[0][3] ? ' ?' : ''} · ${esc(roleNom(j.poste, x[1]).toLowerCase())}</span>` : '';
 const tuile = (lib, val, cls) => `<div class="fjt${cls ? ' ' + cls : ''}"><span>${lib}</span><b>${val}</b></div>`;
 /* attributs : une ligne (valeur, part dans la note au poste lu, progression depuis le dernier rapport mensuel) */
 function ligneAttrFJ(j, k, nom, v, c, part, mx, ancien){
@@ -678,7 +676,10 @@ function badgeDe(j, p, r){
   const moyP = noteVue(j, p).mid / 5; if (s / n < moyP - 0.6) return null;   // rôle en dessous de son niveau : pas de badge
   const b = D.BADGES.find(x => s / n - QM.refRole(p, r) >= x[2]); return b ? [...b, 'est'] : null;
 }
-const badgeHTML = (j, p, r, court) => { const b = badgeDe(j, p, r); return b ? `<span class="bdg ${b[0]}${b[3] ? ' est' : ''}" title="Badge ${b[1].toLowerCase()}${b[3] ? ' estimé par le recruteur' : ''} : ses attributs dépassent nettement ceux d'un ${D.POSTES[p].nom.toLowerCase()} typique dans ce rôle">${court ? '' : b[1] + (b[3] ? ' ?' : '')}</span>` : ''; };
+/* v161 : insignes illustrés (images/qm27/badges/<rôle>-<or|argent|bronze>.webp) ; un badge estimé est pâli et marqué « ? » */
+const imgBadge = (b, r, t, titre) => b ? `<span class="bdgi${b[3] ? ' est' : ''}" title="${esc(titre || 'Badge ' + b[1].toLowerCase() + (b[3] ? ' (estimé)' : ''))}"><img src="images/qm27/badges/${r}-${b[0]}.webp" width="${t}" height="${t}" alt="Badge ${b[1].toLowerCase()}" loading="lazy">${b[3] ? '<i>?</i>' : ''}</span>` : '';
+const badgeHTML = (j, p, r, court) => { const b = badgeDe(j, p, r); if (!b) return ''; const ti = `Badge ${b[1].toLowerCase()}${b[3] ? ' estimé par le recruteur' : ''} : ses attributs dépassent nettement ceux d'un ${D.POSTES[p].nom.toLowerCase()} typique dans ce rôle`;
+  return court ? imgBadge(b, r, 20, ti) : `${imgBadge(b, r, 22, ti)}<span class="bdg-t ${b[0]}">${b[1]}${b[3] ? ' ?' : ''}</span>`; };
 const roleNom = (p, r) => ((D.ROLES[p] || []).find(x => x[0] === r) || [, r])[1];
 function roleLeviers(p, r){ const R = (D.ROLE_DEF[p] || {})[r]; if (!R) return ''; return Object.entries(R.lev).sort((a, b) => b[1] - a[1]).map(([l, w]) => `${NOMS_LEV[l]}${p === 'A' ? ((R.course || []).includes(l) ? ' (course)' : ' (avant le vif)') : ''} ${Math.round(w * 100)} %`).join(', '); }
 function roleAttrs(p, r){ const R = (D.ROLE_DEF[p] || {})[r]; if (!R) return ''; return Object.entries(R.at).map(([k, w]) => (k.startsWith('g:') ? (D.GARDIEN.find(g => g[0] === k.slice(2)) || [, k])[1] : (D.ATTRS.find(a => a[0] === k) || [, k])[1]) + (w > 1 ? ' ×' + w : '')).join(', '); }
@@ -1126,7 +1127,7 @@ function ligneMercato(j, d){
   const p = MERC.poste !== 'tous' && MERC.poste !== 'bless' ? MERC.poste : j.poste, nv = noteVue(j, p), n = nv.mid;
   return `<button class="el" data-act="joueur" data-j="${j.id}">${j.club ? blason(j.club, 'p') : '<span class="blason nat p" aria-hidden="true" style="font-size:.5rem;font-weight:800;color:var(--ink-soft)">LIBRE</span>'}${posteB(j.poste)}
     <div class="t"><b>${flag(j.nat)} ${esc(nomJ(j))}</b><span>${j.age} ans · ${d || (j.club ? esc(club(j.club).sigle) + ' · ' + eur(C.valeur(M, j)) : 'libre · demande ' + eur(C.salaireDemande(j, club(M.manager.club))) + '/sem.')}</span></div>
-    ${MERC.role && MERC.role.startsWith(j.poste + ':') ? badgeHTML(j, j.poste, MERC.role.split(':')[1]) : (b => b ? `<span class="bdg ${b[0][0]}${b[0][3] ? ' est' : ''}" title="Meilleur badge : ${esc(roleNom(j.poste, b[1]))}${b[0][3] ? ' (estimé)' : ''}">${b[0][1]}${b[0][3] ? ' ?' : ''}</span>` : '')(meilleurBadge(j))}<span class="etoiles petit" aria-label="potentiel">${'★'.repeat(C.potentielEstime(M, j))}</span><span class="note ${classeNote(n)}${nv.exact ? '' : ' flou'}">${nv.txt}</span></button>`;
+    ${MERC.role && MERC.role.startsWith(j.poste + ':') ? badgeHTML(j, j.poste, MERC.role.split(':')[1]) : (b => b ? imgBadge(b[0], b[1], 22, `Meilleur badge (${b[0][1].toLowerCase()}) : ${roleNom(j.poste, b[1])}${b[0][3] ? ' (estimé)' : ''}`) : '')(meilleurBadge(j))}<span class="etoiles petit" aria-label="potentiel">${'★'.repeat(C.potentielEstime(M, j))}</span><span class="note ${classeNote(n)}${nv.exact ? '' : ' flou'}">${nv.txt}</span></button>`;
 }
 function vueMercato(){
   const U = club(M.manager.club), S = QM.semaine(M), ouvert = C.mercatoOuvert(S), fen = C.prochaineFenetre(M);
@@ -2201,5 +2202,5 @@ Object.assign(ACT, {
 });
 function rafraichirFeuilleScene(){ const el = document.querySelector('.fond .feuille [data-sc]'); if (el && ACT[el.dataset.sc]) ACT[el.dataset.sc]({garder:true}); }
 window.QMU = {flagSeul, pieces, eurT, get M(){ return M; }, get X(){ return X; }, get EMP(){ return EMP; }, U, REG, regler, VUES, ACT, VUE, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, nomEq, flag, posteB, etoiles, nomJ, court,
-  classeNote, classeAttr, meilleurBadge, rangBadge, roleNom, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, valVue, connu, HH, roleDe, ficheSemaine, msgHTML, tableHTML, ICO, MERC, ligneMercato, IDX, COURT_ATTR, LS, nomBat};
+  classeNote, classeAttr, meilleurBadge, rangBadge, roleNom, imgBadge, visageMoral, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, valVue, connu, HH, roleDe, ficheSemaine, msgHTML, tableHTML, ICO, MERC, ligneMercato, IDX, COURT_ATTR, LS, nomBat};
 })();

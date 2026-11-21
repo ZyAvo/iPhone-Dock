@@ -1,4 +1,4 @@
-// mon-ecran-version: 5aa24f47
+// mon-ecran-version: 8b303ff3
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -822,10 +822,10 @@ function vuePlus(){
 
 /* ============================== Effectif en colonnes ============================== */
 /* v92 : catalogue des colonnes [libellé court, largeur, description] et vues de l'effectif réglables (roue ⚙︎) */
-const COLS = {note:['Note', 44, 'Note au poste'], pot:['Pot.', 40, 'Potentiel estimé (étoiles)'], forme:['Forme', 40, 'Forme sur 10'], moral:['Moral', 42, 'Moral sur 100'],
+const COLS = {note:['Note', 44, 'Note au poste'], pot:['Pot.', 40, 'Potentiel estimé (étoiles)'], forme:['Forme', 40, 'Forme sur 10'], moral:['Moral', 52, 'Moral sur 100'],
   fat:['Fatigue', 50, 'Fatigue du moment (au moins 60 % de la charge)'], charge:['Charge', 52, 'Fatigue cumulée : matchs enchaînés, entraînement ; redescend au repos'], bless:['Dispo', 44, 'Blessure (jours), suspension (matchs) ou sélection'], m:['MJ', 30, 'Matchs joués cette saison'], stat:['Stat', 50, 'Buts, cognards, vifs d\'or ou arrêts'],
   moy:['Moy.', 38, 'Note moyenne en match'], sal:['Salaire', 54, 'Salaire par semaine'], fin:['Fin', 46, 'Fin de contrat'], valeur:['Valeur', 58, 'Valeur estimée'],
-  clause:['Clause', 58, 'Clause libératoire'], prog:['Prog.', 44, 'Progression de la note cette saison'], badge:['Badge', 58, 'Meilleur badge de rôle (bronze, argent, or) ; le rôle au survol']};   // v161
+  clause:['Clause', 58, 'Clause libératoire'], prog:['Prog.', 44, 'Progression de la note cette saison'], badge:['Badge', 46, 'Meilleur badge de rôle (bronze, argent, or) ; le rôle au survol']};   // v161
 const VUES_DEF = [{id:'general', nom:'Général', cols:['note', 'badge', 'forme', 'moral']}, {id:'contrats', nom:'Contrats', cols:['sal', 'fin', 'valeur']},
   {id:'physique', nom:'Physique', cols:['fat', 'charge', 'forme', 'bless']}, {id:'saison', nom:'Saison', cols:['m', 'stat', 'moy']}];
 const VUES_EFF = {scout:{nom:'Estimation', cols:['note', 'pot', 'valeur']}};
@@ -838,13 +838,13 @@ function valeurCol(j, k, ctx){
   switch (k){
     case 'note': { const v = noteVue(j, j.poste); return [v.mid, `<span class="note ${classeNote(v.mid)}${v.exact ? '' : ' flou'}">${v.txt}</span>`]; }
     case 'forme': return [j.forme, `<span class="${j.forme >= 7 ? 'bon' : j.forme < 5 ? 'mauvais' : ''}">${(Math.round(j.forme * 10) / 10).toLocaleString('fr-FR')}</span>`];
-    case 'moral': return [j.moral, `<span class="${j.moral >= 70 ? 'bon' : j.moral < 40 ? 'mauvais' : ''}">${Math.round(j.moral)}</span>`];
+    case 'moral': return [j.moral, Z.visageMoral ? `<span class="mor-c">${Z.visageMoral(j.moral, 18)}<span class="${j.moral >= 70 ? 'bon' : j.moral < 40 ? 'mauvais' : ''}">${Math.round(j.moral)}</span></span>` : `<span class="${j.moral >= 70 ? 'bon' : j.moral < 40 ? 'mauvais' : ''}">${Math.round(j.moral)}</span>`];   // v161 : visage
     case 'charge': { const v = Math.round(j.charge || 0); return [v, `<span class="${v >= 60 ? 'mauvais' : v >= 40 ? 'moyen' : ''}">${v}</span>`]; }
     case 'fat': return [j.fat, `<span class="${j.fat >= 60 ? 'mauvais' : j.fat >= 35 ? 'moyen' : ''}">${Math.round(j.fat)} %</span>`];
     case 'sal': return [j.contrat ? j.contrat.sal : 0, j.contrat ? eur(j.contrat.sal) : '—'];
     case 'fin': return [j.contrat ? j.contrat.fin : 0, j.contrat ? `<span class="${j.contrat.fin <= M_.saison ? 'mauvais' : ''}">${lab(j.contrat.fin).slice(2)}</span>` : '—'];
     case 'pot': { const v = C.potentielEstime(M_, j); return [v, `${v}<span class="etoiles petit">★</span>`]; }
-    case 'badge': { const b = Z.meilleurBadge ? Z.meilleurBadge(j) : null; return [b ? Z.rangBadge(b[0]) * 10 + (b[0][3] ? 0 : 1) : 0, b ? `<span class="bdg ${b[0][0]}${b[0][3] ? ' est' : ''}" title="Badge ${b[0][1].toLowerCase()} : ${esc(Z.roleNom(j.poste, b[1]))}${b[0][3] ? ' (estimé)' : ''}">${b[0][1]}${b[0][3] ? '?' : ''}</span>` : '<span class="mut">—</span>']; }   // v161
+    case 'badge': { const b = Z.meilleurBadge ? Z.meilleurBadge(j) : null; return [b ? Z.rangBadge(b[0]) * 10 + (b[0][3] ? 0 : 1) : 0, b ? Z.imgBadge(b[0], b[1], 24, `Badge ${b[0][1].toLowerCase()} : ${Z.roleNom(j.poste, b[1])}${b[0][3] ? ' (estimé)' : ''}`) : '<span class="mut">—</span>']; }   // v161
     case 'valeur': { const v = C.valeur(M_, j); return [v, eur(v)]; }
     case 'bless': return [j.bless ? j.bless.jours : j.susp ? j.susp.n * 7 : j.inter ? 0.5 : 0, j.bless ? `<span class="mauvais">${j.bless.jours} j</span>` : j.susp ? `<span class="mauvais" title="Suspendu : ${esc(j.susp.r)}">susp. ${j.susp.n}</span>` : j.inter ? '<span class="moyen" title="En sélection">✈︎</span>' : '—'];   // v158 : suspendus
     case 'm': return [s.m || 0, s.m || 0];
