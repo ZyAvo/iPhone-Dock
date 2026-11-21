@@ -1,4 +1,4 @@
-// mon-ecran-version: 77fbdc07
+// mon-ecran-version: 7d802fab
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -31,6 +31,10 @@ const SIX_NATIONS = ['ENG', 'FRA', 'IRL', 'ITA', 'SCO', 'WAL'];   // les six nat
 const SELECTIONS = Object.keys(NATIONS);   // v106 : toutes les sélections (Ligue des nations, amicaux)
 const TOURNOI = {nom:'Tournoi des Six Emblèmes', court:'Six Emblèmes'};   // v91-v105 : l'ancien tournoi des sélections (palmarès des anciennes saisons)
 const LDN = {nom:'Ligue des nations', court:'Ligue des nations', mini:'LDN'};   // v106 : l'été, une saison sur deux (poules puis élimination)
+/* v160 : note au poste. poids : part de chaque attribut (75 % effet mesuré en match sur le moteur v160, attribut porté de 12 à 20 pour tout le poste, rôles mélangés ;
+   25 % profil du poste ● ○) ; cal : recalage a + b × moyenne pondérée, pour garder la moyenne et la dispersion des notes d'avant (valeurs, salaires) */
+const NOTE = {poids:{P:{vit:4.9, acc:6.4, end:2.6, for:1.3, agi:1.2, res:0.6, pil:0.7, vir:3.5, equ:1.5, frm:3.1, pas:6.5, rec:3.1, tir:10.8, pre:6.3, ctl:8.9, int:5.8, bou:3.1, vis:6.5, ant:5.3, pla:3, dec:2, con:3.5, san:3.3, cou:1, equi:4.1, det:0.8}, B:{vit:3.8, acc:0.6, end:2.3, for:8.1, agi:0.6, ref:4.4, acu:0.6, res:2.2, pil:0.6, equ:2.2, frm:0.6, pre:20.1, bou:0.6, fra:18.3, vis:0.6, ant:10.3, pla:6.6, dec:0.6, con:2.1, agr:8.5, cou:2.6, equi:0.6, det:2.7}, A:{vit:8.5, acc:8.5, end:2.5, agi:9.3, ref:4.4, acu:10.6, res:0.6, pil:2.7, vir:4.4, piq:10.7, equ:0.6, bou:3.3, vis:2.2, ant:4.4, pla:0.6, dec:4.3, con:5.1, san:9.6, cou:5.3, det:2.3}, G:{acc:0.5, end:2.8, for:0.5, agi:6.9, ref:11.7, acu:0.5, res:0.5, pil:0.5, equ:1.6, pas:1.1, rec:0.5, int:0.5, vis:2.5, ant:7.8, pla:7.2, dec:0.5, con:7.2, san:0.5, cou:0.5, det:1.3, 'g:arr':15.4, 'g:cou_a':11.7, 'g:sor':6.9, 'g:rel':7.7, 'g:com':2.8}},
+  cal:{P:[0.263, 0.9943], B:[0.217, 0.9514], A:[0.073, 1.0068], G:[-0.054, 0.9751]}};
 /* v158 : arbitres (nom, nation, sévérité : moins de 0,9 laxiste, plus de 1,15 sévère) */
 const ARBITRES = [['Hilda Grünewald', 'GER', 1.3], ['Bertrand Moreau', 'FRA', 1.22], ['Owain Pritchard', 'WAL', 0.82], ['Agnes Lindqvist', 'SWE', 1.05], ['Rafael Ortega', 'ESP', 0.9],
   ['Cormac Doyle', 'IRL', 0.75], ['Ottavia Ricci', 'ITA', 1.15], ['Pieter van Dam', 'NED', 0.98], ['Margaret Hollis', 'ENG', 1.1], ['Kjetil Aas', 'NOR', 0.88], ['Zofia Kowalczyk', 'POL', 1.25],
@@ -359,7 +363,8 @@ const EQ = {
   baseTir:-0.8,                    // décalage de la sigmoïde (v157 : −0,7 avant les tirs multipliés par les consignes)
   baseBut:0.385, kBut:0.022, butMin:0.10, butMax:0.80,   // v89 : baseBut 0,40 avant les dispositions et les zones d'attaque
   garde:0.55,                   // possession gardée après une action sans tir
-  cognard:0.05, blessure:0.035, faute:0.012, fauteGrave:0.12, penalty:0.70,
+  cognard:0.05, cogEchelle:7, blessure:0.035,   // v160 : cogEchelle (avant 15) : l'écart de force des batteurs pèse deux fois plus sur les cognards
+  faute:0.012, fauteGrave:0.12, penalty:0.70,
   /* v158 : fautes et sanctions. agr : fautes selon l'agressivité (calme, normale, dure) ; pen : part des fautes sifflées en penalty (les autres : coup franc, cf = bonus au tir
      de l'action suivante) ; grave : part des fautes graves (penalty, rouge direct possible) ; jaune : avertissement sur une faute ordinaire ; rouge : rouge direct sur une faute grave ;
      inf : force perdue par place vide après une exclusion ; accumul : jaunes en club qui valent un match de suspension ; susp : matchs de suspension (second jaune, rouge direct) */
@@ -573,5 +578,5 @@ const ANTI_SYNERGIES = [
 const FOCUS = [['technique', 'Technique', ['Vol', 'Balle', 'Gardien']], ['physique', 'Physique', ['Physique']], ['tactique', 'Tactique', ['Mental']], ['repos', 'Repos', []]];
 const INTENSITES = [[1, 'Légère'], [2, 'Normale'], [3, 'Intense']];
 
-root.QMD = {ARBITRES, STYLE, ROLE_DEF, ROLES_ANCIENS, BADGES, SYNERGIES, ANTI_SYNERGIES, NOMS_CLUBS, VILLES_LANGUES, LANGUES_NOMS, TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, CARTE, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
+root.QMD = {NOTE, ARBITRES, STYLE, ROLE_DEF, ROLES_ANCIENS, BADGES, SYNERGIES, ANTI_SYNERGIES, NOMS_CLUBS, VILLES_LANGUES, LANGUES_NOMS, TOURNOI, LDN, AMICAUX, SELECTIONS, LIGUES_ANCIENNES, RESERVE, MANIES, BATIMENTS, PRODUITS, CARTE, SPONSORS, EVENEMENTS, INSTALLATIONS, STAFF, EFFETS_STAFF, ROLES, FOCUS, INTENSITES, NATIONS, SIX_NATIONS, LIGUES, CLUBS, ORIGINES, NOMS, ATTRS, GARDIEN, CACHES, POSTES, PICS, BALAIS, METEOS, METEO_MOIS, BLESSURES, TEXTES, EQ};
 })(typeof window !== 'undefined' ? window : globalThis);

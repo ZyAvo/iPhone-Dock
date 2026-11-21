@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="04bae6b9">
+<meta name="mon-ecran-version" content="4abc91be">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1150,6 +1150,14 @@ html.desk .tterrain{width:min(100%, calc((100vh - 250px) * 100 / 140));min-width
 @keyframes flashJ{30%{transform:scale(1.2);box-shadow:0 0 0 5px var(--or)}}
 .tbanc{display:flex;flex-direction:column;gap:4px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:8px 2px 10px;margin-top:44px}
 .tbanc h3{margin:0 0 2px;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);font-weight:650}
+.synl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.synl line{stroke-width:3;vector-effect:non-scaling-stroke;stroke-linecap:round}.synl line.on{stroke:#e0b43a;filter:drop-shadow(0 0 3px rgba(224,180,58,.8))}
+.synl line.presque{stroke:rgba(255,255,255,.75);stroke-dasharray:5 6}.synl line.anti{stroke:#e5484d;stroke-dasharray:3 5}
+.synm{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:3px;pointer-events:auto;font-size:.6rem;font-weight:700;color:#fff;cursor:help}
+.synm i{font-style:normal;display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#e0b43a;color:#3a2a00;font-size:.62rem;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.synm.presque i{background:rgba(255,255,255,.9);color:#555}.synm.anti i{background:#e5484d;color:#fff}
+.synm em{display:none;font-style:normal;white-space:nowrap;background:rgba(0,0,0,.55);padding:1px 5px;border-radius:6px}
+.synm:hover em,.synm:focus em{display:inline;position:absolute;left:20px;z-index:3}
 .tbanc .jeton{position:relative;transform:none;width:66px;gap:1px;padding:2px 0}
 .tbanc .jeton .rond{width:36px;height:36px;font-size:.85rem}
 .tbanc .jeton b{color:var(--ink);background:none;padding:0;max-width:66px;font-weight:650}
@@ -1217,20 +1225,20 @@ html.desk .er{cursor:grab}
 <nav class="qm-nav" id="nav" hidden aria-label="Menus du jeu"><div class="in"></div></nav>
 <input type="file" id="fichier" accept=".json,application/json" hidden>
 <script src="synchro.js?v=0ce8808a"></script>
-<script src="qm27-donnees.js?v=77fbdc07"></script>
-<script src="qm27.js?v=ec5a1851"></script>
+<script src="qm27-donnees.js?v=7d802fab"></script>
+<script src="qm27.js?v=556fda00"></script>
 <script src="qm27-club.js?v=baa0a5b6"></script>
 <script src="qm27-carriere.js?v=e8bd32de"></script>
 <script src="qm27-domaine.js?v=b8c686dd"></script>
 <script src="qm27-vestiaire.js?v=586910c3"></script>
 <script src="qm27-presse.js?v=c8907b53"></script>
 <script src="qm27-tactique.js?v=82a3b71f"></script>
-<script src="qm27-bureau.js?v=3f2e61d1"></script>
+<script src="qm27-bureau.js?v=aa6b16a2"></script>
 <script src="qm27-prix.js?v=8daf584a"></script>
 <script src="qm27-europe.js?v=d5461710"></script>
 <script src="qm27-nations.js?v=66d46995"></script>
 <script src="qm27-visuel.js?v=475e9f0c"></script>
-<script src="qm27-ui.js?v=7ddb9ede"></script>
+<script src="qm27-ui.js?v=c0bd4c8b"></script>
 <script src="qm27-ecrans.js?v=2d707d26"></script>
 <script src="qm27-stats.js?v=9964dddb"></script>
 <script src="commun.js?v=fc411b5f"></script>

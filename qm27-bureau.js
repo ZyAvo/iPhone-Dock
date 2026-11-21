@@ -1,4 +1,4 @@
-// mon-ecran-version: 3f2e61d1
+// mon-ecran-version: aa6b16a2
 /* QM27 (v91, lot 8) — le bureau du manager, sans affichage. Expose window.QMG et complète window.QMC. Chargé après qm27-vestiaire.js.
    Entraînement programmable : programme de la semaine en 5 séances (lundi-vendredi), intensité, ateliers par poste, modèles,
    préparation physique d'avant-saison ; l'adjoint planifie tout seul si on le laisse faire.
@@ -445,7 +445,9 @@ const focusDe = j => (j.focus || []).filter(Boolean);
 function cibleFocus(j, F){
   if (F.t === 'cap'){ const C = CAPACITES.find(x => x[0] === F.k); return C ? {a:C[2].map(IDX), g:(C[3] || []).map(IDXG)} : null; }
   if (F.t === 'role'){ const L = (ROLE_ATTRS[j.poste] || {})[F.k]; if (!L) return null; return {a:L.filter(x => typeof x === 'string').map(IDX), g:(L.find(x => Array.isArray(x)) || []).map(IDXG)}; }
-  if (F.t === 'poste'){ const w = Q().POIDS[F.k]; return {a:w.map((x, i) => x === 3 ? i : -1).filter(i => i >= 0), g:F.k === 'G' ? D.GARDIEN.map((x, i) => i) : [], poste:F.k}; }
+  if (F.t === 'poste'){ const w = Q().POIDS[F.k], PN = Q().partNote ? Q().partNote(F.k) : null;   // v160 : les attributs qui font la note au poste (5 % ou plus)
+    if (PN) return {a:Q().ATT.map((k, i) => (PN[k] || 0) >= 0.05 ? i : -1).filter(i => i >= 0), g:F.k === 'G' ? D.GARDIEN.map((g, i) => (PN['g:' + g[0]] || 0) >= 0.05 ? i : -1).filter(i => i >= 0) : [], poste:F.k};
+    return {a:w.map((x, i) => x === 3 ? i : -1).filter(i => i >= 0), g:F.k === 'G' ? D.GARDIEN.map((x, i) => i) : [], poste:F.k}; }
   return null;
 }
 /* les focus actifs de chaque joueur du club (les focus bonus au-delà des places de l'Aire d'envol sont en pause) */
@@ -827,6 +829,7 @@ Object.assign(QMC, {
     }
   },
   migrer(M){ const v = M.v || 1; base.migrer(M); initRecords(M); if (M.manager) profil(M);
+    if (M.manager && v < 13) Q().message(M, 'QM27 : notes recalculées sur le jeu', 'La note d\'un joueur à un poste mesure maintenant ce que chaque attribut pèse vraiment en match (mesuré sur des milliers de matchs simulés) : Interception et Anticipation comptent davantage pour un poursuiveur, Frappe et Précision pour un batteur, Arrêts et Réflexes pour un gardien. L\'échelle ne change pas (même moyenne), mais certains joueurs montent ou descendent de quelques points. Sur la fiche, les attributs surlignés sont ceux qui font la note, avec leur part au survol. Les batteurs pèsent aussi davantage sur les cognards, et Décisions, Concentration, Virages serrés, Pilotage et Agilité ont plus d\'effet. Sur le terrain tactique, des traits relient les joueurs en synergie.', 'info');   // v160
     if (v < 12){   // v155 : les anciens rôles (équilibré, protecteur, chasseur de batteur…) sont remplacés au mieux ; focus de rôle disparus retirés
       for (const c of Object.values(M.clubs)) if (c.compo) Q().rolesAuto(M, c.compo, true);
       if (M.sel && M.sel.compo) Q().rolesAuto(M, M.sel.compo, true);

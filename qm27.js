@@ -1,4 +1,4 @@
-// mon-ecran-version: ec5a1851
+// mon-ecran-version: 556fda00
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -7,7 +7,7 @@
 'use strict';
 const D = root.QMD;
 const EQ = D.EQ;
-const VERSION = 12;   // v155 : vingt rôles à effets propres, synergies, vif d'or à 80 points ; v152 : maîtrise tactique par élément, trois plans de jeu, managers de l'ordinateur ; v113 : droits TV relevés, plafonds de masse salariale recalculés ;   // v94 : potentiels plafonnés (fin de l'inflation des notes), historique de carrière (j.carr) ; v7   // v91 : tournoi pendant le championnat (j.inter), programme d'entraînement, profil du manager, records (qm27-bureau.js) ; v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty ; v90 : vestiaire et mercato (qm27-vestiaire.js)   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
+const VERSION = 13;   // v160 : note recalculée sur le moteur ; v155 : vingt rôles à effets propres, synergies, vif d'or à 80 points ; v152 : maîtrise tactique par élément, trois plans de jeu, managers de l'ordinateur ; v113 : droits TV relevés, plafonds de masse salariale recalculés ;   // v94 : potentiels plafonnés (fin de l'inflation des notes), historique de carrière (j.carr) ; v7   // v91 : tournoi pendant le championnat (j.inter), programme d'entraînement, profil du manager, records (qm27-bureau.js) ; v89 : manies des joueurs, dispositions avec et sans le souafle, tireur de penalty ; v90 : vestiaire et mercato (qm27-vestiaire.js)   // v84 : contrats, staff, finances, entraînement (qm27-club.js) ; v85 : stade, centre de formation, carrière, sélection (qm27-carriere.js) ; une sauvegarde plus ancienne est complétée au chargement
 const C = () => root.QMC;   // gestion du club (qm27-club.js), facultative pour le moteur
 
 /* ---------- Hasard à graine (mulberry32) ---------- */
@@ -32,13 +32,20 @@ const POIDS = {};
 ['P', 'B', 'A', 'G'].forEach((p, pi) => { POIDS[p] = D.ATTRS.map(a => a[3][pi] === '●' ? 3 : a[3][pi] === '○' ? 1 : 0); });
 const at = (j, k) => j.a[IDX[k]];
 const ga = (j, k) => j.g[GIDX[k]];
-/* note d'un joueur à un poste, sur 20 (le gardien compte aussi son bloc, poids 3) */
-function note20(j, poste){
-  const w = POIDS[poste]; let s = 0, n = 0;
+/* note d'un joueur à un poste, sur 20. v160 : poids mesurés sur le moteur (QMD.NOTE.poids : effet réel de chaque attribut en match, rôles mélangés),
+   puis recalée (QMD.NOTE.cal : a + b × moyenne pondérée) pour garder l'échelle d'avant (moyenne et dispersion des notes d'un monde neuf, donc valeurs et salaires) */
+const POIDS_NOTE = {}, POIDS_NOTE_G = {};
+['P', 'B', 'A', 'G'].forEach(p => { const W = D.NOTE && D.NOTE.poids[p]; POIDS_NOTE[p] = W ? ATT.map(k => W[k] || 0) : POIDS[p]; POIDS_NOTE_G[p] = D.GARDIEN.map(g => W ? W['g:' + g[0]] || 0 : 3); });
+function noteBrute(j, poste){
+  const w = POIDS_NOTE[poste]; let s = 0, n = 0;
   for (let i = 0; i < w.length; i++){ s += j.a[i] * w[i]; n += w[i]; }
-  if (poste === 'G'){ for (const v of j.g){ s += v * 3; n += 3; } }
+  if (poste === 'G' && j.g){ const wg = POIDS_NOTE_G.G; for (let i = 0; i < j.g.length; i++){ s += j.g[i] * wg[i]; n += wg[i]; } }
   return s / n;
 }
+/* part de chaque attribut dans la note d'un poste (0 à 1) : {clé: part}, clés du gardien préfixées « g: » */
+function partNote(poste){ const w = POIDS_NOTE[poste], wg = poste === 'G' ? POIDS_NOTE_G.G : [], t = w.reduce((a, b) => a + b, 0) + wg.reduce((a, b) => a + b, 0), R = {};
+  ATT.forEach((k, i) => { if (w[i]) R[k] = w[i] / t; }); D.GARDIEN.forEach((g, i) => { if (wg[i]) R['g:' + g[0]] = wg[i] / t; }); return R; }
+function note20(j, poste){ const c = D.NOTE && D.NOTE.cal[poste], x = noteBrute(j, poste); return c ? c[0] + c[1] * x : x; }
 const note = (j, poste) => Math.round(note20(j, poste || j.poste) * 5);   // affichage sur 100
 const meilleurPoste = j => ['P', 'B', 'A', 'G'].reduce((b, p) => note20(j, p) > note20(j, b) ? p : b, j.poste);
 
@@ -393,16 +400,16 @@ function forces(X, eq){
     * (1 + km) * (1 + (e.mep || 0));   // v127 : mise en place ; v152 : maîtrise tactique (60 % neutre, 90 % +4,2 %, 30 % −4,2 %, plus de ballons perdus quand elle est basse)
   const dom = ((eq === 0 && X.domicile) ? EQ.domicile + (e.domBonus || 0) : 1) * X.jour[eq] * coh * (1 + (e.forceBonus || 0));   // v88 : dragon de pierre, carte du ciel
   const wA = e.P.map(() => 1), wD = e.P.map(() => 1);   // v153 : plus de pondération par rôle (les rôles agissent par leurs leviers)
-  const pil = (L, p) => L.length ? 1 + L.reduce((t, id) => t + (J(X, id) ? at(J(X, id), 'pil') - typique(p, 'pil') : 0), 0) / L.length / 80 : 1;   // v153 : Pilotage (pilote typique = balai tel quel)
+  const pil = (L, p) => L.length ? 1 + L.reduce((t, id) => t + (J(X, id) ? at(J(X, id), 'pil') - typique(p, 'pil') : 0), 0) / L.length / 40 : 1;   // v153 : Pilotage (pilote typique = balai tel quel) ; v160 : deux fois plus marqué
   const infP = 1 - EQ.fautes.inf.P * Math.max(0, 3 - e.P.length), infB = 1 - EQ.fautes.inf.B * Math.max(0, 2 - e.B.length);   // v158 : infériorité numérique après un carton rouge
-  const A = moyP(e.P.map(id => { const j = J(X, id); return ((at(j, 'pas') * 2 + at(j, 'rec') + at(j, 'ctl') * 2 + at(j, 'vis') * 2 + at(j, 'frm') + at(j, 'acc') + at(j, 'equi') + at(j, 'tir')) / 11) * f(X, eq, id); }), wA) * dom + (b.man * us * pil(e.P, 'P') - 6) * 0.12
+  const A = moyP(e.P.map(id => { const j = J(X, id); return ((at(j, 'pas') * 2 + at(j, 'rec') + at(j, 'ctl') * 2 + at(j, 'vis') * 2 + at(j, 'frm') + at(j, 'acc') + at(j, 'equi') + at(j, 'tir') + at(j, 'dec')) / 12) * f(X, eq, id);   /* v160 : + Décisions */ }), wA) * dom + (b.man * us * pil(e.P, 'P') - 6) * 0.12
     + 0.12 * e.P.filter(id => aManie(J(X, id), 'passeur')).length;   // v89 : manie « cherche la passe »
-  const Df = moyP(e.P.map(id => { const j = J(X, id); return ((at(j, 'int') * 2 + at(j, 'bou') + at(j, 'ant') * 2 + at(j, 'pla') + at(j, 'vit') + at(j, 'acc')) / 8) * f(X, eq, id); }), wD) * dom * infP;
+  const Df = moyP(e.P.map(id => { const j = J(X, id); return ((at(j, 'int') * 2 + at(j, 'bou') + at(j, 'ant') * 2 + at(j, 'pla') + at(j, 'vit') + at(j, 'acc') + at(j, 'con') + at(j, 'vir')) / 10) * f(X, eq, id);   /* v160 : + Concentration, Virages serrés */ }), wD) * dom * infP;
   const B = moy(e.B.map(id => { const j = J(X, id); return ((at(j, 'fra') * 3 + at(j, 'pre') * 2 + at(j, 'for') + at(j, 'ant') + at(j, 'agr')) / 8) * f(X, eq, id); })) * (dom > 1 ? 1.02 : 1) * (1 + km / 2);
   const g = J(X, e.G[0]);
-  const G = g ? ((ga(g, 'arr') * 3 + ga(g, 'cou_a') * 2 + ga(g, 'sor') + at(g, 'ref') * 2 + at(g, 'agi') + at(g, 'pla')) / 10) * f(X, eq, e.G[0]) + (aManie(g, 'mur') ? 0.35 : 0) : 5;   // v153 : le gardien de ligne passe par le levier « rempart »   // (v90 : gMalus = gardien soudoyé, appliqué plus bas)
+  const G = g ? ((ga(g, 'arr') * 3 + ga(g, 'cou_a') * 2 + ga(g, 'sor') + at(g, 'ref') * 2 + at(g, 'agi') + at(g, 'pla') + at(g, 'ant') + at(g, 'con')) / 12) * f(X, eq, e.G[0]) + (aManie(g, 'mur') ? 0.35 : 0) : 5;   // v153 : le gardien de ligne passe par le levier « rempart »   // (v90 : gMalus = gardien soudoyé, appliqué plus bas)
   const s = J(X, e.A[0]);
-  const S = s ? ((at(s, 'vit') * 2 + at(s, 'acc') * 2 + at(s, 'piq') * 2 + at(s, 'acu') * 2 + at(s, 'san') + at(s, 'con') + at(s, 'vir') + at(s, 'ref')) / 12) * f(X, eq, e.A[0]) + (b.vit * us * pil(e.A, 'A') - 6) * 0.15 : 5;   // v153 : Réflexes, Pilotage
+  const S = s ? ((at(s, 'vit') * 2 + at(s, 'acc') * 2 + at(s, 'piq') * 2 + at(s, 'acu') * 2 + at(s, 'san') + at(s, 'con') + at(s, 'vir') + at(s, 'ref') + at(s, 'agi')) / 13) * f(X, eq, e.A[0]) + (b.vit * us * pil(e.A, 'A') - 6) * 0.15 : 5;   // v153 : Réflexes, Pilotage
   return {A:A * infP, D:Df, B:B * infB, G:G * (1 - (e.gMalus || 0)), S, T, mt};
 }
 function tireur(X, eq){
@@ -443,7 +450,7 @@ function probas(X, a, Fa, Fd){
   const ag = 1 + 0.25 * (Td.agressivite - 2);
   const sd = sansDe(Td);   // v89 : disposition de la défense
   const La = leviers(X, a), Ld = leviers(X, d), LV = EQ.lev, ada = X.ada ? X.ada[a] : 1;   // v153
-  const pCog = EQ.cognard * borne(1 + (Fd.B - Fa.B) / 15, 0.4, 1.8) * ag * (met === 'orage' ? 1.1 : 1) * Math.max(0.2, (1 - LV.bouclier * lv(La, 'bouclier')) * (1 + LV.marteau * lv(Ld, 'marteau'))) * borne(1 - 0.015 * (moyAttr(X, a, 'P', 'agi') - typique('P', 'agi')), 0.85, 1.15)
+  const pCog = EQ.cognard * borne(1 + (Fd.B - Fa.B) / EQ.cogEchelle, 0.35, 2.1) * ag * (met === 'orage' ? 1.1 : 1) * Math.max(0.2, (1 - LV.bouclier * lv(La, 'bouclier')) * (1 + LV.marteau * lv(Ld, 'marteau'))) * borne(1 - 0.03 * (moyAttr(X, a, 'P', 'agi') - typique('P', 'agi')), 0.75, 1.25)
     * (Ta.batAvec === 'escorte' ? 0.9 : Ta.batAvec === 'devant' ? 1.1 : 1) * (Td.batSans === 'harcelement' ? 1.12 : Td.batSans === 'protection' ? 0.9 : 1) * (1 - 0.06 * nbManie(X, a, 'B', 'garde')) * (e[d].B.length < 2 ? 0.55 : 1) * (e[a].B.length < 2 ? 1.45 : 1);   // v158 : un batteur exclu
   const FF = EQ.fautes, pFaute = EQ.faute * (FF.agr[Td.agressivite] || 1) * (sansDe(Td) === 'pressing' ? FF.pressing : 1) * (Td.batSans === 'harcelement' ? FF.harcelement : 1) * (X.arb ? 0.85 + 0.15 * X.arb.sev : 1) *   // v158 : pressing, harcèlement, arbitre
     (1 + 0.12 * nbManie(X, a, 'P', 'provoc') + 0.1 * nbManie(X, d, 'PB', 'tete')) * borne(1 - 0.04 * (moyAttr(X, d, 'PB', 'con') - 9.6), 0.6, 1.4);   // v153 : Concentration
@@ -496,7 +503,7 @@ function pas(X){
       if (r() < prot){ dire(X, 'cognard_devie', a, {j:nomJ(sa)}, false); return finPas(X); }
       X.sonne[a] = 12 + (X.synC && X.synC[d] && X.synC[d].S.some(x => x.id === 'peine') ? 4 : 0); dire(X, 'cognard_att', d, {j:nomJ(J(X, bat))}, false); }
     else if (cible === 'gardien'){ X.gSonne[a] = X.synC && X.synC[a] && X.synC[a].S.some(x => x.id === 'mur') ? 4 : 8; dire(X, 'cognard_gar', d, {j:nomJ(J(X, bat))}, false); X.poss = d; X.contre[d] = 1; }
-    else { const v = J(X, victime), garde = v ? borne(0.025 * (at(v, 'equ') + at(v, 'cou') - 16.2) + (role(X, a, victime) === 'pivot' ? 0.12 : 0), 0, 0.5) : 0;   // v153 : Équilibre sur balai, pivot
+    else { const v = J(X, victime), garde = v ? borne(0.025 * (at(v, 'equ') + at(v, 'cou') - 16.2) + (role(X, a, victime) === 'pivot' ? 0.12 : 0) - 0.02 * (at(J(X, bat), 'pre') - typique('B', 'pre')), 0, 0.5) : 0;   // v160 : la Précision du batteur   // v153 : Équilibre sur balai, pivot
       if (r() < garde) dire(X, 'cognard_tenu', a, {j:nomJ(v)}, false); else { dire(X, 'cognard', d, {j:nomJ(J(X, bat))}, false); X.poss = d; X.contre[d] = 1; } }
     /* blessure possible de la cible */
     const vj = J(X, victime);
@@ -1019,7 +1026,7 @@ function nommer(M, mode){
 function langueNoms(mode){ LANGUE_NOMS = ['local', 'en', 'fr'].includes(mode) ? mode : 'local'; nommer({}, LANGUE_NOMS); return LANGUE_NOMS; }
 /* v106 : une ligue du palmarès, même disparue (Ligue de France, Ligue d'Italie) */
 const ligueDe = (M, id) => M.ligues[id] || D.LIGUES_ANCIENNES[id] || {id, nom:String(id), court:String(id), clubs:[]};
-root.QM = {arbitrePour, nommer, langueNoms, AGE_JEUNE, ligueDe, roundRobin, creerClub, basculer, chargeFacteur, plancherFatigue, matchsDuJoueur, convoquer, convoques, finirMatchDuJoueur, natJoueur, VERSION, clubJoueur, campJoueur, tactiqueIA, apresMatchManager, finDeSaison, hasard, melange, note, note20, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
+root.QM = {arbitrePour, nommer, langueNoms, AGE_JEUNE, ligueDe, roundRobin, creerClub, basculer, chargeFacteur, plancherFatigue, matchsDuJoueur, convoquer, convoques, finirMatchDuJoueur, natJoueur, VERSION, clubJoueur, campJoueur, tactiqueIA, apresMatchManager, finDeSaison, hasard, melange, note, note20, noteBrute, POIDS_NOTE, POIDS_NOTE_G, partNote, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
            semaine, matchDuJoueur, preparerMatch, simulerMatch, creerMatch, equipeClub, selection, pas, jusquAuBout, tempsMort, remplacer, resume, notesMatch,
            terminerSemaine, saisonSuivante, classement, objectif, serialiser, charger, nomJ, message, attente,
            manies, aManie, maniesPour, sansDe, CONTRE, completerTactique,

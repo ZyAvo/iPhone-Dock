@@ -1,4 +1,4 @@
-// mon-ecran-version: 7ddb9ede
+// mon-ecran-version: c0bd4c8b
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -440,11 +440,12 @@ function ficheJoueur(id, garder){
   const P_ = FJ.p, ROLES_P = D.ROLES[P_] || [], role = ROLES_P.some(x => x[0] === FJ.role) ? FJ.role : null;
   const T_ = window.QMT, ra = T_ && T_.ROLE_ATTR[P_] && role ? T_.ROLE_ATTR[P_][role] : [], ad = T_ ? T_.adequation(j, P_, role || (ROLES_P[0] || [])[0]) : null;
   const mon = j.club === M.manager.club, r = mon ? roleDe(id) : {}, cl = j.club ? club(j.club) : null;
-  const cible = {}; D.ATTRS.forEach(a => { cible[a[0]] = a[3]['PBAG'.indexOf(P_)] === '●' ? (ra.includes(a[0]) ? 2 : 1) : ra.includes(a[0]) ? 2 : 0; });
-  D.GARDIEN.forEach(g => { cible[g[0]] = P_ === 'G' ? (ra.includes('g:' + g[0]) ? 2 : 1) : 0; });
+  const PN = QM.partNote ? QM.partNote(P_) : null, part = {};   // v160 : surlignés = ce qui fait la note au poste (5 % ou plus)
+  const cible = {}; D.ATTRS.forEach(a => { part[a[0]] = PN ? PN[a[0]] || 0 : 0; const c = PN ? part[a[0]] >= 0.05 : a[3]['PBAG'.indexOf(P_)] === '●'; cible[a[0]] = c ? (ra.includes(a[0]) ? 2 : 1) : ra.includes(a[0]) ? 2 : 0; });
+  D.GARDIEN.forEach(g => { part[g[0]] = PN ? PN['g:' + g[0]] || 0 : 0; cible[g[0]] = P_ === 'G' ? (ra.includes('g:' + g[0]) ? 2 : (PN ? part[g[0]] >= 0.05 : true) ? 1 : 0) : 0; });
   const autre = P_ !== j.poste || role !== roleCompo(j);
   const s = j.saison, est = C.potentielEstime(M, j), rec = mon ? club(M.manager.club).staff.recruteur : null;
-  const kc = connu(j), ligne = (k, nom, v, c) => { const x = valVue(j, v, k); return `<div class="at${c ? ' c' : ''}${c === 2 ? ' r' : ''}${x.exact ? '' : ' flou'}" title="${esc(nom)}${c === 2 ? ' · attribut du rôle' : c ? ' · cible du poste' : ''}"><span>${esc(COURT_ATTR[k] || nom)}</span><b class="${classeAttr(x.mid)}">${x.txt}</b></div>`; };
+  const kc = connu(j), ligne = (k, nom, v, c) => { const x = valVue(j, v, k); return `<div class="at${c ? ' c' : ''}${c === 2 ? ' r' : ''}${x.exact ? '' : ' flou'}" title="${esc(nom)}${c === 2 ? ' · attribut du rôle' : c ? ' · compte dans la note au poste' : ''}${part[k] ? ` (${Math.round(part[k] * 100)} % de la note)` : ''}"><span>${esc(COURT_ATTR[k] || nom)}</span><b class="${classeAttr(x.mid)}">${x.txt}</b></div>`; };
   const fam = f => `<div class="fa"><h4>${f}</h4>${D.ATTRS.map((a, i) => a[2] !== f ? '' : ligne(a[0], a[1], j.a[i], cible[a[0]])).join('')}</div>`;
   feuille(`${teteF(`${esc(nomJ(j))}`, `${flagSeul(j.nat)} ${esc(nat(j.nat).nom)} · ${j.age} ans · ${D.POSTES[j.poste].nom}${cl ? ' · ' + (mon ? 'n° ' + j.num : esc(cl.nom)) : ' · agent libre'}`, `<span class="avp g">${avatarDe(j, 'g')}${cl ? `<span class="blp">${V.blason(cl, 'p')}</span>` : ''}</span>`)}
     <div class="fj-haut"><div class="fj-radar">${V.radar(axesRadar(j).map(([l, v]) => [l, kc >= 100 ? v : valVue(j, Math.round(v), 'ax' + l).mid]), COULEUR_POSTE[j.poste])}${kc < 100 ? `<p class="petit mut" style="margin:0;text-align:center">Estimation · connu à ${Math.round(kc)} %</p>` : ''}</div>
@@ -463,7 +464,7 @@ function ficheJoueur(id, garder){
     <div class="fj-roles"><div class="chips petites">${ROLES_P.map(([k, nom]) => { const e = ad && ad.roles ? ad.roles[k] : null; return `<button class="chip ${k === role ? 'on' : ''}" data-act="fjRole" data-r="${k}" aria-pressed="${k === role}" title="${esc((ROLES_P.find(x => x[0] === k) || [])[2] || '')}">${badgeHTML(j, P_, k, true)}${esc(nom)}${e != null && kc >= 100 ? `<small class="${e >= 1 ? 'bon' : e < -1.2 ? 'mauvais' : 'mut'}">${e > 0 ? '+' : ''}${String(e).replace('.', ',')}</small>` : ''}</button>`; }).join('')}</div>
       <p class="petit mut">${role ? esc((ROLES_P.find(x => x[0] === role) || [])[2] || '') + ' ' : 'Choisis un rôle pour surligner ses attributs. '}${kc >= 100 ? '<span title="Moyenne de ses attributs du rôle moins sa moyenne au poste">Le chiffre : ses attributs du rôle comparés à son niveau au poste. </span>' : ''}${autre ? `<button class="lien" data-act="fjRaz">Revenir à son poste</button>` : ''}</p></div>
     ${kc < 100 ? `<p class="petit mut" style="margin:6px 2px 0">Attributs en fourchette : ${Math.round(kc)} % connu. Suis le joueur (ton recruteur l'observe chaque semaine) ou affronte son équipe pour en savoir plus.</p>` : ''}
-    <div class="carte fj-attrs"><h2>Attributs <span class="mut petit">${P_ === j.poste ? 'surlignés' : 'en ' + esc(D.POSTES[P_].nom.toLowerCase())} : cibles du poste${role ? ' · plus fort : rôle ' + esc(((ROLES_P.find(x => x[0] === role) || [])[1] || '').toLowerCase()) : ''}</span></h2><div class="cols-at">
+    <div class="carte fj-attrs"><h2>Attributs <span class="mut petit">${P_ === j.poste ? 'surlignés' : 'en ' + esc(D.POSTES[P_].nom.toLowerCase())} : ce qui fait la note au poste${role ? ' · plus fort : rôle ' + esc(((ROLES_P.find(x => x[0] === role) || [])[1] || '').toLowerCase()) : ''}</span></h2><div class="cols-at">
       ${fam('Physique')}${fam('Vol')}${fam('Balle')}${fam('Mental')}
       ${j.poste === 'G' || P_ === 'G' ? `<div class="fa"><h4>Gardien</h4>${D.GARDIEN.map((g, i) => ligne(g[0], g[1], j.g[i], cible[g[0]])).join('')}</div>` : ''}
     </div></div>
@@ -619,6 +620,22 @@ function zonesHTML(T){
   /* v98 : simple repère visuel de la zone choisie (le choix se fait au-dessus du terrain) */
   return `<svg class="zones" viewBox="0 0 100 140" aria-hidden="true">${Object.entries(ZONES).filter(([k]) => k === z).map(([k, R]) => R.map(([x, y, w, h]) => `<g class="zn on"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/></g>`).join('')).join('')}</svg>`;
 }
+/* v160 : traits de synergie sur le terrain (doré : active ; pointillés : il manque un attribut ; rouge : anti-synergie) */
+function liensSynHTML(K, T){
+  if (!QM.synergiesDe || !K || !K.roles) return '';
+  const pos = id => { const s = SLOTS_T.find(x => lireSlot(K, x) === id); return s ? posT(s, T) : null; };
+  const L = QM.synergiesDe(M, K).map(x => [x.a, x.b, x.ok ? 'on' : 'presque', x.nom + (x.ok ? '' : ' (presque)')]);
+  for (const a of QM.antiSynergiesDe(M, K)){
+    if (a.role){ const ids = (K[a.poste] || []).filter(id => id && K.roles[id] === a.role); for (let i = 1; i < ids.length; i++) L.push([ids[0], ids[i], 'anti', a.nom]); }
+    else if (K.G && K.G[0]) L.push([K.G[0], null, 'anti', a.nom]); }
+  if (!L.length) return '';
+  const traits = [], marques = [];
+  for (const [a, b, k, nom] of L){ const A = pos(a), B = b ? pos(b) : null; if (!A) continue;
+    if (B) traits.push(`<line class="${k}" x1="${A[0]}" y1="${A[1]}" x2="${B[0]}" y2="${B[1]}"/>`);
+    const m = B ? [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2] : [A[0] + 9, A[1] - 6];
+    marques.push(`<span class="synm ${k}" style="left:${m[0]}%;top:${m[1]}%" title="${esc(nom)}"><i>${k === 'anti' ? '✕' : k === 'on' ? '✦' : '◇'}</i><em>${esc(nom)}</em></span>`); }
+  return `<svg class="synl" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${traits.join('')}</svg>${marques.join('')}`;
+}
 function normaliserK(K){
   for (const [p, n] of [['P', 3], ['B', 2], ['A', 1], ['G', 1]]) K[p] = Array.from({length:n}, (_, i) => (K[p] || [])[i] || null);
   K.banc = Array.from({length:NB_BANC()}, (_, i) => (K.banc || [])[i] || null);
@@ -704,10 +721,10 @@ function compoHTML(ctx){
       <div class="seg phase" role="tablist">${[['avec', 'Avec le souafle'], ['sans', 'Sans le souafle']].map(([k, n]) => `<button data-act="phase" data-p="${k}" class="${(U.phase || 'avec') === k ? 'on' : ''}" role="tab" aria-selected="${(U.phase || 'avec') === k}">${n}</button>`).join('')}</div>
       ${(U.phase || 'avec') === 'avec' ? `<div class="tzone"><span>Zone d'attaque</span><div class="seg mini" role="group" aria-label="Zone d'attaque">${['axe', 'couloirs', 'loin'].map(k => `<button data-act="zoneAtt" data-z="${k}" class="${(ctx.T.zone || 'axe') === k ? 'on' : ''}" aria-pressed="${(ctx.T.zone || 'axe') === k}">${esc(nomOpt('zone', k))}</button>`).join('')}</div></div>` : ''}
       ${infoTacHTML()}
-      <div class="tterrain">${TERRAIN_SVG}${(U.phase || 'avec') === 'avec' ? zonesHTML(ctx.T) : ''}${SLOTS_T.map(x => jetonHTML(K, x, ctx.sel, ctx.T)).join('')}</div></div>
+      <div class="tterrain">${TERRAIN_SVG}${(U.phase || 'avec') === 'avec' ? zonesHTML(ctx.T) : ''}${liensSynHTML(K, ctx.T)}${SLOTS_T.map(x => jetonHTML(K, x, ctx.sel, ctx.T)).join('')}</div></div>
     <div class="tbanc"><h3>Banc</h3>${SLOTS_B().map(x => jetonHTML(K, x, ctx.sel, ctx.T)).join('')}</div>
   </div>
-  <p class="petit mut aide-tac">Glisse un remplaçant sur un titulaire pour les échanger ; touche un joueur pour son rôle. <i class="fit bon"></i> adapté · <i class="fit moyen"></i> moyen · <i class="fit faible"></i> peu adapté · C capitaine · P tireur de penalty.</p>`;
+  <p class="petit mut aide-tac">Glisse un remplaçant sur un titulaire pour les échanger ; touche un joueur pour son rôle. <i class="fit bon"></i> adapté · <i class="fit moyen"></i> moyen · <i class="fit faible"></i> peu adapté · ✦ synergie · ◇ presque · ✕ à éviter · C capitaine · P tireur de penalty.</p>`;
 }
 /* garde la position de la liste du panneau quand l'écran se redessine */
 function avecPanneau(f){ const l = document.querySelector('.tpan-liste'), y = l ? l.scrollTop : 0; f(); const n = document.querySelector('.tpan-liste'); if (n) n.scrollTop = y; U.flash = null; }
