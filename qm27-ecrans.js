@@ -1,4 +1,4 @@
-// mon-ecran-version: c46e7f7c
+// mon-ecran-version: 98935845
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -166,16 +166,22 @@ function afficheStade(M_){
   const QM_ = window.QM, S = QM_.semaine(M_);
   if (!S) return {h:'Saison terminée', t:'', a:'Lancer la saison suivante ›'};
   if (S.type === 'bilan') return {h:`Fin de la saison ${lab(M_.saison)}`, t:'', a:`Lancer la saison ${lab(M_.saison + 1)} ›`};
+  /* v166 : semaine du mercato en deux temps : d'abord mercredi */
+  const avantMer = QM_.deuxTemps && QM_.deuxTemps(M_) && !QM_.enMilieu(M_), mer = d => fmtDate(d - 3 * 864e5);
   const m = QM_.matchDuJoueur(M_);
+  if (avantMer) return {h:`${mer(S.date)} · mercato`, t:m ? `${nomEqS(m.dom, m.ligue === 'sixn')} – ${nomEqS(m.ext, m.ligue === 'sixn')}` : 'Mercato ouvert', a:'Avancer à mercredi ›'};
   if (m){
     const sx = m.ligue === 'sixn', eu = m.ligue === 'eu';
     const comp = eu ? (window.QME ? window.QME.NOM : 'Coupe') : sx ? D.TOURNOI.court : `${M_.ligues[m.ligue].court} · Journée ${S.journee}`;
-    return {h:`${comp} · ${fmtDate(m.date || S.date)}`, t:`${nomEqS(m.dom, sx)} – ${nomEqS(m.ext, sx)}`, a:'Préparer le match ›'};
+    return {h:`${comp} · ${fmtDate(m.date || S.date)}`, t:`${nomEqS(m.dom, sx)} – ${nomEqS(m.ext, sx)}`, a:'‹ Préparer le match · Jouer direct ›', vite:true};   // v166 : moitié droite du tableau = jouer sans préparer
   }
   const titre = S.type === 'prepa' ? `Préparation · semaine ${S.semaine}` : S.type === 'sixn' ? D.TOURNOI.court : S.type === 'europe' && window.QME ? `Finale de la ${window.QME.NOM}` : 'Semaine sans match';
-  return {h:fmtDate(S.date), t:titre, a:'Semaine suivante ›'};
+  return {h:fmtDate(S.date), t:titre, a:M_.mi ? 'Avancer à samedi ›' : 'Semaine suivante ›'};
 }
-const actionStade = M_ => { const S = window.QM.semaine(M_); return !S || S.type === 'bilan' ? 'saisonSuivante' : window.QM.matchDuJoueur(M_) ? 'preparer' : 'continuer'; };
+const actionStade = M_ => { const Q_ = window.QM, S = Q_.semaine(M_); return !S || S.type === 'bilan' ? 'saisonSuivante' : Q_.deuxTemps(M_) && !Q_.enMilieu(M_) ? 'continuer' : Q_.matchDuJoueur(M_) ? 'preparer' : 'continuer'; };
+/* v166 : jouer le match de la semaine sans passer par la préparation (composition et tactique du moment) */
+const vitePossible = M_ => !!afficheStade(M_).vite;
+ACT.jouerVite = () => { const m = window.QM.matchDuJoueur(M()); if (!m || m.res) return; ACT.continuer(); };
 const dernierStade = M_ => { const d = M_.dernierMatch; return d ? `Dernier : ${nomEqS(d.dom, d.sixn)} ${d.score[0]}–${d.score[1]} ${nomEqS(d.ext, d.sixn)}` : ''; };
 const ESC_CH = [330, 0, 700, 960], BAN_CH = [440, 170, 590, 612];   // v143 : l'escalier du hall et sa grande bannière
 /* v145 : tableaux vivants : la toile (quadrilatère pris sur l'image) est recopiée du fond, puis respire lentement (léger zoom et glissement),
@@ -414,11 +420,12 @@ const SCENES = {
       anim:'bascule', vivant:1, nom:'Le Bazar', vue:'boutique'},
     {id:'tente', zone:TENTE_ST, calques:[['scenes/stade-tente-gris-A', 'fixe gris'], sousZone('stade-chopes-D', 'b', CHOPES_ST, TENTE_ST), sousZone('stade-chopes-gris-D', 'b gris', CHOPES_ST, TENTE_ST)],
       anim:'bascule', vivant:2, nom:'La buvette', vue:'buvette'},
-    {id:'tableau', zone:[1169, 296, 2231, 696], anim:'tableau', nom:M_ => afficheStade(M_).a.replace(' ›', ''), actF:actionStade,
+    {id:'tableau', zone:[1169, 296, 2231, 696], anim:'tableau', nom:M_ => afficheStade(M_).vite ? 'Préparer le match' : afficheStade(M_).a.replace(' ›', ''), actF:actionStade,
       textes:[[M_ => afficheStade(M_).h, 'left:12%;top:41%;width:76%;height:9%', 'sc-tab sc-tab-p', [3, 110]],
               [M_ => afficheStade(M_).t, 'left:12%;top:51%;width:76%;height:17%', 'sc-tab', [6.5, 115]],
               [M_ => afficheStade(M_).a, 'left:12%;top:69%;width:76%;height:8%', 'sc-tab sc-tab-a', [2.8, 100]],
               [M_ => dernierStade(M_), 'left:12%;top:78%;width:76%;height:7%', 'sc-tab sc-tab-p', [2.4, 120]]]},
+    {id:'tableau-vite', zone:[1700, 296, 2231, 696], anim:'fixe', muet:true, nom:'Jouer direct', act:'jouerVite', si:vitePossible},   // v166 : par-dessus la moitié droite du tableau
     {id:'tunnel', zone:[1600, 1100, 2056, 1380], calques:[['scenes/stade-tunnel-C', 'b']], anim:'bascule', nom:'Le vestiaire', vue:'equipe'},
     {id:'portail', zone:[2525, 895, 2975, 1350], calques:[['scenes/stade-portail-B', 'b']], anim:'bascule', plaque:'d', nom:'Le château', vue:'hall'},   // v143 : vers le hall du château
   ]},

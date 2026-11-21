@@ -1,4 +1,4 @@
-// mon-ecran-version: c27182ca
+// mon-ecran-version: 38eea1fa
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -310,11 +310,13 @@ function completerEffectif(M, c, r){
     reparerCompo(M, c);
   }
 }
-function mercatoIA(M, S, r){
+/* v166 : part = part de la semaine (0,5 pour chacun des deux temps du mercato du manager), qui partage aussi le plafond de 8 transferts */
+function mercatoIA(M, S, r, part = 1){
   const clubs = Object.values(M.clubs).filter(c => !estJoueur(M, c.id));
   let faits = 0;
+  const U = aClub(M) ? club(M, M.manager.club) : null, suivis = new Set(U ? U.suivi || [] : []);
   for (const c of clubs.sort(() => r() - 0.5)){
-    if (faits >= 8) break;
+    if (faits >= 8 * part) break;
     /* comptes dans le rouge ou masse salariale trop lourde : on se sépare du remplaçant le plus cher */
     if ((c.budget < 0 || masse(M, c) > c.masseMax * 1.1) && c.effectif.length > 15){
       const cher = c.effectif.map(id => M.joueurs[id]).filter(j => !j.pret && !Q().titulaires(c.compo).includes(j.id)).sort((a, b) => b.contrat.sal - a.contrat.sal)[0];
@@ -322,7 +324,7 @@ function mercatoIA(M, S, r){
         if (riche) transfert(M, cher.id, riche.id, valeur(M, cher), salaireDemande(cher, riche), r.ent(1, 3)); else libererJoueur(M, cher); faits++; }
     }
     if (c.effectif.length > 21){ const pire = c.effectif.map(id => M.joueurs[id]).filter(j => !j.pret && !Q().titulaires(c.compo).includes(j.id)).sort((a, b) => (n20(a) - a.age / 20) - (n20(b) - b.age / 20))[0]; if (pire) libererJoueur(M, pire); }
-    if (r() > (c.effectif.length < 16 ? 0.7 : masse(M, c) < c.masseMax * 0.75 ? 0.4 : 0.22)) continue;   // v113 : un club qui a de la marge sous son plafond cherche plus souvent
+    if (r() > (c.effectif.length < 16 ? 0.7 : masse(M, c) < c.masseMax * 0.75 ? 0.4 : 0.22) * part) continue;   // v113 : un club qui a de la marge sous son plafond cherche plus souvent
     const b = besoin(M, c), budget = c.budget * 0.6, place = c.masseMax * 1.05 - masse(M, c);
     if (budget <= 0 || place <= 0) continue;
     const vus = [];
@@ -340,7 +342,31 @@ function mercatoIA(M, S, r){
       const v = (nv - b.seuil) / (1 + prix / Math.max(1e6, budget) + sal / Math.max(2e4, place)) - Math.max(0, j.age - 30) * 0.2;
       if (v > bestV){ best = {j, prix:arrondi(prix, 5000), sal}; bestV = v; }
     }
+    if (best && suivis.has(best.j.id) && !(M.encheres || []).some(e => e.j === best.j.id)){ mettreEnAttente(M, c, best, r.ent(1, 3)); faits++; continue; }   // v166 : un joueur que le manager suit
     if (best){ transfert(M, best.j.id, c.id, best.prix, best.sal, r.ent(1, 3)); faits++; }
+  }
+}
+/* v166 : offre d'un club de l'ordinateur sur un joueur que le manager suit : un hibou le prévient, l'offre attend le temps suivant du mercato
+   (mercredi ou samedi) ; une offre du manager au moins 5 % plus haute passe devant (voir resoudre, qm27-vestiaire.js) */
+const SURENCHERE = 1.05;
+function mettreEnAttente(M, c, best, ans){
+  const j = best.j, de = j.club ? club(M, j.club) : null;
+  (M.encheres = M.encheres || []).push({j:j.id, club:c.id, de:j.club || null, prix:best.prix, sal:best.sal, ans, etape:Q().etape(M)});
+  const quand = Q().enMilieu(M) ? 'samedi' : 'mercredi';
+  Q().message(M, `Hibou : ${c.nom} veut ${nomJ(j)}`, de
+    ? `${c.nom} offre ${euros(best.prix)} à ${de.nom} pour ${nomJ(j)}, que tu suis. Le transfert se fera ${quand}, sauf si tu proposes au moins ${euros(arrondi(best.prix * SURENCHERE, 5000))} d'ici là (Mercato).`
+    : `${c.nom} propose un contrat à ${nomJ(j)}, agent libre que tu suis. Il signera ${quand}, sauf si tu le fais signer avant (Mercato).`, 'mercato');
+}
+const enchereSur = (M, jid) => (M.encheres || []).find(e => e.j === jid) || null;
+/* les offres en attente du temps précédent se concluent, si le joueur n'a pas bougé entre-temps */
+function resoudreEncheres(M){
+  const now = Q().etape(M), dues = (M.encheres || []).filter(e => e.etape < now);
+  M.encheres = (M.encheres || []).filter(e => e.etape >= now);
+  for (const e of dues){
+    const j = M.joueurs[e.j], c = club(M, e.club); if (!j || !c || (j.club || null) !== e.de) continue;
+    if (c.budget < e.prix || masse(M, c) + e.sal > c.masseMax * 1.05 || c.effectif.length >= ECO.effectifMax) continue;
+    transfert(M, j.id, c.id, e.prix, e.sal, e.ans);
+    Q().message(M, `${nomJ(j)} signe à ${c.nom}`, e.de ? `${club(M, e.de).nom} a accepté ${euros(e.prix)}.` : 'Il a choisi leur contrat.', 'mercato');
   }
 }
 function offresIA(M, S, r){
@@ -409,6 +435,8 @@ function refuserOffre(M, oid){ M.offres = M.offres.filter(x => x.id !== oid); re
 function basculer(L, id){ const k = L.indexOf(id); if (k >= 0) L.splice(k, 1); else L.push(id); return k < 0; }
 function mettreEnVente(M, jid){ return basculer(club(M, M.manager.club).aVendre, jid); }
 function suivre(M, jid){ return basculer(club(M, M.manager.club).suivi, jid); }
+/* v166 : le mercredi du mercato (le reste de la semaine : semaine) */
+function miSemaine(M, S){ const r = Q().hasard(Q().melange(M.graine, 'mercredi', M.saison, M.semaine)); mercatoIA(M, S, r, 0.5); }
 function semainesRestantes(M, j){ const reste = M.calendrier.length - M.semaine; return Math.max(0, (j.contrat.fin - M.saison) * ECO.semaines + reste); }
 const coutLiberation = (M, j) => arrondi(j.contrat.sal * semainesRestantes(M, j) * 0.5, 1000);
 function liberer(M, jid){
@@ -456,7 +484,7 @@ function semaine(M, S){
   entrainement(M, S, r);
   finances(M, S);
   balaisIA(M);
-  if (mercatoOuvert(S)){ mercatoIA(M, S, r); if (aClub(M)) offresIA(M, S, r); }
+  if (mercatoOuvert(S)){ mercatoIA(M, S, r, Q().deuxTemps && aClub(M) ? 0.5 : 1); if (aClub(M)) offresIA(M, S, r); }   // v166 : l'autre moitié des transferts se fait mercredi (miSemaine)
   M.offres = M.offres.filter(o => o.expire > M.semaine);
   if (aClub(M)){
     const U = club(M, M.manager.club);
@@ -560,6 +588,6 @@ function potentielEstime(M, j){
 }
 
 root.QMC = {nouveauClub, usure:user, noterCarriere, niv, multInst, entretienInst, coutNiveau, facteurTaille, compter, finVide, creerStaff, numLibre, transfert, libererJoueur, reparerCompo, progression, completerClub, besoin, initMonde, migrer, semaine, avantSaison, apresSaison, nouveauJoueur, dureeBlessure, salaireDemande, valeur, masse, masseMax, prixRef, remplissage, euros,
-            mercatoOuvert, prochaineFenetre, proposerTransfert, accepterOffre, refuserOffre, mettreEnVente, suivre, liberer, coutLiberation, prolonger, embaucher,
+            mercatoOuvert, prochaineFenetre, miSemaine, resoudreEncheres, enchereSur, SURENCHERE, proposerTransfert, accepterOffre, refuserOffre, mettreEnVente, suivre, liberer, coutLiberation, prolonger, embaucher,
             UNITES_GALLION, acheterBalais, reglerPrix, potentielEstime, prixClub, exigenceJoueur, NOMS_REC, NOMS_DEP, ENT_DEFAUT, revenusSaison};
 })(typeof window !== 'undefined' ? window : globalThis);

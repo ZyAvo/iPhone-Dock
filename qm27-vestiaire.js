@@ -1,4 +1,4 @@
-// mon-ecran-version: ac76c497
+// mon-ecran-version: 6ce27526
 /* QM27 (v90, lot 7) — vestiaire et mercato, sans affichage. Expose window.QMH et complète window.QMC. Chargé après qm27-domaine.js.
    Vestiaire : ambiance, leaders, clans, mentorat, causeries, presse (La Gazette du sorcier).
    Mercato : attributs connus selon le travail du recruteur, offres par hibou (réponse la semaine suivante, contre-offres, clubs qui doublent),
@@ -40,7 +40,9 @@ function connaitre(M, id, plus){ const h = H()(M), j = M.joueurs[id]; if (!j) re
 function connaissanceSemaine(M, S){
   const U = monClub(M); if (!U) return;
   const rec = (U.staff.recruteur || {note:10}).note, vol = root.QMB ? root.QMB.bonus(U, 'estimation') : 0;
-  for (const id of U.suivi) connaitre(M, id, 10 * (0.5 + rec / 20) * (1 + vol / 10));
+  /* v166 : deux fois plus vite, ×1,5 pendant le mercato ; le recruteur suit 8 joueurs à plein régime, au-delà son temps se partage */
+  const R = EQ.scouting, n = U.suivi.length, part = n > R.plein ? R.plein / n : 1;
+  for (const id of U.suivi) connaitre(M, id, R.semaine * (0.5 + rec / 20) * (1 + vol / 10) * (QMC.mercatoOuvert(S) ? R.mercato : 1) * part);
   /* l'adversaire de la semaine : ses titulaires se dévoilent */
   const m = S.matchs.find(x => x.res && (x.dom === U.id || x.ext === U.id));
   if (m){ const adv = club(M, m.dom === U.id ? m.ext : m.dom); if (adv && adv.compo) for (const id of Q().titulaires(adv.compo)) connaitre(M, id, 12); }
@@ -172,8 +174,8 @@ function envoyerHibou(M, o){
   if (e) return {ok:false, msg:e};
   const suiv = M.calendrier[M.semaine + 1];
   if (!suiv || !QMC.mercatoOuvert(suiv)) return resoudre(M, o, true);   // dernière semaine du mercato : le hibou fait l'aller-retour dans la journée
-  h.hiboux.push({...o, id:'h' + (M.prochainId++), envoi:tic(M)});
-  return {ok:true, msg:`Hibou envoyé à ${club(M, j.club).nom} : réponse la semaine prochaine`};
+  h.hiboux.push({...o, id:'h' + (M.prochainId++), envoi:tic(M), etape:Q().etape(M)});
+  return {ok:true, msg:`Hibou envoyé à ${club(M, j.club).nom} : réponse ${Q().deuxTemps(M) ? (Q().enMilieu(M) ? 'samedi' : 'mercredi') : 'la semaine prochaine'}`};
 }
 function resoudre(M, o, direct){
   const j = M.joueurs[o.j], U = monClub(M), r = rng(M, 'hibou', o.j, tic(M)), de = j && j.club ? club(M, j.club) : null;
@@ -183,6 +185,9 @@ function resoudre(M, o, direct){
   if (de && !QMC.mercatoOuvert(Q().semaine(M))) return fin(false, `Trop tard pour ${nomJ(j)}`, 'Le mercato a fermé avant le retour du hibou.');
   if (de && de.effectif.length <= EQ.eco.effectifMin) return fin(false, `${de.nom} refuse`, `${de.nom} n'a pas assez de joueurs pour se séparer de ${nomJ(j)}.`);
   if (o.type === 'pret') return resoudrePret(M, o, j, de, U, r, direct);
+  /* v166 : un autre club attend déjà la réponse de ce club : il faut au moins 5 % de plus */
+  const en = QMC.enchereSur ? QMC.enchereSur(M, j.id) : null;
+  if (de && en && o.montant < arrondi(en.prix * QMC.SURENCHERE, 5000)) return fin(false, `${de.nom} préfère ${club(M, en.club).nom}`, `${club(M, en.club).nom} a déjà proposé ${euros(en.prix)} pour ${nomJ(j)}. Il faut au moins ${euros(arrondi(en.prix * QMC.SURENCHERE, 5000))} pour passer devant.`);
   const e = verifierPlace(M, U, o.sal, de ? o.montant : 0); if (e) return fin(false, `Offre pour ${nomJ(j)} annulée`, e);
   /* un autre club double la mise */
   if (de && !direct && r() < 0.1){
@@ -203,6 +208,7 @@ function resoudre(M, o, direct){
 function signer(M, o, j, de, U, direct){
   const ans = j.age >= 32 ? Math.min(2, o.ans) : o.ans;
   QMC.transfert(M, j.id, U.id, de ? o.montant : 0, o.sal, ans);
+  if (M.encheres) M.encheres = M.encheres.filter(e => e.j !== j.id);   // v166 : l'offre de l'autre club tombe
   if (o.clause) j.contrat.clause = arrondi(QMC.valeur(M, j) * o.clause, 50000);
   if (o.primeVif && j.poste === 'A') j.contrat.primeVif = arrondi(o.sal * 2, 500);
   if (de && o.pct) j.revente = {club:de.id, pct:o.pct};
@@ -362,14 +368,23 @@ function parisSemaine(M, S, r){
 function bonusMatch(M, c){ if (!c || !M.manager || M.manager.club !== c.id) return {}; return {moralBase:Math.round((ambiance(M, c) - 60) / 30 * 100) / 100}; }
 
 /* ---------- Branchements ---------- */
-const base = {semaine:QMC.semaine, avantSaison:QMC.avantSaison, migrer:QMC.migrer, accepterOffre:QMC.accepterOffre};
+/* v166 : les hiboux reviennent au temps suivant du mercato (mercredi ou samedi), ou la semaine suivante hors mercato */
+function revenirHiboux(M){
+  const h = H()(M), now = Q().etape(M), quand = x => x.etape != null ? x.etape : x.envoi * 2;
+  const dus = h.hiboux.filter(x => quand(x) < now); h.hiboux = h.hiboux.filter(x => quand(x) >= now);
+  for (const o of dus) resoudre(M, o, false);
+}
+const base = {semaine:QMC.semaine, miSemaine:QMC.miSemaine, suivre:QMC.suivre, avantSaison:QMC.avantSaison, migrer:QMC.migrer, accepterOffre:QMC.accepterOffre};
 Object.assign(QMC, {
+  /* v166 : mercredi du mercato : hiboux, offres en attente, puis une moitié des transferts des autres clubs */
+  miSemaine(M, S){ revenirHiboux(M); if (QMC.resoudreEncheres) QMC.resoudreEncheres(M); if (base.miSemaine) base.miSemaine(M, S); },
+  /* v166 : superviser un joueur : un premier rapport du recruteur tout de suite */
+  suivre(M, jid){ const on = base.suivre(M, jid); if (on) connaitre(M, jid, EQ.scouting.premier); return on; },
   semaine(M, S){
     base.semaine(M, S);
     const r = rng(M, 'vestiaire', tic(M)), h = H()(M);
     /* les hiboux de la semaine dernière reviennent */
-    const dus = h.hiboux.filter(x => x.envoi < tic(M)); h.hiboux = h.hiboux.filter(x => x.envoi >= tic(M));
-    for (const o of dus) resoudre(M, o, false);
+    revenirHiboux(M); if (QMC.resoudreEncheres) QMC.resoudreEncheres(M);   // v166 : puis les offres en attente des autres clubs
     h.contres = h.contres.filter(x => x.expire > tic(M));
     connaissanceSemaine(M, S); vestiaireSemaine(M, S, r); clausesSemaine(M, S, r); pretsSemaine(M); annonceSemaine(M, S, r); parisSemaine(M, S, r);
   },

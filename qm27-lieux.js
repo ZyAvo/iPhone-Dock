@@ -1,4 +1,4 @@
-// mon-ecran-version: fb699238
+// mon-ecran-version: 352e78a0
 /* QM27 (v88…v163, v164) — les lieux du club : domaine et bâtiments, stade, Bazar, buvette et carnet de recettes, partenaires, salle des trophées, banque, divination.
    Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU) ; ses fonctions sont publiées dans window.QMF (v164 : découpage de qm27-ui.js). */
 (() => {
@@ -88,9 +88,11 @@ function ficheBat(k){
     <div class="btns" style="margin-top:12px"><button class="btn sec" data-act="allerVue" data-v="finances">Finances et banque</button><button class="btn" data-act="allerVue" data-v="partenaires">Partenaires</button></div>`);
   const b = B.BAT[k], n = C.niv(c, k), tr = c.travaux.find(t => t.type === k), att = B.amelEnAttente(c, k), vue = VUE_BAT[b[4]];
   const cout = k === 'tribunes' ? C.coutTravaux(c, 'tribunes') : C.coutTravaux(c, k), sem = (E.inst[k] || E.bat[k]).semaines;
-  const choix = niveau => { const L = b[niveau === 3 ? 5 : 6], pris = L.find(x => B.a(c, x[0]));
-    return `<div class="amel-niv"><h4>Niveau ${niveau}${n < niveau ? ' <span class="mut">· pas encore</span>' : ''}</h4><div class="amel-choix">${L.map(([cle, nom, effet]) => `<div class="amel ${pris && pris[0] === cle ? 'pris' : pris ? 'non' : ''}">
-      <b>${pris && pris[0] === cle ? '✓ ' : ''}${esc(nom)}</b><span>${esc(effet)}</span>${att === niveau ? `<button class="btn" data-act="amel" data-a="${cle}">Choisir</button>` : ''}</div>`).join('')}</div></div>`; };
+  /* v166 : une amélioration choisie peut être remplacée par l'autre (travaux : 25 % du prix du niveau, 2 semaines) */
+  const choix = niveau => { const L = b[niveau === 3 ? 5 : 6], pris = L.find(x => B.a(c, x[0])), ch = B.chantierAmel(c, k, niveau), tic = QU.M.tic || 0;
+    return `<div class="amel-niv"><h4>Niveau ${niveau}${n < niveau ? ' <span class="mut">· pas encore</span>' : ''}</h4><div class="amel-choix">${L.map(([cle, nom, effet]) => { const enT = ch && ch.cle === cle;
+      return `<div class="amel ${pris && pris[0] === cle ? 'pris' : pris || ch ? 'non' : ''}">
+      <b>${pris && pris[0] === cle ? '✓ ' : ''}${esc(nom)}</b><span>${esc(effet)}</span>${att === niveau ? `<button class="btn" data-act="amel" data-a="${cle}">Choisir</button>` : ''}${enT ? `<span class="petit"><b>En travaux</b> · prêt dans ${Math.max(1, ch.fin - tic)} semaine${ch.fin - tic > 1 ? 's' : ''}</span>` : ''}${pris && pris[0] !== cle && !ch && n >= niveau ? `<button class="btn sec" data-act="changerAmel" data-a="${cle}">Changer · ${eur(B.coutChangement(c, cle))}</button>` : ''}</div>`; }).join('')}</div></div>`; };
   let extra = '';
   if (k === 'infirmerie'){ const L = c.effectif.map(id => QU.M.joueurs[id]).filter(j => j && j.bless);
     extra = `<div class="carte" style="margin-top:10px"><h2>À l'infirmerie</h2>${L.length ? `<div class="liste">${L.map(j => `<button class="el" data-act="joueur" data-j="${j.id}"><span class="avp">${avatarDe(j)}</span><div class="t"><b>${esc(nomJ(j))}</b><span>${esc(j.bless.nom)} · ${j.bless.jours} j</span></div></button>`).join('')}</div>` : '<p class="mut" style="margin:0">Personne. Les lits sont faits.</p>'}

@@ -1,4 +1,4 @@
-// mon-ecran-version: 05baa14b
+// mon-ecran-version: 12aa9971
 /* QM27 (v88, lot 5) — le domaine du club : bâtiments sorciers (niveaux 1 à 5 et améliorations au choix aux niveaux 3 et 5),
    stade en quatre tribunes, Bazar (produits et prix), sponsor maillot et panneaux à négocier, supporters, emprunt à la Banque des Gobelins,
    salle des trophées et palmarès, petits événements. Sans affichage : expose window.QMB (bonus lus par le moteur) et complète window.QMC.
@@ -211,8 +211,27 @@ function lancer(M, type, cote){
 }
 function amelEnAttente(c, bat){
   const b = BAT[bat]; if (!b) return null;
-  for (const n of [3, 5]) if (niv(c, bat) >= n && !(b[n === 3 ? 5 : 6]).some(x => a(c, x[0]))) return n;
+  for (const n of [3, 5]) if (niv(c, bat) >= n && !(b[n === 3 ? 5 : 6]).some(x => a(c, x[0])) && !chantierAmel(c, bat, n)) return n;
   return null;
+}
+/* v166 : changer d'amélioration : 25 % du prix du niveau, 2 semaines de travaux pendant lesquelles l'ancienne est déjà retirée */
+const chantierAmel = (c, bat, n) => ((c.dom && c.dom.chantiers) || []).find(x => AMEL[x.cle] && AMEL[x.cle].bat === bat && AMEL[x.cle].niv === n) || null;
+const coutChangement = (c, cle) => { const x = AMEL[cle], v = cfg(x.bat); return arrondi(v.base * (x.niv - 1) * QMC.facteurTaille(c, x.bat) * EQ.changerAmel.part, 5000); };
+function changerAmel(M, cle){
+  const c = assurer(M), x = AMEL[cle]; if (!x) return {ok:false, msg:'Amélioration inconnue.'};
+  const L = BAT[x.bat][x.niv === 3 ? 5 : 6], ancien = L.find(y => y[0] !== cle && c.amel.includes(y[0]));
+  if (!ancien || niv(c, x.bat) < x.niv) return {ok:false, msg:'Rien à changer ici.'};
+  if (chantierAmel(c, x.bat, x.niv)) return {ok:false, msg:'Des travaux sont déjà en cours pour ce choix.'};
+  const cout = coutChangement(c, cle); if (cout > c.budget) return {ok:false, msg:`Pas assez d'argent : ${euros(cout)} nécessaires.`};
+  QMC.compter(c, 'dep', 'travaux', cout);
+  c.amel = c.amel.filter(y => y !== ancien[0]);
+  (c.dom.chantiers = c.dom.chantiers || []).push({cle, fin:tic(M) + EQ.changerAmel.semaines});
+  return {ok:true, msg:`${ancien[1]} démonté : ${x.nom} prêt dans ${EQ.changerAmel.semaines} semaines`};
+}
+function chantiersSemaine(M, c){
+  const L = (c.dom && c.dom.chantiers) || []; if (!L.length) return;
+  for (const t of L.filter(t => t.fin <= tic(M))){ if (!c.amel.includes(t.cle)) c.amel.push(t.cle); Q().message(M, 'Travaux terminés', `${AMEL[t.cle].nom} : c'est installé.`, 'staff'); }
+  c.dom.chantiers = L.filter(t => t.fin > tic(M));
 }
 function choisirAmel(M, cle){
   const c = assurer(M), x = AMEL[cle]; if (!x) return {ok:false, msg:'Amélioration inconnue.'};
@@ -283,6 +302,7 @@ function semaine(M, S){
     if (g < 0 && a(c, 'cheminee')) for (const id of c.effectif){ const j = M.joueurs[id]; if (j) j.moral = Math.min(100, j.moral + 4); } }
   if (a(c, 'jardin')) for (const id of c.effectif){ const j = M.joueurs[id]; if (j) j.moral = Math.round(j.moral + (65 - j.moral) * 0.1); }
   supportersSemaine(M, c, S);
+  chantiersSemaine(M, c);   // v166
   evenement(M, c, r);
   /* améliorations à choisir */
   for (const b of D.BATIMENTS){ const n = amelEnAttente(c, b[0]); const cle = b[0] + n;
@@ -366,7 +386,7 @@ Object.assign(QMC, {
   migrer(M){ const v = M.v || 1; base.migrer(M); completer4(M, v); M.v = Q().VERSION; },
   apresChoixClub(M, clubId){ if (base.apresChoixClub) base.apresChoixClub(M, clubId); assurer(M); },
 });
-root.QMB = {bonus, ajusterBlessure, multProgression, balaiDe, bonusMatch, bonusAffluence, finances, assurer, coutBat, lancer, amelEnAttente, choisirAmel, potion,
+root.QMB = {bonus, ajusterBlessure, multProgression, balaiDe, bonusMatch, bonusAffluence, finances, assurer, coutBat, lancer, amelEnAttente, choisirAmel, changerAmel, chantierAmel, coutChangement, potion,
   signerSponsor, signerPanneau, retirerPanneau, placesPanneaux, reglerProduit, produitsDispo, placesRayon, recettesBazar, recetteProduit, PRIX,
   carteDispo, placesCarte, carteActive, multCarte, PRODUITS_BUV, dispoProduit, bonusVisiteur, goutePlat, partCarte, recettesBuvette, reglerCarte,
   emprunter, rembourser, plafondPret, tauxPret, titres, visites, rang, BAT, AMEL, a};

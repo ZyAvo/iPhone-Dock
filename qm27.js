@@ -1,4 +1,4 @@
-// mon-ecran-version: 331e9fe9
+// mon-ecran-version: 354f40a3
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -836,8 +836,21 @@ function suspendre(M, j, n, raison){
 function message(M, titre, corps, type){ M.boite.unshift({id:'m' + (M.prochainId++), date:(semaine(M) || {}).date || Date.now(), titre, corps, type:type || 'info', lu:false}); if (M.boite.length > 60) M.boite.length = 60; }
 
 /* Joue toute la semaine : X = le match du joueur déjà terminé (ou null). Renvoie un résumé pour l'écran. */
+/* v166 : pendant le mercato, la semaine du manager se joue en deux temps : mercredi (hiboux, offres en attente, une partie des transferts
+   des autres clubs), puis samedi (tout le reste). etape = compteur des demi-semaines, pour savoir quand un hibou revient. */
+const etape = M => (M.tic || 0) * 2 + (M.mi ? 1 : 0);
+const deuxTemps = M => { const S = semaine(M); return !!(S && clubJoueur(M) && C() && C().mercatoOuvert && C().mercatoOuvert(S) && !(S.type === 'sixn' && S.comp)); };
+const enMilieu = M => !!M.mi;
+function miSemaine(M){
+  const S = semaine(M); if (!S || M.mi || !deuxTemps(M)) return null;
+  M.mi = true;
+  if (C() && C().miSemaine) C().miSemaine(M, S);
+  return S;
+}
 function terminerSemaine(M, X){
   const S = semaine(M); if (!S) return null;
+  if (!M.mi && deuxTemps(M)) miSemaine(M);   // v166 : mercredi pas encore joué (match lancé directement) : il passe d'abord
+  M.mi = false;
   const mj = matchDuJoueur(M);
   const avant = {};
   if (clubJoueur(M)) for (const id of M.clubs[clubJoueur(M)].effectif) avant[id] = !!M.joueurs[id].bless;
@@ -1062,7 +1075,7 @@ function langueNoms(mode){ LANGUE_NOMS = ['local', 'en', 'fr'].includes(mode) ? 
 const ligueDe = (M, id) => M.ligues[id] || D.LIGUES_ANCIENNES[id] || {id, nom:String(id), court:String(id), clubs:[]};
 root.QM = {arbitrePour, nommer, langueNoms, AGE_JEUNE, ligueDe, roundRobin, creerClub, basculer, chargeFacteur, plancherFatigue, matchsDuJoueur, convoquer, convoques, finirMatchDuJoueur, natJoueur, VERSION, clubJoueur, campJoueur, tactiqueIA, apresMatchManager, finDeSaison, hasard, melange, note, note20, noteBrute, POIDS_NOTE, POIDS_NOTE_G, partNote, meilleurPoste, at, ga, ATT, IDX, POIDS, rolesAuto, roleAuto, creerJoueur, borne, dispo, nouveauMonde, choisirClub, compoAuto, verifierCompo, titulaires, TACTIQUE_DEFAUT,
            semaine, matchDuJoueur, preparerMatch, simulerMatch, creerMatch, equipeClub, selection, pas, jusquAuBout, tempsMort, remplacer, resume, notesMatch,
-           terminerSemaine, saisonSuivante, classement, objectif, serialiser, charger, nomJ, message, attente,
+           terminerSemaine, miSemaine, deuxTemps, enMilieu, etape, saisonSuivante, classement, objectif, serialiser, charger, nomJ, message, attente,
            manies, aManie, maniesPour, sansDe, CONTRE, completerTactique,
            rendement:(X, eq, id) => f(X, eq, id), scoreRole, execRole, qualiteRole, refRole, typique, badge, synergiesDe, antiSynergiesDe, leviers, optimiserRoles, enjeuDe, forces, maitriseDe, maitriseEquipe, equipesPour, grainePour, campPour, meteoPour, probas, lv, multFatigue, poidsTireurs, qualiteTir, nbRole, role:(X, eq, id) => role(X, eq, id),   // v96 : analyse tactique (qm27-tactique.js)
            meteoPrevue:(M, m, S) => meteoPour(hasard(grainePour(M, m)), S.date)};   // v88 : boule de cristal

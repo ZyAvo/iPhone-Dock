@@ -1,4 +1,4 @@
-// mon-ecran-version: eae8bd34
+// mon-ecran-version: 4cec89f7
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -69,6 +69,10 @@ const regler = () => LS.ecrire(K_REG, REG);
 QM.langueNoms(REG.noms);   // v114 : noms des clubs et des ligues (langue du pays, anglais, français)
 
 /* ---------- Petits outils d'affichage ---------- */
+/* v166 : date du prochain temps de jeu (mercredi pendant le mercato, sinon le samedi de la semaine) */
+const avantMercredi = () => !!(M && QM.deuxTemps && QM.deuxTemps(M) && !QM.enMilieu(M));
+const dateEtape = S => S.date - (avantMercredi() ? 3 * 864e5 : 0);
+const libAvancer = () => avantMercredi() ? 'Avancer à mercredi' : M && M.mi ? 'Avancer à samedi' : 'Avancer d\'une semaine';
 const fmtDate = (t, long) => new Date(t).toLocaleDateString('fr-FR', long ? {weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'UTC'} : {weekday:'short', day:'numeric', month:'short', timeZone:'UTC'});
 const lab = an => `${an}-${String(an + 1).slice(2)}`;
 const club = id => M.clubs[id] || (M.reserve && M.reserve[id]) || {id, nom:id, ville:'', nat:'ENG', rep:50, couleurs:['#445', '#ddd'], sigle:String(id).slice(0, 3).toUpperCase(), effectif:[], ligue:null};   // v106 : club sorti du jeu
@@ -203,7 +207,7 @@ function entete(){
   const S = QM.semaine(M);
   if (!M.manager.club){ t.innerHTML = `<b>${esc(M.manager.nom)} · sans club</b><span><span class="marque-qm">QM27</span> · ${lab(M.saison)}${S ? ' · ' + fmtDate(S.date) : ''}</span>`; dr.innerHTML = ''; return; }
   const c = club(M.manager.club);
-  t.innerHTML = `<b>${esc(c.nom)}</b><span><span class="marque-qm">QM27</span> · ${lab(M.saison)}${S ? ' · ' + fmtDate(S.date) : ''}</span>`;
+  t.innerHTML = `<b>${esc(c.nom)}</b><span><span class="marque-qm">QM27</span> · ${lab(M.saison)}${S ? ' · ' + fmtDate(dateEtape(S)) : ''}</span>`;
   dr.innerHTML = blason(c.id, 'p');
 }
 function barre(){
@@ -1034,8 +1038,13 @@ function vueMercato(){
   } else if (MERC.onglet === 'libres'){
     corps = `${filtres()}<div id="mercListe">${listeMercato('libres', U)}</div><p class="petit mut">Les agents libres signent à tout moment, sans indemnité de transfert.</p>`;
   } else if (MERC.onglet === 'suivis'){
-    const L = U.suivi.map(id => M.joueurs[id]).filter(j => j && j.club !== U.id);
-    corps = `<div class="carte"><div class="liste">${L.map(j => ligneMercato(j)).join('') || '<p class="mut">Aucun joueur suivi : touche « Suivre » dans la fiche d\'un joueur.</p>'}</div></div>`;
+    const L = U.suivi.map(id => M.joueurs[id]).filter(j => j && j.club !== U.id), n = U.suivi.length, P = E.scouting.plein;
+    /* v166 : capacité du recruteur et offres des autres clubs en attente sur les joueurs suivis */
+    const ENC = (M.encheres || []).filter(e => U.suivi.includes(e.j) && M.joueurs[e.j]), quand = QM.enMilieu(M) ? 'samedi' : 'mercredi';
+    corps = `<div class="carte"><p class="petit" style="margin:0">Ton recruteur suit <b>${n} joueur${n > 1 ? 's' : ''}</b> · ${P} à plein régime${n > P ? ` : au-delà, son temps se partage (${Math.round(P / n * 100)} % chacun)` : ''}. Pendant le mercato, il travaille une fois et demie plus vite.</p></div>
+    ${ENC.length ? `<div class="carte"><h2>Offres d'autres clubs</h2><div class="liste">${ENC.map(e => { const j = M.joueurs[e.j], c = club(e.club);
+      return `<button class="el" data-act="joueur" data-j="${j.id}">${blason(c.id, 'p')}<div class="t"><b>${esc(nomJ(j))}</b><span style="white-space:normal">${esc(c.nom)} : ${e.de ? eur(e.prix) + ' · il faut ' + eur(Math.round(e.prix * C.SURENCHERE / 5000) * 5000) + ' pour passer devant' : 'contrat proposé'} · conclu ${quand}</span></div></button>`; }).join('')}</div></div>` : ''}
+    <div class="carte"><div class="liste">${L.map(j => ligneMercato(j)).join('') || '<p class="mut">Aucun joueur suivi : touche « Suivre » dans la fiche d\'un joueur.</p>'}</div></div>`;
   } else if (MERC.onglet === 'ventes'){
     const L = U.aVendre.map(id => M.joueurs[id]).filter(Boolean);
     corps = `<div class="carte"><div class="liste">${L.map(j => ligneMercato(j, 'valeur ' + eur(C.valeur(M, j)) + ' · ' + eur(j.contrat.sal) + '/sem.')).join('') || '<p class="mut">Aucun joueur en vente. Ouvre la fiche d\'un joueur de ton effectif et touche « Mettre en vente ».</p>'}</div></div>`;
@@ -1257,7 +1266,7 @@ function vueChomage(){
     return `<div class="el">${blason(c.id)}<div class="t"><b>${esc(c.nom)}</b><span>${esc(M.ligues[c.ligue].court)} · réputation ${c.rep} · ${esc(o2.txt.toLowerCase())}</span></div></div>
       <div class="btns" style="margin:4px 0 10px"><button class="btn sec" data-act="refuserPoste" data-c="${c.id}">Refuser</button><button class="btn" data-act="accepterPoste" data-c="${c.id}">Accepter</button></div>`; }).join('') : '<p class="mut" style="margin:0">Pas encore d\'offre. Avance le temps : les clubs à la recherche d\'un entraîneur se manifestent.</p>'}</div>
   ${mg.selection && S && (S.type === 'sixn' || S.tour) && QM.matchDuJoueur(M) && !QM.matchDuJoueur(M).res ? `<div class="carte"><h2>${S.comp && window.QMN ? esc(window.QMN.titreSemaine(S)) : 'Six Emblèmes'}</h2><p class="sous" style="margin:0 0 8px">Tu restes sélectionneur.</p><button class="btn plein" data-act="preparer">Préparer le match de la sélection</button></div>` : ''}
-  ${S && S.type === 'bilan' ? '<button class="btn or plein" data-act="saisonSuivante">Passer à la saison suivante</button>' : `<button class="btn plein" data-act="continuer">Avancer d'une semaine${S ? ' (' + fmtDate(S.date) + ')' : ''}</button>`}
+  ${S && S.type === 'bilan' ? '<button class="btn or plein" data-act="saisonSuivante">Passer à la saison suivante</button>' : `<button class="btn plein" data-act="continuer">${libAvancer()}${S ? ' (' + fmtDate(dateEtape(S)) + ')' : ''}</button>`}
   <div class="carte"><h2>Boîte de réception</h2>${M.boite.slice(0, 5).map(msgHTML).join('')}</div>`;
 }
 function vueCarriere(){
@@ -1384,7 +1393,7 @@ const ACT = {
   mercRaz:() => { Object.assign(MERC, {poste:'tous', age:99, ageMin:15, moyens:false, valMax:0, salMax:0, noteMin:0, nat:'', fin:false, attr:'', role:'', badge:''}); garderMerc(); ficheFiltres(); },
   mercRetire:d => { const def = {poste:'tous', age:99, valMax:0, salMax:0, noteMin:0, nat:'', fin:false, moyens:false, attr:'', role:'', badge:''}; if (d.k === 'role') MERC.badge = ''; if (d.k === 'age'){ MERC.age = 99; MERC.ageMin = 15; } else MERC[d.k] = def[d.k]; garderMerc(); rendre(); },
   mercTri:d => { MERC.tri = d.t; garderMerc(); rendre(); },
-  suivre:d => { const on = C.suivre(M, d.j); sauver(); toast(on ? 'Joueur supervisé : ton recruteur le suit de près' : 'Plus supervisé'); ficheJoueur(d.j); },
+  suivre:d => { const on = C.suivre(M, d.j); sauver(); toast(on ? `Joueur supervisé : premier rapport du recruteur${C.mercatoOuvert(QM.semaine(M)) ? '' : ''}${club(M.manager.club).suivi.length > E.scouting.plein ? ` (plus de ${E.scouting.plein} joueurs suivis : son temps se partage)` : ''}` : 'Plus supervisé'); ficheJoueur(d.j); },
   vendre:d => { const on = C.mettreEnVente(M, d.j); sauver(); toast(on ? 'Mis en vente : les offres arrivent pendant le mercato' : 'Retiré de la vente'); ficheJoueur(d.j); if (U.vue === 'effectif' || U.vue === 'mercato') rendre(); },
   liberer:d => { const j = M.joueurs[d.j]; if (!confirm(`Résilier le contrat de ${nomJ(j)} ? Coût : ${eurT(C.coutLiberation(M, j))}.`)) return; const r = C.liberer(M, d.j); toast(r.msg); if (r.ok){ retirerFeuille(); sauver(); rendre(); } },
   offre:d => { OFFRE = null; ficheOffre(d.j, 'transfert'); },
@@ -1418,6 +1427,7 @@ const ACT = {
   batiment:d => ficheBat(d.b),
   allerVue:d => { fermerFeuille(); U.vue = d.v; rendre(); scrollTo(0, 0); },
   ameliorer:d => { const c = club(M.manager.club), cout = C.coutTravaux(c, d.b); if (!confirm(`${nomBat(d.b)} : passer au niveau ${C.niv(c, d.b) + 1} pour ${eurT(cout)} ?`)) return; const r = B.lancer(M, d.b); toast(r.msg); if (r.ok){ sauver(); fermerFeuille(); rendre(); } },
+  changerAmel:d => { const c = club(M.manager.club), x = B.AMEL[d.a]; if (!confirm(`Remplacer par ${x.nom} ? Travaux : ${eurT(B.coutChangement(c, d.a))}, ${E.changerAmel.semaines} semaines ; l'amélioration actuelle est retirée dès maintenant.`)) return; const r = B.changerAmel(M, d.a); toast(r.msg); if (r.ok){ sauver(); rendre(); ficheBat(x.bat); } },   // v166
   amel:d => { const r = B.choisirAmel(M, d.a); toast(r.msg); if (r.ok){ sauver(); const k = B.AMEL[d.a].bat; rendre(); ficheBat(k); } },
   tribune:d => { const c = club(M.manager.club); if (c.travaux.some(t => t.type === 'stade')) return toast('Des travaux sont déjà en cours au stade.'); if (!confirm(`Agrandir la tribune ${({N:'nord', S:'sud', E:'est', O:'ouest'})[d.c]} de ${E.stade.tranche.toLocaleString('fr-FR')} places pour ${eurT(C.coutTravaux(c, 'stade'))} ?`)) return; const r = B.lancer(M, 'stade', d.c); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
   prixCarte:d => { const r = B.reglerCarte(M, d.p, 'prix', d.v); if (!r.ok) return toast(r.msg); sauver(); rendre(); },   // v133
@@ -1447,9 +1457,13 @@ const ACT = {
   recupererNuage:async d => { if (!confirm(`Remplacer l'emplacement ${d.n} de cet appareil par la partie en ligne ?`)) return; try{ await recupererNuage(+d.n); U.vue = 'accueil'; rendre(); scrollTo(0, 0); }catch(e){ toast(msgSync(e)); } },
   /* v164 : le calcul de la semaine (0,2 à 1 s sur iPhone) part après l'affichage de « Semaine en cours… » : le bouton répond tout de suite */
   continuer:() => { if (U.calcul) return; U.calcul = true; document.body.classList.add('qm-calcul');
-    document.querySelectorAll('[data-act="continuer"]').forEach(b => { b.disabled = true; b.dataset.txt = b.innerHTML; b.innerHTML = '<span class="qm-roue" aria-hidden="true"></span>Semaine en cours…'; });
+    document.querySelectorAll('[data-act="continuer"]').forEach(b => { b.disabled = true; b.dataset.txt = b.innerHTML; b.innerHTML = `<span class="qm-roue" aria-hidden="true"></span>${avantMercredi() ? 'Mercredi en cours…' : 'Semaine en cours…'}`; });
     requestAnimationFrame(() => setTimeout(() => { try{ ACT.continuerMaintenant(); } finally { U.calcul = false; document.body.classList.remove('qm-calcul'); document.querySelectorAll('[data-act="continuer"][data-txt]').forEach(b => { b.disabled = false; b.innerHTML = b.dataset.txt; delete b.dataset.txt; }); } }, 0)); },
-  continuerMaintenant:() => { const S = QM.semaine(M); QM.terminerSemaine(M, null); sauver(); rendre(); scrollTo(0, 0); toast(S.type === 'sixn' ? (S.comp && window.QMN ? `${window.QMN.titreSemaine(S)} : joué` : `${D.TOURNOI.court} · tour ${S.tour} joué`) : S.type === 'prepa' ? `Préparation · semaine ${S.semaine} terminée` : 'Semaine passée'); },
+  continuerMaintenant:() => {
+    if (avantMercredi()){ QM.miSemaine(M); sauver(); rendre(); scrollTo(0, 0); toast('Mercredi : les hiboux du mercato sont revenus'); return; }   // v166 : premier temps de la semaine du mercato
+    const S = QM.semaine(M), mj = QM.matchDuJoueur(M); QM.terminerSemaine(M, null); sauver(); rendre(); scrollTo(0, 0);
+    if (mj && mj.res && mj.ligue !== 'sixn') return toast(`${club(mj.dom).nom} ${mj.res.score[0]}–${mj.res.score[1]} ${club(mj.ext).nom}`);   // v166 : match joué sans préparation
+    toast(S.type === 'sixn' ? (S.comp && window.QMN ? `${window.QMN.titreSemaine(S)} : joué` : `${D.TOURNOI.court} · tour ${S.tour} joué`) : S.type === 'prepa' ? `Préparation · semaine ${S.semaine} terminée` : 'Semaine passée'); },
   saisonSuivante:() => { QM.saisonSuivante(M); M.dernierMatch = null; sauver(); rendre(); scrollTo(0, 0); toast(`Saison ${lab(M.saison)} lancée`); },
 };
 document.addEventListener('click', e => {

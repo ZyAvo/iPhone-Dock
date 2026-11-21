@@ -1,4 +1,4 @@
-// mon-ecran-version: ffe7ff1e
+// mon-ecran-version: a08ae246
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — données du jeu : nations, clubs, banques de noms, balais, commentaires, équilibrage.
    Tout est inventé (clubs, joueurs, balais) ; seul le vocabulaire du sport est gardé. Pas d'affichage ici : window.QMD.
    Ajouter une nation : une entrée dans NATIONS (+ ses noms dans NOMS), ses clubs dans CLUBS avec une ligue de LIGUES. */
@@ -401,6 +401,10 @@ const EQ = {
   visites:{base:1350, titre:375, fantome:1.5, musee:1.4},
   inst:{boutique:{base:400e3, entretien:500, semaines:4}, buvettes:{base:300e3, entretien:400, semaines:3, taille:true}, tribunes:{base:400e3, entretien:800, semaines:8, taille:true}, formation:{base:600e3, entretien:1200, semaines:6}},
   /* v85 : carrière */
+  /* v166 : connaissance des joueurs supervisés : premier rapport, gain par semaine (×(0,5 + note du recruteur / 20) × Volière), ×1,5 pendant le mercato,
+     8 joueurs suivis à plein régime (au-delà, le travail se partage) ; v90 : 10 par semaine, rien au départ, pas de limite */
+  scouting:{premier:20, semaine:20, mercato:1.5, plein:8},
+  changerAmel:{part:0.25, semaines:2},   // v166 : changer d'amélioration : 25 % du prix du niveau, 2 semaines
   carriere:{repSelection:70, licenciement:5, offreSemaine:0.05, chomageOffre:0.6, academieMax:12},
   /* v88 : domaine du club. Bâtiments (niveau 1 à 5) : coût du niveau suivant = base × niveau actuel, entretien par niveau et par semaine.
      boutique, buvettes, tribunes (= le stade) et formation reprennent les réglages de « inst » ci-dessus. */
