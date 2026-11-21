@@ -1,4 +1,4 @@
-// mon-ecran-version: 7d30caea
+// mon-ecran-version: e57d43ae
 /* Mon Écran — mise en mémoire sur l'iPhone pour un démarrage instantané, même sans réseau.
    - Pages (accueil, actus, sport, état) : dernière version si le réseau répond en moins de 1,5 s,
      sinon la version en mémoire tout de suite, mise à jour en arrière-plan (la page se recharge seule
@@ -6,7 +6,7 @@
    - Données (matchs, programme TV, actus, état) : réseau d'abord ; sans réseau, dernière version connue.
    - Polices Google : gardées en mémoire.
    Les sites extérieurs (ESPN, Spotify, flux RSS…) ne passent pas par ici. */
-const PAGES = 'pages-v1', DATA = 'donnees-v1', FONTS = 'polices-v1', IMAGES = 'images-v4';   // v93 : illustrations de QM27 ; v108 : v2, les images redécoupées (mêmes noms) sont rechargées une fois ; v123 : v3, les fonds de scène refaits (banque, bureau) ; v129 : v4, icônes et emblèmes refaits sous les mêmes noms
+const PAGES = 'pages-v1', DATA = 'donnees-v1', FONTS = 'polices-v1', IMAGES = 'images-v5';   // v164 : v5, icônes du menu (v163) et fonds de scène réduits rechargés une fois ; v93 : illustrations de QM27 ; v108 : v2, les images redécoupées (mêmes noms) sont rechargées une fois ; v123 : v3, les fonds de scène refaits (banque, bureau) ; v129 : v4, icônes et emblèmes refaits sous les mêmes noms
 // v144 : QM27 n'est plus mis en mémoire à l'installation : ses fichiers ne sont chargés (et gardés) qu'à l'ouverture du jeu
 const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'pronos.html', 'reglages.html', 'tv.html', 'ambreval.html', 'ambreval.js?v=1d607614', 'ambreval-art.js?v=5c94a7fe', 'ambreval-ui.js?v=386fbf91', 'noyau.js?v=79ea0556', 'themes.js?v=f9d69091', 'tv.js?v=0b99e5b5', 'match.js?v=ed101192', 'synchro.js?v=0ce8808a', 'commun.js?v=fc411b5f', 'commun.css?v=5b436a95', 'polices/Geist-Variable.woff2', 'manifest.json', 'manifest-pronos.json', 'apple-touch-icon.png', 'icone-192.png', 'icone-512.png'];
 
@@ -20,7 +20,7 @@ self.addEventListener('activate', e => {
     .then(() => self.clients.claim()));
 });
 
-const isPage = (req, url) => req.mode === 'navigate' || /\.html$|\/$|\/(noyau|themes|synchro|tv|match|commun|ambreval|ambreval-art|ambreval-ui|qm27|qm27-donnees|qm27-club|qm27-carriere|qm27-domaine|qm27-vestiaire|qm27-bureau|qm27-prix|qm27-europe|qm27-visuel|qm27-ui|qm27-ecrans|qm27-stats)\.js$|\/commun\.css$|\/config\/config\.js$/.test(url.pathname);   // noyau.js, themes.js, synchro.js : même règle que les pages
+const isPage = (req, url) => req.mode === 'navigate' || /\.html$|\/$|\/(noyau|themes|synchro|tv|match|commun|ambreval|ambreval-art|ambreval-ui|qm27|qm27-donnees|qm27-club|qm27-carriere|qm27-domaine|qm27-vestiaire|qm27-bureau|qm27-prix|qm27-europe|qm27-visuel|qm27-ui|qm27-ecrans|qm27-stats|qm27-presse|qm27-tactique|qm27-nations|qm27-fiche|qm27-lieux|qm27-direct)\.js$|\/commun\.css$|\/config\/config\.js$/.test(url.pathname);   // noyau.js, themes.js, synchro.js : même règle que les pages
 const pageKey = url => { const p = url.pathname.replace(/\/$/, '/index.html'), v = url.searchParams.get('v'); return new URL(p, url.origin).href + (v ? '?v=' + v : ''); };   // sans « ?code=… » etc. ; v144 : avec « ?v=<empreinte> » (adresses versionnées par empaqueter.py)
 
 /* Pages : réseau d'abord s'il répond vite (1,5 s), sinon la version en mémoire (affichage immédiat),

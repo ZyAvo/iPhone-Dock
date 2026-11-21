@@ -1,9 +1,34 @@
-// mon-ecran-version: c8af85fa
+// mon-ecran-version: eae8bd34
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
 (() => {
 'use strict';
+/* v164 : fonctions déplacées dans qm27-fiche.js, qm27-lieux.js, qm27-direct.js (window.QMF) ; appelées par ces relais */
+const visageMoral = (...a) => window.QMF.visageMoral(...a);
+const meilleurBadge = (...a) => window.QMF.meilleurBadge(...a);
+const ficheJoueur = (...a) => window.QMF.ficheJoueur(...a);
+const nomBat = (...a) => window.QMF.nomBat(...a);
+const vueDomaine = (...a) => window.QMF.vueDomaine(...a);
+const ficheBat = (...a) => window.QMF.ficheBat(...a);
+const vueStade = (...a) => window.QMF.vueStade(...a);
+const vueBoutique = (...a) => window.QMF.vueBoutique(...a);
+const vueBuvette = (...a) => window.QMF.vueBuvette(...a);
+const vuePartenaires = (...a) => window.QMF.vuePartenaires(...a);
+const vueTrophees = (...a) => window.QMF.vueTrophees(...a);
+const banqueHTML = (...a) => window.QMF.banqueHTML(...a);
+const divinationHTML = (...a) => window.QMF.divinationHTML(...a);
+const vueMatch = (...a) => window.QMF.vueMatch(...a);
+const statsMatchHTML = (...a) => window.QMF.statsMatchHTML(...a);
+const evHTML = (...a) => window.QMF.evHTML(...a);
+const demarrerDirect = (...a) => window.QMF.demarrerDirect(...a);
+const boucle = (...a) => window.QMF.boucle(...a);
+const rendreCtrl = (...a) => window.QMF.rendreCtrl(...a);
+const reprendre = (...a) => window.QMF.reprendre(...a);
+const ouvrirTempsMort = (...a) => window.QMF.ouvrirTempsMort(...a);
+const rendreTempsMort = (...a) => window.QMF.rendreTempsMort(...a);
+const reprendreApresTM = (...a) => window.QMF.reprendreApresTM(...a);
+const finDuMatch = (...a) => window.QMF.finDuMatch(...a);
 const D = window.QMD, E = D.EQ, C = window.QMC;
 /* v94 : Gallions, Mornilles et Noises en pièces (or, argent, bronze) ; eurT = la même somme en texte (confirmations, infobulles) */
 const PIECE = {G:['g', 'Gallions'], M:['m', 'Mornilles'], N:['n', 'Noises']};
@@ -432,152 +457,6 @@ function carriereHTML(j){
 }
 /* v101 : la fiche se lit pour un poste et un rôle au choix (toucher une note de poste, puis un rôle) : les attributs cibles du poste
    sont surlignés, ceux du rôle plus fort. Purement visuel : la composition ne change que dans la Tactique. */
-let FJ = null;
-const roleCompo = j => { const c = j.club && club(j.club); return c && c.compo && c.compo.roles ? c.compo.roles[j.id] || null : null; };
-/* ---------- v161 : la fiche joueur en page entière (mobile et PC), cinq onglets, flèches pour passer d'un joueur à l'autre ---------- */
-const ONGLETS_FJ = [['gen', 'Général'], ['att', 'Attributs et entraînement', 'Attributs'], ['mor', 'Moral'], ['con', 'Contrat'], ['car', 'Carrière']];
-const estDesk = () => document.documentElement.classList.contains('desk');
-/* moral : cinq visages, du rouge au vert (dessinés en attendant les images) */
-const MORAUX = [[20, 'furieux', '#d64545'], [40, 'mécontent', '#e8833a'], [60, 'neutre', '#d9b31f'], [80, 'content', '#7cb342'], [101, 'ravi', '#2e9e5b']];
-const niveauMoral = m => MORAUX.findIndex(x => m < x[0]);
-function visageMoral(m, t = 28){ const k = niveauMoral(m); return `<img class="visage" src="images/qm27/moral/${k}.webp" width="${t}" height="${t}" alt="Moral : ${MORAUX[k][1]}" title="Moral : ${MORAUX[k][1]} (${Math.round(m)})">`; }   // v161 : visages illustrés
-/* potentiel : une étoile à cinq branches, chaque branche pleine ou vide */
-function etoilePot(n, t = 30){ const R = 15, r = 6.2, c = 16, pt = (a, d) => [c + d * Math.sin(a), c - d * Math.cos(a)].map(x => x.toFixed(2)).join(',');
-  const br = [0, 1, 2, 3, 4].map(i => { const a = i * 2 * Math.PI / 5, g = a - Math.PI / 5, d = a + Math.PI / 5; return `<polygon points="${pt(g, r)} ${pt(a, R)} ${pt(d, r)} ${c},${c}" class="${i < n ? 'pl' : 'vd'}"/>`; }).join('');
-  return `<svg class="etp" viewBox="0 0 32 32" width="${t}" height="${t}" role="img" aria-label="Potentiel ${n} sur 5">${br}</svg>`; }
-function statutJ(j){
-  if (j.bless) return ['bless', 'Blessé', `${j.bless.jours} j`];
-  if (j.susp) return ['susp', 'Suspendu', `${j.susp.n} m.`];
-  if (j.inter) return ['inter', 'En sélection', (D.NATIONS[j.inter] || {court:j.inter}).court || j.inter];
-  if (j.pret && j.club === M.manager.club) return ['pret', 'Prêté ici', ''];
-  if (!j.club) return ['libre', 'Agent libre', ''];
-  return ['actif', 'Actif', ''];
-}
-/* meilleur badge d'un joueur (rôles de son poste) : [badge, rôle] */
-function meilleurBadge(j){ let best = null; for (const [r] of (D.ROLES[j.poste] || [])){ const b = badgeDe(j, j.poste, r); if (b && (!best || rangBadge(b) > rangBadge(best[0]))) best = [b, r]; } return best; }
-const badgeRoleHTML = (j, x) => x ? `${imgBadge(x[0], x[1], 18, `Badge ${x[0][1].toLowerCase()}${x[0][3] ? ' estimé' : ''} : ${roleNom(j.poste, x[1])}`)} <span class="mut">${x[0][1]}${x[0][3] ? ' ?' : ''} · ${esc(roleNom(j.poste, x[1]).toLowerCase())}</span>` : '';
-const tuile = (lib, val, cls) => `<div class="fjt${cls ? ' ' + cls : ''}"><span>${lib}</span><b>${val}</b></div>`;
-/* attributs : une ligne (valeur, part dans la note au poste lu, progression depuis le dernier rapport mensuel) */
-function ligneAttrFJ(j, k, nom, v, c, part, mx, ancien){
-  const x = valVue(j, v, k), d = ancien != null && x.exact ? Math.round(v) - Math.round(ancien) : 0;
-  return `<div class="at${c ? ' c' : ''}${c === 2 ? ' r' : ''}${x.exact ? '' : ' flou'}" title="${esc(nom)}${c === 2 ? ' · attribut du rôle' : c ? ' · compte dans la note au poste' : ''}${part ? ` (${Math.round(part * 100)} % de la note)` : ''}"><span>${esc(COURT_ATTR[k] || nom)}</span>${part ? `<i class="pt" style="width:${Math.round(part / mx * 100)}%"></i>` : '<i class="pt vide"></i>'}<em class="tdc ${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '▲' : d < 0 ? '▼' : ''}</em><b class="${classeAttr(x.mid)}">${x.txt}</b></div>`; }
-function tableAttrsFJ(j, P_, ra){
-  const PN = QM.partNote ? QM.partNote(P_) : {}, mx = Math.max(...Object.values(PN), 0.01), A0 = j.aM || null;
-  const cib = k => { const pt = PN[k] || 0, c = pt >= 0.05; return ra.includes(k) ? 2 : c ? 1 : 0; };
-  const fam = f => `<div class="fa"><h4>${f}</h4>${D.ATTRS.map((a, i) => a[2] !== f ? '' : ligneAttrFJ(j, a[0], a[1], j.a[i], cib(a[0]), PN[a[0]] || 0, mx, A0 ? A0[i] : null)).join('')}</div>`;
-  const gard = j.poste === 'G' || P_ === 'G' ? `<div class="fa fa-g"><h4>Gardien</h4><div class="fa-gl">${D.GARDIEN.map((g, i) => ligneAttrFJ(j, g[0], g[1], j.g[i], ra.includes('g:' + g[0]) ? 2 : (PN['g:' + g[0]] || 0) >= 0.05 ? 1 : 0, PN['g:' + g[0]] || 0, mx, j.gM ? j.gM[i] : null)).join('')}</div></div>` : '';
-  return `<div class="fj-at"><div class="fj-at-col">${fam('Physique')}${fam('Balle')}</div><div class="fj-at-col">${fam('Vol')}${fam('Mental')}</div>${gard}</div>`;
-}
-function lecturePosteRole(j){
-  const P_ = FJ.p, ROLES_P = D.ROLES[P_] || [], role = ROLES_P.some(x => x[0] === FJ.role) ? FJ.role : null, kc = connu(j);
-  const T_ = window.QMT, ad = T_ ? T_.adequation(j, P_, role || (ROLES_P[0] || [])[0]) : null, autre = P_ !== j.poste || role !== roleCompo(j);
-  return `<div class="npostes" role="group" aria-label="Lire la fiche pour un poste">${['P', 'B', 'A', 'G'].map(p => { const x = noteVue(j, p); return `<button class="${p === P_ ? 'on' : ''}${p === j.poste ? ' nat' : ''}" data-act="fjPoste" data-p="${p}" aria-pressed="${p === P_}"><b class="${classeNote(x.mid)}" style="color:inherit">${x.txt}</b><span>${D.POSTES[p].nom}</span></button>`; }).join('')}</div>
-    <div class="fj-roles"><div class="chips petites">${ROLES_P.map(([k, nom]) => { const e = ad && ad.roles ? ad.roles[k] : null; return `<button class="chip ${k === role ? 'on' : ''}" data-act="fjRole" data-r="${k}" aria-pressed="${k === role}" title="${esc((ROLES_P.find(x => x[0] === k) || [])[2] || '')}">${badgeHTML(j, P_, k, true)}${esc(nom)}${e != null && kc >= 100 ? ` <span class="mut">${e > 0 ? '+' : ''}${String(Math.round(e * 10) / 10).replace('.', ',')}</span>` : ''}</button>`; }).join('')}</div>
-    ${autre ? '<p class="petit mut" style="margin:4px 0 0">Lecture seulement : la composition se change dans Tactique.</p>' : ''}</div>`;
-}
-function saisonFJ(j){
-  const s = j.saison || {}, [ix, nomS] = STAT_P[j.poste], val = {3:s.b, 4:s.cog, 5:s.v, 6:s.arr}[ix] || 0, nS = j.nS && j.nS.s === M.saison ? j.nS : null;
-  return `<div class="fj-saison2"><div><b>${s.m || 0}</b><span>matchs${s.m ? ` (${s.tit || 0} tit., ${(s.m || 0) - (s.tit || 0)} entrées)` : ''}</span></div><div><b>${s.mn || 0}</b><span>minutes</span></div>
-    <div><b>${val}</b><span>${nomS}</span></div><div><b>${s.m ? (s.notes / s.m).toFixed(1).replace('.', ',') : '—'}</b><span>note moyenne</span></div>
-    <div><b>${s.ja || 0} / ${s.ro || 0}</b><span>cartons J / R</span></div><div><b>${s.mvp || 0}</b><span>joueur du match</span></div></div>
-    ${j.sel ? `<p class="petit" style="margin:6px 0 0">${flag(j.nat)} <b>${j.sel} sélection${j.sel > 1 ? 's' : ''}</b>${j.selB ? `, ${j.selB} but${j.selB > 1 ? 's' : ''}` : ''}${nS ? ` · cette saison : ${nS.m} match${nS.m > 1 ? 's' : ''}${nS.b ? `, ${nS.b} but${nS.b > 1 ? 's' : ''}` : ''}` : ''}</p>` : ''}`;
-}
-function ongletGeneral(j, desk){
-  const mon = j.club === M.manager.club, bp = QM.meilleurPoste(j), nv = noteVue(j, bp), est = C.potentielEstime(M, j), st = statutJ(j), v = C.valeur(M, j), cl = j.contrat || {};
-  const tiles = `<div class="fjt-l">${tuile('Note', `${nv.txt}<small> ${D.POSTES[bp].court || bp}</small>`, classeNote(nv.mid))}${tuile('Potentiel', etoilePot(est))}${tuile('Statut', `${st[1]}${st[2] ? `<small> ${esc(st[2])}</small>` : ''}`, 'st-' + st[0])}${tuile('Moral', visageMoral(j.moral))}</div>
-    <div class="fjt-l t3">${tuile('Salaire', j.club ? eur(cl.sal || 0) + '<small> /sem.</small>' : '—')}${tuile('Valeur', eur(v))}${tuile('Expire', j.club && cl.fin != null ? 'été ' + (cl.fin + 1) : '—')}</div>`;
-  const rapport = `<blockquote class="rapport">« ${esc(rapportRecruteur(j))} »<span>${mon || true ? 'Rapport de ton recruteur' : ''}</span></blockquote>
-    ${QM.manies(j).length ? `<div class="manies">${QM.manies(j).map(k => { const m = D.MANIES.find(x => x[0] === k); return m ? `<span class="manie"><b>${esc(m[1])}</b>${esc(m[3])}</span>` : ''; }).join('')}</div>` : ''}`;
-  const roles = `<div class="carte"><h2>Rôles et badges</h2>${lecturePosteRole(j)}</div>`;
-  const saison = `<div class="carte"><h2>Saison ${lab(M.saison)}</h2>${saisonFJ(j)}</div>`;
-  const r = mon ? roleDe(j.id) : {}, place = mon ? `<p class="petit mut" style="margin:8px 0 0">${r.tit ? `Titulaire (${D.POSTES[r.p].nom.toLowerCase()}).` : r.banc ? 'Remplaçant.' : 'Hors du groupe de 12.'}</p>` : '';
-  const potion = mon && B.a(club(M.manager.club), 'apothicaire') ? `<button class="btn sec plein" style="margin-top:8px" data-act="potion" data-j="${j.id}">Potion de forme de l'apothicaire (+2 forme)</button>` : '';
-  if (!desk) return `${tiles}${saison}${roles}${rapport}${place}${potion}`;
-  /* PC : une page en paysage, façon Football Manager */
-  const kc = connu(j), etat = `<div class="fj-etat">
-      <div><span>Forme</span><b>${j.forme}<small>/10</small></b><div class="barre"><i style="width:${j.forme * 10}%"></i></div></div>
-      <div><span>Fatigue</span><b>${j.fat}<small> %</small></b><div class="barre fat"><i style="width:${j.fat}%"></i></div></div>
-      <div><span>Charge</span><b>${Math.round(j.charge || 0)}<small>/100</small></b><div class="barre fat"><i style="width:${Math.round(j.charge || 0)}%"></i></div></div></div>`;
-  const P_ = FJ.p, role = (D.ROLES[P_] || []).some(x => x[0] === FJ.role) ? FJ.role : null, T_ = window.QMT, ra = T_ && T_.ROLE_ATTR[P_] && role ? T_.ROLE_ATTR[P_][role] : [];
-  return `<div class="fj-pc"><div class="fj-pc-g">${tiles}${etat}${contratResume(j)}${place}${potion}</div>
-    <div class="fj-pc-m"><div class="carte fj-attrs"><h2>Attributs${P_ === j.poste ? '' : ' <span class="mut petit">lus en ' + esc(D.POSTES[P_].nom.toLowerCase()) + '</span>'}</h2><p class="fj-leg">Surlignés : ce qui fait la note au poste (barre : sa part)${role ? ' · en doré : le rôle ' + esc(roleNom(P_, role).toLowerCase()) : ''}.</p>${tableAttrsFJ(j, P_, ra)}${kc < 100 ? `<p class="petit mut" style="margin:6px 0 0">Connu à ${Math.round(kc)} % : attributs en fourchette.</p>` : ''}</div></div>
-    <div class="fj-pc-d">${roles}<div class="carte fj-radar">${V.radar(axesRadar(j).map(([l, x]) => [l, kc >= 100 ? x : valVue(j, Math.round(x), 'ax' + l).mid]), COULEUR_POSTE[j.poste])}</div>${saison}${rapport}</div></div>`;
-}
-function contratResume(j){
-  const cl = j.contrat || {}, inf = [cl.clause ? `Clause libératoire ${eur(cl.clause)}` : '', cl.primeVif ? `Prime par vif ${eur(cl.primeVif)}` : '', j.revente ? `${j.revente.pct} % à la revente` : ''].filter(Boolean);
-  return j.club ? `<div class="carte"><h2>Contrat</h2><p class="petit" style="margin:0">${esc(club(j.club).nom)}${j.pret ? ' (prêt)' : ''} · jusqu'à l'été ${cl.fin + 1}${inf.length ? '<br>' + inf.join(' · ') : ''}</p></div>` : '';
-}
-function ongletAttributs(j){
-  const P_ = FJ.p, role = (D.ROLES[P_] || []).some(x => x[0] === FJ.role) ? FJ.role : null, T_ = window.QMT, ra = T_ && T_.ROLE_ATTR[P_] && role ? T_.ROLE_ATTR[P_][role] : [], kc = connu(j), mon = j.club === M.manager.club;
-  const X = window.QMX, G_ = window.QMG, F = G_ && G_.focusDe ? G_.focusDe(j) : [], cb = mon && X ? X.courbes()[j.id] : null, pr = mon ? (club(M.manager.club).progres || {})[j.id] : null, est = C.potentielEstime(M, j);
-  const ent = mon ? `<div class="carte"><h2>Entraînement</h2>
-      <p class="petit" style="margin:0 0 6px">${F.length ? 'Focus : ' + F.map(x => `<span class="badge${x.t === 'poste' ? ' tit' : ''}">${esc(X ? X.NOMS_FOCUS({...x, p:j.poste}) : x.k)}</span>`).join(' ') : '<span class="mut">Aucun focus : il progresse au rythme du groupe.</span>'}</p>
-      ${j.reconv ? `<p class="petit" style="margin:0 0 6px">Apprend le poste de <b>${D.POSTES[j.reconv.p].nom.toLowerCase()}</b> : ${j.reconv.sem} / ${G_ ? G_.SEM_POSTE : 36} semaines.</p>` : ''}
-      <p class="petit" style="margin:0 0 6px">Potentiel estimé ${etoilePot(est, 18)} ${est} sur 5${pr ? ` · ce mois-ci ${pr > 0 ? '+' : ''}${(pr * 5).toFixed(1).replace('.', ',')} point${Math.abs(pr * 5) >= 2 ? 's' : ''} de note` : ''}</p>
-      ${cb && cb.length > 1 && X ? `<div class="fj-courbe">${X.courbe(cb)}<span class="petit mut">note au poste depuis le début de la saison</span></div>` : ''}
-      <button class="btn sec plein" style="margin-top:8px" data-act="focusJ" data-j="${j.id}">Choisir ses focus</button></div>` : '';
-  return `${lecturePosteRole(j)}
-    <div class="carte fj-attrs"><h2>Attributs</h2><p class="fj-leg">Surlignés : ce qui fait la note au poste (barre : sa part)${role ? ' · en doré : le rôle ' + esc(roleNom(P_, role).toLowerCase()) : ''}${j.aM ? ' · ▲▼ depuis le dernier rapport mensuel' : ''}.</p>${tableAttrsFJ(j, P_, ra)}
-      ${kc < 100 ? `<p class="petit mut" style="margin:6px 0 0">Attributs en fourchette : ${Math.round(kc)} % connu. Suis le joueur ou affronte son équipe pour en savoir plus.</p>` : ''}</div>
-    <div class="carte fj-radar">${V.radar(axesRadar(j).map(([l, x]) => [l, kc >= 100 ? x : valVue(j, Math.round(x), 'ax' + l).mid]), COULEUR_POSTE[j.poste])}</div>${ent}`;
-}
-function sparkMoral(L){ if (!L || L.length < 2) return ''; const w = 260, h = 60, n = L.length, x = i => 4 + i * (w - 8) / (n - 1), y = v => h - 4 - v / 100 * (h - 8);
-  return `<svg class="spark" viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" aria-hidden="true">${[20, 40, 60, 80].map(v => `<line x1="0" x2="${w}" y1="${y(v)}" y2="${y(v)}" class="g"/>`).join('')}<polyline points="${L.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/>${L.map((v, i) => i === n - 1 ? `<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="var(--accent)"/>` : '').join('')}</svg>`; }
-const traitCache = (k, v) => ({pro:['Peu sérieux', 'Professionnel', 'Modèle de rigueur'], amb:['Sans ambition', 'Ambitieux', 'Dévoré d\'ambition'], reg:['Irrégulier', 'Assez régulier', 'Métronome'], gm:['Tétanisé par l\'enjeu', 'Solide dans les grands matchs', 'Se sublime dans les grands matchs'], ada:['Craint la météo', 'S\'adapte', 'Joue par tous les temps'], loy:['Mercenaire', 'Loyal', 'Fidèle au club']}[k] || ['', '', ''])[v < 8 ? 0 : v < 14 ? 1 : 2];
-function ongletMoral(j){
-  const mon = j.club === M.manager.club, c = j.club ? club(j.club) : null, H_ = HH(), k = niveauMoral(j.moral), L = [];
-  if (mon && H_){ const s = j.saison || {};
-    if (H_.mecontents(M, c).some(x => x.id === j.id)) L.push(['m', `Veut jouer davantage : ${s.m || 0} matchs joués pour environ ${Math.round(s.mAttendu || 0)} attendus.`]);
-    else if ((s.mAttendu || 0) > 0) L.push(['b', `Temps de jeu conforme à ce qu'il attend (${s.m || 0} matchs).`]);
-    if (H_.leaders(M, c).some(x => x.id === j.id)) L.push(['b', 'Un des leaders du vestiaire : son moral pèse sur les autres.']);
-    const cl = H_.clans(M, c).find(x => x.joueurs.some(y => y.id === j.id)); if (cl) L.push([cl.moral >= 60 ? 'b' : cl.moral < 40 ? 'm' : '', `Fait partie du clan « ${esc(cl.nom)} » (${cl.joueurs.length} joueurs, moral moyen ${cl.moral}).`]);
-    if (H_.mentore && H_.mentore(c, j)) L.push(['b', 'Suit un mentor : il prend peu à peu son état d\'esprit.']);
-    if ((c.mentors || []).some(p => p.mentor === j.id)) L.push(['b', 'Mentor d\'un jeune joueur.']);
-    if (c.compo && c.compo.cap === j.id) L.push(['b', 'Capitaine de l\'équipe.']);
-    L.push([H_.ambiance(M, c) >= 65 ? 'b' : H_.ambiance(M, c) < 45 ? 'm' : '', `Ambiance du vestiaire : ${H_.ambiance(M, c)} / 100.`]); }
-  if (j.contrat && j.contrat.fin <= M.saison && j.club) L.push(['m', 'Son contrat se termine cet été.']);
-  if (j.bless) L.push(['m', 'Blessé : il ronge son frein.']);
-  if (j.forme >= 8) L.push(['b', 'En grande forme.']); else if (j.forme <= 4) L.push(['m', 'En petite forme.']);
-  const vu = mon || connu(j) >= 80, perso = vu ? ['pro', 'amb', 'reg', 'gm', 'ada', 'loy'].filter(x => j.cache[x] != null).map(x => `<div class="el"><div class="t"><b>${esc(traitCache(x, j.cache[x]))}</b><span>${esc((D.CACHES.find(y => y[0] === x) || [, x])[1])}</span></div></div>`).join('') : '';
-  return `<div class="carte fj-moral"><div class="fj-moral-h">${visageMoral(j.moral, 54)}<div><b>${Math.round(j.moral)} / 100</b><span>${MORAUX[k][1]}</span></div></div>
-      ${mon && j.mh && j.mh.length > 1 ? `${sparkMoral(j.mh)}<p class="petit mut" style="margin:2px 0 0">Les ${j.mh.length} dernières semaines.</p>` : mon ? '<p class="petit mut" style="margin:6px 0 0">La courbe se remplit semaine après semaine (16 semaines gardées).</p>' : ''}</div>
-    <div class="carte"><h2>Ce qui le fait bouger</h2>${L.length ? `<ul class="fj-facteurs">${L.map(([t, x]) => `<li class="${t}">${x}</li>`).join('')}</ul>` : '<p class="petit mut" style="margin:0">Rien de particulier à signaler.</p>'}
-      <p class="petit mut" style="margin:6px 0 0">Les victoires et les bonnes notes le font monter ; le banc, les défaites et un leader malheureux le font baisser.</p></div>
-    <div class="carte"><h2>Personnalité <span class="mut petit">selon ton staff</span></h2>${perso ? `<div class="liste compacte">${perso}</div>` : '<p class="petit mut" style="margin:0">Ton recruteur ne le connaît pas assez (80 % nécessaires).</p>'}</div>`;
-}
-function ongletCarriere(j){
-  const L = matchsInter(j.id);
-  return `${carriereHTML(j).replace('<details class="carte fj-carriere">', '<details class="carte fj-carriere" open>')}
-    <div class="carte"><h2>Sélection ${flag(j.nat)}</h2><p class="petit" style="margin:0 0 6px">${j.sel ? `<b>${j.sel} sélection${j.sel > 1 ? 's' : ''}</b>${j.selB ? `, ${j.selB} but${j.selB > 1 ? 's' : ''}` : ''}${j.selV ? `, ${j.selV} vif${j.selV > 1 ? 's' : ''} d'or` : ''}` : 'Jamais sélectionné.'}</p>
-      ${L.length ? `<h4 class="sous-t">Matchs de la saison</h4><div class="liste">${L.map(([k, m]) => { const x = m.res.f.c.flat().find(y => y[0] === j.id); return `<button class="el" data-act="feuilleInter" data-k="${k}" data-m="${m.id}">${blason(m.dom, 'p', true)}<div class="t"><b>${esc(nomEq(m.dom, true))} ${m.res.score.join('–')} ${esc(nomEq(m.ext, true))}</b><span>${fmtDate(M.calendrier[k].date)}${x && x[3] ? ` · ${x[3]} but${x[3] > 1 ? 's' : ''}` : ''}</span></div>${x && x[2] ? `<span class="note ${classeNote(x[2] * 10)}">${String(x[2]).replace('.', ',')}</span>` : ''}</button>`; }).join('')}</div>` : ''}</div>`;
-}
-/* liste suivie par les flèches : les fiches ouvertes depuis la même liste (ordre et filtres de l'écran) */
-function listeDepuis(el){
-  for (let n = el && el.parentElement; n && n !== document.body; n = n.parentElement){ const L = [...n.querySelectorAll('[data-act="joueur"][data-j]')].map(x => x.dataset.j); const U_ = [...new Set(L)]; if (U_.length > 1) return U_; }
-  return null;
-}
-function ficheJoueur(id, garder){
-  const j = M.joueurs[id]; if (!j) return;
-  if (!FJ || FJ.id !== id) FJ = {id, p:j.poste, role:roleCompo(j), onglet:FJ ? FJ.onglet : 'gen', liste:FJ ? FJ.liste : null};
-  const desk = estDesk(), on = FJ.onglet || 'gen', mon = j.club === M.manager.club, cl = j.club ? club(j.club) : null, L = FJ.liste || [], i = L.indexOf(id), mb = meilleurBadge(j);
-  const corps = on === 'gen' ? ongletGeneral(j, desk) : on === 'att' ? ongletAttributs(j) : on === 'mor' ? ongletMoral(j) : on === 'con' ? (j.acad ? blocJeune(j) : blocContrat(j, mon)) : ongletCarriere(j);
-  const nav = d => L.length > 1 ? `<button class="fj-nav" data-act="fjNav" data-d="${d}" aria-label="${d < 0 ? 'Joueur précédent' : 'Joueur suivant'}">${d < 0 ? '‹' : '›'}</button>` : '';
-  const html = `<div class="fjp${desk ? ' desk' : ''}"><div class="fj-tete">${nav(-1)}<span class="avp g">${avatarDe(j, 'g')}${cl ? `<span class="blp">${V.blason(cl, 'p')}</span>` : ''}</span>
-      <div class="fj-id"><h3>${esc(nomJ(j))}</h3><div class="sous">${flagSeul(j.nat)} ${esc(nat(j.nat).nom)}${j.sel ? ` · ${j.sel} sél.` : ''} · ${j.age} ans · ${D.POSTES[j.poste].nom}${cl ? ' · ' + (mon ? 'n° ' + j.num : esc(cl.nom)) : ' · agent libre'}</div>${mb ? `<div class="sous">${badgeRoleHTML(j, mb)}</div>` : ''}</div>
-      ${L.length > 1 ? `<span class="fj-pos mut petit">${i + 1} / ${L.length}</span>` : ''}${nav(1)}${!mon && M.manager.club ? `<button class="fj-suivre" data-act="suivre" data-j="${j.id}" title="${club(M.manager.club).suivi.includes(j.id) ? 'Ne plus superviser' : 'Superviser'}">${club(M.manager.club).suivi.includes(j.id) ? '★' : '☆'}</button>` : ''}<button class="fermer" data-act="fermer" aria-label="Fermer">✕</button></div>
-    <div class="onglets fj-ong" role="tablist">${ONGLETS_FJ.map(([k, n, c]) => `<button role="tab" class="${on === k ? 'on' : ''}" data-act="fjOnglet" data-o="${k}" aria-selected="${on === k}">${c ? `<span class="long">${n}</span><span class="court">${c}</span>` : n}</button>`).join('')}</div>
-    <div class="fj-corps">${corps}</div></div>`;
-  const ouvert = document.querySelector('.fond.fj-page .feuille');
-  feuille(html, garder || !!ouvert);
-  const f = document.querySelector('.fond'); if (f) f.classList.add('fj-page');
-  const t = document.querySelector('.fond.fj-page .fj-tete'); if (t) t.parentElement.style.setProperty('--fjh', t.offsetHeight + 'px');
-}
-function naviguerFJ(d){ if (!FJ || !FJ.liste) return; const L = FJ.liste, i = L.indexOf(FJ.id); if (i < 0) return; const id = L[(i + d + L.length) % L.length]; const o = FJ.onglet, l = FJ.liste; FJ = {id, p:M.joueurs[id].poste, role:roleCompo(M.joueurs[id]), onglet:o, liste:l}; ficheJoueur(id, true); const c = document.querySelector('.fond.fj-page .feuille'); if (c) c.scrollTop = 0; }
-addEventListener('keydown', e => { if (!document.querySelector('.fond.fj-page') || /INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) return; if (e.key === 'ArrowLeft') naviguerFJ(-1); if (e.key === 'ArrowRight') naviguerFJ(1); });
-let fjTouch = null;
-document.addEventListener('touchstart', e => { if (e.target.closest && e.target.closest('.fond.fj-page .fj-corps') && !e.target.closest('.npostes, .chips, .tab-carr, .onglets')) fjTouch = [e.touches[0].clientX, e.touches[0].clientY]; else fjTouch = null; }, {passive:true});
-document.addEventListener('touchend', e => { if (!fjTouch) return; const dx = e.changedTouches[0].clientX - fjTouch[0], dy = e.changedTouches[0].clientY - fjTouch[1]; fjTouch = null; if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2) naviguerFJ(dx < 0 ? 1 : -1); }, {passive:true});
-
 /* ---------- Tactique ---------- */
 const CONSIGNES = [
   ['rythme', 'Rythme', 'Rapide : plus de tirs et de pertes de balle, plus de fatigue.', [[1, 'Lent'], [2, 'Normal'], [3, 'Rapide']]],
@@ -1316,273 +1195,6 @@ function vueFormation(){
 }
 /* ---------- v88 : le domaine du club (qm27-domaine.js : window.QMB) ---------- */
 const B = window.QMB;
-const POS_DOM = {infirmerie:[62, 56], salle:[140, 50], bureau:[210, 44], formation:[280, 50], voliere:[358, 56], divination:[52, 166], aire:[368, 166],
-  trophees:[62, 272], residence:[140, 280], buvettes:[210, 288], boutique:[280, 280], hangar:[358, 272]};
-const VUE_BAT = {stade:'stade', boutique:'boutique', buvette:'buvette', formation:'formation', entrainement:'entrainement', balais:'vestiaire', tactique:'tactique', mercato:'mercato', trophees:'trophees'};
-const nomBat = k => k === 'bureau' ? 'Bureau du président' : (B.BAT[k] || [])[1] || k;
-const pips = n => `<span class="pips" aria-label="niveau ${n} sur 5">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
-const coutEntretien = (c, k) => ((E.inst[k] || E.bat[k] || {}).entretien || 0) * C.niv(c, k);
-function stadePlan(c){
-  const lv = C.niv(c, 'tribunes'), [c1, c2] = c.couleurs, toit = lv >= 3;
-  return `<g class="dbat" data-act="batiment" data-b="tribunes" role="button" tabindex="0" aria-label="Stade, niveau ${lv}">
-    <image href="${V.IMAGES}lieux/stade.webp" x="125" y="78" width="170" height="170" preserveAspectRatio="xMidYMid meet"/>   <!-- v93 : illustration -->
-    ${B.a(c, 'dragon') ? '<path d="M296 196l8-10 4 4 6-3-2 7 5 4h-21z" fill="#8b8f96" stroke="rgba(0,0,0,.4)" stroke-width=".6"/>' : ''}</g>
-    <text x="210" y="246" text-anchor="middle" class="dlab">Stade · ${c.stade.toLocaleString('fr-FR')} places</text>`;
-}
-function batPlan(c, k){
-  const [x, y] = POS_DOM[k], s = 0.95, n = k === 'bureau' ? 0 : C.niv(c, k), tr = c.travaux.find(t => t.type === k), att = k !== 'bureau' && B.amelEnAttente(c, k);
-  return `<g class="dbat" data-act="batiment" data-b="${k}" role="button" tabindex="0" aria-label="${esc(nomBat(k))}${n ? ', niveau ' + n : ''}${tr ? ', travaux en cours' : ''}${att ? ', amélioration à choisir' : ''}">
-    <g transform="translate(${x - 32 * s} ${y - 40 * s}) scale(${s})">${V.batiment(k, c.couleurs[0], c.couleurs[1])}
-      ${tr ? '<g class="echaf"><path d="M6 58V22h52v36M6 34h52M6 46h52M6 22l52 36M58 22L6 58" fill="none" stroke="#c98a2b" stroke-width="1.4"/></g>' : ''}</g>
-    ${att ? `<circle cx="${x + 20}" cy="${y - 28}" r="7" fill="var(--or)" stroke="#fff" stroke-width="1.5"/><text x="${x + 20}" y="${y - 24.5}" text-anchor="middle" font-size="10" font-weight="800" fill="#16202c">!</text>` : ''}
-    <text x="${x}" y="${y + 14}" text-anchor="middle" class="dlab">${esc(nomBat(k).replace('Pensionnat des jeunes ailes', 'Pensionnat').replace('Cabinet de divination', 'Divination').replace('Résidence des joueurs', 'Résidence').replace('Salle des trophées', 'Trophées').replace('Bureau du président', 'Président').replace('Volière à hiboux', 'Volière').replace('Hangar à balais', 'Hangar').replace('Taverne du stade', 'Taverne').replace('Bazar du club', 'Bazar'))}</text>
-    ${n ? `<g transform="translate(${x - 14} ${y + 18})">${[0, 1, 2, 3, 4].map(i => `<rect x="${i * 6}" y="0" width="4.4" height="3" rx="1" fill="${i < n ? 'var(--or)' : 'var(--line)'}"/>`).join('')}</g>` : ''}</g>`;
-}
-/* v111 : la carte illustrée du domaine (images/qm27/domaine/), 12 clairières de 3 × 4 ; le château est le bureau du président.
-   Repère de l'image (1024 × 1536) : [x0, x1, y0, y1] de chaque clairière */
-const CLAIRIERES = {voliere:[126, 346, 509, 619], salle:[399, 618, 508, 618], divination:[670, 889, 509, 618],
-  infirmerie:[101, 340, 660, 793], tribunes:[397, 628, 661, 793], aire:[683, 914, 660, 792],
-  formation:[76, 333, 839, 984], buvettes:[394, 637, 839, 983], boutique:[696, 945, 838, 984],
-  residence:[52, 328, 1034, 1211], hangar:[390, 644, 1033, 1208], trophees:[706, 972, 1034, 1208]};
-const COURT_BAT = {formation:'Pensionnat', divination:'Divination', residence:'Résidence', trophees:'Trophées', tribunes:'Stade', buvettes:'Taverne', boutique:'Bazar', infirmerie:'Infirmerie', aire:'Aire d\'envol', hangar:'Hangar', salle:'Salle', voliere:'Volière'};
-function planIllustre(c){
-  /* deux passes : les bâtiments (rangée du haut d'abord), puis toutes les plaques par-dessus, jamais cachées par un voisin */
-  const I = V.IMAGES, L = [['bureau', 595, 292, 300, 'Bureau du président', 0, null, false],
-    ...Object.entries(CLAIRIERES).map(([k, [x0, x1, y0, y1]]) => [k, (x0 + x1) / 2, y1 - 8, Math.min(230, (x1 - x0) * 0.86), COURT_BAT[k] || nomBat(k), C.niv(c, k), c.travaux.find(t => t.type === k || (k === 'tribunes' && t.type === 'stade')), B.amelEnAttente(c, k)])];
-  const aria = (k, n, tr, att) => `${esc(nomBat(k))}${n ? ', niveau ' + n : ''}${tr ? ', travaux en cours' : ''}${att ? ', amélioration à choisir' : ''}`;
-  const bats = L.map(([k, x, y, w, nom, n, tr, att]) => `<g class="dbat d2" data-act="batiment" data-b="${k}" role="button" tabindex="0" aria-label="${aria(k, n, tr, att)}">
-      <rect x="${x - w / 2}" y="${y - w}" width="${w}" height="${w + 10}" fill="transparent"/>
-      ${k !== 'bureau' ? `<image href="${I}${V.BAT_IMG[k]}.webp" x="${x - w / 2}" y="${y - w}" width="${w}" height="${w}" preserveAspectRatio="xMidYMax meet" class="bat-img"/>` : ''}
-      ${tr ? `<text x="${x + w * 0.38}" y="${y - w * 0.6}" text-anchor="middle" class="d2-chantier">🔨</text>` : ''}</g>`).join('');
-  const plaques = L.map(([k, x, y, w, nom, n, tr, att]) => { const lg = nom.length * 9.6 + (n ? 36 : 0) + 22;
-    return `<g class="dbat" data-act="batiment" data-b="${k}" aria-hidden="true" transform="translate(${x} ${y + 4})"><rect x="${-lg}" y="-25" width="${2 * lg}" height="48" rx="24" class="plaque"/>
-      <text y="11" text-anchor="middle" class="d2-t">${esc(nom)}${n ? ` <tspan class="d2-n">${n}</tspan>` : ''}</text>
-      ${att ? `<g transform="translate(${lg - 4} -22)"><circle r="19" class="pastille"/><text y="9" text-anchor="middle" class="d2-p">!</text></g>` : ''}</g>`; }).join('');
-  return `<svg class="plan plan2" viewBox="0 0 1024 1536" role="group" aria-label="Plan du domaine de ${esc(c.nom)}">
-    <image href="${I}domaine/carte-jour.webp" x="0" y="0" width="1024" height="1536" class="fond-img"/><image href="${I}domaine/carte-nuit.webp" x="0" y="0" width="1024" height="1536" class="fond-nuit"/>
-    ${bats}${plaques}</svg>`;
-}
-function planDomaine(c){
-  if (V.BAT_IMG && V.IMAGES) return planIllustre(c);   // v111
-  return `<svg class="plan" viewBox="0 0 420 320" role="group" aria-label="Plan du domaine">
-    <rect x="0" y="0" width="420" height="320" rx="18" class="dsol"/>
-    <path d="M0 26C60 6 120 16 170 8s120-4 170 10 80 6 80 6V0H0z" class="dcolline"/>
-    <path d="M210 70v40M210 222v40M136 166h-60M284 166h60M62 90c10 30 60 44 90 52M358 90c-10 30-60 44-90 52M62 236c10-24 60-36 90-44M358 236c-10-24-60-36-90-44" class="dchemin"/>
-    <ellipse cx="22" cy="226" rx="34" ry="16" class="dlac"/><ellipse cx="402" cy="110" rx="26" ry="12" class="dlac"/>
-    ${[[18, 96], [30, 104], [404, 214], [392, 226], [404, 240], [110, 112], [312, 110], [112, 226], [306, 226], [16, 300], [404, 302]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="7" class="darbre"/><circle cx="${x - 3}" cy="${y - 3}" r="3" class="darbre2"/>`).join('')}
-    ${stadePlan(c)}${Object.keys(POS_DOM).map(k => batPlan(c, k)).join('')}</svg>`;
-}
-function vueDomaine(){
-  const c = B.assurer(M), d = c.dom, att = D.BATIMENTS.filter(b => B.amelEnAttente(c, b[0])).length;
-  VUE.innerHTML = `<div><h1 class="grand">Domaine</h1><p class="sous">${esc(c.nom)} · ${c.travaux.length ? c.travaux.length + ' chantier' + (c.travaux.length > 1 ? 's' : '') + ' en cours · ' : ''}entretien ${eur(c.stade * E.eco.entretien + C.entretienInst(c))} par semaine</p></div>
-  <div class="cols"><div>
-    <div class="carte plan-carte">${planDomaine(c)}<p class="petit mut" style="margin:6px 4px 0">Touche un bâtiment pour l'améliorer${att ? ` · <b style="color:var(--or)">${att} amélioration${att > 1 ? 's' : ''} à choisir</b>` : ''}.</p></div>
-    <div class="carte"><h2>Humeurs</h2>
-      <div class="ligne"><span style="flex:1">Supporters</span><b>${Math.round(d.supp)} / 100</b></div><div class="jauge" style="margin:4px 0 10px"><i style="width:${d.supp}%"></i></div>
-      <div class="ligne"><span style="flex:1">Confiance du président</span><b>${Math.round(M.manager.confiance)} %</b></div><div class="jauge" style="margin-top:4px"><i style="width:${M.manager.confiance}%"></i></div>
-      <p class="petit mut" style="margin:8px 0 0">Les supporters suivent les résultats, le prix des places et ceux du Bazar. Contents, ils remplissent le stade et rassurent le président.</p></div>
-  </div><div>
-    <div class="carte"><h2>Bâtiments</h2><div class="liste">${['bureau', ...D.BATIMENTS.map(b => b[0])].map(k => { const n = k === 'bureau' ? 0 : C.niv(c, k), tr = c.travaux.find(t => t.type === k), a = k !== 'bureau' && B.amelEnAttente(c, k);
-      return `<button class="el" data-act="batiment" data-b="${k}"><svg class="bmini" viewBox="0 0 64 64" aria-hidden="true">${V.batiment(k, c.couleurs[0], c.couleurs[1])}</svg>
-        <div class="t"><b>${esc(nomBat(k))}</b><span>${k === 'bureau' ? 'Finances, partenaires, banque' : k === 'tribunes' ? c.stade.toLocaleString('fr-FR') + ' places' : esc(B.BAT[k][3].split(' :')[0].split('(')[0])}</span></div>
-        ${a ? '<span class="badge" style="color:var(--or);border-color:var(--or)">à choisir</span>' : tr ? `<span class="badge">${tr.fin - (M.tic || 0)} sem.</span>` : n ? pips(n) : ''}</button>`; }).join('')}</div></div>
-  </div></div>`;
-}
-function ficheBat(k){
-  const c = B.assurer(M);
-  if (k === 'bureau') return feuille(`${teteF('Bureau du président', esc(c.nom), `<svg class="bico" viewBox="0 0 64 64" aria-hidden="true">${V.batiment('bureau', c.couleurs[0], c.couleurs[1])}</svg>`)}
-    <div class="carte"><div class="ligne" style="justify-content:space-between"><span>Objectif</span><b>${esc(M.manager.objectif.txt)}</b></div><div class="sep"></div>
-      <div class="ligne" style="justify-content:space-between"><span>Confiance</span><b>${Math.round(M.manager.confiance)} %</b></div><div class="sep"></div>
-      <div class="ligne" style="justify-content:space-between"><span>Supporters</span><b>${Math.round(c.dom.supp)} / 100</b></div><div class="sep"></div>
-      <div class="ligne" style="justify-content:space-between"><span>Solde</span><b>${eur(c.budget)}</b></div></div>
-    <div class="btns" style="margin-top:12px"><button class="btn sec" data-act="allerVue" data-v="finances">Finances et banque</button><button class="btn" data-act="allerVue" data-v="partenaires">Partenaires</button></div>`);
-  const b = B.BAT[k], n = C.niv(c, k), tr = c.travaux.find(t => t.type === k), att = B.amelEnAttente(c, k), vue = VUE_BAT[b[4]];
-  const cout = k === 'tribunes' ? C.coutTravaux(c, 'tribunes') : C.coutTravaux(c, k), sem = (E.inst[k] || E.bat[k]).semaines;
-  const choix = niveau => { const L = b[niveau === 3 ? 5 : 6], pris = L.find(x => B.a(c, x[0]));
-    return `<div class="amel-niv"><h4>Niveau ${niveau}${n < niveau ? ' <span class="mut">· pas encore</span>' : ''}</h4><div class="amel-choix">${L.map(([cle, nom, effet]) => `<div class="amel ${pris && pris[0] === cle ? 'pris' : pris ? 'non' : ''}">
-      <b>${pris && pris[0] === cle ? '✓ ' : ''}${esc(nom)}</b><span>${esc(effet)}</span>${att === niveau ? `<button class="btn" data-act="amel" data-a="${cle}">Choisir</button>` : ''}</div>`).join('')}</div></div>`; };
-  let extra = '';
-  if (k === 'infirmerie'){ const L = c.effectif.map(id => M.joueurs[id]).filter(j => j && j.bless);
-    extra = `<div class="carte" style="margin-top:10px"><h2>À l'infirmerie</h2>${L.length ? `<div class="liste">${L.map(j => `<button class="el" data-act="joueur" data-j="${j.id}"><span class="avp">${avatarDe(j)}</span><div class="t"><b>${esc(nomJ(j))}</b><span>${esc(j.bless.nom)} · ${j.bless.jours} j</span></div></button>`).join('')}</div>` : '<p class="mut" style="margin:0">Personne. Les lits sont faits.</p>'}
-      ${B.a(c, 'apothicaire') ? `<p class="petit mut" style="margin:8px 0 0">Potion de forme : ${(M.tic || 0) - c.dom.potion >= 4 ? 'disponible (fiche du joueur)' : 'prochaine dans ' + (4 - ((M.tic || 0) - c.dom.potion)) + ' semaine(s)'}.</p>` : ''}</div>`; }
-  if (k === 'divination') extra = `<div class="carte" style="margin-top:10px"><h2>Ce que voit le cabinet</h2><p class="petit" style="margin:0">${['Niveau 1 : la forme de l\'adversaire.', 'Niveau 2 : sa tactique (rythme, attrapeur, pressing).', 'Niveau 3 : son joueur clé.', 'Niveau 4 : la note moyenne de ses titulaires.', 'Niveau 5 : son point faible.'].map((t, i) => `<span style="display:block;${i < n ? '' : 'opacity:.45'}">${i < n ? '✓' : '·'} ${t}</span>`).join('')}</p><p class="petit mut" style="margin:6px 0 0">Le rapport s'affiche avant chaque match de championnat.</p></div>`;
-  if (k === 'trophees'){ const T = B.titres(M, c); extra = `<div class="carte" style="margin-top:10px"><h2>${T.length} titre${T.length > 1 ? 's' : ''}</h2><p class="petit mut" style="margin:0">Visites : ${eur(B.visites(M, c))} par semaine.</p></div>`; }
-  feuille(`${teteF(esc(b[1]), `Niveau ${n} / 5 · entretien ${eur(coutEntretien(c, k))} par semaine`, `<svg class="bico" viewBox="0 0 64 64" aria-hidden="true">${V.batiment(k, c.couleurs[0], c.couleurs[1])}</svg>`)}
-    <p style="margin:0 0 6px">${esc(b[3])}</p>${pips(n)}
-    <div class="btns" style="margin:12px 0">${n >= 5 ? '<span class="badge tit">Niveau maximal</span>' : tr ? `<span class="badge">Travaux en cours · fin dans ${tr.fin - (M.tic || 0)} semaine(s)</span>` : `<button class="btn" data-act="ameliorer" data-b="${k}">Passer au niveau ${n + 1} · ${eur(cout)} · ${sem} sem.</button>`}
-      ${vue ? `<button class="btn sec" data-act="allerVue" data-v="${vue}">Ouvrir</button>` : ''}</div>
-    <div class="carte"><h2>Améliorations <span class="mut petit">une au choix par niveau</span></h2>${choix(3)}${choix(5)}</div>${extra}`);
-}
-/* v112 : stade illustré façon FM98 (images/qm27/stade/) : le terrain vide et une pièce de tribune par emplacement, selon sa capacité.
-   Repère du terrain 1536 × 1024 ; [centre x, base y, largeur] de chaque emplacement de gauche (la droite en est le symétrique ; v128 : c'est la gauche qui est retournée). */
-const STADE_RATIO = {'angle-avant-bois':0.931, 'angle-avant-chantier':1.156, 'angle-avant-grande':0.975, 'angle-avant-pierre':0.797, 'angle-fond-bois':0.969, 'angle-fond-chantier':1.247, 'angle-fond-grande':0.922, 'angle-fond-pierre':0.916, 'avant-bois':0.488, 'avant-chantier':0.926, 'avant-grande':0.781, 'avant-pierre':0.572, 'fond-bois':0.715, 'fond-chantier':1.039, 'fond-grande':0.877, 'fond-pierre':0.748, 'virage-bois':0.966, 'virage-chantier':1.262, 'virage-grande':1.212, 'virage-pierre':0.972};   // hauteur / largeur de chaque pièce
-const STADE_POS = {N:[768, 268, 560], S:[780, 905, 560], O:[100, 560, 210], E:[100, 560, 210], NO:[262, 278, 250], NE:[262, 278, 250], SO:[205, 860, 250], SE:[205, 860, 250]};
-const STADE_PIECE = {N:'fond', S:'avant', O:'virage', E:'virage', NO:'angle-fond', NE:'angle-fond', SO:'angle-avant', SE:'angle-avant'};
-const NIV_T = ['bois', 'pierre', 'grande'];
-function niveauxStade(c){
-  const t = c.dom.trib, rang = (v, a, b) => v < a ? 0 : v < b ? 1 : 2, ch = c.travaux.some(x => x.type === 'stade') ? c.dom.cote : null;
-  const n = {N:rang(t.N, 4500, 9000), S:rang(t.S, 4500, 9000), O:rang(t.O, 2500, 5000), E:rang(t.E, 2500, 5000)};
-  const coin = (a, b) => c.stade < 10000 ? -1 : Math.min(n[a], n[b]);   // petits stades : pas de tribunes d'angle
-  const r = {...n, NO:coin('N', 'O'), NE:coin('N', 'E'), SO:coin('S', 'O'), SE:coin('S', 'E')};
-  const out = {}; for (const k in r) out[k] = k === ch ? 'chantier' : r[k] < 0 ? null : NIV_T[r[k]];
-  return out;
-}
-function stadeIllustre(c){
-  const I = V.IMAGES, n = niveauxStade(c), t = c.dom.trib, nomC = {N:'nord', S:'sud', E:'est', O:'ouest'};
-  const piece = k => { if (!n[k]) return ''; const nom = `${STADE_PIECE[k]}-${n[k]}`, [cx0, base, w] = STADE_POS[k], dr = k === 'E' || k === 'NE' || k === 'SE', cx = dr ? 1536 - cx0 : cx0, h = w * (STADE_RATIO[nom] || 0.8);
-    const img = `<image href="${I}stade/${nom}.webp" x="${-w / 2}" y="${-h}" width="${w}" height="${h}" preserveAspectRatio="none"/>`;
-    const g = `<g transform="translate(${cx} ${base})${dr ? '' : ' scale(-1 1)'}">${img}</g>`;   // v128 : les pièces dessinées regardent vers la gauche : c'est le côté gauche (ouest) qui est retourné
-    return t[k] != null ? `<g class="trib2" data-act="tribune" data-c="${k}" role="button" tabindex="0" aria-label="Tribune ${nomC[k]} : ${t[k].toLocaleString('fr-FR')} places${n[k] === 'chantier' ? ', travaux en cours' : ''}">${g}</g>` : `<g aria-hidden="true">${g}</g>`; };
-  const ordre = ['NO', 'NE', 'N', 'O', 'E', 'SO', 'SE', 'S'];
-  const lab = {N:[768, 300], S:[780, 945], O:[100, 600], E:[1436, 600]};
-  const plaques = Object.entries(lab).map(([k, [x, y]]) => { const v = t[k], txt = `${(v / 1000).toFixed(v % 1000 ? 1 : 0).replace('.', ',')} k${n[k] === 'chantier' ? ' 🔨' : ''}`;
-    return `<g class="trib2" data-act="tribune" data-c="${k}" aria-hidden="true" transform="translate(${x} ${y})"><rect x="${-txt.length * 15 - 22}" y="-34" width="${2 * (txt.length * 15 + 22)}" height="58" rx="29" class="st-pl"/><text y="12" text-anchor="middle" class="st-t">${txt}</text></g>`; }).join('');
-  return `<svg class="stadev stade2" viewBox="0 -230 1536 1254" role="group" aria-label="Le stade : ${c.stade.toLocaleString('fr-FR')} places">
-    <image href="${I}stade/terrain.webp" x="0" y="0" width="1536" height="1024" class="st-fond"/>${ordre.map(piece).join('')}${plaques}</svg>`;
-}
-function stadeVue(c){
-  if (V.IMAGES) return stadeIllustre(c);   // v112
-  const t = c.dom.trib, ep = x => 10 + Math.min(34, x / 900), [c1, c2] = c.couleurs, lv = C.niv(c, 'tribunes');
-  const n = ep(t.N), s = ep(t.S), e = ep(t.E), o = ep(t.O), X0 = 70, X1 = 290, Y0 = 60, Y1 = 170;
-  const tribune = (cote, d, lab, cap) => `<g class="trib" data-act="tribune" data-c="${cote}" role="button" tabindex="0" aria-label="Tribune ${lab} : ${cap.toLocaleString('fr-FR')} places"><path d="${d}" fill="${lv >= 3 ? V.melange(c1, '#000000', .18) : c1}" stroke="rgba(0,0,0,.35)"/>
-    <path d="${d}" fill="url(#qm-sieges)" opacity=".35"/></g>`;
-  const P = c.dom.panneaux.length, places = B.placesPanneaux(c), pan = [];
-  for (let i = 0; i < places; i++){ const k = i / places, x = X0 + 8 + k * (X1 - X0 - 16); pan.push(`<rect x="${x}" y="${i % 2 ? Y1 - 6 : Y0 + 2}" width="${(X1 - X0 - 16) / places - 3}" height="4" rx="1" fill="${i < P ? ['#e63946', '#f4a261', '#2a9d8f', '#457b9d', '#e9c46a', '#8d5bd1'][i % 6] : 'none'}" stroke="${i < P ? 'none' : 'rgba(255,255,255,.6)'}" stroke-dasharray="2 2" stroke-width=".6"/>`); }
-  return `<svg class="stadev" viewBox="0 0 360 230" role="group" aria-label="Plan du stade"><defs><pattern id="qm-sieges" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 2h4" stroke="#fff" stroke-width=".7"/></pattern></defs>
-    <rect x="${X0 - o - 6}" y="${Y0 - n - 6}" width="${X1 - X0 + o + e + 12}" height="${Y1 - Y0 + n + s + 12}" rx="22" fill="var(--card-2)" stroke="var(--line)"/>
-    ${tribune('N', `M${X0} ${Y0}L${X0 - 6} ${Y0 - n}H${X1 + 6}L${X1} ${Y0}z`, 'nord', t.N)}${tribune('S', `M${X0} ${Y1}L${X0 - 6} ${Y1 + s}H${X1 + 6}L${X1} ${Y1}z`, 'sud', t.S)}
-    ${tribune('E', `M${X1} ${Y0}L${X1 + e} ${Y0 - 6}V${Y1 + 6}L${X1} ${Y1}z`, 'est', t.E)}${tribune('O', `M${X0} ${Y0}L${X0 - o} ${Y0 - 6}V${Y1 + 6}L${X0} ${Y1}z`, 'ouest', t.O)}
-    <rect x="${X0}" y="${Y0}" width="${X1 - X0}" height="${Y1 - Y0}" fill="#4f9d5c"/><ellipse cx="${(X0 + X1) / 2}" cy="${(Y0 + Y1) / 2}" rx="${(X1 - X0) / 2 - 12}" ry="${(Y1 - Y0) / 2 - 14}" fill="#5aa967" stroke="rgba(255,255,255,.7)" stroke-width=".8"/>
-    ${[X0 + 20, X1 - 20].map(x => [-8, 0, 8].map(dy => `<circle cx="${x}" cy="${(Y0 + Y1) / 2 + dy}" r="${dy ? 2.6 : 3.4}" fill="none" stroke="#f3d36b" stroke-width="1.2"/>`).join('')).join('')}
-    ${pan.join('')}
-    ${B.a(c, 'loges') ? `<rect x="${(X0 + X1) / 2 - 30}" y="${Y0 - 5}" width="60" height="4" fill="#e2b23a"/>` : ''}
-    ${B.a(c, 'ecran') ? `<rect x="${X1 + e - 22}" y="${Y0 - n - 2}" width="26" height="12" rx="1.5" fill="#1d2430"/>` : ''}
-    ${B.a(c, 'lanternes') ? [[X0 - o, Y0 - n], [X1 + e, Y0 - n], [X0 - o, Y1 + s], [X1 + e, Y1 + s]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.2" fill="#ffe08a" stroke="#c9a227" stroke-width=".6"/>`).join('') : ''}
-    ${[['N', (X0 + X1) / 2, Y0 - n / 2 + 3, t.N], ['S', (X0 + X1) / 2, Y1 + s / 2 + 3, t.S], ['E', X1 + e / 2, (Y0 + Y1) / 2 + 3, t.E], ['O', X0 - o / 2, (Y0 + Y1) / 2 + 3, t.O]].map(([k, x, y, v]) => `<text x="${x}" y="${y}" text-anchor="middle" class="tlab">${(v / 1000).toFixed(v % 1000 ? 1 : 0).replace('.', ',')} k</text>`).join('')}
-    ${c.travaux.some(x => x.type === 'stade') ? `<text x="${(X0 + X1) / 2}" y="${(Y0 + Y1) / 2 + 4}" text-anchor="middle" class="tlab">travaux : tribune ${({N:'nord', S:'sud', E:'est', O:'ouest'})[c.dom.cote]}</text>` : ''}</svg>`;
-}
-function vueStade(){
-  const c = B.assurer(M), ext = c.travaux.find(x => x.type === 'stade'), aff = Math.round(c.stade * C.remplissage(M, c, {rep:60}));
-  const nom = {N:'Nord', S:'Sud', E:'Est', O:'Ouest'};
-  VUE.innerHTML = `<div><h1 class="grand">Stade</h1><p class="sous">${esc(c.nom)} · ${c.stade.toLocaleString('fr-FR')} places · tribunes niveau ${C.niv(c, 'tribunes')}</p></div>
-  <div class="cols"><div>
-    <div class="carte">${stadeVue(c)}<p class="petit mut" style="margin:6px 2px 0">Touche une tribune (ou son chiffre) pour l'agrandir de ${E.stade.tranche.toLocaleString('fr-FR')} places (${eur(C.coutTravaux(c, 'stade'))}, ${E.stade.semaines} semaines). Panneaux vendus : ${c.dom.panneaux.length} / ${B.placesPanneaux(c)}.</p></div>
-    <div class="carte"><h2>Tribunes</h2><div class="liste">${Object.keys(nom).map(k => `<div class="el"><div class="t"><b>Tribune ${nom[k]}</b><span>${c.dom.trib[k].toLocaleString('fr-FR')} places</span></div>${ext ? (c.dom.cote === k ? `<span class="badge">travaux · ${ext.fin - (M.tic || 0)} sem.</span>` : '') : `<button class="btn sec" data-act="tribune" data-c="${k}">+ ${(E.stade.tranche / 1000)} k</button>`}</div>`).join('')}</div></div>
-  </div><div>
-    <div class="carte"><h2>Billetterie</h2><div class="ligne"><button class="btn sec" data-act="prix" data-d="-1" aria-label="Baisser le prix">−</button><b style="flex:1;text-align:center;font-size:1.15rem">${eur(c.prix)} la place</b><button class="btn sec" data-act="prix" data-d="1" aria-label="Augmenter le prix">+</button></div>
-      <p class="petit mut" style="margin:8px 0 0">Environ ${aff.toLocaleString('fr-FR')} spectateurs (${Math.round(aff / c.stade * 100)} %) contre un adversaire moyen. Prix conseillé : ${eur(C.prixRef(c))} ; plus cher, les supporters râlent.</p></div>
-    <div class="btns"><button class="btn sec" data-act="batiment" data-b="tribunes">Améliorer le stade</button><button class="btn sec" data-act="allerVue" data-v="partenaires">Panneaux et sponsor</button></div>
-  </div></div>`;
-}
-function vueBoutique(){
-  const c = B.assurer(M), d = c.dom, dispo = B.produitsDispo(c), actifs = dispo.filter(p => d.produits[p[0]] && d.produits[p[0]].actif).length;
-  const lib = {bas:'Bas', normal:'Normal', haut:'Haut'};
-  const scene = Z_() && Z_().sceneDispo('boutique');   // v124 : la boutique illustrée, l'ardoise des prix
-  VUE.innerHTML = `<div><h1 class="grand">Bazar du club</h1><p class="sous">Niveau ${C.niv(c, 'boutique')} · ${actifs} / ${B.placesRayon(c)} produits en rayon · environ ${eur(B.recettesBazar(c))} par semaine</p></div>
-  ${scene ? Z_().sceneHTML('boutique') : ''}
-  <div class="carte" id="rayons"><div class="liste">${D.PRODUITS.map(p => { const ok = !p[4] || B.a(c, p[4]), st = d.produits[p[0]] || {actif:false, prix:'normal'};
-    if (!ok) return `<div class="el" style="opacity:.55"><div class="t"><b>🔒 ${esc(p[1])}</b><span>Débloqué par ${esc(B.AMEL[p[4]].nom)} (${esc(nomBat(B.AMEL[p[4]].bat))}, niveau ${B.AMEL[p[4]].niv})</span></div></div>`;
-    return `<div class="el prod">${V.produitImg(p[0])}<label class="interr"><input type="checkbox" data-chg="produit" data-p="${p[0]}" ${st.actif ? 'checked' : ''}><span></span></label>
-      <div class="t"><b>${esc(p[1])}</b><span>${'★'.repeat(Math.round(p[2] * 3))} · ${eur(p[3] * B.PRIX[st.prix].p)} · ${st.actif ? '≈ ' + eur(B.recetteProduit(c, p, st)) + ' / sem.' : 'pas en rayon'}</span></div>
-      <div class="seg mini">${['bas', 'normal', 'haut'].map(v => `<button data-act="prixProduit" data-p="${p[0]}" data-v="${v}" class="${st.prix === v ? 'on' : ''}">${lib[v]}</button>`).join('')}</div></div>`; }).join('')}</div>
-    <p class="petit mut" style="margin:8px 0 0">Les produits portent les couleurs du club. Prix bas : un peu moins de recettes, des supporters ravis. Prix haut : plus de recettes, des supporters qui râlent. Chaque niveau du Bazar ajoute une place en rayon.</p></div>`;
-  V.colorierProduits(VUE, c);   // v111
-  if (scene) Z_().ardoiseDefile();
-}
-/* v163 : carnet de recettes : les spécialités des 64 clubs, débloquées en jouant avec ou contre eux */
-function carnetRecettes(c){
-  const P = D.PLATS_LOCAUX, mp = M.manager.plats || {}, n = Object.keys(P).filter(id => mp[id]).length, tot = Object.keys(P).length;
-  const prochain = (() => { const S = QM.semaine(M), m = S && S.matchs.find(x => x.dom === c.id && x.ligue !== 'sixn'); return m && P[m.ext] ? m.ext : null; })();
-  const L = Object.keys(M.ligues).filter(l => l !== 'sixn').map(l => [l, Object.values(M.clubs).filter(x => x.ligue === l && P[x.id]).sort((a, b) => a.ville.localeCompare(b.ville))]).filter(x => x[1].length);
-  return `<div class="carte"><h2>Carnet de recettes <span class="mut petit">${n} / ${tot}</span></h2><div class="barre" style="margin:0 0 8px"><i style="width:${Math.round(n / tot * 100)}%"></i></div>
-    ${prochain ? `<p class="petit" style="margin:0 0 8px">Prochain visiteur : <b>${esc(club(prochain).nom)}</b>${mp[prochain] ? ` · mets ses ${esc(P[prochain].toLowerCase())} à la carte pour +10 %.` : ' · sa recette sera à toi après le match.'}</p>` : ''}
-    ${L.map(([l, C_]) => `<h4 class="sous-t">${esc(M.ligues[l].nom)}</h4><div class="carnet">${C_.map(x => `<div class="rec${mp[x.id] ? '' : ' fermee'}" title="${mp[x.id] ? esc(P[x.id]) + ' · ' + esc(x.nom) : 'À découvrir en jouant ' + esc(x.nom)}"><img src="images/qm27/buvette/l_${x.id}.webp" width="48" height="48" alt="" loading="lazy"><span>${mp[x.id] ? esc(P[x.id]) : '?'}</span><small>${esc(x.ville)}</small></div>`).join('')}</div>`).join('')}
-    <p class="petit mut" style="margin:8px 0 0">Chaque club que tu affrontes, en championnat, en coupe ou en Ligue des Anneaux, te donne sa recette. Elle te suit si tu changes de club.</p></div>`;
-}
-/* v133 : la buvette du stade (tente aux chopes de l'entrée) : la carte et ses prix, comme les produits du Bazar */
-function vueBuvette(){
-  const c = B.assurer(M), d = c.dom, dispo = B.carteDispo(c), act = B.carteActive(c), lib = {bas:'Bas', normal:'Normal', haut:'Haut'};
-  const aff = Math.round(c.stade * C.remplissage(M, c, {rep:60})), tot = B.recettesBuvette(c, aff), mult = B.multCarte(c);
-  const scene = Z_() && Z_().sceneDispo('buvette');
-  VUE.innerHTML = `<div><h1 class="grand">La buvette</h1><p class="sous">Taverne du stade niveau ${C.niv(c, 'buvettes')} · ${act.length} / ${B.placesCarte(c)} à la carte · environ ${eur(tot)} par match à domicile</p></div>
-  ${scene ? Z_().sceneHTML('buvette') : ''}
-  <div class="carte" id="carteBuvette"><h2>La carte <span class="mut petit">${act.length} / ${B.placesCarte(c)} places</span></h2><div class="liste">${B.PRODUITS_BUV.filter(p => !p[6] || B.dispoProduit(c, p)).map(p => { const ok = B.dispoProduit(c, p), st = d.carte[p[0]] || {actif:false, prix:'normal'};
-    const ico = `<span class="buv-ico" aria-hidden="true"><img src="images/qm27/buvette/${p[0]}.webp" width="40" height="40" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('${p[5]}'))"></span>`;
-    if (!ok) return `<div class="el buv-lock">${ico}<div class="t"><b>🔒 ${esc(p[1])}</b><span>${p[4].startsWith('niv') ? `Taverne du stade niveau ${p[4].slice(3)}` : `Débloqué par ${esc(B.AMEL[p[4]].nom)} (${esc(nomBat(B.AMEL[p[4]].bat))}, niveau ${B.AMEL[p[4]].niv})`}</span></div></div>`;
-    const on = act.some(x => x[0] === p[0]);
-    return `<div class="el prod">${ico}<label class="interr"><input type="checkbox" data-chg="carte" data-p="${p[0]}" ${st.actif ? 'checked' : ''} aria-label="${esc(p[1])} à la carte"><span></span></label>
-      <div class="t"><b>${esc(p[1])}${p[6] ? ` <span class="mut petit">${esc(club(p[6]) ? club(p[6]).ville : '')}</span>` : ''}</b><span>${'★'.repeat(Math.round(p[2] * 3))} · ${eur(p[3] * B.PRIX[st.prix].p)} · ${on ? '≈ ' + eur(tot * B.partCarte(c, p[0])) + ' / match' : 'pas à la carte'}</span></div>
-      <div class="seg mini">${['bas', 'normal', 'haut'].map(v => `<button data-act="prixCarte" data-p="${p[0]}" data-v="${v}" class="${st.prix === v ? 'on' : ''}">${lib[v]}</button>`).join('')}</div></div>`; }).join('')}</div>
-    <p class="petit mut" style="margin:8px 0 0">Plus la carte est longue, plus les spectateurs consomment, de moins en moins à chaque article ajouté. Prix bas : un peu moins de recettes, des supporters ravis. Prix haut : plus de recettes, des supporters qui râlent. Une carte vide les fâche. Chaque niveau de la Taverne ajoute une place à la carte et débloque de nouveaux classiques. Les spécialités des clubs attirent un peu plus ; servie le jour où son club vient jouer chez toi, une spécialité rapporte 10 % de plus.</p></div>
-  ${carnetRecettes(c)}
-  <div class="carte"><h2>La Taverne du stade</h2>
-    <div class="ligne" style="justify-content:space-between"><span>Niveau</span><b>${C.niv(c, 'buvettes')} / 5</b></div><div class="sep"></div>
-    <div class="ligne" style="justify-content:space-between"><span>Effet de la carte</span><b>${mult >= 1 ? '+' : '−'}${Math.abs(Math.round((mult - 1) * 100))} %</b></div><div class="sep"></div>
-    <div class="ligne" style="justify-content:space-between"><span>Restauration cette saison</span><b>${eur((c.fin && c.fin.saison && c.fin.saison.rec.restauration) || 0)}</b></div>
-    <p class="petit mut" style="margin:8px 0 0">Estimation pour environ ${aff.toLocaleString('fr-FR')} spectateurs, contre un adversaire moyen.${B.a(c, 'ouverte') ? ' La taverne reste ouverte en semaine : elle sert aussi les jours sans match.' : ''}</p>
-    <div class="btns" style="margin-top:10px"><button class="btn sec" data-act="batiment" data-b="buvettes">Améliorer la taverne</button><button class="btn sec" data-act="vue" data-v="entree">Entrée du stade</button></div></div>`;
-}
-function vuePartenaires(){
-  const c = B.assurer(M), d = c.dom, sp = d.sponsor, pl = B.placesPanneaux(c);
-  VUE.innerHTML = `<div><h1 class="grand">Partenaires</h1><p class="sous">Sponsor maillot et panneaux autour du terrain</p></div>
-  <div class="cols"><div>
-    <div class="carte"><h2>Sponsor maillot</h2><div class="spons">${V.maillot(c, '', 'g', sp ? sp.nom : '')}<div>
-      ${sp ? `<b>${V.logoSponsor(sp.nom, 'logo-sp g')}${esc(sp.nom)}</b><span>${eur(sp.fixe)} par saison${sp.victoire ? ` · ${eur(sp.victoire)} par victoire` : ''}${sp.objectif ? ` · ${eur(sp.objectif)} si l'objectif est atteint` : ''}</span><span>Contrat jusqu'en ${sp.fin + 1}</span>` : '<b>Aucun sponsor</b><span>Choisis une offre ci-dessous.</span>'}</div></div>
-      ${!sp && d.offresSponsor.length ? `<div class="liste" style="margin-top:8px">${d.offresSponsor.map((o, i) => `<div class="el">${V.logoSponsor(o.nom)}<div class="t"><b>${esc(o.nom)} <span class="badge">${esc(o.style)}</span></b><span>${eur(o.fixe)} / saison${o.victoire ? ' · ' + eur(o.victoire) + ' / victoire' : ''}${o.objectif ? ' · ' + eur(o.objectif) + ' si objectif' : ''} · ${o.ans} saison${o.ans > 1 ? 's' : ''}</span></div><button class="btn" data-act="sponsor" data-i="${i}">Signer</button></div>`).join('')}</div>` : ''}</div>
-  </div><div>
-    <div class="carte"><h2>Panneaux <span class="mut petit">${d.panneaux.length} / ${pl}</span></h2>
-      ${d.panneaux.length ? `<div class="liste">${d.panneaux.map((p, i) => `<div class="el">${V.logoSponsor(p.nom)}<div class="t"><b>${esc(p.nom)}</b><span>${eur(p.montant)} / saison · jusqu'en ${p.fin + 1}</span></div><button class="btn sec" data-act="retirerPanneau" data-i="${i}">Retirer</button></div>`).join('')}</div>` : '<p class="mut">Aucun panneau vendu.</p>'}
-      ${d.offresPanneaux.length ? `<h2 style="margin-top:14px">Annonceurs intéressés</h2><div class="liste">${d.offresPanneaux.map((o, i) => `<div class="el">${V.logoSponsor(o.nom)}<div class="t"><b>${esc(o.nom)}</b><span>${eur(o.montant)} / saison · ${o.ans} saison${o.ans > 1 ? 's' : ''}</span></div><button class="btn ${d.panneaux.length >= pl ? 'sec' : ''}" data-act="signerPanneau" data-i="${i}" ${d.panneaux.length >= pl ? 'disabled' : ''}>Vendre</button></div>`).join('')}</div>` : ''}
-      <p class="petit mut" style="margin:8px 0 0">Chaque niveau du stade ajoute deux emplacements. De nouveaux annonceurs se présentent chaque été.</p></div>
-  </div></div>`;
-}
-/* v115 : la vitrine illustrée (images/qm27/trophees/vitrine.webp, repère 1536 × 1024) : trois étagères de verre (dessus à y = 346, 492, 652),
-   sept coupes au plus par étagère, les plus récentes en haut ; les titres d'avant ton arrivée un peu passés */
-const VITRINE = {etageres:[346, 492, 652], x0:310, x1:1230, parEtagere:7, taille:[150, 124, 136]};
-function vitrineHTML(T){
-  const L = T.filter(x => V.coupeSrc && V.coupeSrc(x.cle)).slice(0, VITRINE.parEtagere * 3), pas = (VITRINE.x1 - VITRINE.x0) / VITRINE.parEtagere;
-  const coupes = L.map((x, i) => { const r = Math.floor(i / VITRINE.parEtagere), k = i % VITRINE.parEtagere, n = Math.min(VITRINE.parEtagere, L.length - r * VITRINE.parEtagere), t = VITRINE.taille[r];
-    const cx = (VITRINE.x0 + VITRINE.x1) / 2 + (k - (n - 1) / 2) * pas;
-    return `<image class="${x.ancien ? 'anc' : ''}" href="${V.coupeSrc(x.cle)}" x="${Math.round(cx - t / 2)}" y="${VITRINE.etageres[r] - t + 4}" width="${t}" height="${t}"><title>${esc(x.titre)} · ${esc(x.saison)}</title></image>`; }).join('');
-  return `<div class="carte vitrine"><svg viewBox="0 0 1536 1024" role="img" aria-label="Vitrine : ${T.length} trophée${T.length > 1 ? 's' : ''}"><image href="${V.IMAGES}trophees/vitrine.webp" width="1536" height="1024"/>${coupes}</svg>
-    ${L.length ? '' : '<p class="petit mut" style="margin:8px 0 0">Les étagères attendent ton premier titre.</p>'}${T.length > L.length ? `<p class="petit mut" style="margin:8px 0 0">La vitrine montre les ${L.length} titres les plus récents.</p>` : ''}</div>`;
-}
-function vueTrophees(){
-  const c = B.assurer(M), T = B.titres(M, c);
-  VUE.innerHTML = `<div><h1 class="grand">Salle des trophées</h1><p class="sous">${esc(c.nom)} · niveau ${C.niv(c, 'trophees')} · visites ${eur(B.visites(M, c))} par semaine</p></div>
-  ${vitrineHTML(T)}
-  <div class="carte">${T.length ? `<div class="trophees">${T.map((x, i) => `<div class="tr ${x.ancien ? 'ancien' : ''}">${(V.coupeImg && V.coupeImg(x.cle)) || V.trophee(x.titre, x.saison)}<b>${esc(x.saison)}</b><span>${esc(x.titre)}</span></div>`).join('')}</div>` : '<p class="mut" style="margin:0">La vitrine est vide. À toi de la remplir.</p>'}
-    <p class="petit mut" style="margin:10px 0 0">Les titres d'avant ton arrivée sont un peu passés. Chaque titre attire plus de visiteurs.</p></div>`;
-}
-function banqueHTML(c){
-  const p = c.dom.pret, pl = B.plafondPret(c), t = B.tauxPret(c), ch = U.pret || {m:Math.min(1e6, pl), s:2};
-  if (p) return `<div class="carte"><h2>Banque des Gobelins</h2><div class="ligne" style="justify-content:space-between"><span>Emprunt</span><b>${eur(p.capital)} à ${(p.taux * 100).toFixed(1).replace('.', ',')} %</b></div>
-    <div class="ligne" style="justify-content:space-between;margin-top:6px"><span>Reste à payer</span><b>${eur(p.reste)}</b></div><div class="ligne" style="justify-content:space-between;margin-top:6px"><span>Échéance</span><b>${eur(p.hebdo)} / semaine</b></div>
-    <button class="btn sec plein" style="margin-top:10px" data-act="rembourser">Tout rembourser maintenant</button></div>`;
-  const montants = [250e3, 500e3, 1e6, 2e6, 4e6].filter(x => x <= pl);
-  return `<div class="carte"><h2>Banque des Gobelins</h2><p class="petit mut" style="margin:0 0 8px">Prêt jusqu'à ${eur(pl)} à ${(t * 100).toFixed(1).replace('.', ',')} % par an, remboursé chaque semaine.</p>
-    <div class="seg" style="margin-bottom:6px">${montants.map(m => `<button data-act="choixPret" data-m="${m}" class="${ch.m === m ? 'on' : ''}">${eur(m)}</button>`).join('')}</div>
-    <div class="seg" style="margin-bottom:8px">${[1, 2, 3].map(s => `<button data-act="choixPret" data-s="${s}" class="${ch.s === s ? 'on' : ''}">${s} saison${s > 1 ? 's' : ''}</button>`).join('')}</div>
-    <p class="petit" style="margin:0 0 8px">Soit ${eur(Math.ceil(ch.m * (1 + t * ch.s) / (ch.s * E.eco.semaines)))} par semaine, ${eur(Math.round(ch.m * t * ch.s))} d'intérêts.</p>
-    <button class="btn plein" data-act="emprunter" ${montants.length ? '' : 'disabled'}>Emprunter ${eur(ch.m)}</button></div>`;
-}
-/* avant-match : le cabinet de divination et le hibou espion */
-function divinationHTML(){
-  if (!X || X.sixn || !M.manager.club) return '';
-  const c = club(M.manager.club), n = C.niv(c, 'divination'), espion = B.a(c, 'espion'), adv = X.e[1 - X.joueur], moi = X.e[X.joueur];
-  if (!n && !espion) return '';
-  const T = M.tables[club(adv.id).ligue] || {}, L = [];
-  const forme = ((T[adv.id] || {}).forme || []).join(' ') || 'pas encore de match';
-  L.push(`Forme : <b>${forme}</b>`);
-  if (n >= 2){ const t = adv.tactique; L.push(`Tactique : rythme ${esc(nomOpt('rythme', t.rythme).toLowerCase())}, attrapeur « ${esc(nomOpt('attrapeur', t.attrapeur).toLowerCase())} », sans le souafle : ${esc(nomOpt('sans', QM.sansDe(t)).toLowerCase())}, attaque par ${esc(nomOpt('zone', t.zone).toLowerCase())}`); }
-  const tit = ['P', 'B', 'A', 'G'].flatMap(p => adv[p].map(id => [p, M.joueurs[id]])).filter(([, j]) => j);
-  if (n >= 3){ const [p, j] = tit.reduce((x, y) => QM.note(y[1], y[0]) > QM.note(x[1], x[0]) ? y : x); L.push(`Joueur clé : <b>${esc(nomJ(j))}</b> (${D.POSTES[p].nom.toLowerCase()}, ${QM.note(j, p)})`); }
-  if (n >= 4){ const m = e => { const t = ['P', 'B', 'A', 'G'].flatMap(p => e[p].map(id => QM.note(M.joueurs[id], p))); return Math.round(t.reduce((a, b) => a + b, 0) / t.length); }; L.push(`Note moyenne des titulaires : <b>${m(adv)}</b> contre ${m(moi)} pour toi`); }
-  if (n >= 5){ const [p, j] = tit.reduce((x, y) => QM.note(y[1], y[0]) < QM.note(x[1], x[0]) ? y : x); L.push(`Point faible : <b>${esc(nomJ(j))}</b> (${D.POSTES[p].nom.toLowerCase()}, ${QM.note(j, p)})`); }
-  if (espion) L.push(`Hibou espion, composition : ${tit.map(([p, j]) => `${p} ${esc(j.n)}`).join(', ')}`);
-  return `<div class="carte div-carte"><h2>Cabinet de divination <span class="mut petit">niveau ${n}</span></h2><p class="petit" style="margin:0;line-height:1.6">${L.join('<br>')}</p></div>`;
-}
-
 /* ---------- v90 : vestiaire, causeries, presse, paris ---------- */
 function vueVestiaire(){
   const c = club(M.manager.club), Hm = HH(), amb = Hm.ambiance(M, c), L = Hm.leaders(M, c), CL = Hm.clans(M, c), mec = Hm.mecontents(M, c);
@@ -1682,311 +1294,6 @@ function mettreSel(jid, p, i, banc){
   fermerFeuille(); placerSlot(ctxCompo(), jid, banc ? 'R' + i : p + i);
 }
 
-/* ---------- Match ---------- */
-function vueMatch(){
-  if (!X) return aller('accueil');
-  const L = U.live, fini = X.fini, sixn = false;
-  const e0 = X.e[0], e1 = X.e[1];
-  const vifEtat = X.vif >= 0 ? 'pris' : (X.vifVu && !X.vifCache) ? 'vu' : '';
-  const vifTxt = X.vif >= 0 ? `Vif d'or : ${esc(X.e[X.vif].sigle)}` : !X.vifVu ? 'Vif d\'or pas encore vu' : X.vifCache ? 'Vif d\'or caché' : 'Vif d\'or en vue !';
-  const mm = String(Math.floor(X.t / 60)).padStart(2, '0') + ':' + String(X.t % 60).padStart(2, '0');
-  const S = X.stats, moi = X.joueur;
-  const avant = !L.parti;
-  const nomScore = e => { const v = (M.clubs[e.id] || {}).ville; return v && v !== e.nom ? `<span class="lg">${esc(e.nom)}</span><span class="ct">${esc(v)}</span>` : esc(e.nom); };
-  VUE.innerHTML = `
-  <div class="tableau" id="tableau">
-    <div class="score">
-      <div class="eq">${blason(e0.id, '')}<b>${nomScore(e0)}</b></div>
-      <div class="pts"><strong id="sc">${X.score[0]} – ${X.score[1]}</strong><span id="mm">${avant ? fmtDate(QM.semaine(M).date) : fini ? 'Terminé · ' + Math.round(X.t / 60) + ' min' : mm}</span></div>
-      <div class="eq dr">${blason(e1.id, '')}<b>${nomScore(e1)}</b></div>
-    </div>
-    <div class="mini"><span class="vifb ${vifEtat}" id="vifb"><i></i>${vifTxt}</span><span>${D.METEOS[X.meteo].ico} ${D.METEOS[X.meteo].nom}</span></div>
-    ${!avant && !fini ? `<div class="ctrl">
-      <button data-act="lecture" aria-label="${L.pause ? 'Reprendre' : 'Pause'}">${L.pause ? '▶︎' : '❚❚'}</button>
-      ${[0.5, 1, 2, 4].map(v => `<button data-act="vitesse" data-v="${v}" class="${REG.vitesse === v ? 'on' : ''}" aria-label="Vitesse ${String(v).replace('.', ',')}">×${String(v).replace('.', ',')}</button>`).join('')}
-      <button data-act="tempsMort" aria-label="Temps mort, ${X.tm[moi]} restant${X.tm[moi] > 1 ? 's' : ''}" ${X.tm[moi] <= 0 ? 'disabled style="opacity:.4"' : ''}>TM ${X.tm[moi]}</button>
-      <button data-act="son" aria-label="${REG.son ? 'Couper le son' : 'Activer le son'}" aria-pressed="${!!REG.son}">${REG.son ? '🔊' : '🔈'}</button>
-      <button data-act="direct" aria-label="Aller à la fin du match">Fin ⏭</button>
-    </div>` : ''}
-  </div>
-  ${avant ? avantMatchHTML() : ''}
-  ${fini ? apresMatchHTML() : ''}
-  ${!avant ? `<div class="cols live-cols"><div>${!fini && REG.synthese !== false ? `<div class="carte synth"><h2>Vue du dessus <button data-act="synthese" aria-label="Masquer la vue du dessus">Masquer</button></h2>${terrainLive()}<p class="stl" id="stl">${statsLive()}</p></div>` : !fini ? '<button class="btn sec plein" data-act="synthese" style="margin-bottom:12px">Afficher la vue du dessus</button>' : ''}
-    ${!fini ? '<div class="carte adj" id="adj" hidden></div>' : ''}
-    <div class="carte stm"><h2>Statistiques ${fini ? '' : '<span class="mut petit">en direct</span>'}</h2><div class="seg mini" role="tablist">${[['eq', 'Équipes'], ['moi', 'Mes joueurs'], ['adv', 'Adversaires']].map(([k, n]) => `<button role="tab" data-act="ongletStats" data-o="${k}" class="${(U.ongStats || 'eq') === k ? 'on' : ''}" aria-selected="${(U.ongStats || 'eq') === k}">${n}</button>`).join('')}</div><div id="stm">${statsMatchHTML()}</div></div></div>
-    <div>${L.radio && L.radio.length ? `<div class="carte radio"><h2>Radio Sorcière FM <span class="mut petit">${fini ? 'scores à la fin de ton match' : 'les autres matchs'}</span></h2><div class="radio-g" id="radio">${radioHTML()}</div></div>` : ''}</div></div>
-  <div class="carte"><h2>${fini ? 'Tout le match' : 'En direct'} ${!fini ? '<span class="badge" id="enjeu"></span>' : ''}</h2><div class="fil" id="fil">${(fini ? X.ev : X.ev.filter(montrer)).slice().reverse().map(evHTML).join('')}</div></div>` : ''}`;
-  if (!avant && !fini){ majTerrain([]); majAdjoint(); majEnjeu(); }
-}
-const virg = x => (Math.round((x || 0) * 10) / 10).toFixed(1).replace('.', ',');
-/* ---------- v89 : le direct enrichi : vue du dessus, radio, adjoint, temps forts, sons ---------- */
-const FORM_LIVE = {avec:{P:{triangle:[[62, 28], [74, 50], [62, 72]], ligne:[[68, 14], [68, 50], [68, 86]], pointe:[[58, 26], [82, 50], [58, 74]]}, B:{escorte:[[54, 30], [54, 70]], devant:[[80, 22], [80, 78]]}, G:[11, 50]},
-                   sans:{P:{pressing:[[56, 28], [62, 50], [56, 72]], zone:[[40, 26], [44, 50], [40, 74]], repli:[[24, 28], [28, 50], [24, 72]]}, B:{protection:[[18, 30], [18, 70]], harcelement:[[50, 28], [50, 72]]}, G:[6, 50]}};
-const rgbDe = h => { h = (h || '#888').replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
-const ecart = (a, b) => { const x = rgbDe(a), y = rgbDe(b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };
-function couleursLive(){
-  const col = e => D.NATIONS[e.id] ? V.couleursNation(e.id) : (e.couleurs || ['#556', '#ddd']), GAZON = '#4f9d5c';
-  const kit = (c, eviter) => { const f = [c[0], c[1], '#f4f4f4', '#1d2430'].find(x => ecart(x, GAZON) >= 100 && eviter.every(e => ecart(x, e) >= 110)) || c[0];
-    const s = [c[1], c[0], '#16202c', '#ffffff'].find(x => ecart(x, f) >= 120) || '#ffffff'; return [f, s]; };
-  const k0 = kit(col(X.e[0]), []); return [k0, kit(col(X.e[1]), [k0[0]])];
-}
-function terrainLive(){
-  const [c0, c1] = couleursLive();
-  const anneaux = x => [-12, 0, 12].map(dy => `<circle cx="${x}" cy="${56 + dy}" r="${dy ? 3 : 3.8}"/>`).join('');
-  const jet = (k, id, p) => { const c = k ? c1 : c0;
-    return `<g class="lj" id="lj-${id}" style="transform:translate(100px,56px)"><circle r="4.8" fill="${c[0]}" stroke="${c[1]}" stroke-width="1.3"/>${p === 'A' ? '<circle r="1.5" fill="#f3d36b"/>' : p === 'G' ? `<rect x="-1.7" y="-1.7" width="3.4" height="3.4" fill="${c[1]}"/>` : p === 'B' ? `<path d="M-2.2 2.2l4.4-4.4" stroke="${c[1]}" stroke-width="1.4"/>` : ''}</g>`; };
-  return `<svg class="tl" viewBox="0 0 200 112" role="img" aria-label="Le match vu du dessus : ${esc(X.e[0].nom)} attaque vers la droite"><rect width="200" height="112" rx="10" class="tl-gz"/>
-    <path d="M100 5v102M6 56h0" class="tl-l"/><circle cx="100" cy="56" r="12" class="tl-l"/><path d="M38 5v102M162 5v102" class="tl-l tl-z"/>
-    <g class="tl-ann">${anneaux(8)}${anneaux(192)}</g>
-    ${[0, 1].flatMap(k => ['G', 'B', 'P', 'A'].flatMap(p => X.e[k][p].map(id => jet(k, id, p)))).join('')}
-    <g id="lj-souafle" class="souafle" style="transform:translate(100px,56px)"><circle r="2.3"/></g>
-    <g id="lj-vif" class="vifl" style="transform:translate(100px,56px);opacity:0"><path d="M-1.4 0l-3.4-1.8M1.4 0l3.4-1.8"/><circle r="1.9"/></g></svg>`;
-}
-function majTerrain(evs){
-  const svg = document.querySelector('.tl'); if (!svg || !X) return;
-  if (X.e.some(e => ['P', 'B', 'A', 'G'].some(p => e[p].some(id => !svg.querySelector('#lj-' + id))))){ svg.outerHTML = terrainLive(); return majTerrain(evs); }
-  const n = X.pas, alea = s => { const x = Math.sin(n * 12.9898 + s * 78.233) * 43758.5453; return x - Math.floor(x) - 0.5; };
-  const P = {}, place = (id, k, u, v) => { const x = 8 + Math.max(0, Math.min(100, u)) * 1.84, y = 6 + Math.max(2, Math.min(98, v)); P[id] = [k ? 200 - x : x, y]; };
-  const vifVisible = X.vif < 0 && X.vifVu && !X.vifCache, L = U.live;
-  if (vifVisible){ L.vp = L.vp || [100, 30]; L.vp = [Math.max(20, Math.min(180, L.vp[0] + alea(91) * 26)), Math.max(10, Math.min(102, L.vp[1] + alea(92) * 20))]; }
-  for (const k of [0, 1]){
-    const e = X.e[k], T = QM.completerTactique({...e.tactique}), ph = X.poss === k ? 'avec' : 'sans', F = FORM_LIVE[ph];
-    e.P.forEach((id, i) => { const [u, v] = F.P[ph === 'avec' ? T.avec : T.sans][i]; place(id, k, u + alea(i + k * 7) * 9, v + alea(i + 3 + k * 7) * 10); });
-    e.B.forEach((id, i) => { const [u, v] = F.B[ph === 'avec' ? T.batAvec : T.batSans][i]; place(id, k, u + alea(20 + i + k) * 12, v + alea(24 + i + k) * 14); });
-    e.G.forEach(id => place(id, k, F.G[0] + alea(30 + k) * 3, F.G[1] + alea(31 + k) * 16));
-    e.A.forEach(id => { if (vifVisible){ const [x, y] = L.vp, cur = (L.pa || {})[id] || [100, k ? 96 : 16]; P[id] = [cur[0] + (x - cur[0]) * 0.45 + alea(40 + k) * 6, cur[1] + (y - cur[1]) * 0.45 + alea(41 + k) * 6]; }
-      else place(id, k, 46 + alea(42 + k) * 30, k ? 92 + alea(43) * 6 : 10 + alea(44) * 6); });
-  }
-  L.pa = P;
-  for (const [id, [x, y]] of Object.entries(P)){ const g = svg.querySelector('#lj-' + id); if (g) g.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`; }
-  for (const id of (X.exclus || []).flat()){ const g = svg.querySelector('#lj-' + id); if (g) g.style.display = 'none'; }   // v158 : exclu
-  const but = evs.find(ev => ev.but), ball = svg.querySelector('#lj-souafle');
-  if (ball){ let bx, by;
-    if (but){ bx = but.e === 0 ? 192 : 8; by = 56 + alea(50) * 18; }
-    else { const car = X.e[X.poss].P[(n >> 2) % X.e[X.poss].P.length]; [bx, by] = P[car] || [100, 56]; bx += X.poss ? -3 : 3; by -= 3; }
-    ball.style.transform = `translate(${bx.toFixed(1)}px,${by.toFixed(1)}px)`; }
-  const vif = svg.querySelector('#lj-vif');
-  if (vif){ if (X.vif >= 0){ const sid = X.e[X.vif].A[0], p = P[sid] || [100, 56]; vif.style.opacity = 1; vif.style.transform = `translate(${p[0]}px,${p[1] - 4}px)`; }
-    else if (vifVisible){ vif.style.opacity = 1; vif.style.transform = `translate(${L.vp[0].toFixed(1)}px,${L.vp[1].toFixed(1)}px)`; } else vif.style.opacity = 0; }
-}
-/* v97 : statistiques du match (équipes, nos joueurs avec leur physique, joueurs adverses), mises à jour en direct */
-const ORD_P = {P:0, B:1, A:2, G:3};
-function statsMatchHTML(){
-  if (!X) return '';
-  const o = U.ongStats || 'eq', S = X.stats, moi = X.joueur, adv = 1 - moi, N = QM.notesMatch(X);
-  if (o === 'eq'){
-    const pc = (a, b) => a + b ? [Math.round(a / (a + b) * 100), Math.round(b / (a + b) * 100)] : [50, 50];
-    const prec = k => S[k].tirs ? Math.round(S[k].buts / S[k].tirs * 100) : 0;
-    const fatM = k => { const L = QM.titulaires(X.e[k]); return Math.round(L.reduce((t, id) => t + (X.fat[id] || 0), 0) / (L.length || 1)); };
-    const noteM = k => { const L = Object.entries(N).filter(([id]) => X.perf[id] && X.perf[id].eq === k).map(x => x[1]); return L.length ? L.reduce((a, b) => a + b, 0) / L.length : 0; };
-    const ps = pc(S[0].poss || 0, S[1].poss || 0);
-    /* [libellé, valeur gauche, valeur droite, texte gauche, texte droit, plus haut = mieux ?] */
-    const L = [['Possession', ps[0], ps[1], ps[0] + ' %', ps[1] + ' %', true], ['Tirs', S[0].tirs, S[1].tirs, , , true], ['Buts', S[0].buts, S[1].buts, , , true],
-      ['Précision', prec(0), prec(1), prec(0) + ' %', prec(1) + ' %', true], ['Buts attendus', S[0].xb || 0, S[1].xb || 0, virg(S[0].xb), virg(S[1].xb), true],
-      ['Arrêts', S[0].arrets, S[1].arrets, , , true], ['Cognards réussis', S[0].cog, S[1].cog, , , true], ['Fautes', S[0].fautes, S[1].fautes, , , false], ['Cartons jaunes', S[0].cj || 0, S[1].cj || 0, , , false], ['Exclusions', S[0].cr || 0, S[1].cr || 0, , , false],
-      ['Penalties obtenus', S[0].pen, S[1].pen, , , true], ['Note moyenne', noteM(0), noteM(1), virg(noteM(0)), virg(noteM(1)), true],
-      ['Fatigue moyenne', fatM(0), fatM(1), fatM(0) + ' %', fatM(1) + ' %', false], ['Moral', X.moral[0], X.moral[1], nb1(X.moral[0]), nb1(X.moral[1]), true],
-      ['Temps morts', X.tm[0], X.tm[1], , , true], ['Changements', X.rempl[0], X.rempl[1], , , true]];
-    return `<div class="stm-t"><b>${esc(X.e[0].sigle || X.e[0].nom)}</b><span></span><b>${esc(X.e[1].sigle || X.e[1].nom)}</b></div>${L.map(([l, a, b, ta, tb, haut]) => { const t = Math.abs(a) + Math.abs(b) || 1, wa = Math.abs(a) / t * 100, mieux = a === b ? -1 : (a > b) === haut ? 0 : 1;
-      return `<div class="stm-l"><span class="${mieux === 0 ? 'f' : ''}">${ta ?? a}</span><div><em>${l}</em><div class="stm-b"><i style="width:${wa}%" class="${mieux === 0 ? 'f' : ''}"></i><i style="width:${100 - wa}%" class="${mieux === 1 ? 'f' : ''}"></i></div></div><span class="${mieux === 1 ? 'f' : ''}">${tb ?? b}</span></div>`; }).join('')}`;
-  }
-  const k = o === 'moi' ? moi : adv, e = X.e[k], tit = QM.titulaires(e), banc = e.banc || [];
-  const poste = id => ['P', 'B', 'A', 'G'].find(p => e[p].includes(id));
-  const bl = new Set(X.bless.filter(b => b.eq === k).map(b => b.id));
-  const jeu = (id, p) => { const q = X.perf[id] || {}; return p === 'P' ? `${q.b || 0} but${(q.b || 0) > 1 ? 's' : ''} / ${q.t || 0} tir${(q.t || 0) > 1 ? 's' : ''}` : p === 'B' ? `${q.cog || 0} cognard${(q.cog || 0) > 1 ? 's' : ''}` : p === 'G' ? `${q.arr || 0} arrêt${(q.arr || 0) > 1 ? 's' : ''} · ${q.enc || 0} enc.` : (q.vif ? 'vif d\'or !' : X.sonne[k] > 0 ? 'sonné' : '—'); };
-  const ligne = (id, p, surBanc) => { const j = M.joueurs[id]; if (!j) return ''; const q = X.perf[id] || {}, fat = Math.round(X.fat[id] || 0), rend = Math.round(QM.rendement(X, k, id) * 100);
-    const det = o === 'moi' ? `${!surBanc ? `rendement ${rend} % · ` : ''}moral ${j.moral} · forme ${virg(j.forme)} · charge ${Math.round(j.charge || 0)}${q.f ? ` · ${q.f} faute${q.f > 1 ? 's' : ''}` : ''}` : `${!surBanc ? `rendement ${rend} %` : 'remplaçant'}${q.f ? ` · ${q.f} faute${q.f > 1 ? 's' : ''}` : ''}`;
-    return `<div class="stm-j${bl.has(id) ? ' bless' : ''}">${posteB(p)}<div class="t"><b>${esc(court(j))}${bl.has(id) ? ' <span class="badge" style="color:var(--mauvais)">blessé</span>' : ''}${(X.cartons || []).filter(c => c.id === id).map(c => `<span class="crt-m ${c.c === 'j' ? 'j' : 'r'}" title="${c.c === 'j' ? 'Carton jaune' : c.c === 'j2' ? 'Second jaune, exclu' : 'Carton rouge'} (${Math.floor(c.t / 60)}e)"></span>`).join('')}${X.exclus && X.exclus[k].includes(id) ? ' <span class="badge" style="color:var(--mauvais)">exclu</span>' : ''}</b><span>${det}</span></div>
-      <div class="stm-n">${surBanc || N[id] == null ? '—' : virg(N[id])}</div><div class="stm-a">${surBanc ? '' : jeu(id, p)}</div>
-      <div class="stm-f" title="Fatigue ${fat} %"><div class="barre fat"><i style="width:${fat}%"></i></div><small class="${fat >= 70 ? 'mauvais' : fat >= 50 ? 'moyen' : ''}">${fat} %</small></div></div>`; };
-  const tri = L => L.slice().sort((a, b) => ORD_P[poste(a) || M.joueurs[a].poste] - ORD_P[poste(b) || M.joueurs[b].poste]);
-  return `<div class="stm-h"><span></span><span>Joueur</span><span>Note</span><span>Match</span><span>Fatigue</span></div>${tri([...tit, ...(X.exclus ? X.exclus[k] : [])]).map(id => ligne(id, poste(id) || M.joueurs[id].poste, false)).join('')}
-    ${banc.length ? `<h4 class="stm-g">Banc</h4>${banc.map(id => ligne(id, M.joueurs[id] ? M.joueurs[id].poste : 'P', true)).join('')}` : ''}
-    <p class="petit mut" style="margin:8px 0 0">Rendement : ce que le joueur donne en ce moment (fatigue, forme, moral). ${o === 'moi' ? 'Charge : fatigue cumulée des dernières semaines.' : 'Leur moral et leur charge ne se voient pas depuis le banc.'}</p>`;
-}
-function statsLive(){ const S = X.stats; return `Tirs <b>${S[0].tirs}–${S[1].tirs}</b> · Buts attendus <b>${virg(S[0].xb)}–${virg(S[1].xb)}</b> · Cognards <b>${S[0].cog}–${S[1].cog}</b>`; }
-/* radio : les autres matchs de la semaine, simulés d'avance (même graine que plus tard) et dévoilés minute par minute */
-function preparerRadio(){
-  const S = QM.semaine(M), mj = QM.matchDuJoueur(M); if (!S || !mj) return [];
-  const ligue = mj.ligue;
-  return S.matchs.filter(m => m.id !== mj.id && !m.res).sort((a, b) => (b.ligue === ligue) - (a.ligue === ligue)).slice(0, 8).map(m => {
-    const Y = QM.simulerMatch(M, m); return {dom:m.dom, ext:m.ext, sixn:m.ligue === 'sixn', ev:Y.ev.filter(e => e.but || e.fin).map(e => [e.t, e.sc]), fin:Y.t, score:Y.score.slice()}; });
-}
-function radioHTML(){
-  const t = X.fini ? Infinity : X.t, sig = (id, sx) => esc(sx || D.NATIONS[id] ? nat(id).court : club(id).sigle);
-  return (U.live.radio || []).map(r => { const fini = t >= r.fin, sc = fini ? r.score : (r.ev.filter(e => e[0] <= t).pop() || [0, [0, 0]])[1];
-    return `<div class="rd${fini ? ' fin' : ''}"><span>${sig(r.dom, r.sixn)}</span><b>${sc[0]}–${sc[1]}</b><span>${sig(r.ext, r.sixn)}</span><i>${fini ? 'fin' : Math.floor(Math.min(t, r.fin) / 60) + "'"}</i></div>`; }).join('');
-}
-/* l'adjoint : deux conseils au plus, appliqués au prochain temps mort */
-function conseils(){
-  if (!X || X.fini) return [];
-  const moi = X.joueur, T = QM.completerTactique({...X.e[moi].tactique}), To = X.e[1 - moi].tactique, d = X.score[moi] - X.score[1 - moi], S = X.stats, L = [], min = X.t / 60;
-  if (d < -E.points.vif && T.attrapeur === 'chasse') L.push([`Mené de plus de ${E.points.vif} points : ton attrapeur doit attendre (« Si ça fait gagner »).`, 'attrapeur', 'gagnant']);
-  const sd = QM.sansDe(To), cz = QM.CONTRE[sd];
-  if (min >= 3 && cz && T.zone !== cz) L.push([`Ils défendent en ${nomOpt('sans', sd).toLowerCase()} : attaque ${cz === 'loin' ? 'de loin' : cz === 'axe' ? 'par l\'axe' : 'par les couloirs'}.`, 'zone', cz]);
-  if (min > 12 && (S[1 - moi].xb || 0) - (S[moi].xb || 0) > 3 && T.sans !== 'repli') L.push(['Ils se créent plus d\'occasions que nous : resserre-toi en repli.', 'sans', 'repli']);
-  if (d > 120 && T.rythme > 1) L.push(['On mène largement : baisse le rythme pour garder des forces.', 'rythme', 1]);
-  if (d < -40 && min > 35 && T.risque < 3) L.push(['Il faut revenir au score : prends plus de risques.', 'risque', 3]);
-  const tit = QM.titulaires(X.e[moi]), fat = Math.round(tit.reduce((s, id) => s + (X.fat[id] || 0), 0) / (tit.length || 1));
-  if (fat > 55 && X.rempl[moi] > 0) L.push([`Les jambes sont lourdes (fatigue moyenne ${fat} %) : fais tourner au prochain temps mort.`, null, null]);
-  return L.slice(0, 2);
-}
-function majAdjoint(){
-  const el = $('#adj'); if (!el) return;
-  const L = conseils(); el.hidden = !L.length; if (!L.length) return;
-  el.innerHTML = `<h2>L'adjoint</h2>${L.map(c => `<p>${esc(c[0])}</p>`).join('')}${X.tm[X.joueur] > 0 ? `<button class="btn sec" data-act="tempsMort">Temps mort (${X.tm[X.joueur]})</button>` : '<p class="petit mut" style="margin:0">Plus de temps mort : à garder pour la prochaine fois.</p>'}`;
-}
-/* temps forts : tout montrer quand le match est serré, l'essentiel quand il est plié */
-function enjeu(){ if (!X) return 'fort'; const d = Math.abs(X.score[0] - X.score[1]); return d <= 70 || (X.vifVu && !X.vifCache) || X.sixn ? 'fort' : d >= 150 ? 'faible' : 'moyen'; }
-function montrer(ev){
-  if (REG.resumes === 'tout' || !ev.txt) return true;
-  if (ev.cle || /^(vif|fin|remplacement|temps_mort|penalty|blessure|faute_grave|carton|second|debut)/.test(ev.k)) return true;
-  const e = enjeu(); return e === 'fort' || (e === 'moyen' && !!ev.but);
-}
-function majEnjeu(){ const b = $('#enjeu'); if (!b) return; const e = REG.resumes === 'tout' ? 'tout' : enjeu(); b.textContent = {tout:'tout le match', fort:'match serré : tout', moyen:'temps forts', faible:'match plié : l\'essentiel'}[e]; }
-/* sons de stade, fabriqués à la volée (Web Audio), coupés par défaut */
-const Son = (() => {
-  let ctx = null, foule = null, gainF = null;
-  const pret = () => { if (!REG.son) return null; if (!ctx){ try{ ctx = new (window.AudioContext || window.webkitAudioContext)(); }catch{ return null; } } if (ctx.state === 'suspended') ctx.resume(); return ctx; };
-  function bruit(c){ const n = c.sampleRate * 2, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < n; i++){ l = (l + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = l * 3.5; } return b; }
-  return {
-    demarrer(){ const c = pret(); if (!c || foule) return; const s = c.createBufferSource(); s.buffer = bruit(c); s.loop = true; const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 650;
-      gainF = c.createGain(); gainF.gain.value = 0.0001; s.connect(f).connect(gainF).connect(c.destination); s.start(); gainF.gain.exponentialRampToValueAtTime(0.16, c.currentTime + 1.5); foule = s; },
-    arreter(){ if (foule && ctx){ try{ gainF.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.25); foule.stop(ctx.currentTime + 1.2); }catch{} } foule = null; },
-    clameur(f){ if (!gainF || !ctx) return; const t = ctx.currentTime; try{ gainF.gain.cancelScheduledValues(t); gainF.gain.setValueAtTime(Math.max(0.0001, gainF.gain.value), t); gainF.gain.linearRampToValueAtTime(0.16 + 0.55 * f, t + 0.2); gainF.gain.exponentialRampToValueAtTime(0.16, t + 2.4); }catch{} },
-    sifflet(long){ const c = pret(); if (!c) return; const o = c.createOscillator(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain(), t = c.currentTime, d = long ? 0.9 : 0.3;
-      o.frequency.value = 2900; lfo.frequency.value = 28; lg.gain.value = 140; lfo.connect(lg).connect(o.frequency); g.gain.value = 0.0001; o.connect(g).connect(c.destination);
-      g.gain.exponentialRampToValueAtTime(0.1, t + 0.03); g.gain.setValueAtTime(0.1, t + d); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.08); o.start(t); lfo.start(t); o.stop(t + d + 0.1); lfo.stop(t + d + 0.1); },
-    carillon(){ const c = pret(); if (!c) return; [1318.5, 1760, 2637].forEach((fq, i) => { const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + i * 0.09; o.frequency.value = fq; g.gain.value = 0.0001; o.connect(g).connect(c.destination);
-      g.gain.exponentialRampToValueAtTime(0.07, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6); o.start(t); o.stop(t + 0.65); }); },
-  };
-})();
-function evHTML(ev){
-  if (!ev.txt) return '';
-  const coul = ev.e >= 0 ? X.e[ev.e].couleurs[0] : '';
-  const cls = ['ev', ev.but ? 'but' : '', ev.cle ? 'cle' : '', /^vif|fin_perdu/.test(ev.k) ? 'vif' : '', ev.carton ? 'crt-' + ev.carton : ''].join(' ');
-  return `<div class="${cls}" style="${coul ? '--ce:' + coul : ''}"><span class="m">${Math.floor(ev.t / 60)}'</span><span class="x">${esc(ev.txt)}</span></div>`;
-}
-function avantMatchHTML(){
-  const moi = X.joueur, e = X.e[moi], T = e.tactique;
-  const ch = (X.changements || []).filter(([a, b]) => M.joueurs[b]).map(([a, b]) => M.joueurs[a] ? `${court(M.joueurs[a])} → ${court(M.joueurs[b])}` : `${court(M.joueurs[b])} (poste vide)`).join(', ');
-  const A = TT() ? TT().adequationCompo(M, {P:e.P, B:e.B, A:e.A, G:e.G, roles:e.roles || {}}, QM.completerTactique(T)) : {};
-  let R = null, P = null; if (!X.sixn && TT()) try { const m = QM.matchDuJoueur(M); R = TT().rapport(M, m); P = prevoirLive(X.joueur, true); } catch (er){ console.warn('QM27 avant-match', er); }
-  return `${divinationHTML()}${R ? adversaireHTML(R, QM.completerTactique(T)).replace(/data-act="consigne"/g, 'data-act="consigneAvant"') : ''}${!X.sixn ? plansHTML(true) : ''}${P ? previsionHTML(P, R, 'consigneAvant') : ''}${causerieHTML('avant')}${parisHTML()}<div class="carte"><h2>Ta composition <button data-act="vue" data-v="${X.sixn ? 'selection' : 'tactique'}">Modifier</button></h2>
-    ${ch ? `<p class="petit" style="margin:0 0 8px;color:var(--moyen)">Remplacés (blessure ou sélection) : ${esc(ch)}</p>` : ''}
-    <div class="liste">${['P', 'B', 'A', 'G'].flatMap(p => e[p].map(id => { const j = M.joueurs[id], a = A[id]; return `<div class="el">${posteB(p)}<div class="t"><b>${pastille(a)} ${flag(j.nat)} ${esc(nomJ(j))}</b><span>Forme ${j.forme} · fatigue ${j.fat} %${a && a.raisons.length ? ' · ' + esc(a.raisons[0]) : ''}</span></div><span class="note ${classeNote(QM.note(j, p))}">${QM.note(j, p)}</span></div>`; })).join('')}</div>
-    <p class="petit mut" style="margin:8px 0 0">Attrapeur : ${esc(nomOpt('attrapeur', T.attrapeur))} · rythme ${esc(nomOpt('rythme', T.rythme))} · avec le souafle : ${esc(nomOpt('avec', T.avec).toLowerCase())}, par ${esc(nomOpt('zone', T.zone).toLowerCase())} · sans : ${esc(nomOpt('sans', QM.sansDe(T)).toLowerCase())}</p></div>
-  <div class="btns"><button class="btn or" data-act="lancer">Lancer le direct</button><button class="btn sec" data-act="direct">Résultat direct</button></div>
-  <button class="btn sec plein" data-act="vue" data-v="accueil">Plus tard</button>`;
-}
-/* v96 : l'analyse de l'adjoint, calculée une fois à la fin du match */
-function analyseHTML(){
-  if (!TT() || !X || !X.fini) return '';
-  if (!X.analyse) try { X.analyse = TT().analyse(M, X); } catch (er){ X.analyse = []; console.warn('QM27 analyse', er); }
-  if (!X.analyse.length) return '';
-  return `<div class="carte analyse"><h2>Analyse de l'adjoint</h2><ul class="an">${X.analyse.map(([t, txt]) => `<li class="${t}">${esc(txt)}</li>`).join('')}</ul></div>`;
-}
-/* prévision sur le match en cours ou à venir (X), forme du jour neutralisée */
-function prevoirLive(k, avant){
-  if (!TT() || !X) return null;
-  /* v152 : avant le coup d'envoi, l'adjoint ne connaît que leur jeu habituel (pendant le match, on voit leur tactique) */
-  const jour = X.jour, fj = X.fj, To = X.e[1 - k].tactique, cache = avant && X.attendue; X.jour = [1, 1]; X.fj = null; X.levC = null;   // v155 : formes du jour cachées à l'adjoint if (cache) X.e[1 - k].tactique = QM.completerTactique({...X.attendue});
-  try { const ctx = {X, k}, P = TT().prevoir(ctx, QM.completerTactique({...X.e[k].tactique})); return X.sixn ? P : plansPrev(ctx, P, avant ? 'planAvant' : null); } finally { X.jour = jour; X.fj = fj; X.levC = null; if (cache) X.e[1 - k].tactique = To; }
-}
-function apresMatchHTML(){
-  const moi = X.joueur, S = X.stats, N = QM.notesMatch(X), r = X.score[moi] - X.score[1 - moi];
-  const titre = r > 0 ? 'Victoire !' : r < 0 ? 'Défaite' : 'Match nul';
-  const vifJ = X.e[X.vif].A[0], vifNom = M.joueurs[vifJ] ? nomJ(M.joueurs[vifJ]) : '';
-  const notes = Object.entries(N).filter(([id]) => X.perf[id] && X.perf[id].eq === moi).sort((a, b) => b[1] - a[1]);
-  const homme = Object.entries(N).sort((a, b) => b[1] - a[1])[0];
-  return `<div class="carte" style="border-color:${r > 0 ? 'var(--bon)' : r < 0 ? 'var(--mauvais)' : 'var(--line)'}"><h2>${titre}</h2>
-    <p style="margin:0 0 4px">Vif d'or attrapé par <b>${esc(vifNom)}</b> (${esc(X.e[X.vif].nom)}) à la ${Math.round(X.t / 60)}e minute.</p>
-    ${homme ? `<p class="sous" style="margin:0 0 10px">Homme du match : ${esc(nomJ(M.joueurs[homme[0]]))} (${homme[1]})</p>` : ''}
-    <div class="stat">${[['buts', 'Buts'], ['xb', 'Buts attendus'], ['tirs', 'Tirs'], ['arrets', 'Arrêts'], ['cog', 'Cognards réussis'], ['fautes', 'Fautes'], ['cj', 'Cartons jaunes'], ['cr', 'Exclusions'], ['pen', 'Penalties obtenus']].map(([k, n]) => `<span>${k === 'xb' ? virg(S[0].xb) : S[0][k] || 0}</span><span>${n}</span><span>${k === 'xb' ? virg(S[1].xb) : S[1][k] || 0}</span>`).join('')}</div>
-    <button class="btn plein" style="margin-top:14px" data-act="finMatch">Continuer</button></div>
-  ${analyseHTML()}
-  ${presseHTML()}
-  <div class="carte"><h2>Notes de ton équipe</h2><div class="liste">${notes.map(([id, n]) => { const j = M.joueurs[id], p = X.perf[id];
-    return `<div class="el">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}</b><span>${[p.b ? p.b + ' but' + (p.b > 1 ? 's' : '') : '', p.arr ? p.arr + ' arrêt' + (p.arr > 1 ? 's' : '') : '', p.cog ? p.cog + ' cognard' + (p.cog > 1 ? 's' : '') : '', p.vif ? 'vif d\'or' : ''].filter(Boolean).join(' · ') || '—'}</span></div><span class="note ${n >= 7 ? 'n4' : n >= 6 ? 'n3' : n >= 5 ? 'n2' : 'n1'}">${n.toFixed(1)}</span></div>`; }).join('')}</div></div>`;
-}
-/* direct */
-function demarrerDirect(){ U.live = {parti:true, pause:false, timer:null, radio:preparerRadio()}; rendre(); Son.demarrer(); Son.sifflet(true); boucle(); }
-function boucle(){
-  clearInterval(U.live && U.live.timer);
-  if (!U.live || U.live.pause || X.fini) return;
-  U.live.timer = setInterval(tic, 1000 / (4 * REG.vitesse));
-}
-function tic(){
-  if (!X || X.fini){ clearInterval(U.live.timer); return; }
-  const evs = QM.pas(X);
-  const fil = $('#fil');
-  if (fil) for (const ev of evs){ if (!montrer(ev)) continue; const h = evHTML(ev); if (h) fil.insertAdjacentHTML('afterbegin', h); }
-  for (const ev of evs){ if (ev.but) Son.clameur(ev.e === X.joueur ? 1 : 0.45); if (ev.k === 'vif_apercu' && ev.vif === 'vu') Son.carillon(); if (/^penalty|^faute_grave|^carton|^second/.test(ev.k)) Son.sifflet(false); }
-  majTableau(); majTerrain(evs);
-  const st = $('#stl'); if (st) st.innerHTML = statsLive();
-  const sm = $('#stm'), now = Date.now(); if (sm && now - (U.live.stmT || 0) > 900){ U.live.stmT = now; sm.innerHTML = statsMatchHTML(); }
-  if (X.pas % 4 === 0){ const rd = $('#radio'); if (rd) rd.innerHTML = radioHTML(); majEnjeu(); }
-  if (X.pas % 12 === 0) majAdjoint();
-  if (X.fini){ clearInterval(U.live.timer); Son.sifflet(true); Son.clameur(X.vif === X.joueur ? 1 : 0.3); setTimeout(() => Son.arreter(), 2500); setTimeout(() => { rendre(); scrollTo({top:0, behavior:'smooth'}); }, 1100); return; }
-  const k = evs.find(ev => ev.cle && ((ev.k === 'blessure' && REG.pauses.blessure) || (ev.k === 'carton_rouge' || ev.k === 'second_jaune') && REG.pauses.faute_grave || (ev.k === 'vif_apercu' && ev.vif === 'vu' && REG.pauses.vif_apercu)));
-  if (k) pauseAuto(k);
-}
-function majTableau(){
-  const sc = $('#sc'), mm = $('#mm'), vb = $('#vifb');
-  if (sc) sc.textContent = `${X.score[0]} – ${X.score[1]}`;
-  if (mm) mm.textContent = String(Math.floor(X.t / 60)).padStart(2, '0') + ':' + String(X.t % 60).padStart(2, '0');
-  if (vb){ const etat = X.vif >= 0 ? 'pris' : (X.vifVu && !X.vifCache) ? 'vu' : ''; vb.className = 'vifb ' + etat;
-    vb.innerHTML = `<i></i>${X.vif >= 0 ? 'Vif d\'or attrapé' : !X.vifVu ? 'Vif d\'or pas encore vu' : X.vifCache ? 'Vif d\'or caché' : 'Vif d\'or en vue !'}`; }
-}
-function pauseAuto(ev){
-  U.live.pause = true; clearInterval(U.live.timer);
-  const old = document.querySelector('.pause'); if (old) old.remove();
-  const d = document.createElement('div'); d.className = 'pause'; d.setAttribute('role', 'alertdialog');
-  d.innerHTML = `<p>⏸ ${esc(ev.txt)}</p><div class="btns"><button class="btn" data-act="reprendre">Reprendre</button>${X.tm[X.joueur] > 0 ? '<button class="btn sec" data-act="tempsMort">Temps mort</button>' : ''}</div>`;
-  document.body.appendChild(d); rendreCtrl();
-}
-function rendreCtrl(){ const b = document.querySelector('.ctrl [data-act="lecture"]'); if (b){ b.textContent = U.live.pause ? '▶︎' : '❚❚'; b.setAttribute('aria-label', U.live.pause ? 'Reprendre' : 'Pause'); } }
-function reprendre(){ const d = document.querySelector('.pause'); if (d) d.remove(); if (!U.live) return; U.live.pause = false; rendreCtrl(); boucle(); }
-function ouvrirTempsMort(){
-  const moi = X.joueur;
-  if (!QM.tempsMort(X, moi)) return;
-  const d = document.querySelector('.pause'); if (d) d.remove();
-  U.live.pause = true; U.live.tm = true; clearInterval(U.live.timer);
-  const fil = $('#fil'); if (fil){ const ev = X.ev[X.ev.length - 1]; fil.insertAdjacentHTML('afterbegin', evHTML(ev)); }
-  rendreTempsMort();
-  const b = document.querySelector('.ctrl [data-act="tempsMort"]'); if (b){ b.textContent = `TM ${X.tm[moi]}`; if (!X.tm[moi]){ b.disabled = true; b.style.opacity = '.4'; } }
-}
-function rendreTempsMort(){
-  const moi = X.joueur, e = X.e[moi];
-  const tit = ['P', 'B', 'A', 'G'].flatMap(p => e[p].map(id => [p, id]));
-  const sel = U.live.sortant;
-  feuille(`${teteF('Temps mort', `${X.rempl[moi]} changement${X.rempl[moi] > 1 ? 's' : ''} libre${X.rempl[moi] > 1 ? 's' : ''} · ${Math.floor(X.t / 60)}e minute`)}
-    ${conseils().filter(c => c[1]).length ? `<div class="carte adj"><h2>L'adjoint</h2>${conseils().filter(c => c[1]).map(c => `<div class="ligne" style="gap:10px;margin-bottom:8px"><span style="flex:1">${esc(c[0])}</span><button class="btn sec" data-act="consigneLive" data-k="${c[1]}" data-v="${c[2]}">Appliquer</button></div>`).join('')}</div>` : ''}
-    ${(() => { let P = null; try { P = prevoirLive(moi); } catch (er){} return P ? previsionHTML(P, null, 'consigneLive', true) : ''; })()}
-    <div class="carte cons-c" style="margin-top:10px"><h2>Consignes</h2>${consignesHTML(QM.completerTactique(e.tactique), 'consigneLive', ['rythme', 'risque', 'agressivite', 'passes', 'avec', 'batAvec', 'zone', 'sans', 'batSans', 'cible', 'attrapeur'], {...(X && !X.sixn ? optsMaitrise(e.tactique) : {}), fit:fitOption({P:e.P, B:e.B, A:e.A, G:e.G, roles:e.roles || {}}, e.tactique)})}</div>
-    <div class="carte" style="margin-top:10px"><h2>${sel ? 'Qui entre ?' : 'Remplacement : qui sort ?'}</h2><div class="liste">
-    ${sel ? (e.banc || []).map(id => { const j = M.joueurs[id]; const p = ['P', 'B', 'A', 'G'].find(q => e[q].includes(sel)); return `<button class="el" data-act="entre" data-j="${id}">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))}</b><span>Note au poste ${QM.note(j, p)} · fatigue ${Math.round(X.fat[id] || 0)} %</span></div></button>`; }).join('') || '<p class="mut">Plus personne sur le banc.</p>'
-      : tit.map(([p, id]) => { const j = M.joueurs[id]; return `<button class="el" data-act="sort" data-j="${id}" ${X.rempl[moi] <= 0 ? 'disabled style="opacity:.5"' : ''}>${posteB(p)}<div class="t"><b>${esc(nomJ(j))}</b><span>Fatigue ${Math.round(X.fat[id])} %</span></div></button>`; }).join('')}
-    </div></div>
-    ${causerieHTML('tm')}
-    <button class="btn plein" style="margin-top:12px" data-act="fermer">Reprendre le match</button>`, true);
-}
-function reprendreApresTM(){ U.live.tm = false; U.live.sortant = null; reprendre(); }
-function finDuMatch(){
-  Son.arreter();
-  const m = QM.matchDuJoueur(M);
-  clearInterval(U.live && U.live.timer);
-  if (TT() && !X.analyse) try { X.analyse = TT().analyse(M, X); } catch (er){ X.analyse = []; }
-  const an = (X.analyse || []).filter(x => x[0] !== 'info' || x[1].startsWith('Occasions'));
-  const fin = QM.finirMatchDuJoueur(M, X);   // v91 : s'il reste le match du club cette semaine, on y revient
-  if (an.length) QM.message(M, `Analyse de l'adjoint : ${X.e[X.joueur].nom} ${X.score[X.joueur]}–${X.score[1 - X.joueur]} ${X.e[1 - X.joueur].nom}`, an.map(x => (x[0] === 'bon' ? '✓ ' : x[0] === 'mauvais' ? '✗ ' : '· ') + x[1]).join('\n'), 'staff');
-  const moi = X.joueur, r = X.score[moi] - X.score[1 - moi];
-  M.dernierMatch = {dom:m.dom, ext:m.ext, score:m.res.score, sixn:m.ligue === 'sixn', resume:`${r > 0 ? 'Victoire' : r < 0 ? 'Défaite' : 'Nul'} · ${m.res.duree} min · vif d'or ${esc(X.e[X.vif].sigle)}`, id:m.id};
-  X = null; U.live = null; U.vue = 'accueil';
-  sauver(); rendre(); scrollTo(0, 0);
-  toast(fin.semaineFinie ? 'Journée terminée · résultats dans le calendrier' : m.ligue === 'eu' ? 'Match européen terminé · place au championnat' : 'Match de sélection terminé · place au match du club');
-}
-
 Object.assign(VUES, {vestiaire:vueVestiaire, domaine:vueDomaine, boutique:vueBoutique, buvette:vueBuvette, partenaires:vuePartenaires, trophees:vueTrophees, carriere:vueCarriere, stade:vueStade, formation:vueFormation, selection:vueSelection, accueil:vueAccueil, tactique:vueTactique, classements:vueClassements, sauvegardes:vueSauvegardes, aide:vueAide, match:vueMatch,
   mercato:vueMercato, finances:vueFinances, staff:vueStaff});   // v91 : club, effectif, calendrier, plus, entraînement… dans qm27-ecrans.js
 
@@ -2016,12 +1323,6 @@ const ACT = {
   importer:() => $('#fichier').click(),
   quitter:() => { sauver(); M = null; EMP = null; X = null; U.vue = 'accueil'; rendre(); scrollTo(0, 0); },
   sauverMain:async () => { await sauver(); toast('Partie enregistrée'); rendre(); },
-  joueur:(d, el) => { const dans = el && el.closest('.fond.fj-page'), L = dans ? (FJ && FJ.liste) : listeDepuis(el); const o = dans && FJ ? FJ.onglet : 'gen'; FJ = null; FJ = {id:d.j, p:(M.joueurs[d.j] || {}).poste, role:M.joueurs[d.j] ? roleCompo(M.joueurs[d.j]) : null, onglet:o, liste:L && L.includes(d.j) ? L : null}; if (dans) retirerFeuille(); ficheJoueur(d.j); },
-  fjNav:d => naviguerFJ(+d.d),
-  fjOnglet:d => { if (!FJ) return; FJ.onglet = d.o; ficheJoueur(FJ.id, true); const c = document.querySelector('.fond.fj-page .feuille'); if (c) c.scrollTop = 0; },
-  fjPoste:d => { if (!FJ) return; if (FJ.p !== d.p){ FJ.p = d.p; FJ.role = null; } ficheJoueur(FJ.id, true); },   // v101 : lire la fiche pour un autre poste
-  fjRole:d => { if (!FJ) return; FJ.role = FJ.role === d.r ? null : d.r; ficheJoueur(FJ.id, true); },
-  fjRaz:() => { if (!FJ) return; const j = M.joueurs[FJ.id]; FJ = null; if (j) ficheJoueur(j.id, true); },
   ligue:d => { U.ligue = d.l; rendre(); },
   semaine:d => ficheSemaine(+d.s),
   feuilleInter:d => feuilleInter(d.k, d.m),   // v161
@@ -2035,7 +1336,7 @@ const ACT = {
   soudoyer:() => { if (!confirm('Soudoyer le gardien adverse ? Si le ministère l\'apprend, la sanction sera lourde.')) return; const r = HH().soudoyer(M, X); toast(r.msg); rendre(); },
   mentor:() => { const a = $('#mentorA'), b = $('#mentorB'); if (!a || !b) return; const r = HH().mentorer(M, a.value, b.value); toast(r.msg); if (r.ok){ sauver(); rendre(); } },
   finMentor:d => { HH().finMentorat(M, d.j); sauver(); rendre(); },
-  son:() => { REG.son = !REG.son; regler(); if (REG.son && U.live && U.live.parti && !X.fini){ Son.demarrer(); } else Son.arreter(); const b = document.querySelector('.ctrl [data-act="son"]'); if (b){ b.textContent = REG.son ? '🔊' : '🔈'; b.setAttribute('aria-pressed', !!REG.son); b.setAttribute('aria-label', REG.son ? 'Couper le son' : 'Activer le son'); } },
+  son:() => { REG.son = !REG.son; regler(); if (REG.son && U.live && U.live.parti && !X.fini){ window.QMF.Son.demarrer(); } else window.QMF.Son.arreter(); const b = document.querySelector('.ctrl [data-act="son"]'); if (b){ b.textContent = REG.son ? '🔊' : '🔈'; b.setAttribute('aria-pressed', !!REG.son); b.setAttribute('aria-label', REG.son ? 'Couper le son' : 'Activer le son'); } },
   synthese:() => { REG.synthese = REG.synthese === false; regler(); rendre(); },
   phase:d => { U.phase = d.p; rendre(); },
   zoneAtt:d => { const ctx = ctxCompo(); ctx.T.zone = d.z; sauver(); rendre(); toast(`Attaque : ${nomOpt('zone', d.z).toLowerCase()}`); },
@@ -2144,7 +1445,11 @@ const ACT = {
   ouvrirSync:async () => { const v = ($('#codeSync') || {}).value || ''; try{ const r = await Synchro.ouvrirAvecCode(v); if (!r) toast(r === false ? 'Code incorrect' : 'Synchronisation introuvable'); }catch(e){ toast(msgSync(e)); } NUAGE.infos = null; rendreNuage(); },
   envoyerNuage:async d => { try{ await sauver(); await envoyerNuage(+d.n, false); NUAGE.infos = null; }catch(e){ toast(msgSync(e)); } rendreNuage(); },
   recupererNuage:async d => { if (!confirm(`Remplacer l'emplacement ${d.n} de cet appareil par la partie en ligne ?`)) return; try{ await recupererNuage(+d.n); U.vue = 'accueil'; rendre(); scrollTo(0, 0); }catch(e){ toast(msgSync(e)); } },
-  continuer:() => { const S = QM.semaine(M); QM.terminerSemaine(M, null); sauver(); rendre(); scrollTo(0, 0); toast(S.type === 'sixn' ? (S.comp && window.QMN ? `${window.QMN.titreSemaine(S)} : joué` : `${D.TOURNOI.court} · tour ${S.tour} joué`) : S.type === 'prepa' ? `Préparation · semaine ${S.semaine} terminée` : 'Semaine passée'); },
+  /* v164 : le calcul de la semaine (0,2 à 1 s sur iPhone) part après l'affichage de « Semaine en cours… » : le bouton répond tout de suite */
+  continuer:() => { if (U.calcul) return; U.calcul = true; document.body.classList.add('qm-calcul');
+    document.querySelectorAll('[data-act="continuer"]').forEach(b => { b.disabled = true; b.dataset.txt = b.innerHTML; b.innerHTML = '<span class="qm-roue" aria-hidden="true"></span>Semaine en cours…'; });
+    requestAnimationFrame(() => setTimeout(() => { try{ ACT.continuerMaintenant(); } finally { U.calcul = false; document.body.classList.remove('qm-calcul'); document.querySelectorAll('[data-act="continuer"][data-txt]').forEach(b => { b.disabled = false; b.innerHTML = b.dataset.txt; delete b.dataset.txt; }); } }, 0)); },
+  continuerMaintenant:() => { const S = QM.semaine(M); QM.terminerSemaine(M, null); sauver(); rendre(); scrollTo(0, 0); toast(S.type === 'sixn' ? (S.comp && window.QMN ? `${window.QMN.titreSemaine(S)} : joué` : `${D.TOURNOI.court} · tour ${S.tour} joué`) : S.type === 'prepa' ? `Préparation · semaine ${S.semaine} terminée` : 'Semaine passée'); },
   saisonSuivante:() => { QM.saisonSuivante(M); M.dernierMatch = null; sauver(); rendre(); scrollTo(0, 0); toast(`Saison ${lab(M.saison)} lancée`); },
 };
 document.addEventListener('click', e => {
@@ -2180,11 +1485,13 @@ $('#fichier').addEventListener('change', async e => {
 });
 
 /* ---------- Démarrage : reprend la dernière partie ouverte ---------- */
-(async () => {
+/* v164 : après le chargement de tous les scripts (fiche, lieux, direct, écrans), pour que le premier rendu les trouve */
+const demarrer = async () => {
   const n = LS.lire(K_DERNIER, null);
   if (n && emplacements()[n]){ try{ await chargerEmp(n); }catch{ M = null; } }
   racine(); rendre();
-})();
+};
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', demarrer, {once:true}); else setTimeout(demarrer, 0);
 /* pour les essais (outils/dev) et la console : la partie ouverte */
 window.QM27 = {partie:() => M, sauver, rendre};
 /* v91 : boîte à outils de l'interface pour qm27-ecrans.js (écrans du lot 8) */
@@ -2214,5 +1521,5 @@ Object.assign(ACT, {
 });
 function rafraichirFeuilleScene(){ const el = document.querySelector('.fond .feuille [data-sc]'); if (el && ACT[el.dataset.sc]) ACT[el.dataset.sc]({garder:true}); }
 window.QMU = {flagSeul, pieces, eurT, get M(){ return M; }, get X(){ return X; }, get EMP(){ return EMP; }, U, REG, regler, VUES, ACT, VUE, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, nomEq, flag, posteB, etoiles, nomJ, court,
-  classeNote, classeAttr, meilleurBadge, rangBadge, roleNom, imgBadge, visageMoral, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, valVue, connu, HH, roleDe, ficheSemaine, msgHTML, tableHTML, ICO, MERC, ligneMercato, IDX, COURT_ATTR, LS, nomBat};
+  classeNote, classeAttr, meilleurBadge, rangBadge, roleNom, imgBadge, visageMoral, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, valVue, connu, HH, roleDe, ficheSemaine, msgHTML, tableHTML, ICO, MERC, ligneMercato, IDX, COURT_ATTR, LS, nomBat, COULEUR_POSTE, STAT_P, axesRadar, badgeDe, badgeHTML, blocContrat, blocJeune, carriereHTML, matchsInter, rapportRecruteur, Z_, nomOpt, $, TT, adversaireHTML, causerieHTML, consignesHTML, divinationHTML, fitOption, nb1, optsMaitrise, parisHTML, pastille, plansHTML, plansPrev, presseHTML, previsionHTML, set X(v){ X = v; }, set M(v){ M = v; }};
 })();

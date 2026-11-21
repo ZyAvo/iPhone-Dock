@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="e66ce183">
+<meta name="mon-ecran-version" content="70a87713">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -273,6 +273,10 @@ nav.qm-nav button.on{color:var(--accent)}
 .emp{display:flex;align-items:center;gap:12px}
 .champ{width:100%;min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--card-2);padding:0 12px;font-size:1rem}
 .etoiles{color:var(--or);letter-spacing:1px;font-size:.78rem}
+/* v164 : calcul de la semaine en cours */
+.qm-roue{display:inline-block;width:1em;height:1em;margin-right:.5em;vertical-align:-.15em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:qm-tour .7s linear infinite}
+@keyframes qm-tour{to{transform:rotate(360deg)}} body.qm-calcul{cursor:progress} body.qm-calcul [data-act="continuer"]{opacity:.85}
+@media (prefers-reduced-motion: reduce){.qm-roue{animation-duration:2s}}
 .toast-qm{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom, 0px) + 92px);transform:translateX(-50%);z-index:40;background:var(--accent);color:var(--on-accent);
   padding:9px 16px;border-radius:999px;font-weight:650;font-size:.85rem;box-shadow:0 10px 26px -10px rgba(0,0,0,.5);animation:fondu .2s;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
 .aide p{margin:0 0 8px}
@@ -1278,7 +1282,7 @@ html.desk .er{cursor:grab}
 <input type="file" id="fichier" accept=".json,application/json" hidden>
 <script src="synchro.js?v=0ce8808a"></script>
 <script src="qm27-donnees.js?v=b33e81dd"></script>
-<script src="qm27.js?v=bd24e3f2"></script>
+<script src="qm27.js?v=331e9fe9"></script>
 <script src="qm27-club.js?v=ccf815c8"></script>
 <script src="qm27-carriere.js?v=e8bd32de"></script>
 <script src="qm27-domaine.js?v=f9438176"></script>
@@ -1290,7 +1294,10 @@ html.desk .er{cursor:grab}
 <script src="qm27-europe.js?v=d5461710"></script>
 <script src="qm27-nations.js?v=66d46995"></script>
 <script src="qm27-visuel.js?v=475e9f0c"></script>
-<script src="qm27-ui.js?v=c8af85fa"></script>
+<script src="qm27-ui.js?v=eae8bd34"></script>
+<script src="qm27-fiche.js?v=c1d9f7b1"></script>
+<script src="qm27-lieux.js?v=b4502054"></script>
+<script src="qm27-direct.js?v=2b32fd29"></script>
 <script src="qm27-ecrans.js?v=c46e7f7c"></script>
 <script src="qm27-stats.js?v=9964dddb"></script>
 <script src="commun.js?v=fc411b5f"></script>

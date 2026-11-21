@@ -1,4 +1,4 @@
-// mon-ecran-version: bd24e3f2
+// mon-ecran-version: 331e9fe9
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -176,6 +176,15 @@ function synergiesDe(M, e){
     L.push({...S, a, b, ok}); }
   return L;
 }
+/* v164 : nombre de synergies actives (mêmes règles que synergiesDe, sans rien recopier : appelé des centaines de fois par optimiserRoles) */
+function nbSynergiesOk(M, e){
+  const R = e.roles || {}, qui = (p, r) => { const L = e[p] || []; for (let i = 0; i < L.length; i++) if (R[L[i]] === r) return L[i]; };
+  let n = 0;
+  for (const S of D.SYNERGIES){ const a = qui(S.r[0][0], S.r[0][1]), b = qui(S.r[1][0], S.r[1][1]); if (!a || !b || a === b) continue;
+    if (S.cond){ const j = M.joueurs[S.cond[0] === 0 ? a : b]; if (!j || !(valA(j, S.cond[1]) >= S.cond[2])) continue; }
+    n++; }
+  return n;
+}
 function antiSynergiesDe(M, e){
   const R = e.roles || {}, n = (p, r) => (e[p] || []).filter(id => R[id] === r).length, L = [];
   if (n('P', 'finisseur') >= 2) L.push(D.ANTI_SYNERGIES[0]); if (n('B', 'briseur') >= 2) L.push(D.ANTI_SYNERGIES[1]);
@@ -186,14 +195,14 @@ function antiSynergiesDe(M, e){
    leviers de l'équipe pondérés (POIDS_LEV, rendements décroissants) + 0,25 par synergie − 0,35 par anti-synergie */
 const POIDS_LEV = {constr:1, finit:1, garde:0.6, recup:0.8, rempart:1, bouclier:0.5, marteau:0.45, ange:0.35, vif:0.9, gene:0.5, contre:0.55};   // v155 : importance de chaque levier pour choisir les rôles
 function optimiserRoles(M, c, fixes, poids){
-  const roles = {...fixes}, eq = () => ({...c, roles});
+  const roles = {...fixes}, E = {...c, roles}, eq = () => E;   // v164 : une seule copie (les rôles sont modifiés sur place)
   const choix = (p, ids) => ids.map(id => roles[id] && roleValide(p, roles[id]) && fixes[id] ? [roles[id]] : (D.ROLES[p] || []).map(x => x[0]));
   /* valeur d'une répartition : leviers de l'équipe (rendements décroissants, poids de chaque levier dans le jeu) + synergies − anti-synergies */
   const QC = {}, qual = (id, p, r) => { const k = id + r; return QC[k] ?? (QC[k] = qualiteRole(M.joueurs[id], p, r)); };
   const valeur = () => { const parts = {};
     for (const p of ['P', 'B', 'A', 'G']) for (const id of c[p] || []){ const r = roles[id], R = r && (D.ROLE_DEF[p] || {})[r]; if (!R || !M.joueurs[id]) continue; const q = qual(id, p, r); for (const l in R.lev) (parts[l] = parts[l] || []).push(R.lev[l] * q); }
     let v = 0; for (const l in parts){ const L = parts[l].sort((a, b) => b - a); v += (POIDS_LEV[l] || 0.5) * ((poids || {})[l] || 1) * L.reduce((t, x, i) => t + x * (EQ.lev.decr[i] ?? 0.1), 0); }
-    return v + synergiesDe(M, eq()).filter(x => x.ok).length * 0.25 - antiSynergiesDe(M, eq()).length * 0.35; };
+    return v + nbSynergiesOk(M, eq()) * 0.25 - antiSynergiesDe(M, eq()).length * 0.35; };
   for (const p of ['G', 'A', 'B', 'P']){
     const ids = (c[p] || []).filter(id => M.joueurs[id]), C = choix(p, ids); if (!ids.length) continue;
     let best = null, bv = -1e9;
@@ -392,6 +401,21 @@ const nbRole = (X, eq, poste, r) => X.e[eq][poste].filter(id => role(X, eq, id) 
 function maitriseDe(mEl, T){ const P = EQ.maitrise.poids; let s = 0, n = 0; for (const k in P){ const v = mEl[k + ':' + T[k]]; s += P[k] * (v ?? EQ.maitrise.autre); n += P[k]; } return n ? s / n : EQ.maitrise.neutre; }
 const maitriseEquipe = e => { if (!e.mEl) return e.maitrise ?? EQ.maitrise.neutre; const T = e.tactique, k = T.passes + T.sans + T.avec + T.batAvec + T.batSans + T.zone; if (e.mtC && e.mtC[0] === k) return e.mtC[1]; const v = maitriseDe(e.mEl, completerTactique(T)); e.mtC = [k, v]; return v; };
 function moyP(L, w){ let s = 0, n = 0; L.forEach((v, i) => { s += v * w[i]; n += w[i]; }); return n ? s / n : 0; }
+/* v164 : part fixe des forces d'une équipe pour sa composition du moment (recalculée seulement si la composition change) */
+const memeListe = (a, b) => { if (a.length !== b.length) return false; for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; };
+function forcesFixes(X, eq, e){
+  const C = X.fcT || (X.fcT = [null, null]), o = C[eq];
+  if (o && memeListe(o.lP, e.P) && memeListe(o.lB, e.B) && memeListe(o.lA, e.A) && memeListe(o.lG, e.G)) return o;
+  const pil = (L, p) => L.length ? 1 + L.reduce((t, id) => t + (J(X, id) ? at(J(X, id), 'pil') - typique(p, 'pil') : 0), 0) / L.length / 40 : 1;   // v153 : Pilotage (pilote typique = balai tel quel) ; v160 : deux fois plus marqué
+  const g = J(X, e.G[0]), s = J(X, e.A[0]);
+  return C[eq] = {ma:{}, lP:e.P.slice(), lB:e.B.slice(), lA:e.A.slice(), lG:e.G.slice(), pilP:pil(e.P, 'P'), pilA:pil(e.A, 'A'),
+    A:e.P.map(id => { const j = J(X, id); return (at(j, 'pas') * 2 + at(j, 'rec') + at(j, 'ctl') * 2 + at(j, 'vis') * 2 + at(j, 'frm') + at(j, 'acc') + at(j, 'equi') + at(j, 'tir') + at(j, 'dec')) / 12; }),   // v160 : + Décisions
+    nPass:e.P.filter(id => aManie(J(X, id), 'passeur')).length,
+    D:e.P.map(id => { const j = J(X, id); return (at(j, 'int') * 2 + at(j, 'bou') + at(j, 'ant') * 2 + at(j, 'pla') + at(j, 'vit') + at(j, 'acc') + at(j, 'con') + at(j, 'vir')) / 10; }),   // v160 : + Concentration, Virages serrés
+    B:e.B.map(id => { const j = J(X, id); return (at(j, 'fra') * 3 + at(j, 'pre') * 2 + at(j, 'for') + at(j, 'ant') + at(j, 'agr')) / 8; }),
+    G:g ? (ga(g, 'arr') * 3 + ga(g, 'cou_a') * 2 + ga(g, 'sor') + at(g, 'ref') * 2 + at(g, 'agi') + at(g, 'pla') + at(g, 'ant') + at(g, 'con')) / 12 : null, mur:aManie(g, 'mur'),
+    S:s ? (at(s, 'vit') * 2 + at(s, 'acc') * 2 + at(s, 'piq') * 2 + at(s, 'acu') * 2 + at(s, 'san') + at(s, 'con') + at(s, 'vir') + at(s, 'ref') + at(s, 'agi')) / 13 : null};   // v153 : Réflexes, Pilotage
+}
 function forces(X, eq){
   const e = X.e[eq], T = e.tactique, b = e.balai;
   const us = 0.8 + 0.2 * (e.usure ?? 100) / 100;                                   // v84 : balais usés
@@ -400,16 +424,15 @@ function forces(X, eq){
     * (1 + km) * (1 + (e.mep || 0));   // v127 : mise en place ; v152 : maîtrise tactique (60 % neutre, 90 % +4,2 %, 30 % −4,2 %, plus de ballons perdus quand elle est basse)
   const dom = ((eq === 0 && X.domicile) ? EQ.domicile + (e.domBonus || 0) : 1) * X.jour[eq] * coh * (1 + (e.forceBonus || 0));   // v88 : dragon de pierre, carte du ciel
   const wA = e.P.map(() => 1), wD = e.P.map(() => 1);   // v153 : plus de pondération par rôle (les rôles agissent par leurs leviers)
-  const pil = (L, p) => L.length ? 1 + L.reduce((t, id) => t + (J(X, id) ? at(J(X, id), 'pil') - typique(p, 'pil') : 0), 0) / L.length / 40 : 1;   // v153 : Pilotage (pilote typique = balai tel quel) ; v160 : deux fois plus marqué
+  /* v164 : la part fixe des forces (attributs, manies, pilotage) est calculée une fois par composition et gardée pour le match (X.fcT) :
+     seuls fatigue, forme et moral varient à chaque pas. Mêmes calculs dans le même ordre : résultats identiques au chiffre près. */
+  const st = forcesFixes(X, eq, e);
   const infP = 1 - EQ.fautes.inf.P * Math.max(0, 3 - e.P.length), infB = 1 - EQ.fautes.inf.B * Math.max(0, 2 - e.B.length);   // v158 : infériorité numérique après un carton rouge
-  const A = moyP(e.P.map(id => { const j = J(X, id); return ((at(j, 'pas') * 2 + at(j, 'rec') + at(j, 'ctl') * 2 + at(j, 'vis') * 2 + at(j, 'frm') + at(j, 'acc') + at(j, 'equi') + at(j, 'tir') + at(j, 'dec')) / 12) * f(X, eq, id);   /* v160 : + Décisions */ }), wA) * dom + (b.man * us * pil(e.P, 'P') - 6) * 0.12
-    + 0.12 * e.P.filter(id => aManie(J(X, id), 'passeur')).length;   // v89 : manie « cherche la passe »
-  const Df = moyP(e.P.map(id => { const j = J(X, id); return ((at(j, 'int') * 2 + at(j, 'bou') + at(j, 'ant') * 2 + at(j, 'pla') + at(j, 'vit') + at(j, 'acc') + at(j, 'con') + at(j, 'vir')) / 10) * f(X, eq, id);   /* v160 : + Concentration, Virages serrés */ }), wD) * dom * infP;
-  const B = moy(e.B.map(id => { const j = J(X, id); return ((at(j, 'fra') * 3 + at(j, 'pre') * 2 + at(j, 'for') + at(j, 'ant') + at(j, 'agr')) / 8) * f(X, eq, id); })) * (dom > 1 ? 1.02 : 1) * (1 + km / 2);
-  const g = J(X, e.G[0]);
-  const G = g ? ((ga(g, 'arr') * 3 + ga(g, 'cou_a') * 2 + ga(g, 'sor') + at(g, 'ref') * 2 + at(g, 'agi') + at(g, 'pla') + at(g, 'ant') + at(g, 'con')) / 12) * f(X, eq, e.G[0]) + (aManie(g, 'mur') ? 0.35 : 0) : 5;   // v153 : le gardien de ligne passe par le levier « rempart »   // (v90 : gMalus = gardien soudoyé, appliqué plus bas)
-  const s = J(X, e.A[0]);
-  const S = s ? ((at(s, 'vit') * 2 + at(s, 'acc') * 2 + at(s, 'piq') * 2 + at(s, 'acu') * 2 + at(s, 'san') + at(s, 'con') + at(s, 'vir') + at(s, 'ref') + at(s, 'agi')) / 13) * f(X, eq, e.A[0]) + (b.vit * us * pil(e.A, 'A') - 6) * 0.15 : 5;   // v153 : Réflexes, Pilotage
+  const A = moyP(e.P.map((id, i) => st.A[i] * f(X, eq, id)), wA) * dom + (b.man * us * st.pilP - 6) * 0.12 + 0.12 * st.nPass;   // v89 : manie « cherche la passe »
+  const Df = moyP(e.P.map((id, i) => st.D[i] * f(X, eq, id)), wD) * dom * infP;
+  const B = moy(e.B.map((id, i) => st.B[i] * f(X, eq, id))) * (dom > 1 ? 1.02 : 1) * (1 + km / 2);
+  const G = st.G != null ? st.G * f(X, eq, e.G[0]) + (st.mur ? 0.35 : 0) : 5;   // v153 : le gardien de ligne passe par le levier « rempart »   // (v90 : gMalus = gardien soudoyé, appliqué plus bas)
+  const S = st.S != null ? st.S * f(X, eq, e.A[0]) + (b.vit * us * st.pilA - 6) * 0.15 : 5;   // v153 : Réflexes, Pilotage
   return {A:A * infP, D:Df, B:B * infB, G:G * (1 - (e.gMalus || 0)), S, T, mt};
 }
 function tireur(X, eq){
@@ -444,7 +467,7 @@ function leviers(X, eq){
 /* v153 : élan. L'équipe menée de plus de 5 buts se jette à l'attaque, celle qui mène se relâche un peu (l'écart se resserre, le vif d'or garde du sens) */
 const elan = (X, a) => { const g = ((X.stats[1 - a].buts || 0) - (X.stats[a].buts || 0)); return g > 5 ? EQ.surprise.elan * Math.min(8, g - 5) : g < -5 ? -EQ.surprise.elan / 2 * Math.min(8, -g - 5) : 0; };
 const lv = (L, k) => (L[k] || 0) - EQ.lev.ref[k];   // v153 : levier centré sur une équipe moyenne
-const moyAttr = (X, eq, postes, k) => { const C = X.maC || (X.maC = {}), ck = eq + postes + k; if (C[ck] != null) return C[ck]; const L = postes.split('').flatMap(p => X.e[eq][p]).map(id => J(X, id)).filter(Boolean); return C[ck] = L.length ? L.reduce((t, j) => t + at(j, k), 0) / L.length : 12; };
+const moyAttr = (X, eq, postes, k) => { const F = forcesFixes(X, eq, X.e[eq]), C = F.ma[postes] || (F.ma[postes] = {}), ck = k; if (C[ck] != null) return C[ck]; const L = postes.split('').flatMap(p => X.e[eq][p]).map(id => J(X, id)).filter(Boolean); return C[ck] = L.length ? L.reduce((t, j) => t + at(j, k), 0) / L.length : 12; };
 function probas(X, a, Fa, Fd){
   const d = 1 - a, Ta = Fa.T, Td = Fd.T, met = X.meteo, e = X.e;
   const ag = 1 + 0.25 * (Td.agressivite - 2);
