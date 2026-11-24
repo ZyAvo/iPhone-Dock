@@ -1,4 +1,4 @@
-// mon-ecran-version: 6ce27526
+// mon-ecran-version: 144f11db
 /* QM27 (v90, lot 7) — vestiaire et mercato, sans affichage. Expose window.QMH et complète window.QMC. Chargé après qm27-domaine.js.
    Vestiaire : ambiance, leaders, clans, mentorat, causeries, presse (La Gazette du sorcier).
    Mercato : attributs connus selon le travail du recruteur, offres par hibou (réponse la semaine suivante, contre-offres, clubs qui doublent),
@@ -68,7 +68,7 @@ function ambiance(M, c){
 /* joueurs qui râlent : bon niveau, ambitieux, peu de temps de jeu */
 function mecontents(M, c){
   const S = M.semaine, top = new Set(c.effectif.map(id => M.joueurs[id]).filter(Boolean).sort((a, b) => n20(b) - n20(a)).slice(0, 10).map(j => j.id));
-  return c.effectif.map(id => M.joueurs[id]).filter(j => j && !j.bless && top.has(j.id) && S >= 8 && j.saison.m < (j.saison.mAttendu || 0) && j.cache.amb >= 11);
+  return c.effectif.map(id => M.joueurs[id]).filter(j => j && !j.bless && top.has(j.id) && S >= 8 && (j.saison.m || 0) + (j.saison.em || 0) < (j.saison.mAttendu || 0) && j.cache.amb >= 11);   // v167 : la Ligue des Anneaux compte aussi
 }
 const mentore = (c, j) => !!(c && c.mentors && c.mentors.some(p => p.jeune === j.id && c.effectif.includes(p.mentor)));
 function mentorer(M, mentor, jeune){
@@ -92,8 +92,8 @@ function vestiaireSemaine(M, S, r){
   U.cohesion = borne((U.cohesion || 70) + (amb >= 70 ? 0.5 : amb < 40 ? -0.5 : 0), 30, 100);
   /* temps de jeu attendu pour les meilleurs joueurs */
   const top = U.effectif.map(id => M.joueurs[id]).filter(Boolean).sort((a, b) => n20(b) - n20(a)).slice(0, 10);
-  const jouees = S.matchs.some(m => m.res && (m.dom === U.id || m.ext === U.id));
-  if (jouees) for (const j of top) j.saison.mAttendu = (j.saison.mAttendu || 0) + 0.6;
+  const jouees = S.matchs.filter(m => m.res && m.ligue !== 'sixn' && (m.dom === U.id || m.ext === U.id)).length;   // v167 : chaque match du club (deux les semaines de Ligue des Anneaux)
+  if (jouees) for (const j of top) j.saison.mAttendu = (j.saison.mAttendu || 0) + 0.6 * jouees;
   for (const j of mecontents(M, U)) j.moral = Math.max(5, j.moral - 2);
   /* mentorat : le jeune prend l'état d'esprit du mentor, parfois une manie */
   U.mentors = (U.mentors || []).filter(p => U.effectif.includes(p.mentor) && U.effectif.includes(p.jeune));

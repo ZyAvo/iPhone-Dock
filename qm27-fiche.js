@@ -1,4 +1,4 @@
-// mon-ecran-version: c1d9f7b1
+// mon-ecran-version: 7db74896
 /* QM27 (v161, v164) — la fiche joueur en page entière : onglets, tuiles, attributs, moral, carrière, flèches et glisser.
    Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU) ; ses fonctions sont publiées dans window.QMF (v164 : découpage de qm27-ui.js). */
 (() => {
@@ -51,7 +51,8 @@ function lecturePosteRole(j){
 }
 function saisonFJ(j){
   const s = j.saison || {}, [ix, nomS] = STAT_P[j.poste], val = {3:s.b, 4:s.cog, 5:s.v, 6:s.arr}[ix] || 0, nS = j.nS && j.nS.s === QU.M.saison ? j.nS : null;
-  return `<div class="fj-saison2"><div><b>${s.m || 0}</b><span>matchs${s.m ? ` (${s.tit || 0} tit., ${(s.m || 0) - (s.tit || 0)} entrées)` : ''}</span></div><div><b>${s.mn || 0}</b><span>minutes</span></div>
+  const mt = (s.m || 0) + (s.em || 0);   // v167 : championnat et Ligue des Anneaux
+  return `<div class="fj-saison2"><div><b>${mt}</b><span>matchs${s.em ? ` (dont ${s.em} en Ligue des Anneaux)` : s.m ? ` (${s.tit || 0} tit., ${(s.m || 0) - (s.tit || 0)} entrées)` : ''}</span></div><div><b>${s.mn || 0}</b><span>minutes</span></div>
     <div><b>${val}</b><span>${nomS}</span></div><div><b>${s.m ? (s.notes / s.m).toFixed(1).replace('.', ',') : '—'}</b><span>note moyenne</span></div>
     <div><b>${s.ja || 0} / ${s.ro || 0}</b><span>cartons J / R</span></div><div><b>${s.mvp || 0}</b><span>joueur du match</span></div></div>
     ${j.sel ? `<p class="petit" style="margin:6px 0 0">${flag(j.nat)} <b>${j.sel} sélection${j.sel > 1 ? 's' : ''}</b>${j.selB ? `, ${j.selB} but${j.selB > 1 ? 's' : ''}` : ''}${nS ? ` · cette saison : ${nS.m} match${nS.m > 1 ? 's' : ''}${nS.b ? `, ${nS.b} but${nS.b > 1 ? 's' : ''}` : ''}` : ''}</p>` : ''}`;
@@ -101,8 +102,8 @@ const traitCache = (k, v) => ({pro:['Peu sérieux', 'Professionnel', 'Modèle de
 function ongletMoral(j){
   const mon = j.club === QU.M.manager.club, c = j.club ? club(j.club) : null, H_ = HH(), k = niveauMoral(j.moral), L = [];
   if (mon && H_){ const s = j.saison || {};
-    if (H_.mecontents(QU.M, c).some(x => x.id === j.id)) L.push(['m', `Veut jouer davantage : ${s.m || 0} matchs joués pour environ ${Math.round(s.mAttendu || 0)} attendus.`]);
-    else if ((s.mAttendu || 0) > 0) L.push(['b', `Temps de jeu conforme à ce qu'il attend (${s.m || 0} matchs).`]);
+    if (H_.mecontents(QU.M, c).some(x => x.id === j.id)) L.push(['m', `Veut jouer davantage : ${(s.m || 0) + (s.em || 0)} matchs joués pour environ ${Math.round(s.mAttendu || 0)} attendus.`]);
+    else if ((s.mAttendu || 0) > 0) L.push(['b', `Temps de jeu conforme à ce qu'il attend (${(s.m || 0) + (s.em || 0)} matchs).`]);
     if (H_.leaders(QU.M, c).some(x => x.id === j.id)) L.push(['b', 'Un des leaders du vestiaire : son moral pèse sur les autres.']);
     const cl = H_.clans(QU.M, c).find(x => x.joueurs.some(y => y.id === j.id)); if (cl) L.push([cl.moral >= 60 ? 'b' : cl.moral < 40 ? 'm' : '', `Fait partie du clan « ${esc(cl.nom)} » (${cl.joueurs.length} joueurs, moral moyen ${cl.moral}).`]);
     if (H_.mentore && H_.mentore(c, j)) L.push(['b', 'Suit un mentor : il prend peu à peu son état d\'esprit.']);

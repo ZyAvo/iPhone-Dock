@@ -1,4 +1,4 @@
-// mon-ecran-version: 98935845
+// mon-ecran-version: dbfe177a
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -854,7 +854,7 @@ function valeurCol(j, k, ctx){
     case 'badge': { const b = Z.meilleurBadge ? Z.meilleurBadge(j) : null; return [b ? Z.rangBadge(b[0]) * 10 + (b[0][3] ? 0 : 1) : 0, b ? Z.imgBadge(b[0], b[1], 24, `Badge ${b[0][1].toLowerCase()} : ${Z.roleNom(j.poste, b[1])}${b[0][3] ? ' (estimé)' : ''}`) : '<span class="mut">—</span>']; }   // v161
     case 'valeur': { const v = C.valeur(M_, j); return [v, eur(v)]; }
     case 'bless': return [j.bless ? j.bless.jours : j.susp ? j.susp.n * 7 : j.inter ? 0.5 : 0, j.bless ? `<span class="mauvais">${j.bless.jours} j</span>` : j.susp ? `<span class="mauvais" title="Suspendu : ${esc(j.susp.r)}">susp. ${j.susp.n}</span>` : j.inter ? '<span class="moyen" title="En sélection">✈︎</span>' : '—'];   // v158 : suspendus
-    case 'm': return [s.m || 0, s.m || 0];
+    case 'm': { const t = (s.m || 0) + (s.em || 0); return [t, t]; }   // v167 : championnat et Ligue des Anneaux
     case 'stat': { const v = j.poste === 'P' ? s.b : j.poste === 'B' ? s.cog : j.poste === 'A' ? s.v : s.arr; return [v || 0, `${v || 0}<span class="mut petit"> ${({P:'b', B:'cog', A:'vif', G:'arr'})[j.poste]}</span>`]; }
     case 'moy': { const v = s.m ? s.notes / s.m : 0; return [v, v ? (Math.round(v * 10) / 10).toLocaleString('fr-FR') : '—']; }
     case 'clause': { const v = j.contrat && j.contrat.clause || 0; return [v, v ? eur(v) : '—']; }

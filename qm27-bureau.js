@@ -1,4 +1,4 @@
-// mon-ecran-version: aa6b16a2
+// mon-ecran-version: 80fc8277
 /* QM27 (v91, lot 8) — le bureau du manager, sans affichage. Expose window.QMG et complète window.QMC. Chargé après qm27-vestiaire.js.
    Entraînement programmable : programme de la semaine en 5 séances (lundi-vendredi), intensité, ateliers par poste, modèles,
    préparation physique d'avant-saison ; l'adjoint planifie tout seul si on le laisse faire.
@@ -553,7 +553,7 @@ function evolutionManager(M, r){
   if (h && h.manager){ const ecart = h.manager.objectif - h.manager.pos; monte('tac', ecart >= 0 ? 0.6 : 0.2); monte('det', ecart < 0 ? 0.5 : 0.25); }
   monte('mot', Math.min(0.7, (p.xp.causeries || 0) / 40));
   monte('neg', Math.min(0.7, (p.xp.transferts || 0) / 5));
-  if (c){ const jeunes = c.effectif.map(id => M.joueurs[id]).filter(j => j && j.age <= 21 && j.saison && j.saison.m >= 8).length; monte('jeu', Math.min(0.7, jeunes / 4)); }
+  if (c){ const jeunes = c.effectif.map(id => M.joueurs[id]).filter(j => j && j.age <= 21 && j.saison && (j.saison.m || 0) + (j.saison.em || 0) >= 8).length; monte('jeu', Math.min(0.7, jeunes / 4)); }
   monte('phy', 0.3); monte('jug', 0.3 + Math.min(0.3, (c ? c.suivi.length : 0) / 20)); monte('hum', 0.35);
   p.xp = {causeries:0, transferts:0};
   if (gains.length) Q().message(M, 'Ton expérience grandit', `Après cette saison, tu progresses en ${gains.join(', ').toLowerCase()}.`, 'carriere');
@@ -780,7 +780,7 @@ function bilanPhilos(M){
   const eff = U.effectif.map(id => M.joueurs[id]).filter(Boolean), res = [];
   for (const k of R.accord.philo){
     let ok = false;
-    if (k === 'jeunes') ok = eff.filter(j => j.age <= 21 && j.saison && j.saison.m >= 8).length >= 3;
+    if (k === 'jeunes') ok = eff.filter(j => j.age <= 21 && j.saison && (j.saison.m || 0) + (j.saison.em || 0) >= 8).length >= 3;   // v167 : Ligue des Anneaux comprise
     if (k === 'nationaux'){ const t = eff.reduce((a, j) => a + (j.saison ? j.saison.m : 0), 0), n = eff.filter(j => j.nat === U.nat).reduce((a, j) => a + (j.saison ? j.saison.m : 0), 0); ok = t > 0 && n / t >= 0.5; }
     if (k === 'spectacle'){ const L = M.ligues[U.ligue].clubs.map(id => [id, (M.tables[U.ligue][id] || {}).pm || 0]).sort((a, b) => b[1] - a[1]); ok = L.findIndex(x => x[0] === U.id) < 4; }
     if (k === 'economie') ok = U.budget >= (R.budget0 || 0);

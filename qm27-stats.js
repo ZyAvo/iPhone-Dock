@@ -1,4 +1,4 @@
-// mon-ecran-version: 9964dddb
+// mon-ecran-version: d7377b86
 /* QM27 (v102) — statistiques de la saison : onglets « Équipes » et « Joueurs » dans Classements.
    Lit M.statsC (stats d'équipes du championnat, remplies par QM.statsEquipes) et j.saison (stats des joueurs, QM.statsJoueur).
    Chargé après qm27-ecrans.js, dont il reprend la boîte à outils (window.QMU) ; remplace VUES.classements par une version à trois vues. */
@@ -61,7 +61,7 @@ const GRP_EQ = [
 ];
 const sj = (j, k) => (j.saison && j.saison[k]) || 0;
 const COL_J = {
-  m:['m', 'MJ', 38, j => sj(j, 'm'), v => v, 0, 'Matchs joués'],
+  m:['m', 'MJ', 38, j => sj(j, 'm') + sj(j, 'em'), v => v, 0, 'Matchs joués (championnat et Ligue des Anneaux)'],   // v167 : tous les matchs du club
   tit:['tit', 'Tit.', 38, j => sj(j, 'tit'), v => v, 0, 'Titularisations'],
   mn:['mn', 'Min.', 46, j => sj(j, 'mn'), v => v, 0, 'Minutes jouées'],
   moy:['moy', 'Note', 44, j => div(sj(j, 'notes'), sj(j, 'm')), v => nb(v), 0, 'Note moyenne'],
