@@ -1,4 +1,4 @@
-// mon-ecran-version: afec1b21
+// mon-ecran-version: 030f795f
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -602,22 +602,15 @@ const ecrireSlot = (K, s, id) => { (s[0] === 'R' ? K.banc : K[s[0]])[+s.slice(1)
 const slotDe = (K, id) => [...SLOTS_T, ...SLOTS_B()].find(s => lireSlot(K, s) === id) || null;
 /* v89 : positions (% du terrain, nos anneaux en bas) selon la phase (avec ou sans le souafle) et la disposition choisie */
 const FORM = {   // v98 : positions recalculées pour qu'aucun joueur n'en recouvre un autre, même sur téléphone
-  avec:{P:{triangle:[[17, 34], [50, 22], [83, 34]], ligne:[[17, 30], [50, 30], [83, 30]], pointe:[[20, 38], [50, 16], [80, 38]]}, B:{escorte:[[28, 56], [72, 56]], devant:[[15, 12], [85, 12]]}, A:[50, 71], G:[50, 89]},
-  sans:{P:{pressing:[[22, 32], [50, 22], [78, 32]], zone:[[17, 48], [50, 40], [83, 48]], repli:[[17, 62], [50, 56], [83, 62]]}, B:{protection:[[24, 79], [76, 79]], harcelement:[[15, 13], [85, 13]]}, A:[50, 7], G:[50, 91]}};
+  avec:{P:{triangle:[[17, 34], [50, 22], [83, 34]], ligne:[[17, 30], [50, 30], [83, 30]], pointe:[[20, 38], [50, 16], [80, 38]]}, B:{escorte:[[26, 54], [74, 54]], devant:[[15, 12], [85, 12]]}, A:[50, 73], G:[50, 90]},   // v171 : un peu d'air pour les pastilles
+  sans:{P:{pressing:[[22, 33], [50, 25], [78, 33]], zone:[[17, 48], [50, 40], [83, 48]], repli:[[17, 62], [50, 56], [83, 62]]}, B:{protection:[[24, 79], [76, 79]], harcelement:[[15, 13], [85, 13]]}, A:[50, 9], G:[50, 91]}};   // v171 : attrapeur un peu plus bas (pastilles)
 function posT(s, T){
   const ph = U.phase || 'avec', F = FORM[ph], i = +s.slice(1); T = QM.completerTactique({...(T || {})});
   if (s[0] === 'P') return F.P[ph === 'avec' ? T.avec : T.sans][i];
   if (s[0] === 'B') return F.B[ph === 'avec' ? T.batAvec : T.batSans][i];
   return F[s[0]];
 }
-/* zones d'attaque dessinées sur la moitié adverse (repère du terrain 100 × 140) */
-const ZONES = {axe:[[34, 8, 32, 31]], couloirs:[[5, 12, 27, 36], [68, 12, 27, 36]], loin:[[12, 50, 76, 12]]};
-const NOM_ZONE = {axe:'Axe', couloirs:'Couloir', loin:'De loin'};
-function zonesHTML(T){
-  const z = T.zone || 'axe';
-  /* v98 : simple repère visuel de la zone choisie (le choix se fait au-dessus du terrain) */
-  return `<svg class="zones" viewBox="0 0 100 140" aria-hidden="true">${Object.entries(ZONES).filter(([k]) => k === z).map(([k, R]) => R.map(([x, y, w, h]) => `<g class="zn on"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/></g>`).join('')).join('')}</svg>`;
-}
+/* v171 : plus de rectangles de zone d'attaque sur le terrain (le choix se voit sous la carte) */
 /* v160 : traits de synergie sur le terrain (doré : active ; pointillés : il manque un attribut ; rouge : anti-synergie) */
 function liensSynHTML(K, T){
   if (!QM.synergiesDe || !K || !K.roles) return '';
@@ -669,7 +662,7 @@ const TERRAIN_SVG = `<svg viewBox="0 0 100 140" aria-hidden="true"><defs><patter
 /* maillot de l'équipe affichée : club du manager ou sélection */
 const kitDe = sel => sel ? {id:M.manager.selection.nat, couleurs:V.couleursNation(M.manager.selection.nat), motif:'uni'} : club(M.manager.club);
 /* v107 : l'info affichée à côté de chaque joueur sur le terrain et le banc (gardée sur l'appareil) */
-const INFOS_TAC = [['note', 'Note', 'Note au poste'], ['fat', 'Fatigue', 'Fatigue du moment (en %, moins c\'est mieux)'], ['forme', 'Forme', 'Forme sur 10'], ['moral', 'Moral', 'Moral sur 100'],
+const INFOS_TAC = [['rien', 'Rien', 'Aucune info à côté des joueurs (les pastilles suffisent)'], ['note', 'Note', 'Note au poste'], ['fat', 'Fatigue', 'Fatigue du moment (en %, moins c\'est mieux)'], ['forme', 'Forme', 'Forme sur 10'], ['moral', 'Moral', 'Moral sur 100'],
   ['charge', 'Charge', 'Fatigue cumulée des dernières semaines (moins c\'est mieux)'], ['age', 'Âge', 'Âge']];
 U.infoTac = LS.lire('qm27:infoTac', 'note');
 function infoJeton(j, n){
@@ -679,6 +672,7 @@ function infoJeton(j, n){
   if (k === 'moral') return {txt:String(Math.round(j.moral)), cls:j.moral >= 65 ? 'iv-b' : j.moral < 40 ? 'iv-x' : 'iv-m'};
   if (k === 'charge') return {txt:String(Math.round(ch)), cls:ch >= 62 ? 'iv-x' : ch >= 35 ? 'iv-m' : 'iv-b'};
   if (k === 'age') return {txt:j.age + ' a', cls:''};
+  if (k === 'rien') return {txt:'', cls:''};   // v171
   return {txt:String(n), cls:classeNote(n)};
 }
 const infoTacHTML = () => `<div class="tinfo"><span>À côté des joueurs</span><div class="seg mini" role="group" aria-label="Info affichée à côté des joueurs">${INFOS_TAC.map(([k, n, t]) => `<button data-act="infoTac" data-k="${k}" class="${U.infoTac === k ? 'on' : ''}" aria-pressed="${U.infoTac === k}" title="${t}">${n}</button>`).join('')}</div></div>`;
@@ -686,9 +680,12 @@ function jetonHTML(K, s, sel, T){
   const id = lireSlot(K, s), j = M.joueurs[id], banc = s[0] === 'R', ps = banc ? null : posT(s, T);
   const pos = banc ? '' : ` style="left:${ps[0]}%;top:${ps[1]}%"`, eti = banc ? `<em>${nomSlot(s)}</em>` : '';
   if (!j) return `<button class="jeton vide${banc ? ' b' : ''}" data-act="jeton" data-slot="${s}"${pos} aria-label="${nomSlot(s)} : place libre">${eti}<span class="rond">+</span><b>${banc ? 'Libre' : D.POSTES[s[0]].nom}</b></button>`;
-  const p = banc ? j.poste : s[0], n = QM.note(j, p), hors = !banc && j.poste !== p, iv = infoJeton(j, n);
-  return `<button class="jeton ${p}${hors ? ' hors' : ''}${banc ? ' b' : ''}${U.flash === id ? ' flash' : ''}" data-act="jeton" data-slot="${s}" data-j="${id}"${pos} aria-label="${esc(nomJ(j))}, ${nomSlot(s)}, note ${n}">${eti}
-    <span class="rond kit">${V.maillot(kitDe(sel), sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? '')}${banc ? `<i class="ps pi" title="${D.POSTES[p].nom}">${V.posteImg(p)}</i>` : ''}${K.cap === id && !banc ? '<i class="cap" title="Capitaine">C</i>' : ''}${K.pen === id && !banc ? '<i class="pn" title="Tireur de penalty">P</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : j.susp ? '<i class="bl sp" title="Suspendu">S</i>' : ''}${j.inter && !sel ? '<i class="bl" title="En sélection">✈︎</i>' : ''}${banc ? '' : `<i class="ntj ${iv.cls}">${iv.txt}</i>`}</span>${banc ? `<b>${esc(j.n)}</b><span class="nt ${iv.cls}">${iv.txt}</span>` : `<b class="eti">${U.fitMap && U.fitMap[id] ? pastille(U.fitMap[id]) : ''}<span class="nm">${esc(j.n)}</span>${hors ? `<span class="hp" title="Hors de son poste">${j.poste}</span>` : ''}</b>`}</button>`;
+  if (!MEC) MEC = mecSet(sel);
+  const p = banc ? j.poste : s[0], n = QM.note(j, p), hors = !banc && j.poste !== p, iv = infoJeton(j, n), a = !banc && U.fitMap ? U.fitMap[id] : null;
+  /* v171 : socle coloré sous le maillot = adaptation au rôle (remplace le point devant le nom) ; symbole du poste aussi sur les titulaires */
+  const socle = a ? `<i class="socle ${a.niveau}" title="${NIV[a.niveau][1]}${a.raisons.length ? ' : ' + esc(a.raisons.join(' ; ')) : ''}"></i>` : '';
+  return `<button class="jeton ${p}${hors ? ' hors' : ''}${banc ? ' b' : ''}${U.flash === id ? ' flash' : ''}" data-act="jeton" data-slot="${s}" data-j="${id}"${pos} aria-label="${esc(nomJ(j))}, ${nomSlot(s)}, ${a ? NIV[a.niveau][1].toLowerCase() + ', ' : ''}${ariaEtat(j, n)}">${eti}
+    <span class="rond kit">${socle}${V.maillot(kitDe(sel), sel ? [...SLOTS_T, ...SLOTS_B()].indexOf(s) + 1 : j.num ?? '')}<i class="ps pi" title="${D.POSTES[p].nom}">${V.posteImg(p)}</i>${K.cap === id && !banc ? '<i class="cap" title="Capitaine">C</i>' : ''}${K.pen === id && !banc ? '<i class="pn" title="Tireur de penalty">P</i>' : ''}${j.bless ? '<i class="bl">✚</i>' : j.susp ? '<i class="bl sp" title="Suspendu">S</i>' : ''}${j.inter && !sel ? '<i class="bl" title="En sélection">✈︎</i>' : ''}${banc || !iv.txt ? '' : `<i class="ntj ${iv.cls}">${iv.txt}</i>`}</span>${banc ? `<b>${esc(j.n)}</b>${iv.txt ? `<span class="nt ${iv.cls}">${iv.txt}</span>` : ''}` : `<b class="eti"><span class="nm">${esc(j.n)}</span>${hors ? `<span class="hp" title="Hors de son poste">${j.poste}</span>` : ''}</b>`}${pastillesHTML(j, n)}</button>`;
 }
 function ligneEff(ctx, j){
   const K = ctx.K, s = slotDe(K, j.id), p = s && s[0] !== 'R' ? s[0] : j.poste, n = QM.note(j, p);
@@ -712,21 +709,50 @@ function panneauHTML(ctx){
     <div class="grp">Réserve (${R.length}${ctx.sel ? ', les 6 meilleurs par poste' : ''})</div>${R.map(j => ligneEff(ctx, j)).join('') || '<p class="petit mut">Personne.</p>'}</div>`;
 }
 function compoHTML(ctx){
-  const K = ctx.K, ouvert = U.panneau ?? document.documentElement.classList.contains('desk');
+  const K = ctx.K, ouvert = U.panneau ?? document.documentElement.classList.contains('desk'), ph = U.phase || 'avec';
+  /* v171 : la phase dans la barre (elle déplace les joueurs) ; zone d'attaque, info et légende sous la carte ; plus de rectangles de zone */
   return `<div class="tac${ouvert ? ' ouvert' : ''}">
     <div class="tpan-fond" data-act="panneau"></div><aside class="tpan" aria-label="Effectif">${panneauHTML(ctx)}</aside>
-    <div class="tcentre"><div class="tbarre"><button class="btn sec" data-act="panneau" aria-expanded="${ouvert}">☰ ${ctx.sel ? 'Joueurs' : 'Effectif'}</button><button class="btn sec" data-act="${ctx.sel ? 'selAuto' : 'compoAuto'}">Auto</button></div>
-      <div class="seg phase" role="tablist">${[['avec', 'Avec le souafle'], ['sans', 'Sans le souafle']].map(([k, n]) => `<button data-act="phase" data-p="${k}" class="${(U.phase || 'avec') === k ? 'on' : ''}" role="tab" aria-selected="${(U.phase || 'avec') === k}">${n}</button>`).join('')}</div>
-      ${(U.phase || 'avec') === 'avec' ? `<div class="tzone"><span>Zone d'attaque</span><div class="seg mini" role="group" aria-label="Zone d'attaque">${['axe', 'couloirs', 'loin'].map(k => `<button data-act="zoneAtt" data-z="${k}" class="${(ctx.T.zone || 'axe') === k ? 'on' : ''}" aria-pressed="${(ctx.T.zone || 'axe') === k}">${esc(nomOpt('zone', k))}</button>`).join('')}</div></div>` : ''}
-      ${infoTacHTML()}
-      <div class="tterrain">${TERRAIN_SVG}${(U.phase || 'avec') === 'avec' ? zonesHTML(ctx.T) : ''}${liensSynHTML(K, ctx.T)}${SLOTS_T.map(x => jetonHTML(K, x, ctx.sel, ctx.T)).join('')}</div></div>
-    <div class="tbanc"><h3>Banc</h3>${SLOTS_B().map(x => jetonHTML(K, x, ctx.sel, ctx.T)).join('')}</div>
+    <div class="tcentre"><div class="tbarre"><button class="btn sec" data-act="panneau" aria-expanded="${ouvert}">☰ ${ctx.sel ? 'Joueurs' : 'Effectif'}</button>
+        <div class="seg mini phase" role="tablist" aria-label="Phase de jeu">${[['avec', 'Avec', 'Avec le souafle'], ['sans', 'Sans', 'Sans le souafle']].map(([k, n, l]) => `<button data-act="phase" data-p="${k}" class="${ph === k ? 'on' : ''}" role="tab" aria-selected="${ph === k}" aria-label="${l}" title="${l}">${n}</button>`).join('')}</div>
+        <button class="btn sec" data-act="${ctx.sel ? 'selAuto' : 'compoAuto'}">Auto</button></div>
+      <div class="tterrain">${TERRAIN_SVG}${liensSynHTML(K, ctx.T)}${SLOTS_T.map(x => jetonHTML(K, x, ctx.sel, ctx.T)).join('')}</div></div>
+    <div class="tbanc"><div class="tbanc-l"><h3>Banc</h3>${SLOTS_B().map(x => jetonHTML(K, x, ctx.sel, ctx.T)).join('')}
+      <h3 class="tres-t">Réserve</h3><div class="tres">${reserveDe(ctx).map(j => jetonResHTML(ctx, j)).join('') || '<p class="petit mut">Personne</p>'}</div></div></div>
   </div>
-  <p class="petit mut aide-tac">Glisse un remplaçant sur un titulaire pour les échanger ; touche un joueur pour son rôle. <i class="fit bon"></i> adapté · <i class="fit moyen"></i> moyen · <i class="fit faible"></i> peu adapté · ✦ synergie · ◇ presque · ✕ à éviter · C capitaine · P tireur de penalty.</p>`;
+  <div class="tsous">${ph === 'avec' ? `<div class="tzone"><span>Zone d'attaque</span><div class="seg mini" role="group" aria-label="Zone d'attaque">${['axe', 'couloirs', 'loin'].map(k => `<button data-act="zoneAtt" data-z="${k}" class="${(ctx.T.zone || 'axe') === k ? 'on' : ''}" aria-pressed="${(ctx.T.zone || 'axe') === k}">${esc(nomOpt('zone', k))}</button>`).join('')}</div></div>` : ''}
+    ${infoTacHTML()}
+    <div class="tleg" aria-label="Légende"><span><i class="pst"><i class="p-v"></i><i class="p-j"></i><i class="p-r"></i></i> fatigue · note · moral</span><span><i class="px">!</i> veut jouer</span><span><i class="socle-l bon"></i><i class="socle-l moyen"></i><i class="socle-l faible"></i> adapté au rôle</span>
+      <span><i class="sl on"></i> synergie</span><span><i class="sl presque"></i> presque</span><span><i class="sl anti"></i> à éviter</span><span><b class="lc">C</b> capitaine · <b class="lp">P</b> penalty</span></div>
+    <p class="petit mut aide-tac">Glisse un joueur sur un autre pour les échanger, ou dans la réserve pour le sortir du groupe. Dans la colonne de droite, fais défiler du doigt ; pour attraper un joueur, tire-le vers le terrain ou garde le doigt appuyé. Touche un joueur pour son rôle ou sa fiche.</p></div>`;
+}
+/* v171 : la réserve dans la colonne de droite (hors titulaires et banc), triée par poste puis par note ; en sélection, les 6 meilleurs par poste */
+function reserveDe(ctx){
+  const K = ctx.K, dans = new Set([...SLOTS_T, ...SLOTS_B()].map(x => lireSlot(K, x)).filter(Boolean));
+  let R = ctx.pool.filter(j => !dans.has(j.id)).sort((a, b) => ORDRE_P[a.poste] - ORDRE_P[b.poste] || QM.note(b) - QM.note(a));
+  if (ctx.sel){ const n = {}; R = R.filter(j => (n[j.poste] = (n[j.poste] || 0) + 1) <= 6); }
+  return R;
+}
+/* v171 : trois pastilles sous le joueur (fatigue, note au poste, moral) et « ! » jaune s'il réclame du temps de jeu */
+const NIV4 = ['v', 'j', 'o', 'r'];
+const nivFat = f => f < 10 ? 0 : f < 20 ? 1 : f < 35 ? 2 : 3, nivMoral = m => m >= 65 ? 0 : m >= 50 ? 1 : m >= 40 ? 2 : 3, nivNote = n => ({n4:0, n3:1, n2:2, n1:3})[classeNote(n)];
+let MEC = null;   // joueurs qui réclament du temps de jeu (recalculé à chaque rendu de la composition)
+const mecSet = sel => { if (sel || !HH() || !M.manager.club) return new Set(); return new Set(HH().mecontents(M, club(M.manager.club)).map(j => j.id)); };
+function pastillesHTML(j, n){
+  const f = Math.round(j.fat || 0), m = Math.round(j.moral);
+  return `<span class="pst" aria-hidden="true"><i class="p-${NIV4[nivFat(f)]}" title="Fatigue ${f} %"></i><i class="p-${NIV4[nivNote(n)]}" title="Note ${n}"></i><i class="p-${NIV4[nivMoral(m)]}" title="Moral ${m}"></i>${MEC && MEC.has(j.id) ? '<i class="px" title="Veut plus de temps de jeu">!</i>' : ''}</span>`;
+}
+const ariaEtat = (j, n) => `note ${n}, fatigue ${Math.round(j.fat || 0)} %, moral ${Math.round(j.moral)}${MEC && MEC.has(j.id) ? ', veut plus de temps de jeu' : ''}`;
+function jetonResHTML(ctx, j){
+  const n = QM.note(j), iv = infoJeton(j, n);
+  return `<button class="jeton b res ${j.poste}${U.flash === j.id ? ' flash' : ''}" data-act="joueur" data-j="${j.id}" aria-label="${esc(nomJ(j))}, réserve, ${D.POSTES[j.poste].nom.toLowerCase()}, ${ariaEtat(j, n)}">
+    <span class="rond kit">${V.maillot(kitDe(ctx.sel), ctx.sel ? '' : j.num ?? '')}<i class="ps pi" title="${D.POSTES[j.poste].nom}">${V.posteImg(j.poste)}</i>${j.bless ? '<i class="bl">✚</i>' : j.susp ? '<i class="bl sp" title="Suspendu">S</i>' : ''}${j.inter && !ctx.sel ? '<i class="bl" title="En sélection">✈︎</i>' : ''}</span>
+    <b>${esc(j.n)}</b>${iv.txt ? `<span class="nt ${iv.cls}">${iv.txt}</span>` : ''}${pastillesHTML(j, n)}</button>`;
 }
 /* garde la position de la liste du panneau quand l'écran se redessine */
-function avecPanneau(f){ const l = document.querySelector('.tpan-liste'), y = l ? l.scrollTop : 0; f(); const n = document.querySelector('.tpan-liste'); if (n) n.scrollTop = y; U.flash = null; }
+function avecPanneau(f){ const l = document.querySelector('.tpan-liste'), y = l ? l.scrollTop : 0, c = document.querySelector('.tbanc-l'), yc = c ? c.scrollTop : 0; f(); const n = document.querySelector('.tpan-liste'); if (n) n.scrollTop = y; const nc = document.querySelector('.tbanc-l'); if (nc) nc.scrollTop = yc; U.flash = null; }   // v171 : la colonne banc + réserve garde aussi sa position
 function vueTactique(){
+  MEC = null;   // v171 : joueurs qui réclament du temps de jeu, recalculés
   const ctx = ctxCompo(), K = ctx.K, c = club(M.manager.club), T = QM.completerTactique(c.tactique);
   const notes = SLOTS_T.map(x => M.joueurs[lireSlot(K, x)] ? QM.note(M.joueurs[lireSlot(K, x)], x[0]) : null).filter(x => x !== null);
   const moy = notes.length ? Math.round(notes.reduce((a, b) => a + b, 0) / notes.length) : 0;
@@ -835,7 +861,7 @@ function ficheJeton(s){
 }
 /* glisser-déposer au doigt et à la souris : jetons du terrain et du banc ; lignes du panneau (souris, ou appui long au doigt) */
 let GL = null, clicBloque = 0;
-function finGlisser(){ if (!GL) return; clearTimeout(GL.tempo); const t = document.querySelector('.tac.repli'); if (t) t.classList.remove('repli'); if (GL.fantome) GL.fantome.remove(); if (GL.cible) GL.cible.classList.remove('cible'); GL.src.classList.remove('source'); document.body.classList.remove('glisse'); GL = null; }
+function finGlisser(){ if (!GL) return; clearTimeout(GL.tempo); const zr = document.querySelector('.tres.cible'); if (zr) zr.classList.remove('cible'); const t = document.querySelector('.tac.repli'); if (t) t.classList.remove('repli'); if (GL.fantome) GL.fantome.remove(); if (GL.cible) GL.cible.classList.remove('cible'); GL.src.classList.remove('source'); document.body.classList.remove('glisse'); GL = null; }
 function debutGlisser(){
   GL.actif = true; const r = GL.src.getBoundingClientRect(), f = (GL.eff ? GL.src.querySelector('.tj-n b') : GL.src.classList.contains('er') ? GL.src.querySelector('.t b') : GL.src.querySelector('.rond')).cloneNode(true);
   const d = document.createElement('div'); d.className = 'fantome ' + (M.joueurs[GL.id] ? M.joueurs[GL.id].poste : ''); d.appendChild(f);
@@ -851,34 +877,44 @@ document.addEventListener('pointerdown', e => {
   const eff = U.vue === 'effectif' && e.pointerType === 'mouse' && M && M.manager && M.manager.club ? e.target.closest('.tj-l[data-j]') : null;
   const src = eff || e.target.closest('.jeton[data-j], .er[data-drag]'); if (!src) return;
   finGlisser();
-  GL = {src, id:src.dataset.j || src.dataset.drag, x:e.clientX, y:e.clientY, x0:e.clientX, y0:e.clientY, actif:false, ligne:src.classList.contains('er'), souris:e.pointerType === 'mouse', eff:!!eff};
-  if (GL.ligne && !GL.souris) GL.tempo = setTimeout(() => { if (GL && !GL.actif) debutGlisser(); }, 380);
+  GL = {src, id:src.dataset.j || src.dataset.drag, x:e.clientX, y:e.clientY, x0:e.clientX, y0:e.clientY, actif:false, ligne:src.classList.contains('er'), souris:e.pointerType === 'mouse', eff:!!eff,
+    col:!eff && !!src.closest('.tbanc')};   // v171 : colonne banc + réserve (elle défile au doigt)
+  if ((GL.ligne || GL.col) && !GL.souris) GL.tempo = setTimeout(() => { if (GL && !GL.actif) debutGlisser(); }, 380);
 });
 document.addEventListener('pointermove', e => {
   if (!GL) return;
   GL.x = e.clientX; GL.y = e.clientY;
   const d = Math.hypot(GL.x - GL.x0, GL.y - GL.y0);
-  if (!GL.actif){ if (GL.ligne && !GL.souris){ if (d > 8) finGlisser(); return; } if (d < 6) return; debutGlisser(); }
+  if (!GL.actif){ if (GL.ligne && !GL.souris){ if (d > 8) finGlisser(); return; } if (d < 6) return;
+    /* v171 : dans la colonne, au doigt : vertical = défilement ; vers le terrain (horizontal) = on attrape le joueur */
+    if (GL.col && !GL.souris && Math.abs(GL.x - GL.x0) < Math.abs(GL.y - GL.y0) * 0.45){ finGlisser(); return; }   // presque vertical : on laisse défiler ; en diagonale vers le terrain : on attrape
+    debutGlisser(); }
   e.preventDefault();
   GL.fantome.style.left = GL.x + 'px'; GL.fantome.style.top = GL.y + 'px';
   if (GL.eff){ const h = innerHeight, bord = 70; if (GL.y > h - bord) scrollBy(0, Math.ceil((GL.y - h + bord) / 3)); else if (GL.y < bord + 60) scrollBy(0, -Math.ceil((bord + 60 - GL.y) / 3)); }   // v107 : la page défile près des bords
-  const el = document.elementFromPoint(GL.x, GL.y), c = el && el.closest(GL.eff ? '.tj-l[data-j]' : '.jeton');
+  const el = document.elementFromPoint(GL.x, GL.y), c = el && el.closest(GL.eff ? '.tj-l[data-j]' : '.jeton[data-slot]');   // v171 : les jetons de la réserve ne sont pas des places
   const cible = c && c !== GL.src ? c : null;
   if (cible !== GL.cible){ if (GL.cible) GL.cible.classList.remove('cible'); if (cible) cible.classList.add('cible'); GL.cible = cible; }
   GL.surPanneau = !cible && !!(el && el.closest('.tpan'));
+  const res = !GL.eff && !cible && !!(el && el.closest('.tres, .tres-t')), zr = document.querySelector('.tres');   // v171 : lâché dans la réserve = sorti du groupe
+  if (zr) zr.classList.toggle('cible', res && !!slotDe(ctxCompo().K, GL.id)); GL.surReserve = res;
+  /* v171 : la colonne défile quand on approche de ses bords en glissant */
+  const L = !GL.eff && document.querySelector('.tbanc-l'); if (L){ const r = L.getBoundingClientRect(); if (GL.x >= r.left - 20 && GL.x <= r.right + 20){ if (GL.y > r.bottom - 40 && GL.y < r.bottom + 30) L.scrollTop += 8; else if (GL.y < r.top + 40 && GL.y > r.top - 30) L.scrollTop -= 8; } }
 });
 document.addEventListener('pointerup', () => {
   if (!GL) return;
   if (!GL.actif){ finGlisser(); return; }
   clicBloque = Date.now();
   if (GL.eff){ const a = GL.id, b = GL.cible ? GL.cible.dataset.j : null; finGlisser(); if (b) echangerEff(a, b); return; }
-  const id = GL.id, cible = GL.cible ? GL.cible.dataset.slot : null, reserve = GL.surPanneau && !GL.ligne;
+  const id = GL.id, cible = GL.cible ? GL.cible.dataset.slot : null, reserve = (GL.surPanneau && !GL.ligne) || GL.surReserve;
   if (GL.repli && cible) U.panneau = false;
   finGlisser();
   if (cible || reserve) placerSlot(ctxCompo(), id, cible);
 });
 document.addEventListener('pointercancel', finGlisser);
-document.addEventListener('touchmove', e => { if (GL && GL.actif) e.preventDefault(); }, {passive:false});
+document.addEventListener('touchmove', e => { if (!GL) return; if (GL.actif){ e.preventDefault(); return; }
+  /* v171 : colonne banc + réserve : un geste qui part vers le terrain ne fait pas défiler (Safari décide tôt) */
+  const t = e.touches && e.touches[0]; if (GL.col && t){ const dx = Math.abs(t.clientX - GL.x0), dy = Math.abs(t.clientY - GL.y0); if (dx + dy >= 3 && dx >= dy * 0.45) e.preventDefault(); } }, {passive:false});
 document.addEventListener('click', e => { if (Date.now() - clicBloque < 400){ e.preventDefault(); e.stopPropagation(); } }, true);
 document.addEventListener('contextmenu', e => { if (e.target.closest('.er, .jeton')) e.preventDefault(); });
 /* v107 : échange de places entre deux joueurs de l'effectif (titulaire, remplaçant ou réserve) */
@@ -961,7 +997,7 @@ function vueAide(){
     <p><b>Fautes et cartons.</b> Une faute sur quatre environ est sifflée en penalty, les autres donnent un coup franc. L'arbitre (indiqué avant le match) peut être sévère ou laisser jouer. Carton jaune, second jaune ou rouge direct : l'exclu n'est pas remplacé, son équipe joue à un de moins. Suspensions en club : ${E.fautes.susp.j2} match après un second jaune, ${E.fautes.susp.r} après un rouge direct, un match tous les ${E.fautes.accumul} jaunes de la saison. Un jeu dur gagne des duels mais coûte des fautes, des cartons et de la fatigue.</p>
     <p><b>Le match.</b> Une minute de jeu défile en une seconde à vitesse ×1 (deux secondes à ×0,5). La carte Statistiques suit le match en direct : équipes, tes joueurs (note, actions, fatigue, rendement, moral, charge) et ceux d'en face. Deux temps morts par équipe pour changer les consignes et faire entrer des remplaçants : 3 changements libres, plus ceux qui suivent une blessure. Pendant le direct : le match vu du dessus, les autres scores à la radio, les conseils de l'adjoint et, si tu le veux, l'ambiance du stade.</p>
     <p><b>Les joueurs.</b> 31 attributs de 1 à 20, plus 5 pour les gardiens. La note sur 100 dépend du poste : les attributs cibles (●) comptent triple. La forme, la fatigue et le moral changent chaque semaine.</p>
-    <p><b>La composition.</b> 7 titulaires sur le terrain et ${NB_BANC()} remplaçants sur le banc (Tactique). Glisse un joueur du banc sur un titulaire pour les échanger, ou choisis la place de chacun avec le menu du panneau Effectif (titulaire, remplaçant ou réserve). Une place laissée libre est complétée au coup d'envoi.</p>
+    <p><b>La composition.</b> 7 titulaires sur le terrain et ${NB_BANC()} remplaçants sur le banc (Tactique). Glisse un joueur du banc ou de la réserve (colonne de droite, elle défile) sur un titulaire pour les échanger, ou dans la réserve pour le sortir du groupe ; tu peux aussi choisir la place de chacun avec le menu du panneau Effectif. Une place laissée libre est complétée au coup d'envoi. Sous chaque joueur, trois pastilles : fatigue (vert sous 10 %, jaune, orange à partir de 20 %, rouge à partir de 35 %), note au poste et moral (vert à partir de 65, rouge sous 40) ; un « ! » jaune signale qu'il réclame du temps de jeu. Le halo autour du maillot dit s'il est adapté à son rôle.</p>
     <p><b>Monnaie.</b> Gallions (pièce d'or), Mornilles (argent) et Noises (bronze) : 1 Gallion = 17 Mornilles, 1 Mornille = 29 Noises, soit 1 Gallion = 493 Noises. Les prix suivent le canon (un Gallion vaut environ 5 livres) : une place coûte 2 ou 3 Gallions, un bon joueur gagne des milliers de Gallions par semaine. Les gros montants s'affichent en Gallions, les petits en Mornilles et Noises.</p>
     <p><b>Presse.</b> Après chaque match, jusqu'à trois questions de médias différents (réglage ci-dessus). Le ton de ta réponse agit sur le moral du groupe ou d'un joueur, le président, les supporters, ta réputation et ta relation avec la presse ; les effets s'affichent après chaque réponse.</p>
     <p><b>Vestiaire.</b> Club › Vestiaire : ambiance (le moral, surtout celui des leaders), clans, joueurs qui veulent jouer plus, et jusqu'à trois binômes de mentorat (un joueur de 26 ans ou plus guide un jeune de 22 ans ou moins). Causeries avant le match et aux temps morts, conférence de presse après (La Gazette du sorcier) ; tout se désactive ici.</p>
@@ -1299,7 +1335,7 @@ function vueCarriere(){
   ${U ? `<button class="btn sec plein" style="color:var(--mauvais)" data-act="demission">Démissionner de ${esc(U.nom)}</button>` : ''}`;
 }
 function vueSelection(){
-  const sel = M.manager.selection, n = sel.nat, T = M.sel.tactique, ctx = ctxCompo();
+  const sel = M.manager.selection, n = sel.nat, T = M.sel.tactique, ctx = ctxCompo(); MEC = null;
   U.fitMap = TT() ? TT().adequationCompo(M, ctx.K, QM.completerTactique({...T})) : null;
   avecPanneau(() => { VUE.innerHTML = `<div><h1 class="grand">${flagSeul(n)} ${esc(nat(n).nom)}</h1><p class="sous">Sélection · ${M.calendrier.some(s => s.tour) ? `objectif : top ${sel.objectif} du Tournoi des Six Emblèmes` : `${esc(D.LDN.nom)} : ${esc(({2:'atteindre la finale', 4:'atteindre les demi-finales', 8:'sortir des groupes', 19:'faire bonne figure'})[sel.vise] || 'faire bonne figure')}`}${M.sel.perso ? '' : ' · convocation automatique'}</p></div>
   ${compoHTML(ctx)}

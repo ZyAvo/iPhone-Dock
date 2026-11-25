@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="bb3fa913">
+<meta name="mon-ecran-version" content="38ab8ccf">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-title" content="QM27">
@@ -1238,6 +1238,34 @@ body.glisse,body.glisse *{cursor:grabbing!important}
 .tac.ouvert .tpan-fond{display:block;position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.38);animation:fondu .2s}
 @keyframes tiroir{from{transform:translateX(-100%)}}
 .tac.repli .tpan,.tac.repli .tpan-fond{display:none!important}
+/* v171 : carte tactique — phase dans la barre, colonne banc + réserve défilante (hauteur du terrain), pastilles, socle d'adaptation, légende */
+.tbarre{align-items:center}.tbarre .seg.phase{margin:0;flex:1 1 auto;max-width:180px}.tbarre .seg.phase button{font-size:.78rem}
+.tbanc{display:block;position:relative;align-self:stretch;padding:0;overflow:hidden}
+.tbanc-l{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px 12px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.tbanc .jeton{touch-action:pan-y;flex:none}
+.tres-t{margin-top:8px!important;padding-top:8px;border-top:1px solid var(--line);width:80%;text-align:center}
+.tres{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;min-height:70px;border-radius:12px;transition:background .15s,box-shadow .15s}
+.tres.cible{background:color-mix(in srgb,var(--or) 16%,transparent);box-shadow:inset 0 0 0 2px var(--or)}
+.tres .jeton .rond.kit{width:34px;height:34px}
+.pst{display:flex;align-items:center;gap:3px;margin-top:1px;line-height:0}
+.pst i{display:block;width:7px;height:7px;border-radius:50%;border:1px solid rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.4);font-style:normal}
+html.desk .pst i{width:9px;height:9px}
+.pst .p-v{background:#2fb560}.pst .p-j{background:#f2c94c}.pst .p-o{background:#f08a2e}.pst .p-r{background:#e5484d}
+.pst i.px,.tleg i.px{width:11px;height:11px;display:grid;place-items:center;background:#f2c94c;color:#3a2a00;font-size:.55rem;font-weight:900;line-height:1;font-style:normal;border-radius:50%;border:1px solid #fff}
+html.desk .pst i.px{width:13px;height:13px;font-size:.62rem}
+.tbanc .pst i{border-color:var(--card)}
+.rond.kit .socle{position:absolute;left:50%;top:52%;width:150%;height:125%;transform:translate(-50%,-50%);border-radius:50%;z-index:-1;pointer-events:auto}
+.rond.kit .socle.bon{background:radial-gradient(closest-side,#8dffb4 0,#45e080c0 50%,#45e08000 100%)}
+.rond.kit .socle.moyen{background:radial-gradient(closest-side,#ffd95e 0,#f2c94cb3 50%,#f2c94c00 100%)}
+.rond.kit .socle.faible{background:radial-gradient(closest-side,#ff6b6f 0,#e5484db3 50%,#e5484d00 100%)}
+.tterrain .jeton .ps{left:-7px;top:-4px}
+.tsous{margin-top:10px}
+.tleg{display:flex;flex-wrap:wrap;gap:4px 12px;margin:2px 2px 8px;font-size:.7rem;color:var(--ink-soft);align-items:center}
+.tleg>span{display:inline-flex;align-items:center;gap:4px}
+.tleg .pst{display:inline-flex;margin:0}.tleg .pst i{border-color:var(--card)}
+.tleg .socle-l{display:inline-block;width:11px;height:11px;border-radius:50%}.tleg .socle-l.bon{background:#2fb560}.tleg .socle-l.moyen{background:#f2c94c}.tleg .socle-l.faible{background:#e5484d}
+.tleg .sl{display:inline-block;width:18px;height:0;border-top:3px solid #e0b43a}.tleg .sl.presque{border-top:2px dashed var(--ink-faint)}.tleg .sl.anti{border-top:2px dashed #e5484d}
+.tleg .lc,.tleg .lp{display:inline-grid;place-items:center;width:14px;height:14px;border-radius:50%;font-size:.5rem;font-weight:800}.tleg .lc{background:#f3d36b;color:#10233a}.tleg .lp{background:#16202c;color:#f3d36b;border:1px solid #f3d36b}
 html.desk .tac.ouvert .tpan{position:sticky;top:76px;z-index:auto;width:auto;max-height:calc(100vh - 240px);background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:none;animation:none;padding-top:0}
 html.desk .tac.ouvert .tpan-fond{display:none}
 .tpan-tete{display:flex;align-items:center;gap:10px;padding:12px 12px 8px}
@@ -1295,7 +1323,7 @@ html.desk .er{cursor:grab}
 <script src="qm27-europe.js?v=d5461710"></script>
 <script src="qm27-nations.js?v=66d46995"></script>
 <script src="qm27-visuel.js?v=475e9f0c"></script>
-<script src="qm27-ui.js?v=afec1b21"></script>
+<script src="qm27-ui.js?v=030f795f"></script>
 <script src="qm27-fiche.js?v=7db74896"></script>
 <script src="qm27-lieux.js?v=352e78a0"></script>
 <script src="qm27-direct.js?v=2b32fd29"></script>
