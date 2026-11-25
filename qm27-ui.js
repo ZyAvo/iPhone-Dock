@@ -1,4 +1,4 @@
-// mon-ecran-version: b8931840
+// mon-ecran-version: afec1b21
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -264,6 +264,9 @@ addEventListener('popstate', e => {
 const LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="var(--or-doux)"/><circle cx="32" cy="32" r="9" fill="var(--or)"/>
   <path d="M23 30c-6-7-13-8-17-6 5 0 9 3 12 8M41 30c6-7 13-8 17-6-5 0-9 3-12 8" fill="none" stroke="var(--or)" stroke-width="2.6" stroke-linecap="round"/>
   <path d="M22 34c-5-3-10-2-13 1 4-1 8 0 11 2M42 34c5-3 10-2 13 1-4-1-8 0-11 2" fill="none" stroke="var(--or)" stroke-width="2" stroke-linecap="round" opacity=".7"/></svg>`;
+/* v170 : jeu ouvert depuis la page État de KiosK (parties restées dans KiosK) : bouton de retour, l'appli KiosK n'ayant pas de barre d'adresse */
+const RETOUR_KIOSK = /[?&]retour=kiosk\b/.test(location.search);
+const lienRetourKiosk = () => RETOUR_KIOSK ? '<a class="btn sec plein" href="etat.html" style="margin-top:8px">Revenir à KiosK</a>' : '';
 function vueDemarrage(){
   if (U.etape === 'club') return vueChoixClub();
   const L = emplacements();
@@ -278,7 +281,7 @@ function vueDemarrage(){
   </div></div>
   <div class="carte"><h2>Entre appareils <span class="mut petit">chiffré</span></h2><div id="nuage"><p class="mut" style="margin:0">…</p></div></div>
   <button class="btn sec plein" data-act="importer">Importer une partie (fichier .json)</button>
-  <p class="petit mut">Les parties sont gardées sur cet appareil. Pour les retrouver ailleurs : « Entre appareils » ci-dessus (synchronisation chiffrée), ou exporte la partie puis importe le fichier.</p>`;
+  <p class="petit mut">Les parties sont gardées sur cet appareil. Pour les retrouver ailleurs : « Entre appareils » ci-dessus (synchronisation chiffrée), ou exporte la partie puis importe le fichier.</p>${lienRetourKiosk()}`;
   rendreNuage();
 }
 function blasonCode(id){ const c = D.CLUBS.find(x => x[0] === id); return V.blason({id, couleurs:[c[6], c[7]]}); }
@@ -925,7 +928,7 @@ function vueSauvegardes(){
   <div class="carte"><h2>Partie en cours</h2><p style="margin:0">Emplacement ${EMP} · ${esc(e.nomClub || '')} · ${esc(e.saison || '')}</p><p class="petit mut" style="margin:4px 0 12px">Dernier enregistrement : ${e.maj ? new Date(e.maj).toLocaleString('fr-FR') : '—'}</p>
     <div class="btns"><button class="btn" data-act="sauverMain">Enregistrer</button><button class="btn sec" data-act="exporter" data-n="${EMP}">Exporter</button></div></div>
   <div class="carte"><h2>Entre appareils <span class="mut petit">chiffré</span></h2><div id="nuage"><p class="mut" style="margin:0">…</p></div></div>
-  <div class="carte"><h2>Autres parties</h2><button class="btn sec plein" data-act="quitter">Changer de partie</button><div style="height:8px"></div><button class="btn sec plein" data-act="importer">Importer un fichier</button></div>`;
+  <div class="carte"><h2>Autres parties</h2><button class="btn sec plein" data-act="quitter">Changer de partie</button><div style="height:8px"></div><button class="btn sec plein" data-act="importer">Importer un fichier</button>${lienRetourKiosk()}</div>`;
   rendreNuage();
 }
 function vueAide(){

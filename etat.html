@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="5354731a">
+<meta name="mon-ecran-version" content="f448f401">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -373,8 +373,19 @@ function autoHTML(){
 /* v48 : regroupé par thèmes — Contenu · Paramétrage · Technique */
 const grp = t => `<h2 class="grp">${t}</h2>`;
 const groupes = tech => cotesPart() + tvPart()
-  + grp('Paramétrage') + part('Thème et icône', {lvl:'ok', msg:((Themes.liste().find(t => t.id === Themes.actuel()) || {}).nom || 'Thème') + ' · ' + ({auto:'mode de l\'appareil', clair:'clair', sombre:'sombre'})[modeNow()]}, themeHTML()) + autoHTML() + syncHTML() + sauvHTML()
+  + grp('Paramétrage') + part('Thème et icône', {lvl:'ok', msg:((Themes.liste().find(t => t.id === Themes.actuel()) || {}).nom || 'Thème') + ' · ' + ({auto:'mode de l\'appareil', clair:'clair', sombre:'sombre'})[modeNow()]}, themeHTML()) + autoHTML() + syncHTML() + qm27Part() + sauvHTML()
   + grp('Technique') + tech + confPart() + pronosPart();
+/* v170 : parties de QM27 restées dans KiosK sur cet appareil (QM27 est une appli à part depuis la v169 ; sur iPhone, l'appli QM27 a son
+   propre stockage) : lien pour ouvrir le jeu ici, les envoyer par la synchro ou les exporter, puis les récupérer dans l'appli QM27 */
+function qm27Part(){
+  let L = {}; try{ L = JSON.parse(localStorage.getItem('qm27:emplacements')) || {}; }catch{}
+  const P = Object.values(L).filter(e => e && e.nomClub); if (!P.length) return '';
+  return part('Parties de QM27 sur cet appareil', {lvl:'warn', msg:`${P.length} partie${P.length > 1 ? 's' : ''} à transférer vers l'appli QM27`},
+    `<p class="note">QM27 est maintenant une appli à part. Ces parties sont encore enregistrées ici : ${P.map(e => `<b>${esc(e.nomClub)}</b> (${esc(e.saison || '')})`).join(', ')}.</p>
+    <ol class="note"><li>Ouvre le jeu ici, puis Sauvegardes (écran des parties ou Plus › Sauvegardes) › Entre appareils › <b>Envoyer</b> (ou Exporter).</li>
+    <li>Dans l'appli QM27 : active une fois la synchro, puis <b>Récupérer</b>.</li></ol>
+    <div class="actions"><a class="btn main" href="qm27.html?retour=kiosk">Ouvrir QM27 ici</a></div>`);
+}
 /* v65 : d'où vient l'adresse du serveur des Pronos (noyau.js, Noyau.pronos.serveur) */
 function pronosPart(){
   if (!window.Noyau || !Noyau.pronos) return '';
