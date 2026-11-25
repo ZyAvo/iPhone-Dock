@@ -1,6 +1,6 @@
 {
- "lot": "v167",
- "date": "2026-11-24T05:49:28+00:00",
+ "lot": "v168",
+ "date": "2026-11-25T10:50:48+00:00",
  "fichiers": {
   ".github/workflows/actus.yml": "666cb3de",
   ".github/workflows/appli-ios.yml": "71fe94d4",
@@ -10,7 +10,7 @@
   ".github/workflows/marches.yml": "26b68d91",
   ".github/workflows/mise-a-jour.yml": "6e6ba9fd",
   ".github/workflows/programme-tv.yml": "3a0dff1e",
-  ".github/workflows/publication.yml": "4c40213c",
+  ".github/workflows/publication.yml": "14fa11db",
   ".github/workflows/rappels-pronos.yml": "ff51e367",
   ".github/workflows/sport.yml": "74209416",
   ".github/workflows/tv.yml": "a0b896b9",
@@ -29,7 +29,7 @@
   "invest.html": "505d6907",
   "match.js": "ed101192",
   "noyau.js": "79ea0556",
-  "outils/actus-data.mjs": "a9c3ac7a",
+  "outils/actus-data.mjs": "f5aa23be",
   "outils/cles-notifications.html": "e11caca6",
   "outils/config-lire.mjs": "0bd1f840",
   "outils/configuration.py": "d9f9116c",

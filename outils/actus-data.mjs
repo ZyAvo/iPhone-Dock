@@ -1,4 +1,4 @@
-// mon-ecran-version: a9c3ac7a
+// mon-ecran-version: f5aa23be
 // Prépare les actus de la page Actus (lancé par la tâche GitHub « Actus », toutes les 30 min).
 // Lit la liste des onglets et des flux directement dans actus.html, télécharge chaque flux RSS/Atom
 // sans passer par un service tiers, regroupe les mêmes infos venant de plusieurs sites et écrit :
@@ -73,18 +73,46 @@ function parse(xml){
 }
 
 /* ---------- Téléchargement ---------- */
-async function get(url){
-  let last;
+/* v168 : un site à la fois (The Guardian refusait par 403 le 3e flux demandé en même temps) ;
+   sur un 403, un second essai après une pause, en se présentant comme un lecteur de flux */
+const NAVIGATEUR = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
+const LECTEUR = 'Mozilla/5.0 (compatible; KiosK-RSS/1.0; +https://github.com/ZyAvo/iPhone-Dock)';
+const hotes = new Map();
+function parHote(url, fn){
+  let h = ''; try{ h = new URL(url).host; }catch{}
+  const p = (hotes.get(h) || Promise.resolve()).then(fn);
+  hotes.set(h, p.catch(() => {}).then(() => new Promise(r => setTimeout(r, 700))));
+  return p;
+}
+const pause = ms => new Promise(r => setTimeout(r, ms));
+function get(url){ return parHote(url, () => getDirect(url)); }
+async function getDirect(url){
+  let last, ua = NAVIGATEUR, refus = false;
   for (let i = 0; i < 2; i++){
     try{
       const r = await fetch(url, {signal:AbortSignal.timeout(15000), redirect:'follow',
-        headers:{'user-agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15', accept:'application/rss+xml, application/atom+xml, application/xml, text/xml, */*'}});
-      if (!r.ok){ last = `erreur ${r.status}`; if (r.status === 404 || r.status === 403) break; continue; }
-      return await r.text();
+        headers:{'user-agent':ua, accept:'application/rss+xml, application/atom+xml, application/xml, text/xml, */*', 'accept-language':'fr-FR,fr;q=0.9,en;q=0.8'}});
+      if (!r.ok){
+        last = `erreur ${r.status}`;
+        if (r.status === 404 || r.status === 410) break;
+        if (r.status === 403){ if (refus) break; refus = true; ua = LECTEUR; await pause(3000); continue; }
+      } else return await r.text();
     }catch(e){ last = e.name === 'TimeoutError' ? 'trop lent' : (e.cause && e.cause.code) || e.message; }
-    await new Promise(r => setTimeout(r, 1500));
+    await pause(1500);
   }
   throw new Error(last || 'échec');
+}
+/* v168 : flux sans secours prévu (ex. L'Usine Nouvelle, qui refuse les serveurs de GitHub) : secours Google Actualités
+   limité au site, d'abord à la rubrique du flux (chemin sans « rss »), puis au site entier */
+function secoursAuto(f, en){
+  if (f.alt || f.google || /news\.google\./.test(f.url)) return f.alt || [];
+  let u; try{ u = new URL(f.url); }catch{ return []; }
+  const dom = u.host.replace(/^www\./, '');
+  const chemin = u.pathname.replace(/\/+$/, '').split('/').filter(Boolean)
+    .map(s => s.replace(/\.(rss|xml|php)$/i, '')).filter(s => !/^(rss|feeds?|atom|rss_full|rss_une|index|flux-rss)$/i.test(s) && !/^rss[_-]/i.test(s)).join('/');
+  const hl = en ? 'hl=en-US&gl=US&ceid=US:en' : 'hl=fr&gl=FR&ceid=FR:fr';
+  const G = q => `https://news.google.com/rss/search?q=site:${q}&${hl}`;
+  return [...new Set([chemin && G(`${dom}/${chemin}`), G(dom)].filter(Boolean))];
 }
 async function pool(tasks, n){
   const out = []; let k = 0;
@@ -109,6 +137,7 @@ function cluster(items){
 
 /* ---------- Programme ---------- */
 const feeds = [...new Map(TABS.flatMap(t => t.feeds).map(f => [f.url, f])).values()];
+const EN_URLS = new Set(TABS_EN.flatMap(t => t.feeds).map(f => f.url));
 const state = {};
 /* Flux en panne (adresse changée…) : on cherche le flux annoncé par la page du site
    (<link rel="alternate" type="application/rss+xml">), en préférant celui qui contient f.hint */
@@ -140,7 +169,7 @@ const oldCount = name => [...Object.values((prev && prev.tabs) || {}), ...Object
 const got = await pool(feeds.map(f => async () => {
   let items = [], err = '';
   try{ items = parse(await get(f.url)); if (!items.length) err = 'flux vide ou illisible'; }catch(e){ err = String(e.message || e); }
-  for (const alt of (items.length ? [] : f.alt || [])){               // adresses de secours (ex. Google Actualités limité au site)
+  for (const alt of (items.length ? [] : secoursAuto(f, EN_URLS.has(f.url)))){   // adresses de secours (ex. Google Actualités limité au site ; v168 : automatique si aucune n'est prévue)
     if (isG(alt) && googleAt[f.url] && NOW - googleAt[f.url] < 55 * 60e3 && oldCount(f.name)){
       state[f.url] = {name:f.name, url:f.url, ok:true, reprise:true, n:oldCount(f.name), img:0, trouve:alt, err:`flux principal : ${err} ; articles du passage précédent`};
       return [f.url, []];
