@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="bfb5f8e8">
+<meta name="mon-ecran-version" content="5354731a">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>État des données</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,8 +17,8 @@ img{max-width:100%}
 [hidden]{display:none!important}
 </style>
 <script src="config/config.js"></script>
-<script src="noyau.js?v=79ea0556"></script>
-<script src="themes.js?v=f9d69091"></script>
+<script src="noyau.js?v=a0832c9d"></script>
+<script src="themes.js?v=23ac16a2"></script>
 <link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="commun.css?v=5b436a95">
 <style>
@@ -221,7 +221,7 @@ main .wrap{padding-block:14px 40px;display:flex;flex-direction:column;gap:12px}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 /* Thèmes de couleurs et fond dégradé : themes.js (v42) */
 </style>
-<script src="synchro.js?v=0ce8808a"></script>
+<script src="synchro.js?v=848eea30"></script>
 </head>
 <body>
 <header>
@@ -296,7 +296,7 @@ function themeHTML(){
     <b style="margin-top:8px">Police des titres</b>
     <div class="pals" role="radiogroup" aria-label="Police des titres"><style>${Themes.facesPolices()}</style>${Themes.polices.map(P => `<button type="button" class="pl-row" role="radio" aria-checked="${P.id === Themes.policeKiosk()}" data-police="${P.id}">
       <span class="pl-t"><b style="${P.famille ? `font-family:${esc(P.famille)};font-size:1.1em` : ''}">${esc(P.nom)}</b><small>${esc(P.d)}</small></span><span class="ok" aria-hidden="true"></span></button>`).join('')}</div>
-    <p class="note" style="margin:2px 0 0">Les titres seulement : textes et chiffres restent dans la police de KiosK. QM27 peut avoir sa propre police (Règles et réglages du jeu).</p>
+    <p class="note" style="margin:2px 0 0">Les titres seulement : textes et chiffres restent dans la police de KiosK.</p>
     <b style="margin-top:8px">Icône de l'appli</b>
     <div class="logos" role="radiogroup" aria-label="Icône de l'appli">${Themes.logos.map(l => `<button type="button" role="radio" class="lg" aria-checked="${l.id === Themes.logoActuel()}" data-logo="${l.id}"><span class="lg-i">${Themes.logoSVG(l.id)}</span><small>${esc(l.nom)}</small></button>`).join('')}</div>
     <p class="note" style="margin:2px 0 0">Aux couleurs du thème choisi. Sur l'écran d'accueil, l'iPhone garde l'icône du jour où elle a été ajoutée : pour la changer, fais d'abord une sauvegarde (ou active la synchronisation), supprime l'icône, puis rajoute-la depuis Safari (Partager › Sur l'écran d'accueil) et restaure tes réglages.</p>

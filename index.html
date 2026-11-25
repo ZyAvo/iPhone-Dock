@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="697696a5">
+<meta name="mon-ecran-version" content="d4371bb7">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Écran</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,8 +18,8 @@ img{max-width:100%}
 [hidden]{display:none!important}
 </style>
 <script src="config/config.js"></script>
-<script src="noyau.js?v=79ea0556"></script>
-<script src="themes.js?v=f9d69091"></script>
+<script src="noyau.js?v=a0832c9d"></script>
+<script src="themes.js?v=23ac16a2"></script>
 <link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="commun.css?v=5b436a95">
 <style>
@@ -511,7 +511,7 @@ html:not(.desk).haut-seul:not(.dispo-carre) .w-news .headline{-webkit-line-clamp
 /* Thèmes de couleurs et fond dégradé : themes.js (v42) */
 :root[data-palette="gris"]{--sport-accent:#4a2e2e}
 </style>
-<script src="synchro.js?v=0ce8808a"></script>
+<script src="synchro.js?v=848eea30"></script>
 </head>
 <body>
 
@@ -712,7 +712,7 @@ garder(QUICK_LEFT, pageOk); garder(QUICK_RIGHT, pageOk);
   }
   if (PG('pronos') && !acces('pronos')) placer('pronos', {label:'Pronos', type:'page', url:'pronos.html', icon:'pronos', color:'--t-brick', auto:true});   // v66 : accès dédié, même sans ligne dans le classeur
   if (PG('ambreval') && !acces('ambreval')) placer('ambreval', {label:'Ambreval', type:'page', url:'ambreval.html', icon:'ambreval', color:'--t-plum', auto:true});   // v80 : le jeu de la vallée, même sans ligne dans le classeur
-  if (PG('qm27') && !acces('qm27')) placer('qm27', {label:'QM27', titre:'Quidditch Manager 27', type:'page', url:'qm27.html', icon:'qm27', color:'--t-teal', auto:true});   // v83 : le jeu de gestion de Quidditch
+  // v169 : plus de tuile QM27 (le jeu est une appli à part, qm27.html) ; un lien vers qm27.html posé dans l'accueil est retiré (pageOk : page sortie)   // v83 : le jeu de gestion de Quidditch
   garder(HOME, a => a.type !== 'auto');                                          // emplacements pas utilisés : rien à l'écran
   garder(HOME, a => a.type !== 'folder' || (FOLDERS[a.target] && FOLDERS[a.target].items && FOLDERS[a.target].items.length));   // dossier vide : pas de tuile
 }

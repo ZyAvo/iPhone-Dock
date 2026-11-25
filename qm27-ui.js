@@ -1,4 +1,4 @@
-// mon-ecran-version: 8868b752
+// mon-ecran-version: b8931840
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -130,7 +130,9 @@ const teteF = (titre, sous, avant) => `<div class="tete">${avant || ''}<div clas
 /* ---------- Sauvegarde ---------- */
 const emplacements = () => LS.lire(K_EMP, {});
 let enCours = null, tNuage = null;
-/* ---------- v85 : synchronisation entre appareils (synchro.js de KiosK : fichier chiffré par emplacement, branche « synchro ») ---------- */
+/* ---------- v85 : synchronisation entre appareils (synchro.js de KiosK : fichier chiffré par emplacement, branche « synchro ») ----------
+   v169 : appli à part ; sur un appareil où KiosK ne l'a pas activée (l'appli QM27 de l'iPhone a son propre stockage), activation ici,
+   pour les parties seulement (Synchro.activerParties : phrase secrète, clé GitHub, code ; rien de KiosK ne vient ni ne repart) */
 const NUAGE = {infos:null, charge:false, err:'', conflit:null};
 const msgSync = e => (window.Synchro && Synchro.MSG && Synchro.MSG[e && e.message]) || (e && e.message === 'verrou' ? 'synchronisation verrouillée : entre ton code' : 'erreur (' + ((e && e.message) || '?') + ')');
 async function infosNuage(){
@@ -164,10 +166,14 @@ async function recupererNuage(n){
 async function rendreNuage(){
   const z = document.getElementById('nuage'); if (!z) return;
   if (!window.Synchro || !Synchro.actif()){
-    z.innerHTML = `<p class="mut" style="margin:0 0 8px">Pour retrouver ta partie sur un autre appareil, active d'abord la synchronisation chiffrée de KiosK (une fois par appareil) dans la page État.</p><a class="btn sec plein" href="etat.html">Ouvrir la page État</a>`; return;
+    z.innerHTML = `<p class="mut" style="margin:0 0 8px">Pour envoyer et récupérer tes parties entre tes appareils, active la synchronisation chiffrée sur cet appareil (une seule fois) : la phrase secrète et la clé GitHub de KiosK, puis ton code. Seules les parties passent par ici.</p>
+      <div class="sync-act"><input class="champ" id="actPhrase" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Phrase secrète (mot-mot-mot…)" aria-label="Phrase secrète">
+      <input class="champ" id="actJeton" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Clé GitHub" aria-label="Clé GitHub">
+      <div class="ligne"><input class="champ" id="actCode" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Ton code" aria-label="Ton code" style="flex:1"><button class="btn" data-act="activerSync">Activer</button></div></div>
+      ${NUAGE.err ? `<p class="petit" style="color:var(--mauvais);margin:8px 0 0">${esc(NUAGE.err)}</p>` : ''}`; return;
   }
   if (!(await Synchro.pret())){
-    z.innerHTML = `<p class="mut" style="margin:0 0 8px">Entre ton code KiosK pour déverrouiller la synchronisation.</p><div class="ligne"><input class="champ" id="codeSync" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Code" style="flex:1"><button class="btn" data-act="ouvrirSync">OK</button></div>`; return;
+    z.innerHTML = `<p class="mut" style="margin:0 0 8px">Entre ton code pour déverrouiller la synchronisation.</p><div class="ligne"><input class="champ" id="codeSync" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Code" style="flex:1"><button class="btn" data-act="ouvrirSync">OK</button></div>`; return;
   }
   const L = emplacements(), I = NUAGE.infos;
   z.innerHTML = `${NUAGE.conflit ? '<p style="margin:0 0 8px;font-weight:600;color:var(--moyen)">Une version plus récente est en ligne pour l\'emplacement ' + NUAGE.conflit + ' : récupère-la ou écrase-la.</p>' : ''}
@@ -199,9 +205,9 @@ addEventListener('pagehide', () => { if (M && !U.live) sauver(); });
 /* ---------- En-tête et barre du bas ---------- */
 function entete(){
   const t = $('#titre'), dr = $('#hdDr'), enJeu = !!(M && M.manager);
-  /* v91 : plus de gros retour KiosK pendant la partie — retour écran par écran et maison ; KiosK seulement depuis l'écran des parties */
-  const ret = $('#hdRetour'), men = $('#hdMenu'), kio = $('#hdKiosk');
-  if (ret){ ret.hidden = !enJeu || PROF <= 0 || U.vue === 'match'; men.hidden = !enJeu || U.vue === 'match'; kio.hidden = enJeu; }
+  /* v91 : retour écran par écran et maison ; v169 : plus de bouton KiosK (appli à part) */
+  const ret = $('#hdRetour'), men = $('#hdMenu');
+  if (ret){ ret.hidden = !enJeu || PROF <= 0 || U.vue === 'match'; men.hidden = !enJeu || U.vue === 'match'; }
   document.body.classList.toggle('en-jeu', enJeu && U.vue !== 'match');
   if (!M || !M.manager){ t.innerHTML = '<b><span class="marque-qm">QM27</span></b><span>Quidditch Manager 27</span>'; dr.innerHTML = ''; return; }
   const S = QM.semaine(M);
@@ -272,7 +278,7 @@ function vueDemarrage(){
   </div></div>
   <div class="carte"><h2>Entre appareils <span class="mut petit">chiffré</span></h2><div id="nuage"><p class="mut" style="margin:0">…</p></div></div>
   <button class="btn sec plein" data-act="importer">Importer une partie (fichier .json)</button>
-  <p class="petit mut">Les parties sont gardées sur cet appareil. Pour les retrouver ailleurs : « Entre appareils » ci-dessus (synchronisation de KiosK), ou exporte la partie puis importe le fichier.</p>`;
+  <p class="petit mut">Les parties sont gardées sur cet appareil. Pour les retrouver ailleurs : « Entre appareils » ci-dessus (synchronisation chiffrée), ou exporte la partie puis importe le fichier.</p>`;
   rendreNuage();
 }
 function blasonCode(id){ const c = D.CLUBS.find(x => x[0] === id); return V.blason({id, couleurs:[c[6], c[7]]}); }
@@ -925,8 +931,11 @@ function vueSauvegardes(){
 function vueAide(){
   const P = REG.pauses;
   VUE.innerHTML = `<div><h1 class="grand">Règles et réglages</h1></div>
+  ${window.Themes && Themes.choisirModeJeu ? `<div class="carte"><h2>Apparence</h2><div class="liste">
+    ${[['auto', 'Automatique', 'Comme l\'appareil : clair le jour, sombre le soir'], ['clair', 'Clair', 'Parchemin et bois doré'], ['sombre', 'Sombre', 'Bois sombre et or des lanternes']].map(([k, n, d]) => `<label class="el"><div class="t"><b>${n}</b><span>${d}</span></div><input type="radio" name="modeJeu" data-chg="modeJeu" value="${k}" ${Themes.modeJeu() === k ? 'checked' : ''} style="width:22px;height:22px"></label>`).join('')}
+  </div><p class="petit mut" style="margin:8px 0 0">Thème Grimoire : bois sombre, bordeaux et or.</p></div>` : ''}
   ${window.Themes && Themes.polices ? `<div class="carte"><h2>Police des titres</h2><style>${Themes.facesPolices()}</style><div class="liste">
-    ${[{id:'kiosk', nom:'Comme KiosK', d:'La police choisie dans État', famille:''}, ...Themes.polices].map(P => `<label class="el"><div class="t"><b style="${P.famille ? `font-family:${esc(P.famille)};font-size:1.08em` : ''}">${esc(P.nom)}</b><span>${esc(P.d)}</span></div><input type="radio" name="policeJeu" data-chg="policeJeu" value="${P.id}" ${Themes.policeJeu() === P.id ? 'checked' : ''} style="width:22px;height:22px"></label>`).join('')}
+    ${Themes.polices.map(P => `<label class="el"><div class="t"><b style="${P.famille ? `font-family:${esc(P.famille)};font-size:1.08em` : ''}">${esc(P.nom)}</b><span>${esc(P.id === 'geist' ? 'Simple et lisible' : P.d)}</span></div><input type="radio" name="policeJeu" data-chg="policeJeu" value="${P.id}" ${(Themes.policeIci ? Themes.policeIci() : Themes.policeJeu()) === P.id ? 'checked' : ''} style="width:22px;height:22px"></label>`).join('')}
   </div><p class="petit mut" style="margin:8px 0 0">Pour le jeu seulement : les titres des écrans de QM27.</p></div>` : ''}
   <div class="carte"><h2>Noms des clubs et des ligues</h2><div class="liste">
     ${D.LANGUES_NOMS.map(([k, n, ex]) => `<label class="el"><div class="t"><b>${n}</b><span>${esc(ex)}</span></div><input type="radio" name="nomsLg" data-chg="noms" value="${k}" ${(REG.noms || 'local') === k ? 'checked' : ''} style="width:22px;height:22px"></label>`).join('')}
@@ -964,7 +973,7 @@ function vueAide(){
     <p><b>Le domaine.</b> L'onglet Club ouvre la carte du domaine : touche un lieu (vestiaire, stade, tour du directeur, volière, zone technique, Gringotts, Poudlard, salle des trophées). Zone technique › Bâtiments : le plan et ses douze bâtiments (stade, Bazar, taverne, pensionnat des jeunes, infirmerie, aire d'envol, hangar à balais, salle commune, volière, cabinet de divination, salle des trophées, résidence). Chacun monte du niveau 1 au niveau 5 ; aux niveaux 3 et 5, tu choisis une amélioration parmi deux. Le stade s'agrandit tribune par tribune ; le Bazar vend les produits de ton choix au prix que tu fixes ; sponsor maillot et panneaux se négocient (Club › Partenaires) ; la Banque des Gobelins prête de l'argent (Finances).</p>
     <p><b>Supporters.</b> Ils suivent les résultats et le prix des places et des produits. Contents, ils remplissent le stade et rassurent le président ; fâchés, ils le font douter. Chaque été, des jeunes de 15-16 ans arrivent au pensionnat ; promus, ils jouent en équipe première.</p>
     <p><b>Carrière.</b> D'autres clubs peuvent te proposer leur banc. Si la confiance du président tombe à zéro, tu es licencié : avance le temps en attendant une offre. Avec une réputation de ${E.carriere.repSelection}, une fédération peut te confier sa sélection pour le Tournoi des Six Emblèmes, en plus de ton club.</p>
-    <p><b>Entre appareils.</b> Avec la synchronisation de KiosK activée (page État), Plus › Sauvegardes envoie et récupère la partie, chiffrée.</p>
+    <p><b>Entre appareils.</b> Plus › Sauvegardes › Entre appareils envoie et récupère la partie, chiffrée. La synchronisation s'active une fois par appareil, avec la phrase secrète et la clé GitHub de KiosK.</p>
     <p class="petit mut">Clubs, joueurs, balais et Gallions sont inventés.</p>
   </div>`;
 }
@@ -1310,7 +1319,7 @@ Object.assign(VUES, {vestiaire:vueVestiaire, domaine:vueDomaine, boutique:vueBou
 const ACT = {
   retour:() => { if (PROF > 0) history.back(); else aller('accueil'); },
   maison:() => { retirerFeuille(); aller('accueil'); },
-  quitterKiosk:() => { if (!confirm('Quitter le jeu et revenir à KiosK ? La partie est enregistrée.')) return; sauver().then(() => { location.href = 'index.html'; }); },
+  quitterPartie:() => ACT.quitter(),   // v169 : remplace « Quitter vers KiosK » (appli à part) : retour à l'écran des parties
   fermer:fermerFeuille,
   vue:d => { retirerFeuille(); if (U.live && !U.live.parti){ U.live = null; X = null; } aller(d.v); },
   nouvelle:d => { U.etape = 'club'; U.empNeuf = +d.n; MONDE_NEUF = null; rendre(); scrollTo(0, 0); },
@@ -1452,6 +1461,9 @@ const ACT = {
   slotSel:d => choisirSel(d.p, +d.i, d.b === '1'),
   mettreSel:d => mettreSel(d.j, d.p, +d.i, d.b === '1'),
   consigneSel:d => { M.sel.tactique[d.k] = /^\d$/.test(d.v) ? +d.v : d.v; sauver(); rendre(); },
+  activerSync:async () => { const v = id => (($('#' + id) || {}).value || '').trim();   // v169
+    NUAGE.err = ''; try{ await Synchro.activerParties({phrase:v('actPhrase'), jeton:v('actJeton'), pin:v('actCode')}); toast('Synchronisation activée'); }catch(e){ NUAGE.err = msgSync(e); }
+    NUAGE.infos = null; rendreNuage(); },
   ouvrirSync:async () => { const v = ($('#codeSync') || {}).value || ''; try{ const r = await Synchro.ouvrirAvecCode(v); if (!r) toast(r === false ? 'Code incorrect' : 'Synchronisation introuvable'); }catch(e){ toast(msgSync(e)); } NUAGE.infos = null; rendreNuage(); },
   envoyerNuage:async d => { try{ await sauver(); await envoyerNuage(+d.n, false); NUAGE.infos = null; }catch(e){ toast(msgSync(e)); } rendreNuage(); },
   recupererNuage:async d => { if (!confirm(`Remplacer l'emplacement ${d.n} de cet appareil par la partie en ligne ?`)) return; try{ await recupererNuage(+d.n); U.vue = 'accueil'; rendre(); scrollTo(0, 0); }catch(e){ toast(msgSync(e)); } },
@@ -1475,6 +1487,7 @@ document.addEventListener('change', e => {
   const t = e.target;
   if (t.dataset.chg === 'pause'){ REG.pauses[t.dataset.k] = t.checked; regler(); }
   if (t.dataset.chg === 'policeJeu'){ Themes.choisirPoliceJeu(t.value); return; }   // v126
+  if (t.dataset.chg === 'modeJeu'){ Themes.choisirModeJeu(t.value); return; }   // v169
   if (t.dataset.chg === 'noms'){ REG.noms = QM.langueNoms(t.value); regler(); if (M){ QM.nommer(M); sauver(); } if (MONDE_NEUF) QM.nommer(MONDE_NEUF); entete(); toast({local:'Noms dans la langue de chaque pays', en:'Noms en anglais', fr:'Noms en français'}[REG.noms]); }
   if (t.dataset.chg === 'resumes'){ REG.resumes = t.checked ? 'enjeu' : 'tout'; regler(); }
   if (t.dataset.chg === 'son'){ REG.son = t.checked; regler(); }

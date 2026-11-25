@@ -2,27 +2,28 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="3666f1df">
+<meta name="mon-ecran-version" content="1d404fae">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
+<meta name="apple-mobile-web-app-title" content="QM27">
+<meta name="theme-color" content="#1f150f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icones/qm27-180.png">
+<link rel="icon" type="image/png" href="icones/qm27-192.png">
+<link rel="manifest" href="manifest-qm27.json">   <!-- v169 : appli à part, installée depuis cette page (Partager › Sur l'écran d'accueil) -->
 <style>
 :root{color-scheme:light}
 body{margin:0;font-size:14px}
 [hidden]{display:none!important}
 </style>
-<script src="config/config.js"></script>
-<script src="noyau.js?v=79ea0556"></script>
-<script>/* page désactivée : on s'arrête là */Noyau.accueil.garde('qm27');</script>
-<script src="themes.js?v=f9d69091"></script>
+<!-- v169 : QM27 n'est plus une page de KiosK : ni config/config.js, ni noyau.js, ni garde « page désactivée » -->
+<script src="themes.js?v=23ac16a2"></script>
 <link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="commun.css?v=5b436a95">
 <style>
-/* QM27 (v83, lot 2 : v84, lot 3 : v85) : jeu de gestion de club de Quidditch. Couleurs du thème de KiosK (themes.js), or pour le vif d'or. */
+/* QM27 (v83, lot 2 : v84, lot 3 : v85) : jeu de gestion de club de Quidditch. v169 : appli à part, thème Grimoire (themes.js), clair ou sombre ; or pour le vif d'or. */
 :root{
   --base:#e7ecef; --ink:#10233a; --ink-soft:#56636f; --ink-faint:#8b98a5;
   --card:rgba(255,255,255,.66); --card-2:rgba(255,255,255,.4); --line:rgba(39,76,119,.13); --head:rgba(231,236,239,.78);
@@ -61,7 +62,6 @@ header.qm .wrap{display:flex;align-items:center;gap:10px;min-height:52px}
 .hd-btn{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:11px;border:0;background:transparent;color:var(--accent);padding:0;cursor:pointer}
 .hd-btn[hidden]{display:none}
 .hd-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.hd-btn.kiosk svg{fill:currentColor;stroke:none;width:20px;height:20px}
 .hd-btn:active{background:var(--line)}
 .back{display:flex;align-items:center;gap:2px;color:var(--accent);font-weight:500;font-size:1rem;padding-block:6px;flex:none}
 .back svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -272,6 +272,7 @@ nav.qm-nav button.on{color:var(--accent)}
 .logo-qm h1 small{display:block;font-size:.85rem;color:var(--or);font-weight:750;letter-spacing:.08em;margin-top:3px}
 .emp{display:flex;align-items:center;gap:12px}
 .champ{width:100%;min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--card-2);padding:0 12px;font-size:1rem}
+.sync-act{display:flex;flex-direction:column;gap:8px}   /* v169 : activation de la synchro dans le jeu */
 .etoiles{color:var(--or);letter-spacing:1px;font-size:.78rem}
 /* v164 : calcul de la semaine en cours */
 .qm-roue{display:inline-block;width:1em;height:1em;margin-right:.5em;vertical-align:-.15em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:qm-tour .7s linear infinite}
@@ -1269,7 +1270,6 @@ html.desk .er{cursor:grab}
 <body>
 <header class="qm">
   <div class="wrap">
-    <a class="hd-btn kiosk" id="hdKiosk" href="index.html" aria-label="Retour à KiosK"><svg class="k-logo" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9.2" height="9.2" rx="2.6"/><rect x="12.8" y="2" width="9.2" height="9.2" rx="2.6" opacity=".6"/><rect x="2" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".78"/><rect x="12.8" y="12.8" width="9.2" height="9.2" rx="2.6" opacity=".4"/></svg></a>
     <button class="hd-btn" id="hdMenu" data-act="menu" aria-label="Tous les menus" aria-expanded="false" hidden><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <button class="hd-btn" id="hdRetour" data-act="retour" aria-label="Retour" hidden><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
 
@@ -1280,7 +1280,7 @@ html.desk .er{cursor:grab}
 <main><div class="wrap" id="vue" aria-live="polite"></div></main>
 <nav class="qm-nav" id="nav" hidden aria-label="Menus du jeu"><div class="in"></div></nav>
 <input type="file" id="fichier" accept=".json,application/json" hidden>
-<script src="synchro.js?v=0ce8808a"></script>
+<script src="synchro.js?v=848eea30"></script>
 <script src="qm27-donnees.js?v=a08ae246"></script>
 <script src="qm27.js?v=354f40a3"></script>
 <script src="qm27-club.js?v=38eea1fa"></script>
@@ -1294,11 +1294,11 @@ html.desk .er{cursor:grab}
 <script src="qm27-europe.js?v=d5461710"></script>
 <script src="qm27-nations.js?v=66d46995"></script>
 <script src="qm27-visuel.js?v=475e9f0c"></script>
-<script src="qm27-ui.js?v=8868b752"></script>
+<script src="qm27-ui.js?v=b8931840"></script>
 <script src="qm27-fiche.js?v=7db74896"></script>
 <script src="qm27-lieux.js?v=352e78a0"></script>
 <script src="qm27-direct.js?v=2b32fd29"></script>
-<script src="qm27-ecrans.js?v=dbfe177a"></script>
+<script src="qm27-ecrans.js?v=aad97c6e"></script>
 <script src="qm27-stats.js?v=d7377b86"></script>
 <script src="commun.js?v=fc411b5f"></script>
 </body>

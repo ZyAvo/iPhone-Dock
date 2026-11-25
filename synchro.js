@@ -1,4 +1,4 @@
-// mon-ecran-version: 0ce8808a
+// mon-ecran-version: 848eea30
 /* Mon Écran — synchronisation chiffrée entre tes appareils (iPhone, PC…).
    - Un fichier chiffré (synchro/mon-ecran.json, branche « synchro » de ton dépôt GitHub) contient tes placements,
      versements, réglages d'investissement et le Coffre. Sans la phrase secrète, c'est un bloc illisible.
@@ -29,7 +29,7 @@ const DEPOT = window.Noyau ? Noyau.depot.nom : (() => { const h = location.hostn
   const c = ((window.MON_ECRAN_CONFIG || {}).depot || {}).nom || ''; return h && p ? `${h[1]}/${p}` : /^[\w.-]+\/[\w.-]+$/.test(c) ? c : 'ZyAvo/iPhone-Dock'; })();
 const BRANCHE = 'synchro', CHEMIN = 'synchro/mon-ecran.json', API = `https://api.github.com/repos/${DEPOT}`;
 const TOURS = 310000;
-const appareil = () => window.Noyau ? Noyau.appareil().nom : /iPhone/.test(navigator.userAgent) ? 'iPhone' : /iPad/.test(navigator.userAgent) ? 'iPad' : /Android/.test(navigator.userAgent) ? 'Android' : 'ordinateur';
+const appareil = () => window.Noyau ? Noyau.appareil().nom : /iPhone|iPod/.test(navigator.userAgent) ? 'iPhone' : /iPad/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && (navigator.maxTouchPoints || 0) > 1) ? 'iPad' : /Android/.test(navigator.userAgent) ? 'Android' : 'ordinateur';
 
 /* ---------- Coffre local (même format que cachee.html : clé tirée du code, 150 000 tours) ---------- */
 async function coffreLire(pin){
@@ -95,10 +95,12 @@ async function lireConfig(pin){
   const c = LSg('synchro:cfg', null); if (!c) return null;
   try{ return await dechiffrer(await cleDe(pin, unb64(c.sel), 150000), c); }catch{ return false; }
 }
-async function ecrireConfig(pin, cfg){
+async function ecrireConfig(pin, cfg, plus = {}){
   const sel = crypto.getRandomValues(new Uint8Array(16));
-  LSs('synchro:cfg', {v:1, sel:b64(sel), ...(await chiffrer(await cleDe(pin, sel, 150000), cfg)), appareil:appareil()});
+  LSs('synchro:cfg', {v:1, sel:b64(sel), ...(await chiffrer(await cleDe(pin, sel, 150000), cfg)), appareil:appareil(), ...plus});
 }
+/* v169 : synchro activée depuis l'appli QM27 (« parties seulement ») : clé des parties, sans investissements, Coffre ni préférences */
+const seulParties = () => !!(LSg('synchro:cfg', null) || {}).parties;
 
 /* ---------- Échange d'une partie ---------- */
 async function contenuDistant(sess){
@@ -159,7 +161,8 @@ function genererPhrase(n = 6){
 }
 
 const MSG = {jeton:'clé GitHub refusée (expirée ou mal copiée)', droits:'la clé GitHub n\'a pas le droit d\'écrire sur le dépôt', limite:'trop de demandes à GitHub, réessaie dans quelques minutes',
-  reseau:'pas de réseau ou GitHub injoignable', conflit:'modifications simultanées, réessaie', phrase:'phrase secrète incorrecte', coffre:'le Coffre est chiffré avec un autre code : ouvre-le une fois avec ton code actuel'};
+  reseau:'pas de réseau ou GitHub injoignable', conflit:'modifications simultanées, réessaie', phrase:'phrase secrète incorrecte', coffre:'le Coffre est chiffré avec un autre code : ouvre-le une fois avec ton code actuel',
+  champs:'remplis la phrase secrète, la clé GitHub et ton code', absente:'aucune synchronisation trouvée : active-la d\'abord dans KiosK (page État)'};   // v169
 
 /* partie « invest » : placements, réglages (sauf l'état du cadenas, propre à chaque appareil) et versements */
 const investLocal = () => { const { verrou, ...reglages } = LSg('invest:reglages', {}); return {lignes:LSg('invest:lignes', []), reglages, versements:LSg('invest:versements', [])}; };
@@ -182,13 +185,14 @@ const PREFS_OPTS = {local:prefsLocal, appliquer:prefsAppliquer,
   choisir:(ici, ailleurs) => prefsVide(ici) ? 'ailleurs' : prefsVide(ailleurs) ? 'ici'
     : sansPronos(ici) === sansPronos(ailleurs) ? (ailleurs.pronos == null && ailleurs.pronosx == null ? 'ici' : 'ailleurs')
     : conflit('Tes favoris (sport, abonnements, villes, thème perso, chaînes TV, identité Pronos)')()};
-const prefsSync = () => LSg('synchro:cfg', null) ? partie('prefs', PREFS_OPTS) : Promise.resolve('inactif');
+const prefsSync = () => LSg('synchro:cfg', null) && !seulParties() ? partie('prefs', PREFS_OPTS) : Promise.resolve('inactif');   // v169 : rien dans l'appli QM27 (parties seulement)
 /* au chargement : si la session est déjà ouverte (code saisi), on échange les préférences sans rien demander */
 setTimeout(async () => { try{ if (LSg('synchro:cfg', null) && await sessionCle()) prefsSync(); }catch{} }, 2500);
 window.Synchro = {
   investLocal, investAppliquer, prefsLocal, prefsAppliquer,
   prefs:prefsSync,
-  prefsPlusTard(){ if (LSg('synchro:cfg', null)) plusTard('prefs', PREFS_OPTS, 2000); },
+  prefsPlusTard(){ if (LSg('synchro:cfg', null) && !seulParties()) plusTard('prefs', PREFS_OPTS, 2000); },
+  seulParties,
   DEPOT, actif:() => !!LSg('synchro:cfg', null), pret:async () => !!(await sessionCle()), etat, MSG, appareil,
   genererPhrase, demander, conflit, partie, plusTard, coffreLire, coffreEcrire, empreinte,
   fermer(){ SSs(S_KEY, null); },
@@ -203,7 +207,19 @@ window.Synchro = {
     await ouvrirSession(cfg.phrase, cfg.jeton, sel); setTimeout(prefsSync, 800); return true;
   },
   /* code changé : reprendre la configuration avec l'ancien code puis la rechiffrer avec le nouveau */
-  async recoder(ancien, nouveau){ const cfg = await lireConfig(ancien); if (!cfg) return false; await ecrireConfig(nouveau, cfg); return true; },
+  async recoder(ancien, nouveau){ const cfg = await lireConfig(ancien); if (!cfg) return false; await ecrireConfig(nouveau, cfg, seulParties() ? {parties:1} : {}); return true; },
+  /* v169 : activation depuis l'appli QM27, pour les parties seulement : vérifie la phrase sur le fichier de KiosK (sans jamais l'écrire)
+     et garde la clé ; les investissements, le Coffre et les préférences ne viennent pas sur cet appareil */
+  async activerParties({phrase, jeton, pin}){
+    phrase = String(phrase || '').trim().toLowerCase(); jeton = String(jeton || '').trim(); pin = String(pin || '');
+    if (!phrase || !jeton || !pin) throw new Error('champs');
+    const r = await gh(jeton, ''); if (!r.ok) throw new Error(r.status === 404 ? 'droits' : 'reseau');
+    const d = await lireDistant(jeton); if (!d) throw new Error('absente');
+    const cle = await cleDe(phrase, unb64(d.fichier.sel), d.fichier.tours || TOURS);
+    try{ await dechiffrer(cle, d.fichier); }catch{ throw new Error('phrase'); }
+    await ecrireConfig(pin, {phrase, jeton, sel:d.fichier.sel}, {parties:1}); await ouvrirSession(phrase, jeton, d.fichier.sel);
+    return {ok:true};
+  },
   /* activation sur cet appareil (page État) */
   async activer({phrase, jeton, pin, choix}){
     phrase = phrase.trim().toLowerCase(); jeton = jeton.trim();

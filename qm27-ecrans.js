@@ -1,4 +1,4 @@
-// mon-ecran-version: dbfe177a
+// mon-ecran-version: aad97c6e
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -807,7 +807,7 @@ ACT.supprLus = () => { if (!confirm('Supprimer tous les messages lus ?')) return
 /* ============================== Menu Plus ============================== */
 function vuePlus(){
   const M_ = M(), mg = M_.manager, n = nonLus();
-  const el = (act, v, ico, t, s) => `<button class="el" data-act="${act}" ${v ? `data-v="${v}"` : ''}><span class="blason nat p">${String(ico)[0] !== '<' && ICONES.has(v || act) ? icoVue(v || act, ico) : ico}</span><div class="t"><b>${t}</b><span>${s}</span></div><span class="d mut">›</span></button>`;
+  const el = (act, v, ico, t, s) => `<button class="el" data-act="${act}" ${v ? `data-v="${v}"` : ''}><span class="blason nat p">${String(ico)[0] !== '<' && (ICONES.has(v || act) || ICO_FICHIER[v || act]) ? icoVue(v || act, ico) : ico}</span><div class="t"><b>${t}</b><span>${s}</span></div><span class="d mut">›</span></button>`;
   VUE.innerHTML = `<div><h1 class="grand">Plus</h1></div>
   <div class="carte"><div class="liste">
     ${el('vue', 'boite', '✉️', `Boîte de réception${n ? ` <span class="badge neuf">${n}</span>` : ''}`, plur(M_.boite.length, 'message'))}
@@ -823,7 +823,7 @@ function vuePlus(){
   <div class="carte"><div class="liste">
     ${el('vue', 'sauvegardes', '💾', 'Sauvegardes', `Emplacement ${Z.EMP} · exporter, importer, entre appareils`)}
     ${el('vue', 'aide', '⚙️', 'Règles et réglages', 'Direct, causeries, presse, règles du jeu')}
-    ${el('quitterKiosk', '', '⏏︎', 'Quitter vers KiosK', 'La partie est enregistrée')}
+    ${el('quitterPartie', '', '⏏︎', 'Écran des parties', 'Changer de partie · celle-ci est enregistrée')}
   </div></div>`;
 }
 
@@ -1246,14 +1246,15 @@ function MENU(){
     ['Stade', [['entree', 'Entrée du stade', '🎟️', '', 1], ['stade', 'Tribunes', '🏟️', '', 1], ['buvette', 'La buvette', '🍺', '', 1]]],   // v133
     ['Compétitions', [['federation', 'La Fédération', '🏛️'], ['classements', 'Classements', '📊']]],
     ['Moi', [['salon', 'Mon salon', '🛋️'], ['profil', 'Mon profil', '🧑'], ['carriere', 'Carrière', '🧭']]],
-    ['Partie', [['sauvegardes', 'Sauvegardes', '💾'], ['aide', 'Règles et réglages', '⚙️'], ['quitterKiosk', 'Quitter vers KiosK', '⏏︎', '', 0, 1]]],
+    ['Partie', [['sauvegardes', 'Sauvegardes', '💾'], ['aide', 'Règles et réglages', '⚙️'], ['quitterPartie', 'Écran des parties', '⏏︎', '', 0, 1]]],
   ];
   return G_.map(([g, L]) => [g, L.filter(x => cl || !x[4])]).filter(([, L]) => L.length);
 }
 /* v99 : icônes illustrées (images/qm27/icones/<vue>.webp) ; l'emoji reste en secours si l'image manque */
 const ICONES = new Set(['hall', 'grandesalle', 'entree', 'buvette', 'federation', 'salon', 'progression', 'recrutement', 'equipe', 'accueil', 'boite', 'calendrier', 'effectif', 'tactique', 'entrainement', 'vestiaire', 'formation', 'selection', 'mercato', 'clubs', 'staff', 'club',
   'direction', 'finances', 'stade', 'boutique', 'partenaires', 'domaine', 'trophees', 'classements', 'profil', 'carriere', 'sauvegardes', 'aide', 'quitterKiosk', 'presse', 'reunion']);
-const icoVue = (v, secours, cls) => ICONES.has(v) ? `<img class="${cls || ''}" src="${V.IMAGES}icones/${v}.webp" alt="" width="22" height="22" decoding="async" draggable="false" onerror="this.replaceWith(document.createTextNode('${secours}'))">` : secours;
+const ICO_FICHIER = {quitterPartie:'quitterKiosk'};   // v169 : « Écran des parties » garde l'icône de l'ancien « Quitter vers KiosK »
+const icoVue = (v, secours, cls) => ICONES.has(v) || ICO_FICHIER[v] ? `<img class="${cls || ''}" src="${V.IMAGES}icones/${ICO_FICHIER[v] || v}.webp" alt="" width="22" height="22" decoding="async" draggable="false" onerror="this.replaceWith(document.createTextNode('${secours}'))">` : secours;
 Z.icoVue = icoVue;
 const GROUPE_DE = {vestiaire:'effectif', clubFiche:'clubs', match:'accueil'};
 function menuHTML(){

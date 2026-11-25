@@ -1,4 +1,4 @@
-// mon-ecran-version: e57d43ae
+// mon-ecran-version: 03a01c9e
 /* Mon Écran — mise en mémoire sur l'iPhone pour un démarrage instantané, même sans réseau.
    - Pages (accueil, actus, sport, état) : dernière version si le réseau répond en moins de 1,5 s,
      sinon la version en mémoire tout de suite, mise à jour en arrière-plan (la page se recharge seule
@@ -8,7 +8,7 @@
    Les sites extérieurs (ESPN, Spotify, flux RSS…) ne passent pas par ici. */
 const PAGES = 'pages-v1', DATA = 'donnees-v1', FONTS = 'polices-v1', IMAGES = 'images-v5';   // v164 : v5, icônes du menu (v163) et fonds de scène réduits rechargés une fois ; v93 : illustrations de QM27 ; v108 : v2, les images redécoupées (mêmes noms) sont rechargées une fois ; v123 : v3, les fonds de scène refaits (banque, bureau) ; v129 : v4, icônes et emblèmes refaits sous les mêmes noms
 // v144 : QM27 n'est plus mis en mémoire à l'installation : ses fichiers ne sont chargés (et gardés) qu'à l'ouverture du jeu
-const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'pronos.html', 'reglages.html', 'tv.html', 'ambreval.html', 'ambreval.js?v=1d607614', 'ambreval-art.js?v=5c94a7fe', 'ambreval-ui.js?v=386fbf91', 'noyau.js?v=79ea0556', 'themes.js?v=f9d69091', 'tv.js?v=0b99e5b5', 'match.js?v=ed101192', 'synchro.js?v=0ce8808a', 'commun.js?v=fc411b5f', 'commun.css?v=5b436a95', 'polices/Geist-Variable.woff2', 'manifest.json', 'manifest-pronos.json', 'apple-touch-icon.png', 'icone-192.png', 'icone-512.png'];
+const SHELL = ['./', 'index.html', 'actus.html', 'sport.html', 'etat.html', 'invest.html', 'videos.html', 'cachee.html', 'ecarts.html', 'pronos.html', 'reglages.html', 'tv.html', 'ambreval.html', 'ambreval.js?v=1d607614', 'ambreval-art.js?v=5c94a7fe', 'ambreval-ui.js?v=386fbf91', 'noyau.js?v=a0832c9d', 'themes.js?v=23ac16a2', 'tv.js?v=0b99e5b5', 'match.js?v=ed101192', 'synchro.js?v=848eea30', 'commun.js?v=fc411b5f', 'commun.css?v=5b436a95', 'polices/Geist-Variable.woff2', 'manifest.json', 'manifest-pronos.json', 'apple-touch-icon.png', 'icone-192.png', 'icone-512.png'];
 
 self.addEventListener('install', e => {
   // v70 : la police va dans la réserve des polices, là où elle est cherchée ensuite (avant : retéléchargée au 2e passage)

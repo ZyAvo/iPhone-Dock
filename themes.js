@@ -1,4 +1,4 @@
-// mon-ecran-version: f9d69091
+// mon-ecran-version: 23ac16a2
 /* Mon Écran — thèmes de couleurs (v42), communs à toutes les pages.
    Chargé dans <head> juste après noyau.js : applique le thème et le mode choisis dans État avant l'affichage,
    écrit les couleurs du thème et le fond dégradé (calque fixe : sur iPhone, Safari ignore « background-attachment:fixed »
@@ -173,9 +173,16 @@ function ecrireCSS(){
 
 /* ---------- choix de l'appareil ---------- */
 const DEF = () => CFGv('apparence.palette', 'bleu');
+/* v169 : QM27 est une appli à part (qm27.html) : thème Grimoire imposé, clair ou sombre selon son propre réglage (« qm27:mode »),
+   ses propres icônes (manifest-qm27.json) ; le choix de thème de KiosK ne s'y applique plus */
+const dansJeu = () => /qm27\.html$/.test(location.pathname);
+const JEU_THEME = 'grimoire', MODES = ['clair', 'sombre'];
+const modeJeu = () => { const m = LS.lire('qm27:mode'); return MODES.includes(m) ? m : 'auto'; };
+function poserMode(){ const d = document.documentElement, m = dansJeu() ? modeJeu() : (LS.lire('mode') || CFGv('apparence.mode', ''));
+  if (m === 'clair') d.dataset.theme = 'light'; else if (m === 'sombre') d.dataset.theme = 'dark'; else if (dansJeu()) delete d.dataset.theme; }
 const existe = id => id === 'bleu' || (id === 'perso' ? !!perso() : THEMES.some(t => t.id === id));
 function poser(id){ const d = document.documentElement; if (id && id !== 'bleu' && (existe(id) || id === 'apercu')) d.dataset.palette = id; else delete d.dataset.palette; }
-const actuel = () => { const p = LS.lire('palette') || DEF(); return existe(p) ? p : 'bleu'; };
+const actuel = () => { if (dansJeu()) return JEU_THEME; const p = LS.lire('palette') || DEF(); return existe(p) ? p : 'bleu'; };
 
 function liste(){
   const choisis = CFGv('apparence.palettes', null), connus = CFGv('apparence.palettes_connues', null) || CONNUS_V41;
@@ -260,6 +267,7 @@ function dessinerPNG(svg, px){
   }catch{ res(null); } });
 }
 function poserIcones(){
+  if (dansJeu()) return;   // v169 : QM27 garde ses icônes et son manifeste (qm27.html)
   try{
     const l = logoActuel(), pal = document.documentElement.dataset.palette || 'bleu', svg = logoSVG(l, pal);
     lien('icon', 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg), 'image/svg+xml');
@@ -280,7 +288,6 @@ const POLICES = [
   {id:'fell', nom:'IM Fell English', d:'Vieux livre imprimé', famille:'"IM Fell English", "Iowan Old Style", serif', fichier:'IMFellEnglish-Regular.woff2', poids:'400', ajust:'font-weight:400!important'},
 ];
 const NOMS_POL = {cinzel:'Cinzel', almendra:'Almendra', fell:'IM Fell English'};
-const dansJeu = () => /qm27\.html$/.test(location.pathname);
 const policeKiosk = () => { const p = LS.lire('police'); return POLICES.some(x => x.id === p) ? p : 'geist'; };
 const policeJeu = () => { const p = LS.lire('qm27:police'); return POLICES.some(x => x.id === p) ? p : 'kiosk'; };
 const policeIci = () => { const j = dansJeu() ? policeJeu() : 'kiosk'; return j === 'kiosk' ? policeKiosk() : j; };
@@ -298,6 +305,7 @@ function poserPolice(id){
 window.Themes = {
   polices:POLICES.map(({id, nom, d, famille}) => ({id, nom, d, famille})), policeKiosk, policeJeu,
   choisirPolice(id){ LS.ecrire('police', id === 'geist' || !POLICES.some(x => x.id === id) ? null : id); poserPolice(); },
+  policeIci, modeJeu, choisirModeJeu(m){ LS.ecrire('qm27:mode', MODES.includes(m) ? m : null); poserMode(); },   // v169
   choisirPoliceJeu(id){ LS.ecrire('qm27:police', id === 'kiosk' || !POLICES.some(x => x.id === id) ? null : id); poserPolice(); },
   apercuPolice:id => poserPolice(id),
   /* polices chargées pour les aperçus des listes de choix */
@@ -320,12 +328,11 @@ window.Themes = {
 try{
   ecrireCSS(); poser(actuel()); poserIcones(); poserPolice();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', poserIcones, {once:true});
-  const d = document.documentElement, m = LS.lire('mode') || CFGv('apparence.mode', '');
-  if (m === 'clair') d.dataset.theme = 'light'; else if (m === 'sombre') d.dataset.theme = 'dark';
+  const d = document.documentElement; poserMode();
   const q = matchMedia('(min-width:1024px) and (hover:hover) and (pointer:fine)');
   d.classList.toggle('desk', q.matches); q.addEventListener && q.addEventListener('change', e => d.classList.toggle('desk', e.matches));
 }catch(e){}
 /* thème perso arrivé par la synchro, ou changé dans un autre onglet */
 window.addEventListener('synchro:prefs', () => { Themes.rafraichir(); poserPolice(); });
-window.addEventListener('storage', e => { if (e.key === 'theme:perso' || e.key === 'palette' || e.key === 'logo') Themes.rafraichir(); if (e.key === 'police' || e.key === 'qm27:police') poserPolice(); });
+window.addEventListener('storage', e => { if (e.key === 'theme:perso' || e.key === 'palette' || e.key === 'logo') Themes.rafraichir(); if (e.key === 'police' || e.key === 'qm27:police') poserPolice(); if (e.key === 'qm27:mode' && dansJeu()) poserMode(); });
 })();

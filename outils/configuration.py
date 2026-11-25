@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# mon-ecran-version: d9f9116c
+# mon-ecran-version: 57e27bb3
 # Lit le classeur de configuration (configuration.xlsx) et écrit les réglages du dock dans config/ :
 #   config/sport.json, actus.json, marches.json, videos.json, tv.json, cotes.json, accueil.json, apparence.json, applis.json
 #   config/config.js                     → les mêmes réglages en un seul fichier, chargé par les pages (window.MON_ECRAN_CONFIG)
@@ -518,8 +518,7 @@ def decaler_plages(texte, fin, nfin):
     return ' '.join(out)
 
 # v81 : pages apparues après la création du classeur → leur ligne dans l'onglet Accueil (id, élément, détail, placée après, Oui)
-PAGES_AJOUTEES = [('ambreval', 'Ambreval (jeu)', 'le jeu de la vallée', 'pronos', 'Oui'),
-                  ('qm27', 'QM27 (jeu)', 'Quidditch Manager 27, le jeu de gestion de club', 'ambreval', 'Non')]   # v83 ; v144 : désactivé par défaut
+PAGES_AJOUTEES = [('ambreval', 'Ambreval (jeu)', 'le jeu de la vallée', 'pronos', 'Oui')]   # v169 : plus de ligne QM27 (le jeu est une appli à part ; une ligne déjà présente est ignorée par KiosK)
 
 def inserer_ligne(wb, ws, r, modele):
     """Insère une ligne vide en r (copie la mise en forme de la ligne « modele ») ; fusions, listes Oui/Non, mises en forme,

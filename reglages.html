@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="7c27a285">
+<meta name="mon-ecran-version" content="f4ba8b1b">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Réglages</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,8 +17,8 @@ img{max-width:100%}
 [hidden]{display:none!important}
 </style>
 <script src="config/config.js"></script>
-<script src="noyau.js?v=79ea0556"></script>
-<script src="themes.js?v=f9d69091"></script>
+<script src="noyau.js?v=a0832c9d"></script>
+<script src="themes.js?v=23ac16a2"></script>
 <link rel="preload" href="polices/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="commun.css?v=5b436a95">
 <style>
@@ -357,7 +357,7 @@ html.desk .sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(440px, calc(1
 
 /* Thèmes de couleurs et fond dégradé : themes.js (v42) */
 </style>
-<script src="synchro.js?v=0ce8808a"></script>
+<script src="synchro.js?v=848eea30"></script>
 </head>
 <body>
 <header>
@@ -693,9 +693,10 @@ function formulaire(mid, mod){
 /* ---------- Pages et widgets (onglet Accueil du classeur) ---------- */
 const secAccueil = cle => { const m = moduleDe('accueil'); return m && (m.sections || []).find(s => s.cle === cle) || null; };
 const toujours = it => A.TOUJOURS.includes(it.def) || it.id === 'pg:etat';
+const sortie = it => (A.SORTIES || []).includes(it.def);   // v169 : page sortie de KiosK (QM27) : plus dans la liste, même si le classeur a encore sa ligne
 const on = id => etat(id).choisi;
 function resumeAccueil(){
-  const P = (secAccueil('pages') || {items:[]}).items.filter(it => !toujours(it)), W = (secAccueil('widgets') || {items:[]}).items;
+  const P = (secAccueil('pages') || {items:[]}).items.filter(it => !toujours(it) && !sortie(it)), W = (secAccueil('widgets') || {items:[]}).items;
   const n = L => L.filter(it => on(it.id)).length;
   return `${n(P)} page${n(P) > 1 ? 's' : ''} sur ${P.length} · ${n(W)} widget${n(W) > 1 ? 's' : ''} sur ${W.length}`;
 }
@@ -724,7 +725,6 @@ function noteAccueil(it){
     if (it.def === 'cachee') n.push('plus d\'appui long pour l\'ouvrir');
     if (it.def === 'pronos') n.push('la page se ferme aussi pour tes amis (leur lien ne s\'ouvre plus)');   // v66
     if (it.def === 'ambreval') n.push('ta partie reste enregistrée : elle reprend si tu le réactives');   // v81
-    if (it.def === 'qm27') n.push('tes carrières restent enregistrées : elles reprennent si tu le réactives');   // v83
   }
   return n.length ? `<span class="etq">${n.map(t => `<span class="bd gr">${esc(t)}</span>`).join('')}</span>` : '';
 }
@@ -743,7 +743,7 @@ function ecranAccueil(E, mod){
   const att = s => s && (attenteDe(s.id).length || (s.items || []).some(it => attenteDe(it.id).length));
   let h = `<h2 class="ecr-t">${esc(E.titre)}</h2><p class="intro">${esc(E.intro)}</p>`;
   if (sP){
-    const P = (sP.items || []).filter(it => !toujours(it));
+    const P = (sP.items || []).filter(it => !toujours(it) && !sortie(it));
     const fixes = [A.NOMS_PAGES.etat, A.NOMS_PAGES.reglages].map(nom => `<div class="it gris"><span class="it-t"><b>${esc(nom)}</b><small>toujours active</small></span>
       <input type="checkbox" class="sw" checked disabled aria-label="${esc(nom)} : toujours active"></div>`).join('');
     h += blocAccueil(sP.label, `${P.filter(it => on(it.id)).length} sur ${P.length} · une page désactivée disparaît de l'accueil`, P.map(ligneAccueil).join('') + fixes, att(sP));
