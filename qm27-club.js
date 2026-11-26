@@ -1,4 +1,4 @@
-// mon-ecran-version: 38eea1fa
+// mon-ecran-version: 00f844b8
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -342,20 +342,29 @@ function mercatoIA(M, S, r, part = 1){
       const v = (nv - b.seuil) / (1 + prix / Math.max(1e6, budget) + sal / Math.max(2e4, place)) - Math.max(0, j.age - 30) * 0.2;
       if (v > bestV){ best = {j, prix:arrondi(prix, 5000), sal}; bestV = v; }
     }
-    if (best && suivis.has(best.j.id) && !(M.encheres || []).some(e => e.j === best.j.id)){ mettreEnAttente(M, c, best, r.ent(1, 3)); faits++; continue; }   // v166 : un joueur que le manager suit
+    if (best && suivis.has(best.j.id) && !(M.encheres || []).some(e => e.j === best.j.id)){ if (mettreEnAttente(M, c, best, r.ent(1, 3))) faits++; continue; }   // v166 : un joueur que le manager suit
     if (best){ transfert(M, best.j.id, c.id, best.prix, best.sal, r.ent(1, 3)); faits++; }
   }
 }
 /* v166 : offre d'un club de l'ordinateur sur un joueur que le manager suit : un hibou le prévient, l'offre attend le temps suivant du mercato
    (mercredi ou samedi) ; une offre du manager au moins 5 % plus haute passe devant (voir resoudre, qm27-vestiaire.js) */
 const SURENCHERE = 1.05;
+/* v172 : quand l'offre se conclura. Mercredi joué pour de vrai : samedi. Sinon (samedi, ou mercredi joué dans le même clic que samedi) : au prochain
+   temps du mercato ; s'il n'y en a pas avant la fermeture, null (le manager ne pourrait pas surenchérir : pas d'offre sur ce joueur) */
+function quandEnchere(M){
+  if (Q().enMilieu(M) && !M.miAuto) return 'samedi';
+  const Sn = M.calendrier[M.semaine + 1];
+  if (!Sn || !mercatoOuvert(Sn)) return null;
+  return Sn.type === 'sixn' && Sn.comp ? 'au prochain temps du mercato' : 'mercredi';
+}
 function mettreEnAttente(M, c, best, ans){
-  const j = best.j, de = j.club ? club(M, j.club) : null;
-  (M.encheres = M.encheres || []).push({j:j.id, club:c.id, de:j.club || null, prix:best.prix, sal:best.sal, ans, etape:Q().etape(M)});
-  const quand = Q().enMilieu(M) ? 'samedi' : 'mercredi';
+  const j = best.j, de = j.club ? club(M, j.club) : null, quand = quandEnchere(M);
+  if (!quand) return false;
+  (M.encheres = M.encheres || []).push({j:j.id, club:c.id, de:j.club || null, prix:best.prix, sal:best.sal, ans, etape:Q().etape(M) + (M.miAuto ? 1 : 0), quand});
   Q().message(M, `Hibou : ${c.nom} veut ${nomJ(j)}`, de
     ? `${c.nom} offre ${euros(best.prix)} à ${de.nom} pour ${nomJ(j)}, que tu suis. Le transfert se fera ${quand}, sauf si tu proposes au moins ${euros(arrondi(best.prix * SURENCHERE, 5000))} d'ici là (Mercato).`
     : `${c.nom} propose un contrat à ${nomJ(j)}, agent libre que tu suis. Il signera ${quand}, sauf si tu le fais signer avant (Mercato).`, 'mercato');
+  return true;
 }
 const enchereSur = (M, jid) => (M.encheres || []).find(e => e.j === jid) || null;
 /* les offres en attente du temps précédent se concluent, si le joueur n'a pas bougé entre-temps */

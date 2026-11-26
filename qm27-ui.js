@@ -1,4 +1,4 @@
-// mon-ecran-version: 030f795f
+// mon-ecran-version: 0c4cd5d0
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -1088,10 +1088,10 @@ function vueMercato(){
   } else if (MERC.onglet === 'suivis'){
     const L = U.suivi.map(id => M.joueurs[id]).filter(j => j && j.club !== U.id), n = U.suivi.length, P = E.scouting.plein;
     /* v166 : capacité du recruteur et offres des autres clubs en attente sur les joueurs suivis */
-    const ENC = (M.encheres || []).filter(e => U.suivi.includes(e.j) && M.joueurs[e.j]), quand = QM.enMilieu(M) ? 'samedi' : 'mercredi';
+    const ENC = (M.encheres || []).filter(e => U.suivi.includes(e.j) && M.joueurs[e.j]), quand0 = QM.enMilieu(M) ? 'samedi' : 'mercredi';   // v172 : chaque offre garde son échéance (e.quand)
     corps = `<div class="carte"><p class="petit" style="margin:0">Ton recruteur suit <b>${n} joueur${n > 1 ? 's' : ''}</b> · ${P} à plein régime${n > P ? ` : au-delà, son temps se partage (${Math.round(P / n * 100)} % chacun)` : ''}. Pendant le mercato, il travaille une fois et demie plus vite.</p></div>
     ${ENC.length ? `<div class="carte"><h2>Offres d'autres clubs</h2><div class="liste">${ENC.map(e => { const j = M.joueurs[e.j], c = club(e.club);
-      return `<button class="el" data-act="joueur" data-j="${j.id}">${blason(c.id, 'p')}<div class="t"><b>${esc(nomJ(j))}</b><span style="white-space:normal">${esc(c.nom)} : ${e.de ? eur(e.prix) + ' · il faut ' + eur(Math.round(e.prix * C.SURENCHERE / 5000) * 5000) + ' pour passer devant' : 'contrat proposé'} · conclu ${quand}</span></div></button>`; }).join('')}</div></div>` : ''}
+      return `<button class="el" data-act="joueur" data-j="${j.id}">${blason(c.id, 'p')}<div class="t"><b>${esc(nomJ(j))}</b><span style="white-space:normal">${esc(c.nom)} : ${e.de ? eur(e.prix) + ' · il faut ' + eur(Math.round(e.prix * C.SURENCHERE / 5000) * 5000) + ' pour passer devant' : 'contrat proposé'} · conclu ${e.quand || quand0}</span></div></button>`; }).join('')}</div></div>` : ''}
     <div class="carte"><div class="liste">${L.map(j => ligneMercato(j)).join('') || '<p class="mut">Aucun joueur suivi : touche « Suivre » dans la fiche d\'un joueur.</p>'}</div></div>`;
   } else if (MERC.onglet === 'ventes'){
     const L = U.aVendre.map(id => M.joueurs[id]).filter(Boolean);
@@ -1421,7 +1421,11 @@ const ACT = {
   sort:d => { U.live.sortant = d.j; rendreTempsMort(); },
   entre:d => { const ok = QM.remplacer(X, X.joueur, U.live.sortant, d.j, false); U.live.sortant = null;
     if (ok){ const fil = $('#fil'); if (fil) fil.insertAdjacentHTML('afterbegin', evHTML(X.ev[X.ev.length - 1])); } rendreTempsMort(); },
-  preparer:() => { const m = QM.matchDuJoueur(M); if (!m) return rendre(); X = QM.preparerMatch(M, m); U.live = {parti:false}; aller('match'); },
+  preparer:() => { const m = QM.matchDuJoueur(M); if (!m) return rendre();
+    /* v172 : pendant le mercato, le mercredi passe d'abord ; s'il apporte du nouveau (hiboux, offres sur un joueur suivi), on s'arrête là pour pouvoir réagir */
+    if (avantMercredi()){ const nl = M.boite.filter(x => !x.lu).length; QM.miSemaine(M); sauver();
+      if (M.boite.filter(x => !x.lu).length > nl){ aller('accueil'); scrollTo(0, 0); toast('Mercredi : du nouveau au mercato'); return; } }
+    X = QM.preparerMatch(M, m); U.live = {parti:false}; aller('match'); },
   lancer:() => demarrerDirect(),
   lecture:() => { if (!U.live) return; if (U.live.pause) reprendre(); else { U.live.pause = true; clearInterval(U.live.timer); rendreCtrl(); } },
   reprendre,

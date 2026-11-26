@@ -1,4 +1,4 @@
-// mon-ecran-version: 354f40a3
+// mon-ecran-version: 0096e9c1
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -833,7 +833,8 @@ function suspendre(M, j, n, raison){
   j.susp = {n:((j.susp && j.susp.n) || 0) + n, r:raison};
   if (j.club && j.club === clubJoueur(M)) message(M, `Suspension : ${nomJ(j)}`, `${raison.charAt(0).toUpperCase() + raison.slice(1)} : suspendu pour ${j.susp.n} match${j.susp.n > 1 ? 's' : ''} de club. Ton adjoint le retire de la composition.`, 'susp');
 }
-function message(M, titre, corps, type){ M.boite.unshift({id:'m' + (M.prochainId++), date:(semaine(M) || {}).date || Date.now(), titre, corps, type:type || 'info', lu:false}); if (M.boite.length > 60) M.boite.length = 60; }
+/* v172 : un message du mercredi (premier temps du mercato) porte la date du mercredi, pas celle du samedi */
+function message(M, titre, corps, type){ const S = semaine(M); M.boite.unshift({id:'m' + (M.prochainId++), date:S && S.date ? S.date - (M.mi ? 3 * 864e5 : 0) : Date.now(), titre, corps, type:type || 'info', lu:false}); if (M.boite.length > 60) M.boite.length = 60; }
 
 /* Joue toute la semaine : X = le match du joueur déjà terminé (ou null). Renvoie un résumé pour l'écran. */
 /* v166 : pendant le mercato, la semaine du manager se joue en deux temps : mercredi (hiboux, offres en attente, une partie des transferts
@@ -849,7 +850,9 @@ function miSemaine(M){
 }
 function terminerSemaine(M, X){
   const S = semaine(M); if (!S) return null;
-  if (!M.mi && deuxTemps(M)) miSemaine(M);   // v166 : mercredi pas encore joué (match lancé directement) : il passe d'abord
+  /* v166 : mercredi pas encore joué (match lancé directement) : il passe d'abord ; v172 : marqué « auto », pour que les offres des autres clubs
+     nées ce mercredi-là attendent le temps suivant au lieu de se conclure samedi, dans le même clic (le manager n'aurait rien vu) */
+  if (!M.mi && deuxTemps(M)){ M.miAuto = true; try{ miSemaine(M); } finally { delete M.miAuto; } }
   M.mi = false;
   const mj = matchDuJoueur(M);
   const avant = {};
