@@ -1,4 +1,4 @@
-// mon-ecran-version: 00dde162
+// mon-ecran-version: 2ca11d3c
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -347,8 +347,10 @@ const SCENES = {
       html:(M_, c) => ardoiseHTML(c), htmlStyle:'left:6%;top:24%;width:88%;height:70%'},
   ]},
   /* v132 : le salon du manager (Moi) : son visage dans le miroir (ovale de verre mesuré : centre 141,1 × 610,5, 198,3 × 476,1, penché de −2,9°) */
-  salon:{fond:'scenes/salon-fond', ratio:1536 / 1024, l:1024, h:1536, objets:[
-    {id:'miroir', zone:[41.9, 372.5, 240.3, 848.5], portrait:{angle:-2.9, miroir:true}, plaque:'g', anim:'respire', nom:'Mon profil', vue:'profil'},
+  /* v177 : le salon sans miroir (fond retouché par ChatGPT, aligné au pixel sur l'ancien : les calques B de la carte, de la lettre et de la malle restent valables) ;
+     « Mon profil » s'ouvre par le feu de la cheminée (les trophées posés dessus gardent la salle des trophées) */
+  salon:{fond:'scenes/salon-fond2', ratio:1536 / 1024, l:1024, h:1536, objets:[
+    {id:'cheminee', zone:[745, 560, 1010, 835], plaque:'d', anim:'bascule', nom:'Mon profil', vue:'profil'},
     {id:'carte', zone:[350, 90, 730, 525], calques:[['scenes/salon-carte-B', 'b']], anim:'bascule', nom:'Clubs d\'Europe', vue:'clubs'},
     {id:'trophees', zone:[700, 340, 1020, 520], anim:'bascule', plaque:'d', nom:'Salle des trophées', vue:'trophees', si:M_ => !!M_.manager.club},
     {id:'lettre', zone:[770, 840, 1024, 1110], calques:[['scenes/salon-lettre-B', 'b']], plaque:'d', anim:'bascule', vue:'boite',
