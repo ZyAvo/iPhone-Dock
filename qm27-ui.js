@@ -1,4 +1,4 @@
-// mon-ecran-version: 21941983
+// mon-ecran-version: f502a832
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -631,8 +631,9 @@ const lireSlot = (K, s) => ((s[0] === 'R' ? K.banc : K[s[0]]) || [])[+s.slice(1)
 const ecrireSlot = (K, s, id) => { (s[0] === 'R' ? K.banc : K[s[0]])[+s.slice(1)] = id || null; };
 const slotDe = (K, id) => [...SLOTS_T, ...SLOTS_B()].find(s => lireSlot(K, s) === id) || null;
 /* v89 : positions (% du terrain, nos anneaux en bas) selon la phase (avec ou sans le souafle) et la disposition choisie */
+/* v179 : batteurs « devant » laissés à leur place sur la carte (le choix se lit dans la liste) */
 const FORM = {   // v98 : positions recalculées pour qu'aucun joueur n'en recouvre un autre, même sur téléphone
-  avec:{P:{triangle:[[17, 34], [50, 22], [83, 34]], ligne:[[17, 30], [50, 30], [83, 30]], pointe:[[20, 38], [50, 16], [80, 38]]}, B:{escorte:[[26, 54], [74, 54]], devant:[[15, 12], [85, 12]]}, A:[50, 73], G:[50, 90]},   // v171 : un peu d'air pour les pastilles
+  avec:{P:{triangle:[[17, 34], [50, 22], [83, 34]], ligne:[[17, 30], [50, 30], [83, 30]], pointe:[[20, 38], [50, 16], [80, 38]]}, B:{escorte:[[26, 54], [74, 54]], devant:[[26, 54], [74, 54]]}, A:[50, 73], G:[50, 90]},   // v171 : un peu d'air pour les pastilles
   sans:{P:{pressing:[[22, 33], [50, 25], [78, 33]], zone:[[17, 48], [50, 40], [83, 48]], repli:[[17, 62], [50, 56], [83, 62]]}, B:{protection:[[24, 79], [76, 79]], harcelement:[[15, 13], [85, 13]]}, A:[50, 9], G:[50, 91]}};   // v171 : attrapeur un peu plus bas (pastilles)
 function posT(s, T){
   const ph = U.phase || 'avec', F = FORM[ph], i = +s.slice(1); T = QM.completerTactique({...(T || {})});
