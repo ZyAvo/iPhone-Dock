@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="bd993242">
+<meta name="mon-ecran-version" content="a0aeea53">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-title" content="QM27">
@@ -1119,6 +1119,12 @@ i.sc-tableau{position:absolute;overflow:hidden;pointer-events:none;z-index:1}   
 .prog-l .t > span.gains{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:2px}.prog-l .gains em{font-style:normal;font-size:.72rem;font-weight:700}.prog-l .gains em.up{color:var(--bon)}.prog-l .gains em.down{color:var(--mauvais)}
 .prog-l .t > span.reps{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}.prog-l .pot{display:inline-flex;vertical-align:middle}.prog-l .pot svg{width:14px;height:14px}
 .prog-d{display:flex;align-items:center;gap:8px}.prog-n{display:flex;flex-direction:column;align-items:flex-end;min-width:3.4em}.prog-n b{font-size:1rem}.prog-n small{font-size:.66rem;white-space:nowrap}
+/* v176 : le stade illustré (une image par championnat et par palier de capacité) */
+.stade-ill{position:relative;margin:0;border-radius:12px;overflow:hidden;aspect-ratio:3/2;background:var(--card-2)}
+.stade-ill img{display:block;width:100%;height:100%;object-fit:cover}
+.stade-ill figcaption{position:absolute;left:8px;right:8px;bottom:8px;display:flex;flex-wrap:wrap;gap:5px}
+.stade-ill .badge{background:rgba(20,14,8,.72);color:#fbeed2;border-color:rgba(255,255,255,.18);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.stade-ill .badge.tit{background:rgba(201,162,39,.9);color:#241805}.stade-ill .badge.chantier{background:rgba(229,128,46,.92);color:#2a1300}
 .palm-club{display:flex;flex-direction:column;gap:8px}.palm-club .pc{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}.palm-club .pc:last-child{border-bottom:0}
 .palm-club .pc > img,.palm-club .pc > svg{width:46px;height:46px;flex:none;object-fit:contain}.palm-club .t{display:flex;flex-direction:column;min-width:0}.palm-club .t b{font-size:.92rem}.palm-club .t span{font-size:.76rem;color:var(--ink-soft);line-height:1.35}
 .palm-club .x{color:var(--or,#c9a227);font-weight:800}.palm-club .pc.ancien > img{filter:grayscale(.55) brightness(.9);opacity:.85}
@@ -1364,7 +1370,7 @@ html.desk .er{cursor:grab}
 <script src="qm27-visuel.js?v=475e9f0c"></script>
 <script src="qm27-ui.js?v=245b381a"></script>
 <script src="qm27-fiche.js?v=f53c5a7b"></script>
-<script src="qm27-lieux.js?v=f35d269a"></script>
+<script src="qm27-lieux.js?v=a835c270"></script>
 <script src="qm27-direct.js?v=2b32fd29"></script>
 <script src="qm27-ecrans.js?v=00dde162"></script>
 <script src="qm27-stats.js?v=d7377b86"></script>

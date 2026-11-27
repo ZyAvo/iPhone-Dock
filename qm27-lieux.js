@@ -1,4 +1,4 @@
-// mon-ecran-version: f35d269a
+// mon-ecran-version: a835c270
 /* QM27 (v88…v163, v164) — les lieux du club : domaine et bâtiments, stade, Bazar, buvette et carnet de recettes, partenaires, salle des trophées, banque, divination.
    Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU) ; ses fonctions sont publiées dans window.QMF (v164 : découpage de qm27-ui.js). */
 (() => {
@@ -105,32 +105,17 @@ function ficheBat(k){
       ${vue ? `<button class="btn sec" data-act="allerVue" data-v="${vue}">Ouvrir</button>` : ''}</div>
     <div class="carte"><h2>Améliorations <span class="mut petit">une au choix par niveau</span></h2>${choix(3)}${choix(5)}</div>${extra}`);
 }
-/* v112 : stade illustré façon FM98 (images/qm27/stade/) : le terrain vide et une pièce de tribune par emplacement, selon sa capacité.
-   Repère du terrain 1536 × 1024 ; [centre x, base y, largeur] de chaque emplacement de gauche (la droite en est le symétrique ; v128 : c'est la gauche qui est retournée). */
-const STADE_RATIO = {'angle-avant-bois':0.931, 'angle-avant-chantier':1.156, 'angle-avant-grande':0.975, 'angle-avant-pierre':0.797, 'angle-fond-bois':0.969, 'angle-fond-chantier':1.247, 'angle-fond-grande':0.922, 'angle-fond-pierre':0.916, 'avant-bois':0.488, 'avant-chantier':0.926, 'avant-grande':0.781, 'avant-pierre':0.572, 'fond-bois':0.715, 'fond-chantier':1.039, 'fond-grande':0.877, 'fond-pierre':0.748, 'virage-bois':0.966, 'virage-chantier':1.262, 'virage-grande':1.212, 'virage-pierre':0.972};   // hauteur / largeur de chaque pièce
-const STADE_POS = {N:[768, 268, 560], S:[780, 905, 560], O:[100, 560, 210], E:[100, 560, 210], NO:[262, 278, 250], NE:[262, 278, 250], SO:[205, 860, 250], SE:[205, 860, 250]};
-const STADE_PIECE = {N:'fond', S:'avant', O:'virage', E:'virage', NO:'angle-fond', NE:'angle-fond', SO:'angle-avant', SE:'angle-avant'};
-const NIV_T = ['bois', 'pierre', 'grande'];
-function niveauxStade(c){
-  const t = c.dom.trib, rang = (v, a, b) => v < a ? 0 : v < b ? 1 : 2, ch = c.travaux.some(x => x.type === 'stade') ? c.dom.cote : null;
-  const n = {N:rang(t.N, 4500, 9000), S:rang(t.S, 4500, 9000), O:rang(t.O, 2500, 5000), E:rang(t.E, 2500, 5000)};
-  const coin = (a, b) => c.stade < 10000 ? -1 : Math.min(n[a], n[b]);   // petits stades : pas de tribunes d'angle
-  const r = {...n, NO:coin('N', 'O'), NE:coin('N', 'E'), SO:coin('S', 'O'), SE:coin('S', 'E')};
-  const out = {}; for (const k in r) out[k] = k === ch ? 'chantier' : r[k] < 0 ? null : NIV_T[r[k]];
-  return out;
-}
+/* v176 : le stade illustré en une seule image (images/qm27/stade/<style>-<palier>.webp, 1536 × 1024) : le style suit le championnat,
+   le palier la capacité (moins de 12 000 places, 25 000, 40 000, puis l'arène). Remplace le stade façon FM98 en pièces (v112), dont les images restent dans le dépôt.
+   L'agrandissement se fait tribune par tribune depuis la liste « Tribunes » ; un chantier est signalé sur l'image. */
+const STADE_STYLE = {bi:'avalon', la:'circe', sc:'yggdrasil', ce:'walpurgis'};
+const STADE_PALIERS = [12000, 25000, 40000], NOM_PALIER = ['Terrain de village', 'Stade de ville', 'Grand stade', 'Arène majestueuse'];
+const palierStade = cap => 1 + STADE_PALIERS.filter(x => cap >= x).length;
 function stadeIllustre(c){
-  const I = V.IMAGES, n = niveauxStade(c), t = c.dom.trib, nomC = {N:'nord', S:'sud', E:'est', O:'ouest'};
-  const piece = k => { if (!n[k]) return ''; const nom = `${STADE_PIECE[k]}-${n[k]}`, [cx0, base, w] = STADE_POS[k], dr = k === 'E' || k === 'NE' || k === 'SE', cx = dr ? 1536 - cx0 : cx0, h = w * (STADE_RATIO[nom] || 0.8);
-    const img = `<image href="${I}stade/${nom}.webp" x="${-w / 2}" y="${-h}" width="${w}" height="${h}" preserveAspectRatio="none"/>`;
-    const g = `<g transform="translate(${cx} ${base})${dr ? '' : ' scale(-1 1)'}">${img}</g>`;   // v128 : les pièces dessinées regardent vers la gauche : c'est le côté gauche (ouest) qui est retourné
-    return t[k] != null ? `<g class="trib2" data-act="tribune" data-c="${k}" role="button" tabindex="0" aria-label="Tribune ${nomC[k]} : ${t[k].toLocaleString('fr-FR')} places${n[k] === 'chantier' ? ', travaux en cours' : ''}">${g}</g>` : `<g aria-hidden="true">${g}</g>`; };
-  const ordre = ['NO', 'NE', 'N', 'O', 'E', 'SO', 'SE', 'S'];
-  const lab = {N:[768, 300], S:[780, 945], O:[100, 600], E:[1436, 600]};
-  const plaques = Object.entries(lab).map(([k, [x, y]]) => { const v = t[k], txt = `${(v / 1000).toFixed(v % 1000 ? 1 : 0).replace('.', ',')} k${n[k] === 'chantier' ? ' 🔨' : ''}`;
-    return `<g class="trib2" data-act="tribune" data-c="${k}" aria-hidden="true" transform="translate(${x} ${y})"><rect x="${-txt.length * 15 - 22}" y="-34" width="${2 * (txt.length * 15 + 22)}" height="58" rx="29" class="st-pl"/><text y="12" text-anchor="middle" class="st-t">${txt}</text></g>`; }).join('');
-  return `<svg class="stadev stade2" viewBox="0 -230 1536 1254" role="group" aria-label="Le stade : ${c.stade.toLocaleString('fr-FR')} places">
-    <image href="${I}stade/terrain.webp" x="0" y="0" width="1536" height="1024" class="st-fond"/>${ordre.map(piece).join('')}${plaques}</svg>`;
+  const st = STADE_STYLE[c.ligue] || 'avalon', p = palierStade(c.stade), suiv = STADE_PALIERS[p - 1], tr = c.travaux.find(x => x.type === 'stade');
+  const cote = {N:'nord', S:'sud', E:'est', O:'ouest'}[c.dom.cote] || '';
+  return `<figure class="stade-ill"><img src="${V.IMAGES}stade/${st}-${p}.webp" alt="${NOM_PALIER[p - 1]} de ${esc(c.nom)} : ${c.stade.toLocaleString('fr-FR')} places" decoding="async">
+    <figcaption><span class="badge">${NOM_PALIER[p - 1]}</span>${suiv ? `<span class="badge">palier suivant à ${suiv.toLocaleString('fr-FR')} places</span>` : '<span class="badge tit">Palier maximal</span>'}${tr ? `<span class="badge chantier">🔨 Travaux${cote ? ' · tribune ' + cote : ''} · ${tr.fin - (QU.M.tic || 0)} sem.</span>` : ''}</figcaption></figure>`;
 }
 function stadeVue(c){
   if (V.IMAGES) return stadeIllustre(c);   // v112
@@ -158,7 +143,7 @@ function vueStade(){
   const nom = {N:'Nord', S:'Sud', E:'Est', O:'Ouest'};
   VUE.innerHTML = `<div><h1 class="grand">Stade</h1><p class="sous">${esc(c.nom)} · ${c.stade.toLocaleString('fr-FR')} places · tribunes niveau ${C.niv(c, 'tribunes')}</p></div>
   <div class="cols"><div>
-    <div class="carte">${stadeVue(c)}<p class="petit mut" style="margin:6px 2px 0">Touche une tribune (ou son chiffre) pour l'agrandir de ${E.stade.tranche.toLocaleString('fr-FR')} places (${eur(C.coutTravaux(c, 'stade'))}, ${E.stade.semaines} semaines). Panneaux vendus : ${c.dom.panneaux.length} / ${B.placesPanneaux(c)}.</p></div>
+    <div class="carte">${stadeVue(c)}<p class="petit mut" style="margin:6px 2px 0">Agrandis une tribune depuis la liste ci-dessous : ${E.stade.tranche.toLocaleString('fr-FR')} places de plus par chantier (${eur(C.coutTravaux(c, 'stade'))}, ${E.stade.semaines} semaines). Le stade change d'allure à 12 000, 25 000 et 40 000 places. Panneaux vendus : ${c.dom.panneaux.length} / ${B.placesPanneaux(c)}.</p></div>
     <div class="carte"><h2>Tribunes</h2><div class="liste">${Object.keys(nom).map(k => `<div class="el"><div class="t"><b>Tribune ${nom[k]}</b><span>${c.dom.trib[k].toLocaleString('fr-FR')} places</span></div>${ext ? (c.dom.cote === k ? `<span class="badge">travaux · ${ext.fin - (QU.M.tic || 0)} sem.</span>` : '') : `<button class="btn sec" data-act="tribune" data-c="${k}">+ ${(E.stade.tranche / 1000)} k</button>`}</div>`).join('')}</div></div>
   </div><div>
     <div class="carte"><h2>Billetterie</h2><div class="ligne"><button class="btn sec" data-act="prix" data-d="-1" aria-label="Baisser le prix">−</button><b style="flex:1;text-align:center;font-size:1.15rem">${eur(c.prix)} la place</b><button class="btn sec" data-act="prix" data-d="1" aria-label="Augmenter le prix">+</button></div>
@@ -288,5 +273,5 @@ function divinationHTML(){
 }
 
 
-Object.assign(window.QMF = window.QMF || {}, {POS_DOM, VUE_BAT, nomBat, pips, coutEntretien, stadePlan, batPlan, CLAIRIERES, COURT_BAT, planIllustre, planDomaine, vueDomaine, ficheBat, STADE_RATIO, STADE_POS, STADE_PIECE, NIV_T, niveauxStade, stadeIllustre, stadeVue, vueStade, vueBoutique, carnetRecettes, vueBuvette, vuePartenaires, VITRINE, vitrineHTML, vueTrophees, banqueHTML, divinationHTML});
+Object.assign(window.QMF = window.QMF || {}, {POS_DOM, VUE_BAT, nomBat, pips, coutEntretien, stadePlan, batPlan, CLAIRIERES, COURT_BAT, planIllustre, planDomaine, vueDomaine, ficheBat, palierStade, STADE_STYLE, stadeIllustre, stadeVue, vueStade, vueBoutique, carnetRecettes, vueBuvette, vuePartenaires, VITRINE, vitrineHTML, vueTrophees, banqueHTML, divinationHTML});
 })();
