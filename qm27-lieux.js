@@ -1,4 +1,4 @@
-// mon-ecran-version: 352e78a0
+// mon-ecran-version: f35d269a
 /* QM27 (v88…v163, v164) — les lieux du club : domaine et bâtiments, stade, Bazar, buvette et carnet de recettes, partenaires, salle des trophées, banque, divination.
    Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU) ; ses fonctions sont publiées dans window.QMF (v164 : découpage de qm27-ui.js). */
 (() => {
@@ -231,19 +231,31 @@ function vuePartenaires(){
 /* v115 : la vitrine illustrée (images/qm27/trophees/vitrine.webp, repère 1536 × 1024) : trois étagères de verre (dessus à y = 346, 492, 652),
    sept coupes au plus par étagère, les plus récentes en haut ; les titres d'avant ton arrivée un peu passés */
 const VITRINE = {etageres:[346, 492, 652], x0:310, x1:1230, parEtagere:7, taille:[150, 124, 136]};
+/* v173 : la vitrine pose d'abord un exemplaire de chaque trophée, puis des doubles (les plus récents) jusqu'à remplir les étagères, jamais plus */
+function choixVitrine(T){
+  const P = T.filter(x => V.coupeSrc && V.coupeSrc(x.cle)), max = VITRINE.parEtagere * 3, vus = new Set(), L = [];
+  for (const x of P){ const k = x.cle + '|' + x.titre; if (!vus.has(k)){ vus.add(k); L.push(x); } }
+  for (const x of P){ if (L.length >= max) break; if (!L.includes(x)) L.push(x); }
+  return L.slice(0, max);
+}
 function vitrineHTML(T){
-  const L = T.filter(x => V.coupeSrc && V.coupeSrc(x.cle)).slice(0, VITRINE.parEtagere * 3), pas = (VITRINE.x1 - VITRINE.x0) / VITRINE.parEtagere;
+  const L = choixVitrine(T), pas = (VITRINE.x1 - VITRINE.x0) / VITRINE.parEtagere;
   const coupes = L.map((x, i) => { const r = Math.floor(i / VITRINE.parEtagere), k = i % VITRINE.parEtagere, n = Math.min(VITRINE.parEtagere, L.length - r * VITRINE.parEtagere), t = VITRINE.taille[r];
     const cx = (VITRINE.x0 + VITRINE.x1) / 2 + (k - (n - 1) / 2) * pas;
     return `<image class="${x.ancien ? 'anc' : ''}" href="${V.coupeSrc(x.cle)}" x="${Math.round(cx - t / 2)}" y="${VITRINE.etageres[r] - t + 4}" width="${t}" height="${t}"><title>${esc(x.titre)} · ${esc(x.saison)}</title></image>`; }).join('');
   return `<div class="carte vitrine"><svg viewBox="0 0 1536 1024" role="img" aria-label="Vitrine : ${T.length} trophée${T.length > 1 ? 's' : ''}"><image href="${V.IMAGES}trophees/vitrine.webp" width="1536" height="1024"/>${coupes}</svg>
-    ${L.length ? '' : '<p class="petit mut" style="margin:8px 0 0">Les étagères attendent ton premier titre.</p>'}${T.length > L.length ? `<p class="petit mut" style="margin:8px 0 0">La vitrine montre les ${L.length} titres les plus récents.</p>` : ''}</div>`;
+    ${L.length ? '' : '<p class="petit mut" style="margin:8px 0 0">Les étagères attendent ton premier titre.</p>'}${T.length > L.length ? `<p class="petit mut" style="margin:8px 0 0">Vitrine pleine : un exemplaire de chaque trophée, puis les titres les plus récents (${L.length} sur ${T.length}).</p>` : ''}</div>`;
 }
+/* v173 : palmarès d'un club, un trophée par ligne et ses saisons à côté (salle des trophées, fiche des clubs) */
+function palmaresClubHTML(G){
+  return `<div class="palm-club">${G.map(g => `<div class="pc ${g.ancien ? 'ancien' : ''}">${(V.coupeImg && V.coupeImg(g.cle)) || V.trophee(g.titre, g.saisons[0])}<div class="t"><b>${esc(g.titre)}${g.saisons.length > 1 ? ` <span class="x">×${g.saisons.length}</span>` : ''}</b><span>${g.saisons.map(esc).join(' · ')}</span></div></div>`).join('')}</div>`;
+}
+window.QMF = Object.assign(window.QMF || {}, {palmaresClubHTML});
 function vueTrophees(){
   const c = B.assurer(QU.M), T = B.titres(QU.M, c);
   VUE.innerHTML = `<div><h1 class="grand">Salle des trophées</h1><p class="sous">${esc(c.nom)} · niveau ${C.niv(c, 'trophees')} · visites ${eur(B.visites(QU.M, c))} par semaine</p></div>
   ${vitrineHTML(T)}
-  <div class="carte">${T.length ? `<div class="trophees">${T.map((x, i) => `<div class="tr ${x.ancien ? 'ancien' : ''}">${(V.coupeImg && V.coupeImg(x.cle)) || V.trophee(x.titre, x.saison)}<b>${esc(x.saison)}</b><span>${esc(x.titre)}</span></div>`).join('')}</div>` : '<p class="mut" style="margin:0">La vitrine est vide. À toi de la remplir.</p>'}
+  <div class="carte">${T.length ? palmaresClubHTML(B.titresGroupes(QU.M, c)) : '<p class="mut" style="margin:0">La vitrine est vide. À toi de la remplir.</p>'}
     <p class="petit mut" style="margin:10px 0 0">Les titres d'avant ton arrivée sont un peu passés. Chaque titre attire plus de visiteurs.</p></div>`;
 }
 function banqueHTML(c){

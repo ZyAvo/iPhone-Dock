@@ -1,4 +1,4 @@
-// mon-ecran-version: 144f11db
+// mon-ecran-version: c5d7c7a4
 /* QM27 (v90, lot 7) — vestiaire et mercato, sans affichage. Expose window.QMH et complète window.QMC. Chargé après qm27-domaine.js.
    Vestiaire : ambiance, leaders, clans, mentorat, causeries, presse (La Gazette du sorcier).
    Mercato : attributs connus selon le travail du recruteur, offres par hibou (réponse la semaine suivante, contre-offres, clubs qui doublent),
@@ -82,6 +82,11 @@ function mentorer(M, mentor, jeune){
   return {ok:true, msg:`${nomJ(a)} prend ${nomJ(b)} sous son aile`};
 }
 function finMentorat(M, jeune){ const U = monClub(M); if (U) U.mentors = (U.mentors || []).filter(p => p.jeune !== jeune); return {ok:true, msg:'Binôme dissous'}; }
+/* v173 : repère des flèches ▲▼ de la fiche joueur = les attributs au début de la saison (ou à l'arrivée au club, ou à la mise à jour v173) */
+function repereSaison(M){
+  const U = monClub(M); if (!U) return;
+  for (const id of U.effectif){ const j = M.joueurs[id]; if (j && j.aSs !== M.saison){ j.aS = j.a.map(Math.round); if (j.g) j.gS = j.g.map(Math.round); j.aSs = M.saison; } }
+}
 function vestiaireSemaine(M, S, r){
   const U = monClub(M); if (!U) return;
   const h = H()(M), amb = ambiance(M, U), lead = leaders(M, U);
@@ -381,6 +386,7 @@ Object.assign(QMC, {
   /* v166 : superviser un joueur : un premier rapport du recruteur tout de suite */
   suivre(M, jid){ const on = base.suivre(M, jid); if (on) connaitre(M, jid, EQ.scouting.premier); return on; },
   semaine(M, S){
+    repereSaison(M);   // v173 : avant l'entraînement de la semaine
     base.semaine(M, S);
     const r = rng(M, 'vestiaire', tic(M)), h = H()(M);
     /* les hiboux de la semaine dernière reviennent */

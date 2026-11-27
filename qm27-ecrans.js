@@ -1,4 +1,4 @@
-// mon-ecran-version: aad97c6e
+// mon-ecran-version: 00dde162
 /* QM27 (v91, lot 8) — écrans du domaine et du bureau. Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU).
    Carte du domaine (accueil Club) et ses lieux, bureau du président, profil du manager, salle des trophées et records,
    boîte de réception, effectif en colonnes, annuaire des clubs, calendrier par mois et par saison, entraînement programmable, menu Plus. */
@@ -590,7 +590,7 @@ function vueEntree(){
 function vueSalon(){
   const mg = M().manager, c = mg.club ? club(mg.club) : null;
   vuePiece('salon', 'Mon salon', `${esc(mg.nom)}${c ? ' · ' + esc(c.nom) : ' · sans club'}`, 'Tous les écrans du salon',
-    [['profil', 'Mon profil', 'Avatar, attributs, contrat'], ['carriere', 'Carrière', 'Offres de clubs et de fédérations, parcours'], ['clubs', 'Clubs d\'Europe', 'Tous les clubs et leurs effectifs'], ['boite', 'Boîte de réception', 'Messages, offres et rapports'], ...(c ? [['trophees', 'Salle des trophées', 'Vitrine, records, palmarès']] : [])]);
+    [['profil', 'Mon profil', 'Avatar, attributs, contrat, carrière et offres'], ['clubs', 'Clubs d\'Europe', 'Tous les clubs et leurs effectifs'], ['boite', 'Boîte de réception', 'Messages, offres et rapports'], ...(c ? [['trophees', 'Salle des trophées', 'Vitrine, records, palmarès']] : [])]);
 }
 function vueFederation(){
   vuePiece('federation', 'La Fédération', `Saison ${lab(M().saison)} · championnats, coupe d'Europe et sélections`, 'Tous les classements',
@@ -615,21 +615,71 @@ function courbe(L){
   const d = L[L.length - 1] - L[0];
   return `<svg class="courbe" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${d > 0 ? 'var(--bon)' : d < 0 ? 'var(--mauvais)' : 'var(--ink-faint)'}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
+/* v175 : la page Progression des joueurs : résumé de l'effectif, filtres et tri, potentiel estimé et marge, meilleurs gains d'attributs de la saison,
+   repères automatiques (jeune sans focus, proche de son plafond, en déclin, deux focus et très fatigué) ; toucher un joueur = ses focus (avec ses attributs) */
+const ATTR_COURT = k => (Z.COURT_ATTR && Z.COURT_ATTR[k]) || ((D.ATTRS.find(a => a[0] === k) || [])[1]) || k;
+function gainsSaison(j){
+  if (j.aSs !== M().saison || !j.aS) return [];
+  return D.ATTRS.map((a, i) => [a[0], Math.round(j.a[i]) - j.aS[i]]).filter(x => x[1]).sort((a, b) => b[1] - a[1]);
+}
+function lectureProgression(j, c, Cb, Gm){
+  const F = Gm.focusDe(j), n = QM_().note(j, j.poste), cb = Cb[j.id], d = cb && cb.length > 1 ? Math.round((cb[cb.length - 1] - cb[0]) * 10) / 10 : 0;
+  const pr = (c.progres || {})[j.id], mois = pr ? Math.round(pr * 50) / 10 : 0, est = C_().potentielEstime(M(), j), marge = j.cache && j.cache.pot ? j.cache.pot * 5 - n : 40 + 12 * est - n;   // ton staff connaît bien tes joueurs : la marge se lit sur le potentiel du joueur
+  const rep = [];
+  if (j.age <= 21 && !F.length) rep.push(['jeune', 'Jeune sans focus']);
+  if (marge < 3 && j.age >= 22 && j.age < 30) rep.push(['plafond', 'Proche de son plafond']);
+  if (j.age >= 30 && d < 0) rep.push(['declin', 'En déclin']);
+  if (F.length > 1 && (j.fat || 0) >= 25) rep.push(['fatigue', '2 focus, très fatigué']);
+  return {j, F, n, cb, d, mois, est, marge, rep, gains:gainsSaison(j)};
+}
 function vueProgression(){
   const M_ = M(), c = moi(), Gm = G(), nb = Gm.bonusFocus(c), pris = c.effectif.filter(id => Gm.focusDe(M_.joueurs[id] || {}).length > 1).length;
-  const C = c.courbes && c.courbes.saison === M_.saison ? c.courbes.n : {};
-  const L = c.effectif.map(id => M_.joueurs[id]).filter(Boolean).sort((a, b) => 'PBAG'.indexOf(a.poste) - 'PBAG'.indexOf(b.poste) || QM_().note(b, b.poste) - QM_().note(a, a.poste));
+  const Cb = c.courbes && c.courbes.saison === M_.saison ? c.courbes.n : {}, f = U.progF || (U.progF = {poste:'', jeunes:false, tri:'note'});
+  const TOUS = c.effectif.map(id => M_.joueurs[id]).filter(Boolean).map(j => lectureProgression(j, c, Cb, Gm));
+  /* résumé */
+  const moy = L => L.length ? L.reduce((s, x) => s + x, 0) / L.length : 0, avecC = TOUS.filter(x => x.cb && x.cb.length > 1);
+  const mNow = moy(TOUS.map(x => x.n)), mDeb = avecC.length ? moy(avecC.map(x => x.cb[0])) : null, mFin = avecC.length ? moy(avecC.map(x => x.cb[x.cb.length - 1])) : null, dEq = mDeb != null ? Math.round((mFin - mDeb) * 10) / 10 : 0;
+  const parD = TOUS.slice().sort((a, b) => b.d - a.d), haut = parD[0] && parD[0].d > 0 ? parD[0] : null, bas = parD[parD.length - 1] && parD[parD.length - 1].d < 0 ? parD[parD.length - 1] : null;
+  const nbRep = k => TOUS.filter(x => x.rep.some(r => r[0] === k)).length;
+  const signe = v => `<b style="color:${v > 0 ? 'var(--bon)' : v < 0 ? 'var(--mauvais)' : 'var(--ink-faint)'}">${v > 0 ? '+' : ''}${String(v).replace('.', ',')}</b>`;
+  const resume = `<div class="carte prog-res"><div class="kpi">
+      <div><span>Note moyenne</span><b>${Math.round(mNow)}</b><small>${mDeb != null ? signe(dEq) + ' depuis le début de saison' : 'courbe dès la 2e semaine'}</small></div>
+      <div><span>Meilleure progression</span><b class="nom">${haut ? esc(haut.j.n) : '—'}</b><small>${haut ? signe(haut.d) + ' de note' : ''}</small></div>
+      <div><span>Plus forte baisse</span><b class="nom">${bas ? esc(bas.j.n) : '—'}</b><small>${bas ? signe(bas.d) + ' de note' : ''}</small></div>
+      <div><span>Focus bonus</span><b>${Math.max(0, nb - pris)} / ${nb}</b><small>place${nb - pris > 1 ? 's' : ''} libre${nb - pris > 1 ? 's' : ''}</small></div></div>
+    ${['jeune', 'plafond', 'declin', 'fatigue'].some(k => nbRep(k)) ? `<div class="prog-reps">${[['jeune', 'jeune sans focus', 'jeunes sans focus'], ['plafond', 'proche de son plafond', 'proches de leur plafond'], ['declin', 'en déclin', 'en déclin'], ['fatigue', 'avec 2 focus et très fatigué', 'avec 2 focus et très fatigués']].filter(([k]) => nbRep(k)).map(([k, s1, s2]) => `<span class="rep ${k}">${nbRep(k)} ${nbRep(k) > 1 ? s2 : s1}</span>`).join('')}</div>` : ''}</div>`;
+  /* filtres et tri */
+  const TRIS = [['note', 'Note'], ['saison', 'Progression saison'], ['mois', 'Ce mois-ci'], ['pot', 'Potentiel'], ['age', 'Âge']];
+  const filtres = `<div class="chips prog-f">${[['', 'Tous'], ['P', 'Poursuiveurs'], ['B', 'Batteurs'], ['A', 'Attrapeurs'], ['G', 'Gardiens']].map(([k, nm]) => `<button class="chip${f.poste === k ? ' on' : ''}" data-act="progF" data-k="poste" data-v="${k}">${nm}</button>`).join('')}<button class="chip${f.jeunes ? ' on' : ''}" data-act="progF" data-k="jeunes" data-v="${f.jeunes ? '' : '1'}">21 ans et moins</button></div>
+    <div class="ligne prog-tri"><span class="petit mut">Trier par</span><select class="champ" data-chg="progTri" aria-label="Trier par">${TRIS.map(([k, nm]) => `<option value="${k}"${f.tri === k ? ' selected' : ''}>${nm}</option>`).join('')}</select></div>`;
+  const cle = {note:x => -x.n, saison:x => -x.d, mois:x => -x.mois, pot:x => -x.est * 100 - x.marge, age:x => x.j.age}[f.tri] || (x => -x.n);
+  const L = TOUS.filter(x => (!f.poste || x.j.poste === f.poste) && (!f.jeunes || x.j.age <= 21)).sort((a, b) => cle(a) - cle(b) || 'PBAG'.indexOf(a.j.poste) - 'PBAG'.indexOf(b.j.poste));
+  const etoile = (n, t) => window.QMF && QMF.etoilePot ? QMF.etoilePot(n, t) : '★'.repeat(n);
+  const ligne = x => { const j = x.j, g = x.gains.filter(y => y[1] > 0).slice(0, 2), p = x.gains.filter(y => y[1] < 0).slice(-1);
+    return `<button class="el prog-l" data-act="focusJ" data-j="${j.id}">${posteB(j.poste)}<div class="t">
+      <b>${esc(nomJ(j))} <span class="mut">${j.age} ans</span> <span class="pot" title="Potentiel estimé ${x.est} sur 5">${etoile(x.est, 14)}<small>${x.est}/5</small></span></b>
+      <span>${x.F.length ? x.F.map(y => `<span class="badge${y.t === 'poste' ? ' tit' : ''}">${esc(NOMS_FOCUS({...y, p:j.poste}))}</span>`).join(' ') : '<span class="mut">Aucun focus</span>'}${j.reconv ? ` · ${j.reconv.sem} / ${Gm.SEM_POSTE} sem.` : ''}${j.bless ? ' · <span style="color:var(--mauvais)">blessé</span>' : ''}</span>
+      ${g.length || p.length ? `<span class="gains">${g.map(y => `<em class="up">${esc(ATTR_COURT(y[0]))} +${y[1]}</em>`).join('')}${p.map(y => `<em class="down">${esc(ATTR_COURT(y[0]))} ${y[1]}</em>`).join('')}</span>` : ''}
+      ${x.rep.length ? `<span class="reps">${x.rep.map(r => `<span class="rep ${r[0]}">${r[1]}</span>`).join('')}</span>` : ''}</div>
+      <span class="d prog-d">${courbe(x.cb)}<span class="prog-n"><b>${x.n}</b><small style="color:${x.d > 0 ? 'var(--bon)' : x.d < 0 ? 'var(--mauvais)' : 'var(--ink-faint)'}">${x.d > 0 ? '+' : ''}${String(x.d).replace('.', ',')} saison</small>${x.mois ? `<small class="mut">${x.mois > 0 ? '+' : ''}${String(x.mois).replace('.', ',')} ce mois</small>` : ''}</span></span></button>`; };
   VUE.innerHTML = `<div><h1 class="grand">Progression des joueurs</h1><p class="sous">Un focus par joueur · focus bonus ${pris} / ${nb} (Aire d'envol niveau ${C_().niv(c, 'aire')})</p></div>
-  <div class="carte"><div class="liste">${L.map(j => { const F = Gm.focusDe(j), n = QM_().note(j, j.poste), cb = C[j.id], d = cb && cb.length > 1 ? Math.round((cb[cb.length - 1] - cb[0]) * 10) / 10 : 0;
-    return `<button class="el" data-act="focusJ" data-j="${j.id}">${posteB(j.poste)}<div class="t"><b>${esc(nomJ(j))} <span class="mut">${j.age} ans</span></b>
-      <span>${F.length ? F.map(x => `<span class="badge${x.t === 'poste' ? ' tit' : ''}">${esc(NOMS_FOCUS({...x, p:j.poste}))}</span>`).join(' ') : '<span class="mut">Aucun focus</span>'}${j.reconv ? ` · ${j.reconv.sem} / ${Gm.SEM_POSTE} sem.` : ''}${j.bless ? ' · <span style="color:var(--mauvais)">blessé</span>' : ''}</span></div>
-      <span class="d" style="display:flex;align-items:center;gap:8px">${courbe(cb)}<b style="min-width:2.2em;text-align:right">${n}</b><span class="petit" style="min-width:2.6em;color:${d > 0 ? 'var(--bon)' : d < 0 ? 'var(--mauvais)' : 'var(--ink-faint)'}">${d > 0 ? '+' : ''}${String(d).replace('.', ',')}</span></span></button>`; }).join('')}</div></div>
+  ${resume}${filtres}
+  <div class="carte"><div class="liste">${L.map(ligne).join('') || '<p class="mut" style="margin:0">Personne avec ces filtres.</p>'}</div></div>
   <div class="carte aide"><h2>Repères</h2><p><b>Focus.</b> Les attributs choisis progressent bien plus vite (×1,8), les autres un peu moins (×0,9) ; chaque focus ajoute un peu de fatigue chaque semaine.</p>
     <p><b>Focus bonus.</b> Un deuxième focus pour certains joueurs : 1 place avec l'Aire d'envol au niveau 2, 2 au niveau 3, 3 au niveau 4, 5 au niveau 5.</p>
     <p><b>Nouveau poste.</b> Il faut une saison entière d'entraînement (${Gm.SEM_POSTE} semaines sans blessure) ; le joueur travaille déjà les attributs de son futur poste, puis il en change.</p>
-    <p><b>Courbe.</b> La note au poste chaque semaine depuis le début de la saison.</p></div>`;
+    <p><b>Courbe.</b> La note au poste chaque semaine depuis le début de la saison ; à droite, l'écart sur la saison et sur le mois (depuis le dernier rapport du staff).</p>
+    <p><b>Potentiel.</b> Les étoiles sont l'estimation de ton staff ; « proche de son plafond » : sa note approche ce que laisse espérer ce potentiel. Les gains d'attributs comptent depuis le début de la saison.</p></div>`;
 }
+ACT.progF = d => { const f = U.progF || (U.progF = {poste:'', jeunes:false, tri:'note'}); if (d.k === 'jeunes') f.jeunes = !!d.v; else f[d.k] = d.v; rendre(); };
+
 const QM_ = () => window.QM, C_ = () => window.QMC;
+/* v173 : les attributs du joueur dans la feuille des focus ; en doré, ceux que ses focus font travailler */
+function attrsFocus(j, F){
+  const QF = window.QMF, T_ = window.QMT, Gm = G(); if (!QF || !QF.tableAttrsFJ) return '';
+  const ra = [...new Set(F.flatMap(x => x.t === 'cap' ? ((Gm.CAPACITES.find(c => c[0] === x.k) || [])[2] || []) : x.t === 'role' && T_ && T_.ROLE_ATTR[j.poste] ? T_.ROLE_ATTR[j.poste][x.k] || [] : []))];
+  return `<details class="carte fj-attrs focus-at" open><summary><h4 class="sous-t" style="display:inline">Attributs</h4> <span class="mut petit">${ra.length ? 'en doré : travaillés par ses focus' : 'surlignés : ce qui fait sa note au poste'}</span></summary>${QF.tableAttrsFJ(j, j.poste, ra)}</details>`;
+}
 function ficheFocus(jid, msg){
   const M_ = M(), j = M_.joueurs[jid], Gm = G(), F = Gm.focusDe(j), c = moi();
   const choix = rang => { const cur = F[rang], on = x => cur && cur.t === x.t && cur.k === x.k ? ' on' : '';
@@ -640,6 +690,7 @@ function ficheFocus(jid, msg){
   const nb = Gm.bonusFocus(c), pris = c.effectif.filter(id => id !== jid && Gm.focusDe(M_.joueurs[id] || {}).length > 1).length;
   feuille(`${teteF(esc(nomJ(j)), `${D.POSTES[j.poste].nom} · ${j.age} ans · note ${QM_().note(j, j.poste)}`, avatarDe(j))}
     ${msg ? `<p style="color:var(--mauvais);margin:0 0 8px">${esc(msg)}</p>` : ''}
+    ${attrsFocus(j, F)}
     ${j.reconv ? `<p style="margin:0 0 8px">Apprend le poste de <b>${D.POSTES[j.reconv.p].nom.toLowerCase()}</b> : ${j.reconv.sem} / ${Gm.SEM_POSTE} semaines.</p>${jauge(j.reconv.sem / Gm.SEM_POSTE * 100, 'Nouveau poste', 'var(--accent)')}` : ''}
     <h4 class="sous-t">Focus principal</h4>${choix(0)}
     <h4 class="sous-t">Focus bonus <span class="mut petit" style="text-transform:none;letter-spacing:0">· ${Math.max(0, nb - pris)} place${nb - pris > 1 ? 's' : ''} libre${nb - pris > 1 ? 's' : ''} sur ${nb}</span></h4>${F[0] ? (F[1] || pris < nb ? choix(1) : `<p class="petit mut">Plus de place : ${nb ? 'monte l\'Aire d\'envol ou libère un autre joueur' : 'il faut l\'Aire d\'envol au niveau 2'}.</p>`) : '<p class="petit mut">Choisis d\'abord son focus principal.</p>'}
@@ -673,7 +724,7 @@ function vueDirection(){
       <span style="text-align:left;font-weight:400">Arrivé en</span><b>${lab(ct.debut)}</b></div>
       <p class="petit mut" style="margin:8px 0 0">En fin de contrat, le président prolonge si sa confiance tient (35 % au moins).</p></div>` : ''}
     <div class="carte"><h2>Réputation</h2><div class="ligne"><span style="flex:1">${esc(mg.nom)}</span><b>${Math.round(mg.rep)} / 100</b></div>${jauge(mg.rep, 'Réputation')}</div>
-    <div class="liste carte">${[['profil', 'Mon profil', 'Avatar, attributs, parcours'], ['carriere', 'Carrière', 'Offres de clubs et de fédérations'], ['partenaires', 'Partenaires', 'Sponsor maillot et panneaux']].map(([v, n, s]) => `<button class="el" data-act="vue" data-v="${v}"><div class="t"><b>${n}</b><span>${s}</span></div><span class="d mut">›</span></button>`).join('')}</div>
+    <div class="liste carte">${[['profil', 'Mon profil', 'Avatar, attributs, carrière et offres'], ['partenaires', 'Partenaires', 'Sponsor maillot et panneaux']].map(([v, n, s]) => `<button class="el" data-act="vue" data-v="${v}"><div class="t"><b>${n}</b><span>${s}</span></div><span class="d mut">›</span></button>`).join('')}</div>
   </div></div>${scene ? '</details>' : ''}`;
   if (scene) V.colorierProduits(VUE, c);   // l'écharpe aux couleurs du club (dessinée en rouge, bleu et jaune)
 }
@@ -690,12 +741,23 @@ const LOOK = {
 const persoMgr = () => { const mg = M().manager, p = G() ? G().profil(M()) : null; return {id:'manager', p:(mg.nom || 'M').split(' ')[0], n:mg.nom, nat:p ? p.nat : 'FRA', age:p ? p.age : 40, look:p && p.look}; };
 const avatarMgr = (cls) => avatarDe(persoMgr(), cls, M().manager.club || null);
 Z.avatarMgr = avatarMgr; Z.sceneHTML = sceneHTML; Z.sceneDispo = sceneDispo;   // v117 : scènes utilisables par les écrans de qm27-ui.js (finances)
-function vueProfil(){
+/* v174 : Mon profil et Carrière fusionnés : deux onglets (vues « profil » et « carriere », qui restent deux entrées de l'historique) */
+function vueProfil(onglet){
+  onglet = onglet === 'carriere' || U.vue === 'carriere' ? 'carriere' : 'profil';
   const M_ = M(), mg = M_.manager, Gm = G(), p = Gm.profil(M_), c = mg.club ? club(mg.club) : null, pool = p.pool || 0;
   const titres = M_.histo.filter(h => h.manager && h.manager.pos === 1).length;
+  const nOff = Z.nbOffresCarriere();
+  const onglets = `<div class="onglets" role="tablist">${[['profil', 'Profil'], ['carriere', `Carrière${nOff ? ` <span class="badge neuf">${nOff}</span>` : ''}`]].map(([k, n]) => `<button role="tab" class="${onglet === k ? 'on' : ''}" data-act="vue" data-v="${k}" aria-selected="${onglet === k}">${n}</button>`).join('')}</div>`;
+  const bilan = `<div class="carte"><h2>Bilan</h2>
+      <div class="stat" style="grid-template-columns:1fr auto"><span style="text-align:left;font-weight:400">Saisons terminées</span><b>${mg.saisons.length}</b>
+      <span style="text-align:left;font-weight:400">Titres de champion</span><b>${titres}</b>
+      <span style="text-align:left;font-weight:400">Clubs entraînés</span><b>${new Set((mg.postes || []).map(x => x.club)).size}</b></div>
+      ${window.QMR && mg.prix && mg.prix.length ? `<h4 class="sous-t">Prix</h4>${window.QMR.palmaresHTML(mg.prix, esc)}` : ''}
+</div>`;
   VUE.innerHTML = `<div class="tete-mg">${`<span class="avp g">${avatarMgr('g')}</span>`}<div style="min-width:0"><h1 class="grand">${esc(mg.nom)}</h1><p class="sous">${flag(p.nat)} ${p.age} ans · ${c ? esc(c.nom) : 'sans club'} · réputation ${Math.round(mg.rep)}</p>
     <button class="btn sec" data-act="editerProfil" style="margin-top:6px">Modifier le profil</button></div></div>
-  <div class="cols"><div>
+${onglets}
+  ${onglet === 'carriere' ? Z.carriereCorps(bilan) : `  <div class="cols"><div>
     <div class="carte"><h2>Attributs ${p.fige ? '' : `<span class="mut">${pool ? plur(pool, 'point') + ' à placer' : 'répartis tes points'}</span>`}</h2>
       ${p.fige ? '' : '<p class="petit mut" style="margin:0 0 8px">Avant ton premier match officiel, tu peux déplacer des points d\'un attribut à l\'autre. Ensuite, ils évoluent avec ta carrière.</p>'}
       <div class="attrs-mgr">${Gm.ATTR_MGR.map(([k, n, d]) => { const v = p.attrs[k];
@@ -707,13 +769,8 @@ function vueProfil(){
   </div><div>
     ${p.contrat ? `<div class="carte"><h2>Contrat</h2><div class="stat" style="grid-template-columns:1fr auto"><span style="text-align:left;font-weight:400">Club</span><b>${esc(club(p.contrat.club).nom)}</b>
       <span style="text-align:left;font-weight:400">Salaire</span><b>${eur(p.contrat.sal)} / semaine</b><span style="text-align:left;font-weight:400">Fin</span><b>${lab(p.contrat.fin)}</b></div></div>` : ''}
-    <div class="carte"><h2>Carrière <button data-act="vue" data-v="carriere">Offres</button></h2>
-      <div class="stat" style="grid-template-columns:1fr auto"><span style="text-align:left;font-weight:400">Saisons terminées</span><b>${mg.saisons.length}</b>
-      <span style="text-align:left;font-weight:400">Titres de champion</span><b>${titres}</b>
-      <span style="text-align:left;font-weight:400">Clubs entraînés</span><b>${new Set((mg.postes || []).map(x => x.club)).size}</b></div>
-      ${window.QMR && mg.prix && mg.prix.length ? `<h4 class="sous-t">Prix</h4>${window.QMR.palmaresHTML(mg.prix, esc)}` : ''}
-      <div class="sep"></div><div class="liste">${(mg.postes || []).slice().reverse().map(x => `<div class="el">${blason(x.club, 'p')}<div class="t"><b>${esc(club(x.club).nom)}</b><span>${lab(x.debut)}${x.fin != null ? ' → ' + lab(x.fin) : ' → aujourd\'hui'}</span></div></div>`).join('')}</div></div>
-  </div></div>`;
+    ${Z.reputationHTML()}
+  </div></div>`}`;
 }
 ACT.pointMgr = d => { const p = G().profil(M()); if (p.fige) return; p.pool = p.pool || 0; const k = d.k, v = p.attrs[k];
   if (+d.d < 0 && v > 1){ p.attrs[k]--; p.pool++; } else if (+d.d > 0 && p.pool > 0 && v < 20){ p.attrs[k]++; p.pool--; }
@@ -788,14 +845,15 @@ function vueBoite(){
   VUE.innerHTML = `<div><h1 class="grand">Boîte de réception</h1><p class="sous">${plur(M_.boite.length, 'message')} · ${plur(nonLus(), 'non lu')}</p></div>
   <div class="chips filtres-boite">${[['tous', 'Tous'], ['nonlus', `Non lus${nonLus() ? ' (' + nonLus() + ')' : ''}`], ...types.map(t => [t, CAT[t] || t])].map(([k, n]) => `<button class="chip ${f === k ? 'on' : ''}" data-act="boiteF" data-f="${k}">${n}</button>`).join('')}</div>
   <div class="btns" style="margin-bottom:10px"><button class="btn sec" data-act="toutLu" ${nonLus() ? '' : 'disabled'}>Tout marquer lu</button><button class="btn sec" data-act="supprLus" ${M_.boite.some(m => m.lu) ? '' : 'disabled'}>Supprimer les messages lus</button></div>
-  <div class="carte"><div class="liste">${L.map(m => `<div class="el msg-l ${m.lu ? '' : 'neuf'}"><button class="msg-b" data-act="lireMsg" data-id="${m.id}"><span class="ico-msg" aria-hidden="true">${VUE_MSG[m.type || 'info'] ? icoVue(VUE_MSG[m.type || 'info'], ICO_MSG[m.type] || '✉️', 'ico-im') : (ICO_MSG[m.type] || '✉️')}</span><div class="t"><b>${pieces(esc(m.titre))}</b><span>${m.date ? fmtDate(m.date) + ' · ' : ''}${pieces(esc(String(m.corps).slice(0, 110)))}${String(m.corps).length > 110 ? '…' : ''}</span></div></button>
+  <div class="carte"><div class="liste">${L.map(m => `<div class="el msg-l ${m.lu ? '' : 'neuf'}"><button class="msg-b" data-act="lireMsg" data-id="${m.id}"><span class="ico-msg" aria-hidden="true">${VUE_MSG[m.type || 'info'] ? icoVue(VUE_MSG[m.type || 'info'], ICO_MSG[m.type] || '✉️', 'ico-im') : (ICO_MSG[m.type] || '✉️')}</span><div class="t"><b>${pieces(esc(m.titre))}</b><span>${m.date ? fmtDate(m.date) + ' · ' : ''}${pieces(esc(Z.apercuMsg(m.corps, 110)))}</span></div></button>
     <button class="mini-b corb" data-act="supprMsg" data-id="${m.id}" aria-label="Supprimer ce message">✕</button></div>`).join('') || '<p class="mut" style="margin:0">Rien ici.</p>'}</div></div>`;
 }
 const msgDe = id => M().boite.find(m => m.id === id);
 ACT.boite = () => aller('boite');
 ACT.boiteF = d => { U.boiteF = d.f; rendre(); };
 ACT.lireMsg = d => { const m = msgDe(d.id); if (!m) return; m.lu = true; sauver();
-  feuille(`${teteF(pieces(esc(m.titre)), `${m.date ? fmtDate(m.date, true) + ' · ' : ''}${CAT[m.type] || 'Message'}`)}<p style="white-space:pre-line;margin:0 0 14px">${pieces(esc(m.corps))}</p>
+  /* v174 : mise en page de courrier (expéditeur, date, objet, corps structuré, signature) */
+  feuille(`${Z.courrierHTML(m, VUE_MSG[m.type || 'info'] ? icoVue(VUE_MSG[m.type || 'info'], ICO_MSG[m.type] || '✉️', 'ico-im') : (ICO_MSG[m.type] || '✉️'))}
     <div class="btns"><button class="btn sec" data-act="nonLu" data-id="${m.id}">Marquer non lu</button><button class="btn sec" data-act="supprMsg" data-id="${m.id}" style="color:var(--mauvais)">Supprimer</button></div>`);
   if (Z.U.vue === 'boite' || Z.U.vue === 'accueil'){ const el = document.querySelector(`[data-act="lireMsg"][data-id="${d.id}"]`); if (el) el.closest('.msg-l, .msg') && el.closest('.msg-l, .msg').classList.remove('neuf'); }
 };
@@ -818,7 +876,7 @@ function vuePlus(){
   </div></div>
   <div class="carte"><div class="liste">
     ${el('vue', 'profil', avatarMgr('mini'), 'Mon profil', `${esc(mg.nom)} · attributs, apparence`)}
-    ${el('vue', 'carriere', '🧭', 'Carrière', `Réputation ${Math.round(mg.rep)} · offres, sélection, démission`)}
+    ${el('vue', 'carriere', '🧭', 'Ma carrière', `Réputation ${Math.round(mg.rep)} · offres, sélection, démission (onglet de Mon profil)`)}
   </div></div>
   <div class="carte"><div class="liste">
     ${el('vue', 'sauvegardes', '💾', 'Sauvegardes', `Emplacement ${Z.EMP} · exporter, importer, entre appareils`)}
@@ -1060,7 +1118,14 @@ function vueClubFiche(){
     return st || pr ? `<div class="carte"><h2>${en ? 'Entraîneur et style de jeu' : 'Style de jeu'}</h2>${en ? `<p class="petit" style="margin:0 0 6px"><b>${esc(en.nom)}</b> · ${flag(en.nat)} · ${en.age} ans · réputation ${en.rep} · en poste depuis ${en.depuis}${en.titres ? ` · ${en.titres} titre${en.titres > 1 ? 's' : ''}` : ''}${en.car.length ? `<br><span class="mut">Avant : ${en.car.slice(0, 3).map(x => `${esc(nomC(x[0]))} (${x[1]}-${x[2]}, ${esc(x[3])})`).join(', ')}</span>` : ''}</p>` : ''}${st ? `<p class="petit" style="margin:0 0 6px">Style de l'entraîneur : <b>${esc(st.nom)}</b>. ${esc(st.d)}</p>` : ''}${c.anciens && c.anciens.length ? `<p class="petit mut" style="margin:0 0 6px">Anciens entraîneurs : ${c.anciens.slice(0, 3).map(x => `${esc(x[0])} (${x[1]}-${x[2]}, ${esc(x[3])})`).join(', ')}</p>` : ''}${pr ? `<p class="petit" style="margin:0">Sur le terrain (${pr.n} derniers matchs) : ${pr.etiquettes.slice(0, 2).map(e => `<span class="stj ${e}">${esc(QMG.STYLES_JEU[e].nom)}</span>`).join(' ')} · ${pr.pour.toFixed(1).replace('.', ',')} buts marqués, ${pr.contre.toFixed(1).replace('.', ',')} encaissés, possession ${Math.round(pr.poss)} %, ${Math.round(pr.partContre * 100)} % des buts sur contre.</p>` : ''}</div>` : ''; })() : ''}
   <div class="onglets" role="tablist">${[mien ? 'general' : 'scout', 'contrats', 'saison'].map(k => `<button role="tab" class="${FC.vue === k ? 'on' : ''}" data-act="fcVue" data-v="${k}">${VUES_EFF[k].nom}</button>`).join('')}</div>
   <div class="carte tj-carte">${tableJoueurs(L, {vue:mien && FC.vue === 'scout' ? 'general' : !mien && FC.vue === 'general' ? 'scout' : FC.vue, tri:FC.tri, sens:FC.sens, K:mien ? c.compo : null, act:'fcTri', nat:c.nat})}</div>
-  <p class="petit mut">Notes estimées par ton recruteur (fourchettes en gris). Touche un joueur pour sa fiche : « Superviser » pour le suivre de près.</p>`;
+  <p class="petit mut">Notes estimées par ton recruteur (fourchettes en gris). Touche un joueur pour sa fiche : « Superviser » pour le suivre de près.</p>
+  ${palmaresClub(c)}`;
+}
+/* v173 : palmarès du club, un trophée par ligne et ses saisons à côté */
+function palmaresClub(c){
+  const B_ = window.QMB, P = window.QMF && window.QMF.palmaresClubHTML; if (!B_ || !B_.titresGroupes || !P) return '';
+  const Gr = B_.titresGroupes(M(), c), n = Gr.reduce((s, g) => s + g.saisons.length, 0);
+  return `<details class="carte"${n && n <= 12 ? ' open' : ''}><summary><h2 style="display:inline">Palmarès</h2> <span class="mut petit">${n ? n + ' titre' + (n > 1 ? 's' : '') : 'aucun titre'}</span></summary>${n ? P(Gr) : '<p class="mut" style="margin:8px 0 0">Pas encore de titre.</p>'}</details>`;
 }
 ACT.ficheClub = d => { U.clubVu = d.c; retirerFeuille(); if (Z.U.vue === 'clubFiche') rendre(); else aller('clubFiche'); };
 ACT.clubsL = d => { U.clubsL = d.l; rendre(); };
@@ -1074,6 +1139,12 @@ ACT.suivreClub = d => { const U_ = moi(), c = club(d.c); let n = 0; for (const i
 /* ============================== Calendrier : mois et saison ============================== */
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const jourUTC = t => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
+/* v173 : le jour repère du calendrier = ton prochain match de la semaine (le mercredi européen s'il vient avant le samedi), sinon le temps en cours */
+function jourRepere(M_){
+  const Q_ = window.QM, S = Q_.semaine(M_); if (!S) return 0;
+  const L = Q_.matchsDuJoueur ? Q_.matchsDuJoueur(M_).filter(m => !m.res) : [], d = L.map(m => m.date || S.date).sort((a, b) => a - b)[0];
+  return jourUTC(d || (Q_.deuxTemps(M_) && !Q_.enMilieu(M_) ? S.date - 3 * 864e5 : S.date));
+}
 /* ce qui se passe chaque jour : matchs du samedi, fenêtres de mercato, tournoi, trêve, préparation */
 function evenementsSaison(){
   const M_ = M(), mg = M_.manager, cid = mg.club, n = mg.selection ? mg.selection.nat : null, J = new Map();
@@ -1095,7 +1166,7 @@ function resMatch(m){
   return {adv, dom, sx, txt:`${a}–${b}`, v:a > b ? 'V' : a < b ? 'D' : 'N'};
 }
 function grilleMois(an, mo, J, petit){
-  const d0 = Date.UTC(an, mo, 1), nb = new Date(Date.UTC(an, mo + 1, 0)).getUTCDate(), dec = (new Date(d0).getUTCDay() + 6) % 7, auj = jourUTC((window.QM.semaine(M()) || {}).date || 0);
+  const d0 = Date.UTC(an, mo, 1), nb = new Date(Date.UTC(an, mo + 1, 0)).getUTCDate(), dec = (new Date(d0).getUTCDay() + 6) % 7, auj = jourRepere(M());   // v173
   let h = petit ? '' : `<div class="cal-j">${['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(x => `<span>${x}</span>`).join('')}</div>`;
   h += `<div class="cal-g ${petit ? 'petit' : ''}">${'<span class="vide"></span>'.repeat(dec)}`;
   for (let i = 1; i <= nb; i++){
@@ -1113,7 +1184,7 @@ function vueCalendrier(){
   const moisListe = []; { let d = new Date(M_.calendrier[0].date); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)); const fin = M_.calendrier[M_.calendrier.length - 1].date;
     while (d.getTime() <= fin){ moisListe.push([d.getUTCFullYear(), d.getUTCMonth()]); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)); } }
   if (U.calSem !== M_.semaine){ U.calMois = null; U.calSem = M_.semaine; }   // v94 : le calendrier s'ouvre sur le mois de la semaine en cours
-  if (U.calMois == null){ const d = new Date(S.date); U.calMois = Math.max(0, moisListe.findIndex(([a, m]) => a === d.getUTCFullYear() && m === d.getUTCMonth())); }
+  if (U.calMois == null){ const d = new Date(jourRepere(M_) || S.date); U.calMois = Math.max(0, moisListe.findIndex(([a, m]) => a === d.getUTCFullYear() && m === d.getUTCMonth())); }
   U.calMois = Math.max(0, Math.min(moisListe.length - 1, U.calMois));
   const legende = `<div class="cal-leg"><span><i class="b mercato"></i>Mercato</span><span><i class="b prepa"></i>Préparation</span><span><i class="b tournoi"></i>${M().calendrier.some(s => s.tour) ? esc(D.TOURNOI.court) : 'Sélections'}</span><span><i class="b treve"></i>Trêve</span><span><i class="pt V"></i>V</span><span><i class="pt N"></i>N</span><span><i class="pt D"></i>D</span></div>`;
   let corps;
@@ -1124,7 +1195,7 @@ function vueCalendrier(){
     corps = `<div class="carte"><div class="cal-nav"><button class="mini-b" data-act="calMois" data-d="-1" aria-label="Mois précédent" ${U.calMois ? '' : 'disabled'}>‹</button><h2 style="margin:0">${MOIS[mo]} ${an}</h2><button class="mini-b" data-act="calMois" data-d="1" aria-label="Mois suivant" ${U.calMois < moisListe.length - 1 ? '' : 'disabled'}>›</button></div>
       ${grilleMois(an, mo, J)}${legende}</div>
       <div class="carte"><h2>Ce mois-ci</h2><div class="liste">${evs.map(x => { const S_ = x.S, k = x.k;
-        const lignes = x.matchs.map(m => { const r = resMatch(m); return `<button class="el" data-act="semaine" data-s="${k}">${r.sx ? blason(r.adv, 'p', 1) : blason(r.adv, 'p')}<div class="t"><b>${r.sx ? (m.comp && window.QMN ? esc(m.comp === 'ami' ? 'Amical' : D.LDN.court + ' · ' + window.QMN.ETAPES[m.etape].replace('Groupes · ', '')) : esc(D.TOURNOI.court) + ' · tour ' + S_.tour) : m.ligue === 'eu' && window.QME ? esc(window.QME.COURT + ' · ' + window.QME.nomTour(m)) : 'J' + S_.journee} · ${r.dom ? '' : '@ '}${esc(r.sx ? nat(r.adv).nom : club(r.adv).nom)}</b><span>${fmtDate(x.t)} · ${r.dom ? 'domicile' : 'extérieur'}${k === M_.semaine ? ' · cette semaine' : ''}${S_.tour && !r.sx && mg.club && k === M_.semaine && window.QM.convoques(M_, mg.club).length ? ` · ✈︎ ${plur(window.QM.convoques(M_, mg.club).length, 'absent')}` : ''}</span></div><span class="d">${r.txt ? `<b>${r.txt}</b> <span class="vnd ${r.v}">${r.v}</span>` : '<span class="mut">à venir</span>'}</span></button>`; }).join('');
+        const lignes = x.matchs.map(m => { const r = resMatch(m); return `<button class="el" data-act="semaine" data-s="${k}">${r.sx ? blason(r.adv, 'p', 1) : blason(r.adv, 'p')}<div class="t"><b>${r.sx ? (m.comp && window.QMN ? esc(m.comp === 'ami' ? 'Amical' : D.LDN.court + ' · ' + window.QMN.ETAPES[m.etape].replace('Groupes · ', '')) : esc(D.TOURNOI.court) + ' · tour ' + S_.tour) : m.ligue === 'eu' && window.QME ? esc(window.QME.COURT + ' · ' + window.QME.nomTour(m)) : 'J' + S_.journee} · ${r.dom ? '' : '@ '}${esc(r.sx ? nat(r.adv).nom : club(r.adv).nom)}</b><span>${fmtDate(x.t)} · ${r.dom ? 'domicile' : 'extérieur'}${k === M_.semaine ? (jourUTC(x.t) === jourRepere(M_) && !r.txt ? ' · <b>prochain match</b>' : ' · cette semaine') : ''}${S_.tour && !r.sx && mg.club && k === M_.semaine && window.QM.convoques(M_, mg.club).length ? ` · ✈︎ ${plur(window.QM.convoques(M_, mg.club).length, 'absent')}` : ''}</span></div><span class="d">${r.txt ? `<b>${r.txt}</b> <span class="vnd ${r.v}">${r.v}</span>` : '<span class="mut">à venir</span>'}</span></button>`; }).join('');
         const info = S_.type === 'prepa' ? `<div class="el"><span class="blason nat p">🏋️</span><div class="t"><b>Préparation · semaine ${S_.semaine}</b><span>${fmtDate(x.t)} · mercato ouvert</span></div></div>` : '';
         return info + lignes; }).join('') || '<p class="mut" style="margin:0">Pas de match ce mois-ci.</p>'}</div></div>`;
   } else {
@@ -1245,7 +1316,7 @@ function MENU(){
     ['Domaine', [['club', 'Carte du domaine', '🏰', '', 1], ['direction', 'Bureau du président', '🏛️', '', 1], ['finances', 'Finances et banque', '💰', '', 1], ['boutique', 'Bazar', '🛍️', '', 1], ['partenaires', 'Partenaires', '🤝', '', 1], ['domaine', 'Bâtiments', '🧱', '', 1], ['trophees', 'Salle des trophées', '🏆', '', 1]]],
     ['Stade', [['entree', 'Entrée du stade', '🎟️', '', 1], ['stade', 'Tribunes', '🏟️', '', 1], ['buvette', 'La buvette', '🍺', '', 1]]],   // v133
     ['Compétitions', [['federation', 'La Fédération', '🏛️'], ['classements', 'Classements', '📊']]],
-    ['Moi', [['salon', 'Mon salon', '🛋️'], ['profil', 'Mon profil', '🧑'], ['carriere', 'Carrière', '🧭']]],
+    ['Moi', [['salon', 'Mon salon', '🛋️'], ['profil', 'Mon profil', '🧑']]],   // v174 : Carrière = onglet de Mon profil
     ['Partie', [['sauvegardes', 'Sauvegardes', '💾'], ['aide', 'Règles et réglages', '⚙️'], ['quitterPartie', 'Écran des parties', '⏏︎', '', 0, 1]]],
   ];
   return G_.map(([g, L]) => [g, L.filter(x => cl || !x[4])]).filter(([, L]) => L.length);

@@ -1,4 +1,4 @@
-// mon-ecran-version: 12aa9971
+// mon-ecran-version: 60597a0d
 /* QM27 (v88, lot 5) — le domaine du club : bâtiments sorciers (niveaux 1 à 5 et améliorations au choix aux niveaux 3 et 5),
    stade en quatre tribunes, Bazar (produits et prix), sponsor maillot et panneaux à négocier, supporters, emprunt à la Banque des Gobelins,
    salle des trophées et palmarès, petits événements. Sans affichage : expose window.QMB (bonus lus par le moteur) et complète window.QMC.
@@ -200,6 +200,12 @@ function titres(M, c){
   for (const h of M.europeHist || []) if (h.v === c.id) L.push({saison:`${h.saison}-${String(h.saison + 1).slice(2)}`, titre:'Ligue des Anneaux', ancien:false, cle:'eu'});   // v111
   return L.sort((x, y) => x.saison < y.saison ? 1 : -1);
 }
+/* v173 : un trophée par ligne (même compétition), ses saisons à côté : la plus prestigieuse d'abord, puis le titre le plus récent */
+function titresGroupes(M, c){
+  const g = new Map();
+  for (const x of titres(M, c)){ const k = x.cle + '|' + x.titre; if (!g.has(k)) g.set(k, {cle:x.cle, titre:x.titre, saisons:[], anciens:0}); const y = g.get(k); y.saisons.push(x.saison); if (x.ancien) y.anciens++; }
+  return [...g.values()].map(y => ({...y, ancien:y.anciens === y.saisons.length})).sort((a, b) => (b.cle === 'eu') - (a.cle === 'eu') || b.saisons.length - a.saisons.length || (a.saisons[0] < b.saisons[0] ? 1 : -1));
+}
 const visites = (M, c) => { const V = EQ.visites; return niv(c, 'trophees') * (V.base + V.titre * titres(M, c).length) * (a(c, 'fantome') ? V.fantome : 1) * (a(c, 'musee') ? V.musee : 1); };   // v165
 
 /* ---------- Travaux et améliorations ---------- */
@@ -389,5 +395,5 @@ Object.assign(QMC, {
 root.QMB = {bonus, ajusterBlessure, multProgression, balaiDe, bonusMatch, bonusAffluence, finances, assurer, coutBat, lancer, amelEnAttente, choisirAmel, changerAmel, chantierAmel, coutChangement, potion,
   signerSponsor, signerPanneau, retirerPanneau, placesPanneaux, reglerProduit, produitsDispo, placesRayon, recettesBazar, recetteProduit, PRIX,
   carteDispo, placesCarte, carteActive, multCarte, PRODUITS_BUV, dispoProduit, bonusVisiteur, goutePlat, partCarte, recettesBuvette, reglerCarte,
-  emprunter, rembourser, plafondPret, tauxPret, titres, visites, rang, BAT, AMEL, a};
+  emprunter, rembourser, plafondPret, tauxPret, titres, titresGroupes, visites, rang, BAT, AMEL, a};
 })(typeof window !== 'undefined' ? window : globalThis);

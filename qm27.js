@@ -1,4 +1,4 @@
-// mon-ecran-version: 0096e9c1
+// mon-ecran-version: 1c3b956a
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — moteur du jeu, sans affichage : window.QM.
    Monde (ligues, clubs, joueurs), calendrier de la saison, simulation des matchs pas à pas (15 s de jeu par pas),
    classements, fin de saison, sauvegarde. Le même code tourne dans la page et dans outils/dev/qm27-essai.mjs.
@@ -689,7 +689,9 @@ function convoquer(M){
   const c = clubJoueur(M) && M.clubs[clubJoueur(M)], L = c ? c.effectif.map(id => M.joueurs[id]).filter(j => j && j.inter) : [];
   if (c && L.length && M.convMsg !== S.date){ M.convMsg = S.date;
     const nm = n => (D.NATIONS[n] || {nom:n}).nom, nb = n => S.matchs.filter(m => m.ligue === 'sixn' && (m.dom === n || m.ext === n)).length, cp = (S.matchs.find(m => m.ligue === 'sixn') || {}).comp === 'ldn' ? 'la Ligue des nations' : 'les matchs amicaux de la trêve';
-    message(M, `${L.length} joueur${L.length > 1 ? 's' : ''} en sélection`, `Convoqués pour ${cp} : ${L.map(j => `${nomJ(j)} (${nm(j.inter)}, ${nb(j.inter)} match${nb(j.inter) > 1 ? 's' : ''})`).join(', ')}. Ils rentrent la semaine prochaine${S.matchs.some(m => m.ligue !== 'sixn') ? ' et manquent les matchs de club de cette semaine' : ''}.`, 'sixn'); }
+    /* v174 : courrier mis en page (une liste par pays) */
+    const P = [...new Set(L.map(j => j.inter))].sort((a, b) => nm(a).localeCompare(nm(b), 'fr'));
+    message(M, `${L.length} joueur${L.length > 1 ? 's' : ''} en sélection`, `Convoqués pour ${cp}. Ils rentrent la semaine prochaine${S.matchs.some(m => m.ligue !== 'sixn') ? ' et manquent les matchs de club de cette semaine' : ''}.\n${P.map(n => `\n## [[${n}]] ${nm(n)} · ${nb(n)} match${nb(n) > 1 ? 's' : ''}\n${L.filter(j => j.inter === n).map(j => `- ${nomJ(j)}`).join('\n')}`).join('\n')}`, 'sixn'); }
 }
 const convoques = (M, clubId) => (M.clubs[clubId] ? M.clubs[clubId].effectif : []).filter(id => M.joueurs[id] && M.joueurs[id].inter);
 function grainePour(M, m){ return melange(M.graine, m.id); }
@@ -870,7 +872,7 @@ function terminerSemaine(M, X){
     const club = clubJoueur(M) ? M.clubs[clubJoueur(M)] : {effectif:[]};
     for (const id of club.effectif){ const j = M.joueurs[id]; if (j.bless && !avant[id]) message(M, `Blessure : ${nomJ(j)}`, `${j.bless.nom}. Indisponible environ ${j.bless.jours} jour${j.bless.jours > 1 ? 's' : ''}.`, 'bless'); }
     if (S.tour){
-      const L = S.matchs.filter(m => m.ligue === 'sixn').map(m => `${D.NATIONS[m.dom].nom} ${m.res.score[0]}–${m.res.score[1]} ${D.NATIONS[m.ext].nom}`).join(' · ');
+      const L = S.matchs.filter(m => m.ligue === 'sixn').map(m => `| [[${m.dom}]] ${D.NATIONS[m.dom].nom} | ${m.res.score[0]}–${m.res.score[1]} | ${D.NATIONS[m.ext].nom} [[${m.ext}]]`).join('\n');   // v174 : un match par ligne
       message(M, `${D.TOURNOI.nom}, tour ${S.tour}`, L, 'sixn');
     }
   }
@@ -883,8 +885,8 @@ function terminerSemaine(M, X){
   const N = semaine(M);
   if (N && N.type === 'bilan') finDeSaison(M);
   convoquer(M);
-  if (M.manager && N && N.tour && clubJoueur(M)){ const L = convoques(M, clubJoueur(M)).map(id => nomJ(M.joueurs[id]));
-    if (L.length) message(M, `${D.TOURNOI.court} : ${L.length} ${L.length > 1 ? 'internationaux absents' : 'international absent'}`, `Tour ${N.tour} du ${D.TOURNOI.nom} : ${L.join(', ')} ${L.length > 1 ? 'jouent' : 'joue'} avec ${L.length > 1 ? 'leur sélection' : 'sa sélection'} et ${L.length > 1 ? 'manqueront' : 'manquera'} le match du club.`, 'sixn'); }
+  if (M.manager && N && N.tour && clubJoueur(M)){ const J = convoques(M, clubJoueur(M)).map(id => M.joueurs[id]), L = J.map(nomJ);
+    if (L.length) message(M, `${D.TOURNOI.court} : ${L.length} ${L.length > 1 ? 'internationaux absents' : 'international absent'}`, `Tour ${N.tour} du ${D.TOURNOI.nom} : ${L.length > 1 ? 'ils jouent avec leur sélection et manqueront' : 'il joue avec sa sélection et manquera'} le match du club.\n\n${J.map(j => `- [[${j.inter || j.nat}]] ${nomJ(j)}`).join('\n')}`, 'sixn'); }   // v174 : en liste
   return S;
 }
 /* v91 : fin du match joué par le joueur. S'il lui reste un autre match cette semaine (sélection puis club), on l'applique seulement. */
@@ -940,7 +942,7 @@ function finDeSaison(M){
     M.manager.rep = Math.round(borne(M.manager.rep + ecart * 1.2 + (pos === 1 ? 8 : 0), 1, 100) * 10) / 10;
     M.manager.confiance = Math.round(borne(M.manager.confiance + ecart * 4, 0, 100));
     M.manager.saisons.push({saison:lab, club:M.manager.club, pos});
-    message(M, `Bilan de la saison ${lab}`, `${M.clubs[M.manager.club].nom} termine ${pos}${pos === 1 ? 'er' : 'e'} (objectif : ${o.vise === 1 ? 'titre' : 'top ' + o.vise}). Champions : ${Object.values(M.ligues).map(L => M.clubs[champs[L.id]].nom).join(', ')}.${sixn ? ` ${D.TOURNOI.court} : ${D.NATIONS[sixn].nom}.` : ''}${ldn ? ` ${D.LDN.nom} : ${D.NATIONS[ldn].nom}.` : ''}`, 'pres');
+    message(M, `Bilan de la saison ${lab}`, `${M.clubs[M.manager.club].nom} termine ${pos}${pos === 1 ? 'er' : 'e'} (objectif : ${o.vise === 1 ? 'titre' : 'top ' + o.vise}).\n\n## Champions\n${Object.values(M.ligues).map(L => `- [[c:${champs[L.id]}]] ${M.clubs[champs[L.id]].nom} (${L.court})`).join('\n')}${sixn ? `\n- [[${sixn}]] ${D.NATIONS[sixn].nom} (${D.TOURNOI.court})` : ''}${ldn ? `\n- [[${ldn}]] ${D.NATIONS[ldn].nom} (${D.LDN.nom})` : ''}`, 'pres');   // v174 : en liste
   }
   M.histo.push(h);
   if (root.QMG && root.QMG.eteBancs) root.QMG.eteBancs(M);   // v159 : bilan des entraîneurs de l'ordinateur, valse des bancs

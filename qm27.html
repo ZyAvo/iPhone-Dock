@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="570f5ed7">
+<meta name="mon-ecran-version" content="bd993242">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-title" content="QM27">
@@ -735,6 +735,9 @@ img.emb{object-fit:contain;background:none}
 img.tro{width:64px;height:64px;object-fit:contain}
 .trophees .tr.ancien img.tro{filter:grayscale(.55) brightness(.9);opacity:.85}
 .palm-i:has(.pr-ico){display:grid;grid-template-columns:32px auto;column-gap:7px;align-items:center}.palm-i .pr-ico{width:32px;height:32px;object-fit:contain;grid-row:1 / span 2}
+/* v173 : palmarès d'un joueur ou du manager en lignes : un prix par ligne, ses dates à côté */
+.palm.palm-l{flex-direction:column;flex-wrap:nowrap;gap:5px}.palm-l .palm-i{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:9px;align-items:center;padding:6px 10px}.palm-l .palm-i:not(:has(.pr-ico)){grid-template-columns:minmax(0,1fr)}.palm-l .palm-i .t{display:flex;flex-direction:column;min-width:0}
+.palm-l .palm-i b{font-size:.84rem}.palm-l .palm-i small{font-size:.72rem;line-height:1.35}.palm-l .x{color:var(--or,#c9a227);font-weight:800}
 .el.prod .prod-img{width:46px;height:46px;object-fit:contain;flex:none}
 .el.prod .buv-ico{width:46px;height:46px;flex:none;display:grid;place-items:center;font-size:30px;line-height:1}   /* v133 : la carte de la buvette */
 .el .buv-ico{width:46px;flex:none;text-align:center;font-size:30px;line-height:1}
@@ -837,7 +840,7 @@ html.desk .scene{max-width:min(560px, calc((100vh - 170px) * .667))}
 @media (hover:hover) and (prefers-reduced-motion: no-preference){.sc-lueur:hover::before{animation:sc-lueur 1.4s ease-in-out infinite}}
 @media (prefers-reduced-motion: reduce){.sc-vif{display:none}}
 /* v145 : hall du château : tableaux vivants et fantômes */
-.sc-tableau{position:absolute;overflow:hidden;pointer-events:none;z-index:1}
+i.sc-tableau{position:absolute;overflow:hidden;pointer-events:none;z-index:1}   /* v173 : les tableaux des murs seulement (le tableau des scores du stade, bouton .sc-tableau, restait sourd au toucher) */
 .sc-toile-v{position:absolute;inset:0;background-repeat:no-repeat;transform-origin:50% 60%}
 .sc-toile-n{position:absolute;left:0;top:0;width:400%;height:55%;background-repeat:repeat-x;background-size:25% 100%;opacity:.55;mix-blend-mode:screen}
 .sc-oiseau{position:absolute;left:0;top:18%;width:16%;opacity:0}
@@ -1083,6 +1086,42 @@ html.desk .scene{max-width:min(560px, calc((100vh - 170px) * .667))}
 .spons{display:flex;align-items:center;gap:14px} .spons .mt{width:84px;height:84px;flex:none}
 .spons b{display:block;font-size:1rem} .spons span{display:block;font-size:.8rem;color:var(--ink-soft);margin-top:2px}
 .trophees{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:12px}
+/* v173 : palmarès groupé (club et joueur) : un trophée par ligne, ses saisons à côté */
+/* v174 : le courrier (fiche d'un message) : papier, en-tête de l'expéditeur, objet, corps structuré, signature */
+.lettre{position:relative;background:linear-gradient(180deg,#fffaf0,#f8efdc);color:#3b2a1a;border:1px solid #e3d3b1;border-radius:14px;padding:16px 16px 14px;margin:0 0 14px;box-shadow:inset 0 0 0 4px rgba(255,255,255,.55),inset 0 0 0 5px rgba(201,162,39,.25);font-size:.93rem;line-height:1.55}
+:root[data-theme="dark"] .lettre{background:linear-gradient(180deg,#2d241a,#251d15);color:#f1e6cf;border-color:#4a3b28;box-shadow:inset 0 0 0 4px rgba(0,0,0,.15),inset 0 0 0 5px rgba(201,162,39,.25)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .lettre{background:linear-gradient(180deg,#2d241a,#251d15);color:#f1e6cf;border-color:#4a3b28}}
+.l-tete{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid rgba(160,120,60,.3)}
+.l-sceau{width:40px;height:40px;flex:none;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 35% 30%,#c0392b,#7b1b14);box-shadow:0 2px 4px rgba(0,0,0,.3);font-size:1.1rem;overflow:hidden}
+.l-sceau img{width:30px;height:30px;object-fit:contain}
+.l-exp{display:flex;flex-direction:column;min-width:0;flex:1}.l-exp b{font-size:.98rem}.l-exp span{font-size:.75rem;opacity:.7}
+.l-exp time{font-size:.72rem;opacity:.65;margin-top:1px}
+.l-fermer{position:static;flex:none;align-self:flex-start}
+.l-objet{margin:12px 0 8px;font-size:1.02rem;line-height:1.3}.l-objet span{display:block;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.55;margin-bottom:2px}
+.l-corps p{margin:0 0 10px}.l-corps h4{margin:14px 0 6px;font-size:.86rem;display:flex;align-items:center;gap:6px;color:#8a5a12}:root[data-theme="dark"] .l-corps h4{color:#e6c16a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .l-corps h4{color:#e6c16a}}
+.l-corps ul{margin:0 0 10px;padding:0 0 0 4px;list-style:none}.l-corps li{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px dashed rgba(160,120,60,.25)}.l-corps li:last-child{border-bottom:0}
+.l-corps li::before{content:'';width:5px;height:5px;border-radius:50%;background:#c9a227;flex:none}
+.l-corps .blason,.l-corps .emb,.l-corps svg{flex:none}
+.msg-tab{width:100%;border-collapse:collapse;margin:0 0 10px;font-size:.88rem}.msg-tab td{padding:5px 4px;border-bottom:1px dashed rgba(160,120,60,.25);vertical-align:middle}.msg-tab tr:last-child td{border-bottom:0}
+.msg-tab td.g{text-align:right;width:42%}.msg-tab td.m{text-align:center;font-weight:800;white-space:nowrap;width:16%}.msg-tab td.d{text-align:left;width:42%}
+.msg-tab td > *{vertical-align:middle}
+.l-sign{margin-top:12px;text-align:right;font-style:italic;opacity:.8}.l-sign::before{content:'— '}
+/* v175 : page Progression des joueurs */
+.prog-res .kpi{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}html.desk .prog-res .kpi{grid-template-columns:repeat(4,minmax(0,1fr))}
+.prog-res .kpi > div{display:flex;flex-direction:column;min-width:0}.prog-res .kpi small{font-size:.72rem;color:var(--ink-soft)}.prog-res .kpi b.nom{font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prog-reps{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.rep{display:inline-block;font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.rep.jeune{background:color-mix(in srgb,#2f80ed 14%,transparent);border-color:color-mix(in srgb,#2f80ed 40%,transparent)}.rep.plafond{background:color-mix(in srgb,#c9a227 18%,transparent);border-color:color-mix(in srgb,#c9a227 45%,transparent)}
+.rep.declin{background:color-mix(in srgb,#e5484d 12%,transparent);border-color:color-mix(in srgb,#e5484d 40%,transparent)}.rep.fatigue{background:color-mix(in srgb,#f08a2e 14%,transparent);border-color:color-mix(in srgb,#f08a2e 45%,transparent)}
+.prog-f{flex-wrap:wrap;overflow:visible;margin-bottom:6px}.prog-tri{gap:8px;margin:0 0 10px;align-items:center}.prog-tri .champ{width:auto;flex:none}
+.prog-l .t > span{display:block}.prog-l .t > b{white-space:normal}.prog-l .pot small{font-size:.68rem;font-weight:600;color:var(--ink-soft);margin-left:2px}
+.prog-l .t > span.gains{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:2px}.prog-l .gains em{font-style:normal;font-size:.72rem;font-weight:700}.prog-l .gains em.up{color:var(--bon)}.prog-l .gains em.down{color:var(--mauvais)}
+.prog-l .t > span.reps{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}.prog-l .pot{display:inline-flex;vertical-align:middle}.prog-l .pot svg{width:14px;height:14px}
+.prog-d{display:flex;align-items:center;gap:8px}.prog-n{display:flex;flex-direction:column;align-items:flex-end;min-width:3.4em}.prog-n b{font-size:1rem}.prog-n small{font-size:.66rem;white-space:nowrap}
+.palm-club{display:flex;flex-direction:column;gap:8px}.palm-club .pc{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}.palm-club .pc:last-child{border-bottom:0}
+.palm-club .pc > img,.palm-club .pc > svg{width:46px;height:46px;flex:none;object-fit:contain}.palm-club .t{display:flex;flex-direction:column;min-width:0}.palm-club .t b{font-size:.92rem}.palm-club .t span{font-size:.76rem;color:var(--ink-soft);line-height:1.35}
+.palm-club .x{color:var(--or,#c9a227);font-weight:800}.palm-club .pc.ancien > img{filter:grayscale(.55) brightness(.9);opacity:.85}
 .trophees .tr{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px}
 .trophees .tr b{font-size:.8rem} .trophees .tr span{font-size:.7rem;color:var(--ink-soft)}
 .trophees .tr.ancien .tro{filter:grayscale(.55) brightness(.9);opacity:.85}
@@ -1126,9 +1165,9 @@ table.cl td.club .blz{flex:none}
 .fj-saison2 div{display:flex;flex-direction:column;align-items:center;text-align:center} .fj-saison2 b{font-size:1.05rem} .fj-saison2 span{font-size:.66rem;color:var(--ink-soft)}
 .fj-at{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
 .fj-at .fa-g{grid-column:1/-1} .fa-gl{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
-.fj-at .at{display:grid;grid-template-columns:minmax(0,1fr) 26px 12px 26px;align-items:center;gap:4px}
+.fj-at .at{display:grid;grid-template-columns:minmax(0,1fr) 26px 14px 26px;align-items:center;gap:4px}
 .fj-at .at .pt{display:block;height:4px;border-radius:2px;background:var(--accent);opacity:.55;justify-self:start} .fj-at .at .pt.vide{opacity:0}
-.fj-at .at .tdc{font-style:normal;font-size:.55rem;text-align:center} .tdc.up{color:var(--bon)} .tdc.down{color:var(--mauvais)}
+.fj-at .at .tdc{font-style:normal;font-size:.78rem;font-weight:800;line-height:1;text-align:center} .tdc{font-style:normal} .tdc.up{color:#2fa85a} .tdc.down{color:#e5484d}   /* v173 : flèches de la saison, lisibles aussi sur téléphone */
 .fj-pc{display:grid;grid-template-columns:300px minmax(0,1fr) 340px;gap:16px;align-items:start}
 .fj-pc .fj-etat{margin:10px 0} .fj-pc .carte{margin-top:0;margin-bottom:12px}
 .fj-pc-g .fjt-l{grid-template-columns:1fr 1fr} .fj-pc-g .fjt-l.t3{grid-template-columns:1fr 1fr 1fr}
@@ -1311,23 +1350,23 @@ html.desk .er{cursor:grab}
 <input type="file" id="fichier" accept=".json,application/json" hidden>
 <script src="synchro.js?v=848eea30"></script>
 <script src="qm27-donnees.js?v=a08ae246"></script>
-<script src="qm27.js?v=0096e9c1"></script>
-<script src="qm27-club.js?v=00f844b8"></script>
+<script src="qm27.js?v=1c3b956a"></script>
+<script src="qm27-club.js?v=0e125546"></script>
 <script src="qm27-carriere.js?v=35f08871"></script>
-<script src="qm27-domaine.js?v=12aa9971"></script>
-<script src="qm27-vestiaire.js?v=144f11db"></script>
+<script src="qm27-domaine.js?v=60597a0d"></script>
+<script src="qm27-vestiaire.js?v=c5d7c7a4"></script>
 <script src="qm27-presse.js?v=c8907b53"></script>
 <script src="qm27-tactique.js?v=82a3b71f"></script>
 <script src="qm27-bureau.js?v=80fc8277"></script>
-<script src="qm27-prix.js?v=8daf584a"></script>
+<script src="qm27-prix.js?v=aa5e2f34"></script>
 <script src="qm27-europe.js?v=d5461710"></script>
-<script src="qm27-nations.js?v=66d46995"></script>
+<script src="qm27-nations.js?v=0c2a6324"></script>
 <script src="qm27-visuel.js?v=475e9f0c"></script>
-<script src="qm27-ui.js?v=0c4cd5d0"></script>
-<script src="qm27-fiche.js?v=7db74896"></script>
-<script src="qm27-lieux.js?v=352e78a0"></script>
+<script src="qm27-ui.js?v=245b381a"></script>
+<script src="qm27-fiche.js?v=f53c5a7b"></script>
+<script src="qm27-lieux.js?v=f35d269a"></script>
 <script src="qm27-direct.js?v=2b32fd29"></script>
-<script src="qm27-ecrans.js?v=aad97c6e"></script>
+<script src="qm27-ecrans.js?v=00dde162"></script>
 <script src="qm27-stats.js?v=d7377b86"></script>
 <script src="commun.js?v=fc411b5f"></script>
 </body>

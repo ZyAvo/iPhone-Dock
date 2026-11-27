@@ -1,4 +1,4 @@
-// mon-ecran-version: 0c4cd5d0
+// mon-ecran-version: 245b381a
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -385,7 +385,37 @@ function vueAccueil(){
   </div></div>`;
   if (stade && QMU.apresStade) QMU.apresStade();
 }
-const msgHTML = m => `<button class="msg ${m.lu ? '' : 'neuf'}" data-act="lireMsg" data-id="${m.id}"><b>${pieces(esc(m.titre))}</b><p>${pieces(esc(String(m.corps).length > 160 ? String(m.corps).slice(0, 160) + '…' : m.corps))}</p></button>`;
+/* ---------- v174 : le courrier ----------
+   Corps d'un message : texte simple, ou mise en page légère : ligne vide = nouveau paragraphe, « ## » = intertitre, « - » = liste,
+   « | a | b | c » = ligne de tableau ; [[FRA]] = drapeau d'une sélection, [[c:id]] = blason d'un club. */
+const jetonMsg = k => k.startsWith('c:') ? (M && M.clubs[k.slice(2)] ? blason(k.slice(2), 'p') : '') : D.NATIONS[k] ? flagSeul(k) : '';
+const ligneMsg = s => pieces(esc(s.trim())).replace(/\[\[([^\]\s]+)\]\]/g, (t, k) => jetonMsg(k));
+function corpsMsgHTML(corps){
+  const out = []; let liste = null, tab = null, para = [];
+  const fermer = () => { if (para.length){ out.push(`<p>${para.join('<br>')}</p>`); para = []; } if (liste){ out.push(`<ul>${liste.join('')}</ul>`); liste = null; } if (tab){ out.push(`<table class="msg-tab"><tbody>${tab.join('')}</tbody></table>`); tab = null; } };
+  for (const l of String(corps || '').split('\n')){
+    if (!l.trim()){ fermer(); continue; }
+    if (l.startsWith('## ')){ fermer(); out.push(`<h4>${ligneMsg(l.slice(3))}</h4>`); continue; }
+    if (l.startsWith('- ')){ if (!liste){ fermer(); liste = []; } liste.push(`<li>${ligneMsg(l.slice(2))}</li>`); continue; }
+    if (l.startsWith('| ')){ if (!tab){ fermer(); tab = []; } const c = l.slice(2).split(' | '); tab.push(`<tr>${c.map((x, i) => `<td class="${c.length === 3 ? ['g', 'm', 'd'][i] : ''}">${ligneMsg(x)}</td>`).join('')}</tr>`); continue; }
+    if (liste || tab) fermer();
+    para.push(ligneMsg(l));
+  }
+  fermer();
+  return out.join('');
+}
+/* aperçu d'une ligne (boîte de réception, accueil) : sans la mise en page */
+const apercuMsg = (corps, n) => { const t = String(corps || '').replace(/\[\[[^\]\s]+\]\]\s?/g, '').replace(/^(## |- |\| )/gm, '').replace(/ \| /g, ' ').replace(/\s*\n+\s*/g, ' · ').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
+/* qui écrit : selon la catégorie du message */
+const EXP_MSG = {pres:['Le président', c => c ? c.nom : ''], staff:['Ton adjoint', () => 'Staff technique'], club:['Le club', c => c ? c.nom : ''], mercato:['Hibou du mercato', () => 'Bureau des transferts'],
+  bless:['Le médecin du club', () => 'Infirmerie'], sixn:['La fédération', () => 'Sélections nationales'], carriere:['Ton agent', () => 'Carrière'], presse:['La Gazette du sorcier', () => 'Presse'],
+  formation:['Le pensionnat', () => 'Responsable de la formation'], prix:['Le comité des prix', () => 'Distinctions'], europe:['La Ligue des Anneaux', () => 'Compétition européenne'], bancs:['Les bancs', () => 'Entraîneurs'], info:['QM27', () => 'Nouvelles du jeu']};
+function courrierHTML(m, ico){
+  const e = EXP_MSG[m.type] || EXP_MSG.info, c = M && M.manager && M.manager.club ? club(M.manager.club) : null;
+  return `<article class="lettre l-${esc(m.type || 'info')}"><header class="l-tete"><span class="l-sceau" aria-hidden="true">${ico || '✉️'}</span><div class="l-exp"><b>${esc(e[0])}</b><span>${esc(e[1](c))}</span>${m.date ? `<time>${fmtDate(m.date, true)}</time>` : ''}</div><button class="fermer l-fermer" data-act="fermer" aria-label="Fermer">✕</button></header>
+    <h3 class="l-objet"><span>Objet</span>${pieces(esc(m.titre))}</h3><div class="l-corps">${corpsMsgHTML(m.corps)}</div><footer class="l-sign">${esc(e[0])}</footer></article>`;
+}
+const msgHTML = m => `<button class="msg ${m.lu ? '' : 'neuf'}" data-act="lireMsg" data-id="${m.id}"><b>${pieces(esc(m.titre))}</b><p>${pieces(esc(apercuMsg(m.corps, 160)))}</p></button>`;
 
 /* ---------- Classements ---------- */
 function tableHTML(rows, ligue, compact, deb = 0){
@@ -1317,11 +1347,12 @@ function vueChomage(){
   ${S && S.type === 'bilan' ? '<button class="btn or plein" data-act="saisonSuivante">Passer à la saison suivante</button>' : `<button class="btn plein" data-act="continuer">${libAvancer()}${S ? ' (' + fmtDate(dateEtape(S)) + ')' : ''}</button>`}
   <div class="carte"><h2>Boîte de réception</h2>${M.boite.slice(0, 5).map(msgHTML).join('')}</div>`;
 }
-function vueCarriere(){
+/* v174 : la carrière n'est plus un écran à part : c'est l'onglet « Carrière » de Mon profil (qm27-ecrans.js, vueProfil) ;
+   ici, le corps de l'onglet (offres de clubs, fédération, sélection, parcours, démission) et la réputation, pour l'onglet Profil */
+function reputationHTML(){ const mg = M.manager; return `<div class="carte"><h2>Réputation</h2><div class="jauge"><i style="width:${mg.rep}%"></i></div><p class="petit mut" style="margin:8px 0 0">${Math.round(mg.rep)} / 100 · elle monte avec les résultats au-dessus des attentes, les objectifs atteints et les titres. À partir de ${E.carriere.repSelection}, les fédérations peuvent proposer le poste de sélectionneur.</p></div>`; }
+function carriereCorps(bilan){
   const mg = M.manager, oc = C.offresCarriere(M), U = mg.club ? club(mg.club) : null;
-  VUE.innerHTML = `<div class="tete-mg"><span class="avp g">${window.QMU && window.QMU.avatarMgr ? window.QMU.avatarMgr('g') : avatarDe({id:'manager', p:(mg.nom || '').split(' ')[0], n:mg.nom, nat:U ? U.nat : 'FRA', age:40}, 'g', mg.club || null)}</span><div><h1 class="grand">Carrière</h1><p class="sous">${esc(mg.nom)}${U ? ' · ' + esc(U.nom) : ' · sans club'}</p></div></div>
-  <div class="carte"><h2>Réputation</h2><div class="jauge"><i style="width:${mg.rep}%"></i></div><p class="petit mut" style="margin:8px 0 0">${Math.round(mg.rep)} / 100 · elle monte avec les résultats au-dessus des attentes, les objectifs atteints et les titres. À partir de ${E.carriere.repSelection}, les fédérations peuvent proposer le poste de sélectionneur.</p></div>
-  ${oc.length ? `<div class="carte" style="border-color:var(--or)"><h2>Offres de clubs</h2>${oc.map(o => { const c = club(o.club);
+  return `${oc.length ? `<div class="carte" style="border-color:var(--or)"><h2>Offres de clubs</h2>${oc.map(o => { const c = club(o.club);
     return `<div class="el">${blason(c.id)}<div class="t"><b>${esc(c.nom)}</b><span>${esc(M.ligues[c.ligue].court)} · réputation ${c.rep} · ${esc(QM.objectif(M, c.id).txt.toLowerCase())}</span></div></div>
     <p class="petit mut" style="margin:0 0 6px">${esc(o.pourquoi || '')}</p>
     <div class="btns" style="margin-bottom:10px"><button class="btn sec" data-act="refuserPoste" data-c="${c.id}">Refuser</button><button class="btn" data-act="accepterPoste" data-c="${c.id}">Accepter</button></div>`; }).join('')}
@@ -1330,10 +1361,13 @@ function vueCarriere(){
     <div class="btns"><button class="btn sec" data-act="refuserSel">Refuser</button><button class="btn" data-act="accepterSel">Accepter</button></div></div>` : ''}
   ${mg.selection ? `<div class="carte"><h2>Sélection</h2><div class="el">${blason(mg.selection.nat, '', 1)}<div class="t"><b>${esc(nat(mg.selection.nat).nom)}</b><span>Depuis ${lab(mg.selection.depuis)} · objectif : top ${mg.selection.objectif}</span></div></div>
     <div class="btns"><button class="btn sec" data-act="quitterSel">Quitter la sélection</button><button class="btn" data-act="vue" data-v="selection">Convocations</button></div></div>` : ''}
+  ${bilan || ''}
   <div class="carte"><h2>Parcours</h2><div class="liste">${(mg.postes || []).slice().reverse().map(p => `<div class="el">${blason(p.club, 'p')}<div class="t"><b>${esc(club(p.club).nom)}</b><span>${lab(p.debut)}${p.fin != null ? ' → ' + lab(p.fin) : ' → aujourd\'hui'}</span></div></div>`).join('')}</div>
     ${mg.saisons.length ? `<div class="sep"></div><div class="liste">${mg.saisons.slice().reverse().map(x => `<div class="el"><div class="t"><b>${esc(x.saison)}</b><span>${esc(club(x.club).nom)} · ${x.pos}${x.pos === 1 ? 'er' : 'e'}</span></div></div>`).join('')}</div>` : ''}</div>
   ${U ? `<button class="btn sec plein" style="color:var(--mauvais)" data-act="demission">Démissionner de ${esc(U.nom)}</button>` : ''}`;
 }
+const nbOffresCarriere = () => C.offresCarriere(M).length + (M.manager.offreSel ? 1 : 0);
+function vueCarriere(){ return VUES.profil ? VUES.profil('carriere') : null; }
 function vueSelection(){
   const sel = M.manager.selection, n = sel.nat, T = M.sel.tactique, ctx = ctxCompo(); MEC = null;
   U.fitMap = TT() ? TT().adequationCompo(M, ctx.K, QM.completerTactique({...T})) : null;
@@ -1531,6 +1565,7 @@ document.addEventListener('change', e => {
   if (t.dataset.chg === 'pause'){ REG.pauses[t.dataset.k] = t.checked; regler(); }
   if (t.dataset.chg === 'policeJeu'){ Themes.choisirPoliceJeu(t.value); return; }   // v126
   if (t.dataset.chg === 'modeJeu'){ Themes.choisirModeJeu(t.value); return; }   // v169
+  if (t.dataset.chg === 'progTri'){ (U.progF = U.progF || {poste:'', jeunes:false, tri:'note'}).tri = t.value; rendre(); return; }   // v175
   if (t.dataset.chg === 'noms'){ REG.noms = QM.langueNoms(t.value); regler(); if (M){ QM.nommer(M); sauver(); } if (MONDE_NEUF) QM.nommer(MONDE_NEUF); entete(); toast({local:'Noms dans la langue de chaque pays', en:'Noms en anglais', fr:'Noms en français'}[REG.noms]); }
   if (t.dataset.chg === 'resumes'){ REG.resumes = t.checked ? 'enjeu' : 'tout'; regler(); }
   if (t.dataset.chg === 'son'){ REG.son = t.checked; regler(); }
@@ -1590,6 +1625,6 @@ Object.assign(ACT, {
       <div class="btns"><button class="btn sec" data-act="vue" data-v="calendrier">Calendrier</button><button class="btn sec" data-act="vue" data-v="tactique">Tactique</button></div>`); },
 });
 function rafraichirFeuilleScene(){ const el = document.querySelector('.fond .feuille [data-sc]'); if (el && ACT[el.dataset.sc]) ACT[el.dataset.sc]({garder:true}); }
-window.QMU = {flagSeul, pieces, eurT, get M(){ return M; }, get X(){ return X; }, get EMP(){ return EMP; }, U, REG, regler, VUES, ACT, VUE, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, nomEq, flag, posteB, etoiles, nomJ, court,
+window.QMU = {flagSeul, pieces, courrierHTML, apercuMsg, carriereCorps, reputationHTML, nbOffresCarriere, eurT, get M(){ return M; }, get X(){ return X; }, get EMP(){ return EMP; }, U, REG, regler, VUES, ACT, VUE, D, E, C, V, B, esc, eur, fmtDate, lab, club, nat, blason, avatarDe, nomEq, flag, posteB, etoiles, nomJ, court,
   classeNote, classeAttr, meilleurBadge, rangBadge, roleNom, imgBadge, visageMoral, toast, feuille, fermerFeuille, retirerFeuille, teteF, sauver, rendre, aller, ficheJoueur, noteVue, valVue, connu, HH, roleDe, ficheSemaine, msgHTML, tableHTML, ICO, MERC, ligneMercato, IDX, COURT_ATTR, LS, nomBat, COULEUR_POSTE, STAT_P, axesRadar, badgeDe, badgeHTML, blocContrat, blocJeune, carriereHTML, matchsInter, rapportRecruteur, Z_, nomOpt, $, TT, adversaireHTML, causerieHTML, consignesHTML, divinationHTML, fitOption, nb1, optsMaitrise, parisHTML, pastille, plansHTML, plansPrev, presseHTML, previsionHTML, set X(v){ X = v; }, set M(v){ M = v; }};
 })();

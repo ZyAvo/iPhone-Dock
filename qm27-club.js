@@ -1,4 +1,4 @@
-// mon-ecran-version: 00f844b8
+// mon-ecran-version: 0e125546
 /* QM27 (v84, lot 2 ; v85 : installations) — gestion du club, sans affichage : window.QMC.
    Staff, contrats et salaires, valeur des joueurs, finances de la semaine, entraînement et progression, cohésion, balais,
    mercato (offres du joueur, agents libres, ventes, transferts entre clubs de l'ordinateur), prolongations, blessures (médecin).
@@ -205,7 +205,7 @@ function rapportEntrainement(M){
   if (!L.length) return;
   const haut = L.filter(x => x[1] > 0).slice(0, 4).map(([id, d]) => `${nomJ(M.joueurs[id])} (+${(d * 5).toFixed(1).replace('.', ',')})`);
   const bas = L.filter(x => x[1] < 0).slice(-3).map(([id, d]) => `${nomJ(M.joueurs[id])} (${(d * 5).toFixed(1).replace('.', ',')})`);
-  Q().message(M, 'Rapport d\'entraînement du mois', `${haut.length ? 'En progrès : ' + haut.join(', ') + '.' : 'Pas de progrès marquant.'}${bas.length ? ' En baisse : ' + bas.join(', ') + '.' : ''} (évolution de la note au poste sur 100)`, 'staff');
+  Q().message(M, 'Rapport d\'entraînement du mois', `Évolution de la note au poste ce mois-ci (sur 100).\n\n${haut.length ? `## En progrès\n${haut.map(x => '- ' + x).join('\n')}` : 'Pas de progrès marquant.'}${bas.length ? `\n\n## En baisse\n${bas.map(x => '- ' + x).join('\n')}` : ''}`, 'staff');   // v174 : en listes
 }
 
 /* ---------- Finances de la semaine ---------- */

@@ -1,4 +1,4 @@
-// mon-ecran-version: 66d46995
+// mon-ecran-version: 0c2a6324
 /* QM27 (v106) — les sélections nationales : trêves internationales (matchs amicaux tirés au sort) et Ligue des nations.
    Trêves : trois par saison (octobre, novembre, mars), plus une en juin les étés sans Ligue des nations ; chaque sélection joue
    un amical contre une adversaire tirée au sort (19 sélections : une se repose à tour de rôle).
@@ -87,9 +87,10 @@ function apresSemaine(M, S){
   if (S.comp === 'ldn' && root.QMC && root.QMC.bilanSelection) root.QMC.bilanSelection(M, S);   // objectif du sélectionneur (qm27-carriere.js)
 }
 function etapeFaite(M, S){
-  const ligne = m => `${nom(m.dom)} ${m.res.score[0]}–${m.res.score[1]} ${nom(m.ext)}`, n = moi(M);
+  /* v174 : courrier mis en page : une ligne de tableau par match (« | équipe | score | équipe »), [[PAYS]] = drapeau */
+  const ligne = m => `| [[${m.dom}]] ${nom(m.dom)} | ${m.res.score[0]}–${m.res.score[1]} | ${nom(m.ext)} [[${m.ext}]]`, affiche = m => `| [[${m.dom}]] ${nom(m.dom)} | contre | ${nom(m.ext)} [[${m.ext}]]`, n = moi(M);
   if (S.comp === 'ami'){
-    msg(M, `${D.AMICAUX.fenetres} ${S.fen} : résultats`, `${S.matchs.filter(m => m.res).map(ligne).join(' · ')}.`);
+    msg(M, `${D.AMICAUX.fenetres} ${S.fen} : résultats`, S.matchs.filter(m => m.res).map(ligne).join('\n'));
     return;
   }
   const L = M.ldn; if (!L) return;
@@ -97,17 +98,17 @@ function etapeFaite(M, S){
     const T = Object.fromEntries(GROUPES.split('').map(g => [g, tableGroupe(M, g).map(x => x.id)]));
     for (const g of GROUPES) for (const id of T[g].slice(0, 2)) L.sortie[id] = 'qf';
     remplir(M, 'qf', [[T.A[0], T.B[1]], [T.B[0], T.A[1]], [T.C[0], T.D[1]], [T.D[0], T.C[1]]]);
-    msg(M, `${D.LDN.nom} : fin des groupes`, `${GROUPES.split('').map(g => `groupe ${g} : ${nom(T[g][0])} et ${nom(T[g][1])}`).join(' · ')}. Quarts : ${semaineEtape(M, 'qf').matchs.map(m => `${nom(m.dom)} – ${nom(m.ext)}`).join(', ')}.${n ? ` ${nom(n)} ${L.sortie[n] === 'qf' ? 'est en quarts' : 'est éliminée'}.` : ''}`);
+    msg(M, `${D.LDN.nom} : fin des groupes`, `${n ? `${nom(n)} ${L.sortie[n] === 'qf' ? 'est en quarts' : 'est éliminée'}.\n\n` : ''}## Qualifiés\n${GROUPES.split('').map(g => `- Groupe ${g} : [[${T[g][0]}]] ${nom(T[g][0])} et [[${T[g][1]}]] ${nom(T[g][1])}`).join('\n')}\n\n## Quarts de finale\n${semaineEtape(M, 'qf').matchs.map(affiche).join('\n')}`);
   } else if (S.etape === 'qf' || S.etape === 'sf'){
     const W = S.matchs.map(gagnant), suiv = S.etape === 'qf' ? 'sf' : 'f';
     W.forEach(w => { if (w) L.sortie[w] = suiv; });
     remplir(M, suiv, [[W[0], W[1]], [W[2], W[3]]].filter(p => p[0] && p[1]), suiv === 'f' ? {neutre:true} : null);
-    msg(M, `${D.LDN.nom} : ${ETAPES[S.etape].toLowerCase()}`, `${S.matchs.filter(m => m.res).map(ligne).join(' · ')}. ${suiv === 'f' ? 'Finale' : 'Demi-finales'} : ${semaineEtape(M, suiv).matchs.map(m => `${nom(m.dom)} – ${nom(m.ext)}`).join(', ')}.`);
+    msg(M, `${D.LDN.nom} : ${ETAPES[S.etape].toLowerCase()}`, `## Résultats\n${S.matchs.filter(m => m.res).map(ligne).join('\n')}\n\n## ${suiv === 'f' ? 'Finale' : 'Demi-finales'}\n${semaineEtape(M, suiv).matchs.map(affiche).join('\n')}`);
   } else if (S.etape === 'f'){
     const m = S.matchs[0], v = gagnant(m); if (!v) return;
     const f = m.dom === v ? m.ext : m.dom; L.vainqueur = v; L.finaliste = f; L.sortie[v] = 'v'; L.sortie[f] = 'f';
     (M.ldnHist = M.ldnHist || []).push({saison:L.saison, v, f, score:m.res.score.slice()});
-    msg(M, `${nom(v)} remporte la ${D.LDN.nom}`, `Finale : ${ligne(m)}${m.res.score[0] === m.res.score[1] ? ' (vif d\'or décisif)' : ''}. ${nom(f)} finaliste.`);
+    msg(M, `${nom(v)} remporte la ${D.LDN.nom}`, `## Finale\n${ligne(m)}\n\n[[${v}]] ${nom(v)} remporte le trophée${m.res.score[0] === m.res.score[1] ? ' grâce au vif d\'or' : ''}.\n[[${f}]] ${nom(f)} finaliste.`);
     if (R() && R().donner) for (const j of Object.values(M.joueurs)) if (j.nat === v && j.nS && j.nS.s === M.saison && j.nS.ldn) R().donner(M, j, 'ln', 'ldn');
   }
 }

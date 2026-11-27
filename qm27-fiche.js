@@ -1,4 +1,4 @@
-// mon-ecran-version: 7db74896
+// mon-ecran-version: f53c5a7b
 /* QM27 (v161, v164) — la fiche joueur en page entière : onglets, tuiles, attributs, moral, carrière, flèches et glisser.
    Chargé après qm27-ui.js, dont il reçoit la boîte à outils (window.QMU) ; ses fonctions sont publiées dans window.QMF (v164 : découpage de qm27-ui.js). */
 (() => {
@@ -33,13 +33,13 @@ const badgeRoleHTML = (j, x) => x ? `${imgBadge(x[0], x[1], 18, `Badge ${x[0][1]
 const tuile = (lib, val, cls) => `<div class="fjt${cls ? ' ' + cls : ''}"><span>${lib}</span><b>${val}</b></div>`;
 /* attributs : une ligne (valeur, part dans la note au poste lu, progression depuis le dernier rapport mensuel) */
 function ligneAttrFJ(j, k, nom, v, c, part, mx, ancien){
-  const x = valVue(j, v, k), d = ancien != null && x.exact ? Math.round(v) - Math.round(ancien) : 0;
-  return `<div class="at${c ? ' c' : ''}${c === 2 ? ' r' : ''}${x.exact ? '' : ' flou'}" title="${esc(nom)}${c === 2 ? ' · attribut du rôle' : c ? ' · compte dans la note au poste' : ''}${part ? ` (${Math.round(part * 100)} % de la note)` : ''}"><span>${esc(COURT_ATTR[k] || nom)}</span>${part ? `<i class="pt" style="width:${Math.round(part / mx * 100)}%"></i>` : '<i class="pt vide"></i>'}<em class="tdc ${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '▲' : d < 0 ? '▼' : ''}</em><b class="${classeAttr(x.mid)}">${x.txt}</b></div>`; }
+  const x = valVue(j, v, k), d = ancien != null && x.exact ? Math.round(v) - Math.round(ancien) : 0, td = d ? ` title="${d > 0 ? '+' : ''}${d} depuis le début de la saison"` : '';
+  return `<div class="at${c ? ' c' : ''}${c === 2 ? ' r' : ''}${x.exact ? '' : ' flou'}" title="${esc(nom)}${c === 2 ? ' · attribut du rôle' : c ? ' · compte dans la note au poste' : ''}${part ? ` (${Math.round(part * 100)} % de la note)` : ''}"><span>${esc(COURT_ATTR[k] || nom)}</span>${part ? `<i class="pt" style="width:${Math.round(part / mx * 100)}%"></i>` : '<i class="pt vide"></i>'}<em class="tdc ${d > 0 ? 'up' : d < 0 ? 'down' : ''}"${td}>${d > 0 ? '▲' : d < 0 ? '▼' : ''}</em><b class="${classeAttr(x.mid)}">${x.txt}</b></div>`; }
 function tableAttrsFJ(j, P_, ra){
-  const PN = QM.partNote ? QM.partNote(P_) : {}, mx = Math.max(...Object.values(PN), 0.01), A0 = j.aM || null;
+  const PN = QM.partNote ? QM.partNote(P_) : {}, mx = Math.max(...Object.values(PN), 0.01), saison = j.aSs === QU.M.saison, A0 = saison ? j.aS : null;   // v173 : flèches depuis le début de la saison
   const cib = k => { const pt = PN[k] || 0, c = pt >= 0.05; return ra.includes(k) ? 2 : c ? 1 : 0; };
   const fam = f => `<div class="fa"><h4>${f}</h4>${D.ATTRS.map((a, i) => a[2] !== f ? '' : ligneAttrFJ(j, a[0], a[1], j.a[i], cib(a[0]), PN[a[0]] || 0, mx, A0 ? A0[i] : null)).join('')}</div>`;
-  const gard = j.poste === 'G' || P_ === 'G' ? `<div class="fa fa-g"><h4>Gardien</h4><div class="fa-gl">${D.GARDIEN.map((g, i) => ligneAttrFJ(j, g[0], g[1], j.g[i], ra.includes('g:' + g[0]) ? 2 : (PN['g:' + g[0]] || 0) >= 0.05 ? 1 : 0, PN['g:' + g[0]] || 0, mx, j.gM ? j.gM[i] : null)).join('')}</div></div>` : '';
+  const gard = j.poste === 'G' || P_ === 'G' ? `<div class="fa fa-g"><h4>Gardien</h4><div class="fa-gl">${D.GARDIEN.map((g, i) => ligneAttrFJ(j, g[0], g[1], j.g[i], ra.includes('g:' + g[0]) ? 2 : (PN['g:' + g[0]] || 0) >= 0.05 ? 1 : 0, PN['g:' + g[0]] || 0, mx, saison && j.gS ? j.gS[i] : null)).join('')}</div></div>` : '';
   return `<div class="fj-at"><div class="fj-at-col">${fam('Physique')}${fam('Balle')}</div><div class="fj-at-col">${fam('Vol')}${fam('Mental')}</div>${gard}</div>`;
 }
 function lecturePosteRole(j){
@@ -92,7 +92,7 @@ function ongletAttributs(j){
       ${cb && cb.length > 1 && X ? `<div class="fj-courbe">${X.courbe(cb)}<span class="petit mut">note au poste depuis le début de la saison</span></div>` : ''}
       <button class="btn sec plein" style="margin-top:8px" data-act="focusJ" data-j="${j.id}">Choisir ses focus</button></div>` : '';
   return `${lecturePosteRole(j)}
-    <div class="carte fj-attrs"><h2>Attributs</h2><p class="fj-leg">Surlignés : ce qui fait la note au poste (barre : sa part)${role ? ' · en doré : le rôle ' + esc(roleNom(P_, role).toLowerCase()) : ''}${j.aM ? ' · ▲▼ depuis le dernier rapport mensuel' : ''}.</p>${tableAttrsFJ(j, P_, ra)}
+    <div class="carte fj-attrs"><h2>Attributs</h2><p class="fj-leg">Surlignés : ce qui fait la note au poste (barre : sa part)${role ? ' · en doré : le rôle ' + esc(roleNom(P_, role).toLowerCase()) : ''}${j.aSs === QU.M.saison ? ' · <span class="tdc up">▲</span><span class="tdc down">▼</span> gagné ou perdu depuis le début de la saison' : ''}.</p>${tableAttrsFJ(j, P_, ra)}
       ${kc < 100 ? `<p class="petit mut" style="margin:6px 0 0">Attributs en fourchette : ${Math.round(kc)} % connu. Suis le joueur ou affronte son équipe pour en savoir plus.</p>` : ''}</div>
     <div class="carte fj-radar">${V.radar(axesRadar(j).map(([l, x]) => [l, kc >= 100 ? x : valVue(j, Math.round(x), 'ax' + l).mid]), COULEUR_POSTE[j.poste])}</div>${ent}`;
 }
