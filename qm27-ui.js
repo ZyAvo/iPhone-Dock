@@ -1,4 +1,4 @@
-// mon-ecran-version: 245b381a
+// mon-ecran-version: 21941983
 /* QM27 (v83, lot 2 : v84, lot 3 : v85) — écrans : démarrage et emplacements, accueil du club, effectif et fiche joueur, tactique, match en direct,
    calendrier, classements, sauvegardes, aide. Moteur : qm27.js (window.QM) ; données : qm27-donnees.js (window.QMD).
    Sauvegarde : IndexedDB (base « qm27 », une partie par emplacement), sinon localStorage ; résumé des emplacements dans localStorage. */
@@ -976,15 +976,45 @@ function feuilleInter(k, mid){
     <div class="cols feuille-inter">${col(0, m.dom)}${col(1, m.ext)}</div><p class="petit mut">Notes du match sur 10. Touche un joueur pour sa fiche.</p>`);
 }
 /* ---------- Calendrier ---------- */
-function ficheSemaine(k){
+/* v178 : la journée vue du calendrier : en tête, l'affiche de ton match (classement et forme en championnat des deux équipes, place dans la
+   Ligue des Anneaux pour un match européen) ; dans la liste, le classement de chaque équipe dans son championnat */
+const ordF = n => n === 1 ? '1er' : n + 'e';   // v178
+const rangLigue = id => { const c = M.clubs[id]; if (!c) return 0; const T = (M.tables[c.ligue] || {})[id]; return T && T.j ? QM.classement(M, c.ligue).findIndex(r => r.id === id) + 1 : 0; };
+const formeLigue = id => { const c = M.clubs[id], T = c && (M.tables[c.ligue] || {})[id]; return T && T.forme && T.forme.length ? T.forme.map(f => `<span class="vnd ${f}">${f}</span>`).join('') : ''; };
+function placeEurope(id){
+  const E = M.europe, QE = window.QME; if (!E || !QE || !E.qual || !E.qual.includes(id)) return '';
+  const so = E.sortie[id];
+  if (so === 'v') return 'vainqueur';
+  if (so) return {f:'finaliste', sf:'éliminé en demi-finale', qf:'éliminé en quart de finale', g:'éliminé en poule'}[so] || 'éliminé';
+  if (E.tours.f && E.tours.f.includes(id)) return 'en finale';
+  if ((E.tours.sf || []).some(p => p.includes(id))) return 'en demi-finale';
+  if ((E.tours.qf || []).some(p => p.includes(id))) return 'en quart de finale';
+  const g = Object.keys(E.groupes || {}).find(k => E.groupes[k].includes(id)), T = g && E.tables[g]; if (!T) return '';
+  const r = QE.trierTable(T).findIndex(x => x.id === id) + 1, x = T[id];
+  return x && x.j ? `groupe ${g} · ${ordF(r)}, ${x.pts} pt${x.pts > 1 ? 's' : ''}` : `groupe ${g}`;
+}
+const rangCourt = id => { const r = rangLigue(id); return r ? `<small class="rg" title="Classement en championnat">${ordF(r)}</small>` : ''; };
+function afficheMatch(m, s){
+  const eu = m.ligue === 'eu', QE = window.QME, moiId = M.manager.club;
+  const eq = id => { const c = club(id), r = rangLigue(id), pe = eu ? placeEurope(id) : '', T = (M.tables[c.ligue] || {})[id] || {};
+    return `<div class="eq${id === moiId ? ' moi' : ''}">${blason(id, 'g')}<b>${esc(c.nom)}</b><span>${r ? `${ordF(r)} ${eu ? 'en ' + esc(M.ligues[c.ligue].court) : 'du championnat'} · ${T.pts} pt${T.pts > 1 ? 's' : ''}` : 'pas encore classé'}</span>${formeLigue(id) ? `<span class="forme">${formeLigue(id)}</span>` : ''}${pe ? `<span class="eu-pl">${esc(QE.COURT || QE.NOM)} : <i>${esc(pe)}</i></span>` : ''}</div>`; };
+  const comp = eu && QE ? `${QE.NOM} · ${QE.nomTour(m)}` : `${M.ligues[m.ligue].court} · journée ${s.journee}`;
+  return `<div class="carte affiche-j${eu ? ' eu' : ''}"><div class="petit mut" style="text-align:center">${esc(comp)} · ${fmtDate(m.date || s.date)}${m.res ? ` · <b>${m.res.score.join('–')}</b>` : ''}</div>
+    <div class="affiche">${eq(m.dom)}<div class="vs">${m.res ? m.res.score.join('–') : 'VS'}</div>${eq(m.ext)}</div><p class="petit mut" style="margin:4px 0 0;text-align:center">Forme : les 5 derniers matchs de championnat (le plus récent à droite).</p></div>`;
+}
+function ficheSemaine(k, mid){
   const s = M.calendrier[k], mg = M.manager, l = mg.club ? club(mg.club).ligue : null;
-  const ligne = (m, sixn) => `<${sixn && m.res && m.res.f ? `button data-act="feuilleInter" data-k="${k}" data-m="${m.id}" title="Feuille de match"` : 'div'} class="el">${blason(m.dom, 'p', sixn)}<div class="t"><b>${esc(nomEq(m.dom, sixn))} – ${esc(nomEq(m.ext, sixn))}</b><span>${m.res ? `${m.res.duree} min${m.res.vif >= 0 ? ' · vif d\'or : ' + esc(nomEq(m.res.vif ? m.ext : m.dom, sixn)) : ''}` : 'à venir'}</span></div><b>${m.res ? m.res.score.join('–') : ''}</b>${blason(m.ext, 'p', sixn)}</${sixn && m.res && m.res.f ? 'button' : 'div'}>`;
+  const nomR = (id, sixn) => sixn ? esc(nomEq(id, sixn)) : `<i class="eqn">${esc(nomEq(id, sixn))} ${rangCourt(id)}</i>`;
+  const ligne = (m, sixn) => `<${sixn && m.res && m.res.f ? `button data-act="feuilleInter" data-k="${k}" data-m="${m.id}" title="Feuille de match"` : 'div'} class="el${!sixn && (m.dom === mg.club || m.ext === mg.club) ? ' moi' : ''}">${blason(m.dom, 'p', sixn)}<div class="t"><b${sixn ? '' : ' class="jr"'}>${nomR(m.dom, sixn)} – ${nomR(m.ext, sixn)}</b><span>${m.res ? `${m.res.duree} min${m.res.vif >= 0 ? ' · vif d\'or : ' + esc(nomEq(m.res.vif ? m.ext : m.dom, sixn)) : ''}` : 'à venir'}</span></div><b>${m.res ? m.res.score.join('–') : ''}</b>${blason(m.ext, 'p', sixn)}</${sixn && m.res && m.res.f ? 'button' : 'div'}>`;
   const Ls = s.matchs.filter(m => m.ligue === 'sixn'), Lc = s.matchs.filter(m => m.ligue !== 'sixn' && m.ligue !== 'eu' && (!l || m.ligue === l)), Le = s.matchs.filter(m => m.ligue === 'eu'), QE = window.QME;
   const titre = s.type === 'sixn' ? (s.comp && window.QMN ? window.QMN.titreSemaine(s) : `${D.TOURNOI.court} · tour ${s.tour}`) : s.type === 'europe' && QE ? `Finale de la ${QE.NOM}` : `Journée ${s.journee}${s.tour ? ' · ' + D.TOURNOI.court + ' (tour ' + s.tour + ')' : ''}`;
+  const mien = s.matchs.filter(m => m.ligue !== 'sixn' && mg.club && (m.dom === mg.club || m.ext === mg.club)), choisis = mid ? mien.filter(m => String(m.id) === String(mid)) : mien;
   feuille(`${teteF(titre, fmtDate(s.date, true))}
+  ${(choisis.length ? choisis : mien).map(m => afficheMatch(m, s)).join('')}
   ${Lc.length ? `${l ? `<h4 class="sous-t">${esc(M.ligues[l].nom)}</h4>` : ''}<div class="liste">${Lc.map(m => ligne(m, false)).join('')}</div>` : ''}
   ${Ls.length ? `<h4 class="sous-t">${esc(s.comp === 'ldn' ? D.LDN.nom : s.comp === 'ami' ? D.AMICAUX.nom : D.TOURNOI.nom)}</h4><div class="liste">${Ls.map(m => ligne(m, true)).join('')}</div>` : ''}
-  ${Le.length && QE ? `<h4 class="sous-t">${esc(QE.NOM)} · ${fmtDate(Le[0].date || s.date)}</h4><div class="liste">${Le.map(m => ligne(m, false).replace('<span>', `<span>${esc(QE.nomTour(m))} · `)).join('')}</div>` : ''}`);
+  ${Le.length && QE ? `<h4 class="sous-t">${esc(QE.NOM)} · ${fmtDate(Le[0].date || s.date)}</h4><div class="liste">${Le.map(m => ligne(m, false).replace('<span>', `<span>${esc(QE.nomTour(m))} · `)).join('')}</div>` : ''}
+  ${Lc.length || Le.length ? '<p class="petit mut" style="margin:8px 0 0">À côté de chaque équipe : sa place dans son championnat.</p>' : ''}`);
 }
 
 /* ---------- Plus ---------- */
@@ -1415,7 +1445,7 @@ const ACT = {
   quitter:() => { sauver(); M = null; EMP = null; X = null; U.vue = 'accueil'; rendre(); scrollTo(0, 0); },
   sauverMain:async () => { await sauver(); toast('Partie enregistrée'); rendre(); },
   ligue:d => { U.ligue = d.l; rendre(); },
-  semaine:d => ficheSemaine(+d.s),
+  semaine:d => ficheSemaine(+d.s, d.m),
   feuilleInter:d => feuilleInter(d.k, d.m),   // v161
   jeton:d => ficheJeton(d.slot),
   causerie:d => { const r = HH().causerie(M, X, X.joueur, d.t, d.m); X.moral[X.joueur] = Math.max(-3, Math.min(3, X.moral[X.joueur] + r.delta)); r.txt = `${(HH().TONS.find(t => t[0] === d.t) || [, d.t])[1]} : ${r.txt}`;

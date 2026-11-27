@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="e7089e41">
+<meta name="mon-ecran-version" content="2975e44d">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QM27</title>
 <meta name="apple-mobile-web-app-title" content="QM27">
@@ -140,6 +140,12 @@ h1.grand{font-size:1.7rem;letter-spacing:-.03em;margin:4px 0 0;line-height:1.1}
 .affiche .eq b{font-size:.92rem;line-height:1.2}
 .affiche .eq span{font-size:.74rem;color:var(--ink-soft)}
 .affiche .vs{flex:none;font-weight:800;color:var(--ink-faint);font-size:1rem}
+/* v178 : la journée vue du calendrier : affiche de ton match, classement de chaque équipe */
+.affiche-j{margin:0 0 12px}.affiche-j .eq .forme{display:flex;gap:2px;justify-content:center}.affiche-j .eq .forme .vnd{margin:0;width:18px;height:18px;font-size:.62rem}
+.affiche-j .eq .eu-pl{font-size:.72rem;font-weight:600;color:var(--ink)}.affiche-j .eq.moi b{color:var(--accent)}
+.el small.rg{display:inline-block;font-size:.66rem;font-weight:700;color:var(--ink-soft);background:var(--card-2,rgba(0,0,0,.05));border:1px solid var(--line);border-radius:6px;padding:0 4px;margin-left:2px;vertical-align:1px}
+.el .t b.jr{white-space:normal;line-height:1.3}.el .t b.jr i.eqn{font-style:normal;white-space:nowrap}.affiche-j .eq .eu-pl i{font-style:normal;white-space:nowrap}
+.el.moi{background:color-mix(in srgb,var(--accent) 9%,transparent);border-radius:10px}
 .jauge{height:8px;border-radius:5px;background:var(--line);overflow:hidden}
 .jauge i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg, var(--mauvais), var(--moyen) 45%, var(--bon))}
 .msg{padding:10px 0;border-bottom:1px solid var(--line);text-align:left;width:100%;display:block}
@@ -1368,11 +1374,11 @@ html.desk .er{cursor:grab}
 <script src="qm27-europe.js?v=d5461710"></script>
 <script src="qm27-nations.js?v=0c2a6324"></script>
 <script src="qm27-visuel.js?v=475e9f0c"></script>
-<script src="qm27-ui.js?v=245b381a"></script>
+<script src="qm27-ui.js?v=21941983"></script>
 <script src="qm27-fiche.js?v=f53c5a7b"></script>
 <script src="qm27-lieux.js?v=a835c270"></script>
 <script src="qm27-direct.js?v=2b32fd29"></script>
-<script src="qm27-ecrans.js?v=2ca11d3c"></script>
+<script src="qm27-ecrans.js?v=592af029"></script>
 <script src="qm27-stats.js?v=d7377b86"></script>
 <script src="commun.js?v=fc411b5f"></script>
 </body>
