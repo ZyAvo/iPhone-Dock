@@ -1,4 +1,4 @@
-# mon-ecran-version: 4c40213c
+# mon-ecran-version: 14fa11db
 name: Publication
 
 # Met le site en ligne (GitHub Pages) en assemblant :
@@ -25,18 +25,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publication:
+  # v168 : deux étapes séparées. Avant, la mise en ligne démarrait dans la même seconde que l'envoi du site et ne le
+  # trouvait pas encore (« No artifacts named "github-pages" were found ») : une publication sur deux échouait.
+  preparation:
     # v51 : pas de mise en ligne après une tâche de données en échec (rien de neuf à montrer)
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment:
-      name: github-pages
-      url: ${{ steps.deploiement.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -59,11 +58,29 @@ jobs:
         continue-on-error: true
         run: node outils/etat.mjs
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: .
 
-      - id: deploiement
-        uses: actions/deploy-pages@v4
+  mise-en-ligne:
+    needs: preparation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.essai1.outputs.page_url || steps.essai2.outputs.page_url }}
+    steps:
+      - id: essai1
+        continue-on-error: true
+        uses: actions/deploy-pages@v5
+
+      # v168 : un second essai après une pause si GitHub n'a pas encore enregistré le site envoyé
+      - name: Pause avant un second essai
+        if: steps.essai1.outcome == 'failure'
+        run: sleep 30
+
+      - id: essai2
+        if: steps.essai1.outcome == 'failure'
+        uses: actions/deploy-pages@v5
