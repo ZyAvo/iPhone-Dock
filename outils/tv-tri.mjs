@@ -1,4 +1,4 @@
-// mon-ecran-version: 5f175f99
+// mon-ecran-version: d289e6e7
 // Trie le programme TV (XMLTV) et ne garde que le sport -> tv.json
 import fs from 'node:fs';
 const [,, src = 'guide.xml', out = 'tv.json', logFile = ''] = process.argv;
@@ -103,7 +103,7 @@ let erreurs = [], zero = {};
 if (logFile && fs.existsSync(logFile)){
   const lines = fs.readFileSync(logFile, 'utf8').split('\n');
   lines.forEach(l => { const m = l.match(/-\s*([A-Z0-9_]+)\s*-.*\((0) programs?\)/); if (m) zero[m[1]] = (zero[m[1]] || 0) + 1; });
-  erreurs = [...new Set(lines.filter(l => /error|err!|fail|status code|timeout|ECONN|429|403|401/i.test(l)).map(l => l.trim().slice(0, 220)))].slice(-40);
+  erreurs = resumerErreurs(lines);
 }
 const etat = {chaines:per, vides, joursVides:zero, reprisDeLaVeille:kept.length, erreurs};
 fs.writeFileSync(out, JSON.stringify({updated: new Date().toISOString(), etat, programmes: list}));
@@ -111,3 +111,35 @@ console.log(`${list.length} programmes de sport écrits dans ${out} (dont ${kept
 console.log(Object.entries(per).map(([c, x]) => `  ${c} : ${x.n} (jusqu'au ${x.jusqu})`).join('\n') || '  (aucune chaîne)');
 if (vides.length) console.log(`Chaînes sans programme : ${vides.join(', ')}`);
 if (erreurs.length) console.log(`Erreurs vues dans la récupération :\n  ${erreurs.slice(-10).join('\n  ')}`);
+
+/* v181 : erreurs résumées par site au lieu des messages bruts (l'outil recopie des objets entiers : « _idlePrev: [Timeout], »…).
+   « Grille » = journée d'une chaîne en échec (ligne « ERR: » après « [i/n] site (fr) - CHAINE - date ») ;
+   « fiches détaillées » = erreurs des requêtes annexes (détail d'une émission), sans effet sur la grille. */
+function resumerErreurs(lines){
+  const court = m => { m = String(m || '').trim(); const c = m.match(/status code (\d{3})/i); if (c) return c[1];
+    const e = m.match(/\b(E[A-Z]{3,}|ETIMEDOUT|socket hang up|timeout[^,]*)/i); return e ? e[1] : m.slice(0, 60); };
+  const grilles = {}, annexes = {};
+  let ctx = null, attente = null;
+  const ajoute = (T, cle, motif, chaine) => { const x = T[cle] || (T[cle] = {n:0, motifs:{}, chaines:new Set()}); x.n++; x.motifs[motif] = (x.motifs[motif] || 0) + 1; if (chaine) x.chaines.add(chaine); };
+  for (const brut of lines){
+    const l = brut.replace(/\x1b\[[0-9;]*m/g, '').trim();
+    const pr = l.match(/\[\d+\/\d+\]\s+(\S+)\s+\([^)]*\)\s+-\s+(\S*)\s+-/);
+    if (pr){ ctx = {site:pr[1], chaine:pr[2]}; attente = null; continue; }
+    const er = l.match(/^(?:\[\w+\]\s*)?ERR:\s*(.*)$/);
+    if (er){ ajoute(grilles, ctx ? ctx.site : 'site inconnu', court(er[1]), ctx && ctx.chaine); continue; }
+    const ax = l.match(/^(?:AxiosError|Error|TypeError|FetchError)\b[^:]*:\s*(.*)$/);
+    if (ax){ attente = court(ax[1]); continue; }
+    const u = l.match(/^url:\s*'https?:\/\/([^/']+)/);
+    if (u && attente){ ajoute(annexes, u[1], attente, null); attente = null; }
+  }
+  const motifs = x => Object.entries(x.motifs).sort((a, b) => b[1] - a[1]).map(([m, n]) => n > 1 ? `${m} ×${n}` : m).join(', ');
+  const out = [];
+  Object.entries(grilles).sort((a, b) => b[1].n - a[1].n).forEach(([site, x]) => {
+    const ch = [...new Set([...x.chaines].filter(Boolean).map(c => NAMES[c.replace(/_(S|E|W)$/, '')] || c))];
+    out.push(`Grille en échec — ${site} : ${x.n} journée${x.n > 1 ? 's' : ''} (${motifs(x)})${ch.length ? ' — ' + ch.slice(0, 6).join(', ') + (ch.length > 6 ? '…' : '') : ''}`);
+  });
+  Object.entries(annexes).sort((a, b) => b[1].n - a[1].n).forEach(([hote, x]) => {
+    out.push(`Fiches détaillées — ${hote} : ${x.n} refus ou coupure${x.n > 1 ? 's' : ''} (${motifs(x)}), sans effet sur la grille`);
+  });
+  return out.slice(0, 12);
+}

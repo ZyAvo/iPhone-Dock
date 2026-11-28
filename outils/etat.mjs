@@ -1,4 +1,4 @@
-// mon-ecran-version: e60d6f08
+// mon-ecran-version: 1875672e
 // Résumé « État des données » (etat.json) : un petit fichier lu par l'accueil (pastille) et par etat.html.
 // Lancé par la tâche « Publication », après la reprise des dernières données.
 import fs from 'node:fs';
@@ -41,7 +41,7 @@ const tv = tvj && {
   updated:tvj.updated, programmes:(tvj.programmes || []).length,
   chaines:Object.entries((tvj.etat && tvj.etat.chaines) || {}).map(([nom, x]) => ({nom, n:x.n, jusqu:x.jusqu, source:x.source || ''})).sort((x, y) => x.nom.localeCompare(y.nom, 'fr', {numeric:true})),
   vides:(tvj.etat && tvj.etat.vides) || [],
-  erreurs:((tvj.etat && tvj.etat.erreurs) || []).filter(l => /ERR|status|fail|timeout/i.test(l)).slice(-8)
+  erreurs:((tvj.etat && tvj.etat.erreurs) || []).filter(l => /^(Grille|Fiches)/.test(l) || /ERR|status|fail|timeout/i.test(l)).slice(0, 8)   // v181 : résumé par site (tv-tri.mjs)
 };
 
 const aj = read('donnees/actus/actus.json');

@@ -1,4 +1,4 @@
-/* KiosK — serveur des pronos entre amis (Google Apps Script, v180).
+/* KiosK — serveur des pronos entre amis (Google Apps Script, v181).
    Garde les joueurs et les pronos dans le Google Sheets auquel ce script est attaché (onglets « Joueurs » et « Pronos », créés tout seuls).
    Refuse un prono après le coup d'envoi (horaires lus sur le site publié, pas envoyés par le téléphone) et ne montre
    les pronos des autres qu'une fois le match commencé. Jusqu'à la v153, les points et le classement étaient calculés par la page seulement.
@@ -28,8 +28,8 @@
    de la page (action « etat ») ; toutRegler() fait la même chose pour tous les groupes depuis l'éditeur.
    v180 : GitHub saute parfois les passages programmés de la tâche Sport pendant des heures (27/11/2026 : rien entre 17 h 32 et la nuit) :
    un match commencé depuis plus de 2 h 30 sans résultat dans les fichiers publiés est demandé directement à ESPN (pronos, paris, combinés).
-   Facultatif : relancerTaches() (déclencheur toutes les 30 min, à poser avec installerRelance) relance les tâches Sport et Actus quand leurs
-   données ont trop vieilli, avec un jeton GitHub rangé dans la propriété du script GH_JETON (jamais dans le dépôt).
+   Facultatif : relancerTaches() (déclencheur toutes les 30 min, à poser avec installerRelance) relance les tâches Sport, Actus et (v181)
+   Programme TV quand leurs données ont trop vieilli (liste lue dans outils/relances.json du site, modifiable sans redéployer), avec un jeton GitHub rangé dans la propriété du script GH_JETON (jamais dans le dépôt).
    Mise en place : voir outils/dev/PRONOS.md. */
 const SITE = 'https://zyavo.github.io/iPhone-Dock/';            // adresse du dock publié
 const LIGUES = {'fra.1':'fra-1', 'eng.1':'eng-1', '270559':'270559', 'uefa.champions':'uefa-champions', 'uefa.nations':'uefa-nations', '17567':'17567'};   // id ESPN → fichier donnees/sport/<fichier>.json
@@ -483,15 +483,30 @@ function verifier(){
    3. Lancer installerRelance une fois depuis l'éditeur (autorisations) : relancerTaches tourne ensuite toutes les 30 min.
    Sans GH_JETON, relancerTaches ne fait rien. */
 const DEPOT = 'ZyAvo/iPhone-Dock';
-const RELANCES = [                                                  // tâche, fichier publié qui porte sa date, âge maximal (min) le soir et le reste du temps
+const RELANCES = [                                                  // secours si outils/relances.json est illisible (v181)
   {tache:'sport.yml', fichier:'donnees/sport/jours.json', soir:50, jour:150},
-  {tache:'actus.yml', fichier:'donnees/actus/actus.json', soir:45, jour:45}
+  {tache:'actus.yml', fichier:'donnees/actus/actus.json', soir:45, jour:45},
+  {tache:'programme-tv.yml', fichier:'tv.json', soir:300, jour:300}
 ];
+/* v181 : liste publiée avec le site (outils/relances.json) : tâche, fichier qui porte sa date (« updated »), âge maximal en minutes
+   le soir (17 h – 1 h et le week-end après midi) et le reste du temps */
+function listeRelances(){
+  try{
+    const l = enCache('relances', () => {
+      const r = UrlFetchApp.fetch(SITE + 'outils/relances.json?t=' + Math.floor(Date.now() / 36e5), {muteHttpExceptions:true});
+      if (r.getResponseCode() !== 200) throw new Error('relances ' + r.getResponseCode());
+      return JSON.parse(r.getContentText()).taches;
+    });
+    const ok = (l || []).filter(x => x && /^[a-z0-9-]+\.yml$/.test(x.tache) && /^[\w./-]+\.json$/.test(x.fichier) && !/\.\./.test(x.fichier) && +x.soir > 0 && +x.jour > 0);
+    if (ok.length) return ok;
+  }catch(e){}
+  return RELANCES;
+}
 function relancerTaches(){
   const jeton = PropertiesService.getScriptProperties().getProperty('GH_JETON');
   if (!jeton) return;
   const h = +Utilities.formatDate(new Date(), 'Europe/Paris', 'H'), soir = h >= 17 || h < 1, wk = /^(Sat|Sun)/.test(Utilities.formatDate(new Date(), 'Europe/Paris', 'EEE'));
-  RELANCES.forEach(x => {
+  listeRelances().forEach(x => {
     let age = Infinity;
     try{ age = (Date.now() - Date.parse(JSON.parse(UrlFetchApp.fetch(SITE + x.fichier + '?t=' + Date.now(), {muteHttpExceptions:true}).getContentText()).updated)) / 60e3; }catch(e){}
     if (!(age > (soir || (wk && h >= 12) ? x.soir : x.jour))) return;

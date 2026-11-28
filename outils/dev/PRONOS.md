@@ -39,6 +39,7 @@ Un invité non inscrit voit la carte Règles et le formulaire.
   (« ⏳ Résultat en attente ») jusqu'à son résultat (48 h au plus) ; la page lit le score final chez ESPN et le garde sur l'appareil, puis le match passe dans Résultats.
 - Le serveur demande lui aussi à ESPN les résultats manquants (2 h 30 après le coup d'envoi) : points, paris et combinés réglés sans attendre la tâche Sport.
 - Mise en place : coller `outils/pronos/Code.gs` v180, Enregistrer, Déployer › Gérer les déploiements › ✏️ › Version : Nouvelle version › Déployer.
+- v181 : la relance couvre aussi le Programme TV ; la liste des tâches relancées est dans `outils/relances.json` (modifiable par un lot, sans redéployer).
 - Facultatif, relance des tâches Sport et Actus : jeton GitHub à grain fin (dépôt iPhone-Dock seulement, « Actions : Read and write ») dans
   ⚙️ Paramètres du projet › Propriétés du script › `GH_JETON`, puis exécuter `installerRelance` une fois depuis l'éditeur (autorisations).
 

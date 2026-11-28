@@ -1,0 +1,23 @@
+{
+ "_note": "v181 : tâches relancées par le serveur des pronos (Code.gs, relancerTaches) quand le fichier « fichier » a plus de « soir » minutes (17 h – 1 h, week-end après midi) ou « jour » minutes (reste du temps). Modifiable sans redéployer Apps Script (lu une fois par heure).",
+ "taches": [
+  {
+   "tache": "sport.yml",
+   "fichier": "donnees/sport/jours.json",
+   "soir": 50,
+   "jour": 150
+  },
+  {
+   "tache": "actus.yml",
+   "fichier": "donnees/actus/actus.json",
+   "soir": 45,
+   "jour": 45
+  },
+  {
+   "tache": "programme-tv.yml",
+   "fichier": "tv.json",
+   "soir": 300,
+   "jour": 300
+  }
+ ]
+}
