@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- v182 : sources de secours ajoutées à toutes les listes de chaînes (classeur compris), suffixe _P = programme-tv.net,
+     utilisées seulement quand la source principale et les autres secours n'ont rien donné (outils/tv-tri.mjs). -->
+<channels>
+  <channel site="programme-tv.net" site_id="canalplus-live-1-10503" lang="fr" xmltv_id="CPLIVE1_P">Canal+ Live 1</channel>
+  <channel site="programme-tv.net" site_id="canalplus-live-2-10507" lang="fr" xmltv_id="CPLIVE2_P">Canal+ Live 2</channel>
+  <channel site="programme-tv.net" site_id="canalplus-live-3-10505" lang="fr" xmltv_id="CPLIVE3_P">Canal+ Live 3</channel>
+  <channel site="programme-tv.net" site_id="eurosport-1-5" lang="fr" xmltv_id="EUROSPORT1_P">Eurosport 1</channel>
+  <channel site="programme-tv.net" site_id="eurosport-2-63" lang="fr" xmltv_id="EUROSPORT2_P">Eurosport 2</channel>
+  <channel site="programme-tv.net" site_id="infosportplus-74" lang="fr" xmltv_id="INFOSPORT_P">Infosport+</channel>
+</channels>

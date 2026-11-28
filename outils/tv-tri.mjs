@@ -1,4 +1,4 @@
-// mon-ecran-version: d289e6e7
+// mon-ecran-version: 5e6b0daa
 // Trie le programme TV (XMLTV) et ne garde que le sport -> tv.json
 import fs from 'node:fs';
 const [,, src = 'guide.xml', out = 'tv.json', logFile = ''] = process.argv;
@@ -64,8 +64,8 @@ const NAMES = {
   RMC2: 'RMC Sport 2'
 };
 // chaînes ajoutées dans le classeur (config/tv.json) : leur nom vient de là
-try{ for (const c of JSON.parse(fs.readFileSync('config/tv.json', 'utf8')).chaines || []){ const b = String(c.xmltv_id || '').replace(/_(S|E|W)$/, ''); if (b && !NAMES[b]) NAMES[b] = c.nom; } }catch{}
-const xml = fs.existsSync(src) ? fs.readFileSync(src, 'utf8') : '';
+try{ for (const c of JSON.parse(fs.readFileSync('config/tv.json', 'utf8')).chaines || []){ const b = String(c.xmltv_id || '').replace(/_(S|E|W|P)$/, ''); if (b && !NAMES[b]) NAMES[b] = c.nom; } }catch{}
+const xml = src.split(',').filter(f => fs.existsSync(f)).map(f => fs.readFileSync(f, 'utf8')).join('\n');   // v182 : plusieurs guides (Canal+ à part)
 const dec = s => s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).replace(/&amp;/g, '&').trim();
 const tag = (body, t) => { const m = body.match(new RegExp(`<${t}[^>]*>([\\s\\S]*?)</${t}>`)); return m ? dec(m[1]) : ''; };
 const tags = (body, t) => [...body.matchAll(new RegExp(`<${t}[^>]*>([\\s\\S]*?)</${t}>`, 'g'))].map(m => dec(m[1]));
@@ -76,8 +76,8 @@ const now = Date.now(), seen = new Set(), list = [];
 for (const m of xml.matchAll(/<programme\s+([^>]*)>([\s\S]*?)<\/programme>/g)){
   const attr = k => (m[1].match(new RegExp(`${k}="([^"]*)"`)) || [])[1];
   // Plusieurs sources par chaîne : sans suffixe = principale, puis _S (SFR), _E (epgshare01), _W (site beIN)
-  const id = attr('channel') || '', sfx = (id.match(/_(S|E|W)$/) || [''])[0], c = NAMES[sfx ? id.slice(0, -sfx.length) : id]; if (!c) continue;
-  const prio = {'':0, _S:1, _E:2, _W:3}[sfx];
+  const id = attr('channel') || '', sfx = (id.match(/_(S|E|W|P)$/) || [''])[0], c = NAMES[sfx ? id.slice(0, -sfx.length) : id]; if (!c) continue;
+  const prio = {'':0, _S:1, _E:2, _W:3, _P:4}[sfx];                // v182 : _P = programme-tv.net (outils/chaines-tv-secours.xml)
   const s = time(attr('start')), e = time(attr('stop')); if (!s) continue;
   if (Date.parse(e || s) < now - 6 * 3600e3) continue;
   const title = tag(m[2], 'title'), sub = tag(m[2], 'sub-title'), desc = tag(m[2], 'desc'), cats = tags(m[2], 'category').join(' ');
@@ -87,7 +87,7 @@ for (const m of xml.matchAll(/<programme\s+([^>]*)>([\s\S]*?)<\/programme>/g)){
 }
 // Pour chaque chaîne, on ne garde que la meilleure source qui a répondu
 const best = {}; list.forEach(p => { if (best[p.c] == null || p.prio < best[p.c]) best[p.c] = p.prio; });
-const source = {}; Object.entries(best).forEach(([c, p]) => { source[c] = ['principale', 'SFR', 'epgshare01', 'site beIN'][p]; });
+const source = {}; Object.entries(best).forEach(([c, p]) => { source[c] = ['principale', 'SFR', 'epgshare01', 'site beIN', 'programme-tv.net'][p]; });
 for (let i = list.length - 1; i >= 0; i--){ if (list[i].prio !== best[list[i].c]) list.splice(i, 1); else delete list[i].prio; }
 // Si une chaîne n'a rien renvoyé pour un jour (site saturé, erreur passagère), on garde ce que l'on avait déjà pour ce jour-là
 let prev = []; try{ prev = JSON.parse(fs.readFileSync(out, 'utf8')).programmes || []; }catch{}
@@ -135,7 +135,7 @@ function resumerErreurs(lines){
   const motifs = x => Object.entries(x.motifs).sort((a, b) => b[1] - a[1]).map(([m, n]) => n > 1 ? `${m} ×${n}` : m).join(', ');
   const out = [];
   Object.entries(grilles).sort((a, b) => b[1].n - a[1].n).forEach(([site, x]) => {
-    const ch = [...new Set([...x.chaines].filter(Boolean).map(c => NAMES[c.replace(/_(S|E|W)$/, '')] || c))];
+    const ch = [...new Set([...x.chaines].filter(Boolean).map(c => NAMES[c.replace(/_(S|E|W|P)$/, '')] || c))];
     out.push(`Grille en échec — ${site} : ${x.n} journée${x.n > 1 ? 's' : ''} (${motifs(x)})${ch.length ? ' — ' + ch.slice(0, 6).join(', ') + (ch.length > 6 ? '…' : '') : ''}`);
   });
   Object.entries(annexes).sort((a, b) => b[1].n - a[1].n).forEach(([hote, x]) => {
