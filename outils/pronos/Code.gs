@@ -1,4 +1,4 @@
-/* KiosK — serveur des pronos entre amis (Google Apps Script, v154).
+/* KiosK — serveur des pronos entre amis (Google Apps Script, v180).
    Garde les joueurs et les pronos dans le Google Sheets auquel ce script est attaché (onglets « Joueurs » et « Pronos », créés tout seuls).
    Refuse un prono après le coup d'envoi (horaires lus sur le site publié, pas envoyés par le téléphone) et ne montre
    les pronos des autres qu'une fois le match commencé. Jusqu'à la v153, les points et le classement étaient calculés par la page seulement.
@@ -26,6 +26,10 @@
    Chaque mois fini est clôturé dans l'onglet « Historique » (une ligne par mois, groupe, joueur et jeu : points, exacts, justes, pronos, rang),
    et l'onglet « Tableau » (joueurs en colonnes, mois en lignes) est réécrit à chaque clôture. Réglage et clôture se font à chaque ouverture
    de la page (action « etat ») ; toutRegler() fait la même chose pour tous les groupes depuis l'éditeur.
+   v180 : GitHub saute parfois les passages programmés de la tâche Sport pendant des heures (27/11/2026 : rien entre 17 h 32 et la nuit) :
+   un match commencé depuis plus de 2 h 30 sans résultat dans les fichiers publiés est demandé directement à ESPN (pronos, paris, combinés).
+   Facultatif : relancerTaches() (déclencheur toutes les 30 min, à poser avec installerRelance) relance les tâches Sport et Actus quand leurs
+   données ont trop vieilli, avec un jeton GitHub rangé dans la propriété du script GH_JETON (jamais dans le dépôt).
    Mise en place : voir outils/dev/PRONOS.md. */
 const SITE = 'https://zyavo.github.io/iPhone-Dock/';            // adresse du dock publié
 const LIGUES = {'fra.1':'fra-1', 'eng.1':'eng-1', '270559':'270559', 'uefa.champions':'uefa-champions', 'uefa.nations':'uefa-nations', '17567':'17567'};   // id ESPN → fichier donnees/sport/<fichier>.json
@@ -117,6 +121,32 @@ function resultats(){
 function resultatAncien(lg, id){
   try{ const e = (lire('donnees/sport/' + String(lg).replace(/\./g, '-') + '.json').events || []).find(x => x.id === id); return e ? resume(e) : null; }catch(x){ return null; }
 }
+/* v180 : résultat lu chez ESPN (tableau des scores du jour du match, gardé 10 min) quand la tâche Sport n'est pas repassée */
+const SPORT_DE = lg => lg === 'nba' ? 'basketball' : lg === 'nfl' ? 'football' : /\./.test(String(lg)) ? 'soccer' : 'rugby';
+let ESPN_APPELS = 0;                                                // au plus 12 lectures par appel du script (temps de réponse)
+function scoresEspn(lg, jour){
+  return enCache('e:' + lg + ':' + jour, () => {
+    if (ESPN_APPELS >= 12) throw new Error('assez');
+    ESPN_APPELS++;
+    const r = UrlFetchApp.fetch(`https://site.api.espn.com/apis/site/v2/sports/${SPORT_DE(lg)}/${lg}/scoreboard?dates=${jour}&limit=200`, {muteHttpExceptions:true});
+    if (r.getResponseCode() !== 200) throw new Error('espn ' + r.getResponseCode());
+    const out = {};
+    (JSON.parse(r.getContentText()).events || []).forEach(ev => {
+      const k = (ev.competitions || [])[0] || {}, ty = ((ev.status || k.status || {}).type) || {}, eq = k.competitors || [];
+      const c = h => eq.find(x => x.homeAway === h) || {};
+      out[T(ev.id)] = [ty.state || '', c('home').score == null ? '' : T(c('home').score), c('away').score == null ? '' : T(c('away').score), ty.name || '', Date.parse(ev.date) || 0];
+    });
+    return out;
+  });
+}
+function resultatEspn(lg, id, t){
+  const now = Date.now(); t = +t;
+  if (!lg || !t || now < t + 2.5 * 3600e3 || now - t > 10 * 864e5) return null;
+  const jours = [...new Set([Utilities.formatDate(new Date(t), 'America/New_York', 'yyyyMMdd'), Utilities.formatDate(new Date(t), 'Europe/Paris', 'yyyyMMdd')])];
+  for (const j of jours){ try{ const x = scoresEspn(lg, j)[T(id)]; if (x) return x; }catch(e){} }
+  return null;
+}
+const fini = x => x && x[0] === 'post' && x[1] !== '' && x[2] !== '';
 /* règle les paris terminés du groupe (colonne gain : vide = en cours, 0 = perdu, mise × cote = gagné, mise = remboursé) */
 function regler(g){
   const f = PARIS(), l = f.getDataRange().getValues(), R = resultats(), now = Date.now(), anciens = {};
@@ -127,6 +157,7 @@ function regler(g){
       if (estCombi(r)){ const z = reglerCombi(r, R, now, anciens); if (z){ if (z.sel) f.getRange(k + 1, 14).setValue(z.sel); if (z.gain !== null) f.getRange(k + 1, 13).setValue(z.gain); } return; }   // v77
       const id = T(r[2]); let x = R[id];
       if (!x && now - +r[11] > 10 * 864e5) x = anciens[id] || (anciens[id] = resultatAncien(r[3], id));
+      if (!fini(x)) x = resultatEspn(T(r[3]), id, r[11]) || x;          // v180
       if (!x) return;
       let gain = null;
       if (x[0] === 'post' && x[1] !== '' && x[2] !== ''){ const h = +x[1], a = +x[2], v = h > a ? 'h' : h < a ? 'a' : 'd'; gain = T(r[4]) === v ? Math.round(+r[5] * +r[6]) : 0; }
@@ -144,6 +175,7 @@ function reglerCombi(r, R, now, anciens){
     if (x.r || now < +x.t) return;
     let y = R[x.m];
     if (!y && now - +x.t > 10 * 864e5) y = anciens[x.m] || (anciens[x.m] = resultatAncien(x.lg, x.m));
+    if (!fini(y)) y = resultatEspn(x.lg, x.m, x.t) || y;                 // v180
     if (!y) return;
     if (y[0] === 'post' && y[1] !== '' && y[2] !== ''){ const h = +y[1], a = +y[2]; x.r = x.c === (h > a ? 'h' : h < a ? 'a' : 'd') ? 'ok' : 'ko'; change = true; }
     else if (/POSTPONED|CANCEL|ABANDON/.test(y[3]) && now - +x.t > 864e5){ x.r = 'nul'; change = true; }
@@ -182,6 +214,7 @@ function reglerPronos(g){
       const r0 = l[ks[0]], lg = T(r0[3]), le = r0[6] instanceof Date ? r0[6].getTime() : now;
       let t = +r0[7] || H[id] || 0, x = R[id];
       if (!x && (t ? now > t + 2 * 3600e3 : true) && now - (t || le) < 60 * 864e5) x = ancien(lg, id);
+      if (!fini(x)) x = resultatEspn(lg, id, (x && +x[4]) || t) || x;    // v180 : la tâche Sport n'est pas repassée
       if (x && +x[4]) t = +x[4];
       if (!x) return;
       if (x[0] === 'post' && x[1] !== '' && x[2] !== ''){
@@ -442,4 +475,34 @@ function verifier(){
   JOUEURS(); PRONOS(); PARIS(); ABONNEMENTS(); HISTORIQUE();
   Logger.log(PropertiesService.getScriptProperties().getProperty('CLE_TACHE') ? 'Rappels : CLE_TACHE en place' : 'Rappels : propriété du script CLE_TACHE absente (voir PRONOS.md)');
   Logger.log(Object.keys(cotesMatin()).length + ' matchs avec la cote du matin');
+}
+
+/* ---------- v180 : relance des tâches Sport et Actus quand GitHub saute leurs passages programmés ----------
+   1. GitHub › Settings › Developer settings › Fine-grained tokens : dépôt ZyAvo/iPhone-Dock seulement, permission « Actions : Read and write ».
+   2. Ici : Paramètres du projet (⚙️) › Propriétés du script › GH_JETON = le jeton (il ne va jamais dans le dépôt).
+   3. Lancer installerRelance une fois depuis l'éditeur (autorisations) : relancerTaches tourne ensuite toutes les 30 min.
+   Sans GH_JETON, relancerTaches ne fait rien. */
+const DEPOT = 'ZyAvo/iPhone-Dock';
+const RELANCES = [                                                  // tâche, fichier publié qui porte sa date, âge maximal (min) le soir et le reste du temps
+  {tache:'sport.yml', fichier:'donnees/sport/jours.json', soir:50, jour:150},
+  {tache:'actus.yml', fichier:'donnees/actus/actus.json', soir:45, jour:45}
+];
+function relancerTaches(){
+  const jeton = PropertiesService.getScriptProperties().getProperty('GH_JETON');
+  if (!jeton) return;
+  const h = +Utilities.formatDate(new Date(), 'Europe/Paris', 'H'), soir = h >= 17 || h < 1, wk = /^(Sat|Sun)/.test(Utilities.formatDate(new Date(), 'Europe/Paris', 'EEE'));
+  RELANCES.forEach(x => {
+    let age = Infinity;
+    try{ age = (Date.now() - Date.parse(JSON.parse(UrlFetchApp.fetch(SITE + x.fichier + '?t=' + Date.now(), {muteHttpExceptions:true}).getContentText()).updated)) / 60e3; }catch(e){}
+    if (!(age > (soir || (wk && h >= 12) ? x.soir : x.jour))) return;
+    const r = UrlFetchApp.fetch(`https://api.github.com/repos/${DEPOT}/actions/workflows/${x.tache}/dispatches`, {method:'post', muteHttpExceptions:true, contentType:'application/json',
+      headers:{Authorization:'Bearer ' + jeton, Accept:'application/vnd.github+json'}, payload:JSON.stringify({ref:'main'})});
+    Logger.log(`${x.tache} : données de ${Math.round(age)} min → relance ${r.getResponseCode() === 204 ? 'demandée' : 'refusée (' + r.getResponseCode() + ')'}`);
+  });
+}
+function installerRelance(){
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'relancerTaches').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('relancerTaches').timeBased().everyMinutes(30).create();
+  Logger.log('Relance posée (toutes les 30 min). ' + (PropertiesService.getScriptProperties().getProperty('GH_JETON') ? 'Jeton GH_JETON trouvé.' : 'Il manque la propriété du script GH_JETON.'));
+  relancerTaches();
 }

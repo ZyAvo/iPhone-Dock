@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="mon-ecran-version" content="11ee79ba">
+<meta name="mon-ecran-version" content="26d99211">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pronos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -331,6 +331,7 @@ html.desk .f-sheet{border-radius:26px}
 .p-cd{font-variant-numeric:tabular-nums}
 .p-cd.urgent{color:#d4572e;font-weight:700}
 .p-live{color:#d63c3c;font-weight:700}
+.p-attente{color:var(--ink-soft);font-weight:600}   /* v180 */
 .p-live::first-letter{animation:pouls 1.6s ease-in-out infinite}
 @keyframes pouls{50%{opacity:.25}}
 /* v73 : score en direct à la place de son prono, et points « pour l'instant » */
@@ -700,12 +701,14 @@ const detailFr = d => DETAIL[d] || String(d)                         // NBA, NFL
 function candidatsDirect(){
   const now = Date.now(), l = [...MATCHS, ...PLUSM].map(m => ({id:String(m.id), league:m.league, t:m.t, state:m.state}));
   Object.entries((PARIS && PARIS.cotes) || {}).forEach(([id, c]) => l.push({id, league:c.lg, t:c.t, state:(JOURS[id] || {}).state}));
-  return l.filter(m => m.t <= now && now - m.t < 4 * 3600e3 && m.state !== 'post' && !(DIRECT[m.id] && DIRECT[m.id].state === 'post'));
+  return l.filter(m => m.t <= now && now - m.t < ATTENTE_MAX && m.state !== 'post' && !(DIRECT[m.id] && DIRECT[m.id].state === 'post'));   // v180 : 48 h (avant 4 h)
 }
 async function lireDirects(){
   const c = candidatsDirect(), ligues = [...new Set(c.map(m => m.league).filter(Boolean))]; if (!ligues.length) return false;
   const ids = new Set(c.map(m => m.id)), avant = JSON.stringify(DIRECT), now = Date.now();
-  await Promise.all(ligues.map(async lg => { for (const d of [...new Set([ymdL(now - 864e5), ymdL(now)])]){
+  // v180 : jour du match (et la veille : ESPN date à l'heure américaine), plus seulement aujourd'hui et hier
+  const jours = lg => [...new Set(c.filter(m => m.league === lg).flatMap(m => [ymdL(m.t - 864e5), ymdL(m.t)]))].sort().slice(-6);
+  await Promise.all(ligues.map(async lg => { for (const d of jours(lg)){
     try{
       const j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${SPORT_DE(lg)}/${lg}/scoreboard?dates=${d}&limit=200`)).json();
       (j.events || []).forEach(ev => { if (!ids.has(String(ev.id))) return;
@@ -716,7 +719,31 @@ async function lireDirects(){
         DIRECT[ev.id] = {h:+cote('home').score, a:+cote('away').score, state:ty.state, detail:detailFr(det), at:now}; });
     }catch{}
   } }));
-  return JSON.stringify(DIRECT) !== avant;
+  const change = JSON.stringify(DIRECT) !== avant; if (change){ finisGarder(); finaliser(); }
+  return change;
+}
+/* v180 : un match commencé dont la tâche Sport n'a pas (encore) le résultat (GitHub saute parfois ses passages pendant des heures) :
+   il reste dans « À pronostiquer » (« ⏳ Résultat en attente ») jusqu'à 48 h ; le score final lu chez ESPN est gardé sur l'appareil
+   (pronos:finis, 10 jours) et le match passe dans « Résultats » ; le serveur (ETAT.res) peut aussi donner le score. */
+const ATTENTE_MAX = 48 * 3600e3;
+function finisLire(){
+  const x = LS.get('pronos:finis', {}) || {}, lim = Date.now() - 10 * 864e5;
+  Object.entries(x).forEach(([id, d]) => { if (d && d.at > lim && !DIRECT[id]) DIRECT[id] = {h:+d.h, a:+d.a, state:'post', detail:'Terminé', at:d.at}; });
+}
+function finisGarder(){
+  const x = {}, lim = Date.now() - 10 * 864e5;
+  Object.entries(DIRECT).forEach(([id, d]) => { if (d.state === 'post' && d.at > lim) x[id] = {h:d.h, a:d.a, at:d.at}; });
+  LS.set('pronos:finis', x);
+}
+const scoreOk = v => v !== '' && v != null && /^\d+$/.test(String(v));
+function finaliser(){
+  const R = (ETAT && ETAT.res) || {};
+  tous().forEach(m => { if (m.state === 'post') return;
+    const id = String(m.id), d = DIRECT[id], r = R[id];
+    const fin = d && d.state === 'post' ? [d.h, d.a] : r && scoreOk(r[0]) && scoreOk(r[1]) && Date.now() >= m.t ? [r[0], r[1]] : null;
+    if (!fin) return;
+    m.state = 'post'; m.home = {...m.home, score:String(fin[0])}; m.away = {...m.away, score:String(fin[1])};
+  });
 }
 /* score à montrer pour un match commencé : direct d'ESPN, sinon les données de la tâche Sport ; null si rien */
 function vivant(m){
@@ -731,7 +758,7 @@ function etatDirect(m){
   const d = vivant(m);
   if (d && d.state === 'post') return '<span class="p-fini">🏁 Terminé</span>';
   if (d || m.state === 'in') return `<span class="p-live">● ${esc((d && d.detail) || 'En direct')}</span>`;
-  return '🔒 Commencé';
+  return Date.now() - m.t > 3 * 3600e3 ? '<span class="p-attente">⏳ Résultat en attente</span>' : '🔒 Commencé';   // v180
 }
 const provBadge = (pt, fini) => pt == null ? '' : `${badge(pt)}<small>${fini ? 'en attente du classement' : 'pour l\'instant'}</small>`;
 let MAJ_ATTENTE = false;
@@ -970,6 +997,7 @@ async function chargerMatchs(){
   PRONOS_F = await lirePronosF();
   const [a, b] = await Promise.all([chargerLigues(LIGUES), actifs().length ? chargerLigues(EXTRAS) : []]);
   MATCHS = a; PLUSM = b;
+  finisLire(); finaliser();                                                           // v180
 }
 async function chargerLigues(LS_){
   const now = Date.now(), out = [];
@@ -1125,7 +1153,7 @@ function extrasHTML(){
 async function changerExtras(f){
   const x = XCHOIX(); f(x); LS.set('pronos:extras', x); synchroPlusTard(); notifResync();
   try{ sessionStorage.removeItem('pronos:pastille'); }catch{}
-  if (actifs().length && !PLUSM.length){ rendre(); PLUSM = await chargerLigues(EXTRAS); if (SIM && BASE.moi()) ETAT = await BASE.tout(tous()); }
+  if (actifs().length && !PLUSM.length){ rendre(); PLUSM = await chargerLigues(EXTRAS); finaliser(); if (SIM && BASE.moi()) ETAT = await BASE.tout(tous()); }
   rendre();
 }
 function reglesHTML(){
@@ -1264,7 +1292,7 @@ function ligne(m, court, long, force){
   LIGNES[id] = f; return `<div data-lig="${esc(id)}">${f()}</div>`;
 }
 const fleCh = (etat = '⌄') => `<button type="button" class="pl-f" data-deplier aria-label="Voir le détail"><span data-etat>${etat}</span></button>`;
-const tempsCourt = (m, d) => !d ? '🔒' : d.state === 'post' ? 'Fin' : /mi-?temps|half/i.test(d.detail || '') ? 'MT' : esc(String(d.detail || '●').split(' ')[0]);
+const tempsCourt = (m, d) => !d ? (Date.now() - m.t > 3 * 3600e3 ? '⏳' : '🔒') : d.state === 'post' ? 'Fin' : /mi-?temps|half/i.test(d.detail || '') ? 'MT' : esc(String(d.detail || '●').split(' ')[0]);
 const ptCourt = pt => pt == null ? '' : `<span class="p-bd ${pt === 3 ? 'p3' : pt ? 'p1' : 'p0'}">${pt ? '+' + pt : '0'}</span>`;
 const eqCourt = (m, t, cote) => `<span class="pl-e${cote ? ' d' : ''}">${cote ? logoEq(m, t) : ''}<span>${esc(t.name)}</span>${cote ? '' : logoEq(m, t)}</span>`;
 function ligneJouer(m, me){
@@ -1315,7 +1343,7 @@ function matchJouer(m, me){
     ${ferme ? `<div class="p-chips">${autresHTML(m, me) || '<span class="note">Aucun prono</span>'}</div>` : ''}</div>`;
 }
 function jouerHTML(me){
-  const now = Date.now(), l = aJouer().filter(m => m.state !== 'post' && m.t > now - 3 * 3600e3);
+  const now = Date.now(), l = aJouer().filter(m => m.state !== 'post' && (m.t > now - 3 * 3600e3 || (m.t > now - ATTENTE_MAX && !vivant(m))));   // v180 : sans résultat, reste là (48 h max)
   return heroHTML(me) + (l.length ? affHTML() + (COMPACT ? '' : interInfos()) + blocs(l, m => ligne(m, () => ligneJouer(m, me), () => matchJouer(m, me))) : '<p class="vide">Aucun match dans les 7 prochains jours pour ces compétitions.</p>');
 }
 function autresHTML(m, me, sansMoi){
@@ -1629,7 +1657,7 @@ function etatConnu(){ const c = !SIM && LS.get('pronos:etat', null), me = BASE.m
 function appliquerEtat(e){
   const me = BASE.moi(), vrai = !SIM && !e.joueurs.includes(me.pseudo) && e.joueurs.find(n => n.toLowerCase() === me.pseudo.toLowerCase());
   if (vrai) LS.set('pronos:moi', {...me, pseudo:vrai});                           // v63 : « marc » tapé, « Marc » sur le serveur
-  ETAT = e; photosAJour().then(c => { if (c) rendre(); });
+  ETAT = e; finaliser(); photosAJour().then(c => { if (c) rendre(); });            // v180 : finaliser = scores réglés par le serveur
   if (!SIM) LS.set('pronos:etat', {g:BASE.moi().groupe, p:BASE.moi().pseudo, at:Date.now(), e});   // v70 : dernier état gardé (serveur injoignable)
 }
 function etatEchec(e){

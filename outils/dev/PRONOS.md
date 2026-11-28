@@ -34,6 +34,14 @@ Un invité non inscrit voit la carte Règles et le formulaire.
   (plus petite somme des écarts |dom − réel| + |ext − réel| ; ex æquo : 3 chacun ; seul à avoir le bon résultat : 3). Calculé dans la page (`points`), d'après les pronos du match.
 - Badge « 🎯 +3 · le plus proche » en rugby ; stats et trophée Sniper : « pronos à 3 points ».
 
+## Résultats sans la tâche Sport (v180, Code.gs v180)
+- GitHub saute parfois les passages programmés de la tâche Sport pendant des heures. Désormais un match commencé reste dans « À pronostiquer »
+  (« ⏳ Résultat en attente ») jusqu'à son résultat (48 h au plus) ; la page lit le score final chez ESPN et le garde sur l'appareil, puis le match passe dans Résultats.
+- Le serveur demande lui aussi à ESPN les résultats manquants (2 h 30 après le coup d'envoi) : points, paris et combinés réglés sans attendre la tâche Sport.
+- Mise en place : coller `outils/pronos/Code.gs` v180, Enregistrer, Déployer › Gérer les déploiements › ✏️ › Version : Nouvelle version › Déployer.
+- Facultatif, relance des tâches Sport et Actus : jeton GitHub à grain fin (dépôt iPhone-Dock seulement, « Actions : Read and write ») dans
+  ⚙️ Paramètres du projet › Propriétés du script › `GH_JETON`, puis exécuter `installerRelance` une fois depuis l'éditeur (autorisations).
+
 ## Points réglés par le serveur et historique des mois (v154, Code.gs v154)
 - Avant : le serveur ne gardait que les pronos ; points et classements étaient calculés par la page sur les matchs qu'elle charge (45 jours). Un fichier de la tâche Sport vidé (Ligue des nations, 18/11/2026) faisait disparaître des points, et la « Saison » ne couvrait que 45 jours.
 - Onglet **Pronos**, colonnes H à L ajoutées toutes seules : `coup d'envoi` (noté dès le prono), `score dom`, `score ext`, `points`, `réglé le`. Réglage à chaque ouverture de la page (action `etat`), avec les règles de la page (`pointsDe`). `-` en points : match annulé, pas compté. Une ligne réglée ne bouge plus.
