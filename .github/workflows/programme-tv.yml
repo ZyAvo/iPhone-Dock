@@ -1,14 +1,22 @@
-# mon-ecran-version: 3a0dff1e
+# mon-ecran-version: 58f1ed40
 name: Programme TV sport
 
 # Programme des chaînes sport (Canal+, beIN, SFR…) → tv.json.
-# v51 : 7 jours au passage de la nuit (01:17 UTC) ou lancé à la main, 2 jours aux autres passages (toutes les 4 h) ;
+# v51 : 7 jours au passage de la nuit (01:17 UTC), 2 jours aux autres passages (toutes les 4 h) ;
+# v182 : lancée à la main ou par la relance du serveur des pronos : 2 jours (7 au choix dans « Run workflow ») ;
+#        Canal+ demandé à part, doucement (outils/tv-canaux.mjs), avec un second essai ; sources de secours (outils/chaines-tv-secours.xml) ;
 # les jours suivants sont repris du passage précédent (outils/tv-tri.mjs). Les matchs ont leur propre tâche : « Sport ».
 # Les données vont sur la branche « donnees » (sans historique), puis la tâche « Publication » met le site à jour.
 on:
   schedule:
     - cron: '17 1,5,9,13,17,21 * * *'
-  workflow_dispatch:            # bouton « Run workflow » pour lancer à la main (7 jours)
+  workflow_dispatch:            # bouton « Run workflow » (et relance par le serveur des pronos) : 2 jours, ou 7 au choix
+    inputs:
+      jours:
+        description: 'Jours de programme'
+        type: choice
+        options: ['2', '7']
+        default: '2'
 
 permissions:
   contents: write
@@ -44,16 +52,36 @@ jobs:
       - name: Récupération du programme
         working-directory: epg
         continue-on-error: true
+        env:
+          JOURS_DEMANDES: ${{ inputs.jours }}
+          EVENEMENT: ${{ github.event_name }}
         run: |
           # chaînes choisies dans le classeur (config/chaines-tv.xml), sinon la liste d'origine
           ch=../config/chaines-tv.xml; [ -s "$ch" ] || ch=../outils/chaines-tv.xml
-          h=$((10#$(date -u +%H))); jours=2; { [ $h -ge 1 ] && [ $h -le 4 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; } && jours=7   # passage de la nuit, même parti en retard
+          h=$((10#$(date -u +%H))); jours=2
+          if [ "$EVENEMENT" = "workflow_dispatch" ]; then [ "$JOURS_DEMANDES" = "7" ] && jours=7    # v182 : la relance demande 2 jours
+          elif [ $h -ge 1 ] && [ $h -le 4 ]; then jours=7; fi                                          # passage de la nuit, même parti en retard
           echo "Programme sur $jours jours"
-          npm run grab --- --channels=$ch --output=../guide-tv.xml --days=$jours --maxConnections=3 --timeout=30000 2>&1 | tee ../grab.log
+          # v182 : Canal+ à part (une chaîne à la fois, fiches une à une), le reste comme avant + sources de secours
+          node ../outils/tv-canaux.mjs "$ch" ../outils/chaines-tv-secours.xml ../ch-canal.xml ../ch-autres.xml
+          node ../outils/tv-canaux.mjs --doux sites/canalplus.com/canalplus.com.config.js
+          : > ../grab-autres.log; : > ../grab-canal.log
+          if [ -s ../ch-autres.xml ]; then
+            npm run grab --- --channels=../ch-autres.xml --output=../guide-autres.xml --days=$jours --maxConnections=3 --timeout=30000 2>&1 | tee ../grab-autres.log
+          fi
+          if [ -s ../ch-canal.xml ]; then
+            npm run grab --- --channels=../ch-canal.xml --output=../guide-canal.xml --days=$jours --maxConnections=1 --timeout=30000 2>&1 | tee ../grab-canal.log
+            if node ../outils/tv-canaux.mjs --echec ../grab-canal.log; then
+              echo "Canal+ : trop de grilles refusées, second essai dans 3 min"; sleep 180
+              npm run grab --- --channels=../ch-canal.xml --output=../guide-canal2.xml --days=$jours --maxConnections=1 --timeout=30000 2>&1 | tee ../grab-canal2.log
+              node ../outils/tv-canaux.mjs --meilleur ../guide-canal.xml ../guide-canal2.xml ../grab-canal.log ../grab-canal2.log
+            fi
+          fi
+          cat ../grab-autres.log ../grab-canal.log > ../grab.log
 
       - name: Tri des programmes de sport
         continue-on-error: true
-        run: node outils/tv-tri.mjs guide-tv.xml tv.json grab.log
+        run: node outils/tv-tri.mjs guide-autres.xml,guide-canal.xml tv.json grab.log
 
       # ---------- 2. Envoi des données ----------
       - name: Envoi des données
